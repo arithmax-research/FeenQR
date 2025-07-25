@@ -28,6 +28,8 @@ public class AgentOrchestrator
     private readonly CompanyValuationService _companyValuationService;
     private readonly HighFrequencyDataService _hfDataService;
     private readonly TradingStrategyLibraryService _strategyLibraryService;
+    private readonly AlpacaService _alpacaService;
+    private readonly TechnicalAnalysisService _technicalAnalysisService;
     
     private readonly ConcurrentQueue<AgentJob> _jobQueue = new();
     private readonly ConcurrentDictionary<string, AgentJob> _runningJobs = new();
@@ -48,6 +50,8 @@ public class AgentOrchestrator
         CompanyValuationService companyValuationService,
         HighFrequencyDataService hfDataService,
         TradingStrategyLibraryService strategyLibraryService,
+        AlpacaService alpacaService,
+        TechnicalAnalysisService technicalAnalysisService,
         IConfiguration? configuration = null,
         ILogger<AgentOrchestrator>? logger = null)
     {
@@ -62,6 +66,8 @@ public class AgentOrchestrator
         _companyValuationService = companyValuationService;
         _hfDataService = hfDataService;
         _strategyLibraryService = strategyLibraryService;
+        _alpacaService = alpacaService;
+        _technicalAnalysisService = technicalAnalysisService;
         _configuration = configuration;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentOrchestrator>.Instance;
 
@@ -72,20 +78,22 @@ public class AgentOrchestrator
         _scheduledJobTimer = null;
         _dataRefreshTimer = null;
 
-                    // Register core plugins
-            kernel.Plugins.AddFromObject(new YouTubeAnalysisPlugin(_youtubeService));
-            kernel.Plugins.AddFromObject(new TradingPlugin(_signalService, _portfolioService, _riskService));
-            kernel.Plugins.AddFromObject(new MarketDataPlugin(_marketDataService));
-            kernel.Plugins.AddFromObject(new RiskManagementPlugin(_riskService, _portfolioService));
-            
-            // Register research agent plugins
-            kernel.Plugins.AddFromObject(new MarketSentimentPlugin(_marketSentimentAgent));
-            kernel.Plugins.AddFromObject(new StatisticalPatternPlugin(_statisticalPatternAgent));
-            
-            // Register consolidated plugins from redundant projects
-            kernel.Plugins.AddFromObject(new CompanyValuationPlugin(_companyValuationService));
-            kernel.Plugins.AddFromObject(new HighFrequencyDataPlugin(_hfDataService));
-            kernel.Plugins.AddFromObject(new TradingStrategyLibraryPlugin(_strategyLibraryService));
+        // Register core plugins
+        kernel.Plugins.AddFromObject(new YouTubeAnalysisPlugin(_youtubeService));
+        kernel.Plugins.AddFromObject(new TradingPlugin(_signalService, _portfolioService, _riskService));
+        kernel.Plugins.AddFromObject(new MarketDataPlugin(_marketDataService));
+        kernel.Plugins.AddFromObject(new RiskManagementPlugin(_riskService, _portfolioService));
+        kernel.Plugins.AddFromObject(new AlpacaPlugin(_alpacaService));
+        kernel.Plugins.AddFromObject(new TechnicalAnalysisPlugin(_technicalAnalysisService));
+        
+        // Register research agent plugins
+        kernel.Plugins.AddFromObject(new MarketSentimentPlugin(_marketSentimentAgent));
+        kernel.Plugins.AddFromObject(new StatisticalPatternPlugin(_statisticalPatternAgent));
+        
+        // Register consolidated plugins from redundant projects
+        kernel.Plugins.AddFromObject(new CompanyValuationPlugin(_companyValuationService));
+        kernel.Plugins.AddFromObject(new HighFrequencyDataPlugin(_hfDataService));
+        kernel.Plugins.AddFromObject(new TradingStrategyLibraryPlugin(_strategyLibraryService));
     }
 
     private void RegisterPlugins()

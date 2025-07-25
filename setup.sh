@@ -4,14 +4,6 @@ echo "🤖 Quant Research Agent Setup"
 echo "============================="
 echo ""
 
-# Navigate to the QuantResearchAgent directory
-cd "$(dirname "$0")/QuantResearchAgent" || {
-    echo "❌ Could not find QuantResearchAgent directory"
-    exit 1
-}
-
-echo "📁 Working directory: $(pwd)"
-
 # Check if .NET 8 is installed
 if ! command -v dotnet &> /dev/null; then
     echo "❌ .NET 8 SDK is not installed. Please install it first:"
@@ -21,16 +13,6 @@ fi
 
 echo "✅ .NET SDK found: $(dotnet --version)"
 
-# Restore packages
-echo "📦 Restoring NuGet packages..."
-dotnet restore
-
-if [ $? -ne 0 ]; then
-    echo "❌ Failed to restore packages"
-    exit 1
-fi
-
-echo "✅ Packages restored successfully"
 
 # Check for required environment variables
 echo ""

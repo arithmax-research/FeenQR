@@ -457,7 +457,7 @@ Format as clear, actionable bullet points.
 
     public List<SentimentAnalysis> GetSentimentHistory() => _sentimentHistory.ToList();
 
-    public async Task<string> GenerateSentimentTrendAnalysisAsync(string assetClass, int days = 7)
+    public string GenerateSentimentTrendAnalysis(string assetClass, int days = 7)
     {
         try
         {

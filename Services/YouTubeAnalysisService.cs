@@ -127,23 +127,52 @@ public class YouTubeAnalysisService
 
     private string ExtractVideoId(string videoUrl)
     {
-        // Handle various YouTube URL formats
-        var patterns = new[]
-        {
-            @"youtube\.com/watch\?v=([^&]+)",
-            @"youtu\.be/([^?]+)",
-            @"youtube\.com/embed/([^?]+)",
-            @"youtube\.com/v/([^?]+)"
-        };
+        if (string.IsNullOrWhiteSpace(videoUrl))
+            return string.Empty;
 
-        foreach (var pattern in patterns)
+        try
         {
-            var match = Regex.Match(videoUrl, pattern);
-            if (match.Success)
-                return match.Groups[1].Value;
+            // Handle various YouTube URL formats including the one with si parameter
+            var patterns = new[]
+            {
+                @"(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/|youtube\.com/v/)([a-zA-Z0-9_-]{11})",
+                @"youtube\.com/watch\?.*v=([a-zA-Z0-9_-]{11})",
+                @"youtu\.be/([a-zA-Z0-9_-]{11})",
+                @"youtube\.com/embed/([a-zA-Z0-9_-]{11})",
+                @"youtube\.com/v/([a-zA-Z0-9_-]{11})"
+            };
+
+            foreach (var pattern in patterns)
+            {
+                var match = Regex.Match(videoUrl, pattern, RegexOptions.IgnoreCase);
+                if (match.Success && match.Groups[1].Value.Length == 11)
+                {
+                    var videoId = match.Groups[1].Value;
+                    _logger.LogDebug("Extracted video ID: {VideoId} from URL: {VideoUrl}", videoId, videoUrl);
+                    return videoId;
+                }
+            }
+
+            // Try to extract just the 11-character video ID if it's at the end
+            var lastPart = videoUrl.Split('/', '?', '&').LastOrDefault();
+            if (!string.IsNullOrEmpty(lastPart) && lastPart.Length >= 11)
+            {
+                var possibleId = lastPart.Substring(0, Math.Min(11, lastPart.Length));
+                if (Regex.IsMatch(possibleId, @"^[a-zA-Z0-9_-]{11}$"))
+                {
+                    _logger.LogDebug("Extracted video ID from last part: {VideoId}", possibleId);
+                    return possibleId;
+                }
+            }
+
+            _logger.LogWarning("Could not extract video ID from URL: {VideoUrl}", videoUrl);
+            return string.Empty;
         }
-
-        return string.Empty;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error extracting video ID from URL: {VideoUrl}", videoUrl);
+            return string.Empty;
+        }
     }
 
     private async Task<PodcastEpisode> FetchVideoDataAsync(string videoId)

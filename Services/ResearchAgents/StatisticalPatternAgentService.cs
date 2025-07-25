@@ -37,7 +37,7 @@ public class StatisticalPatternAgentService
     public async Task<PatternAnalysisReport> DetectStatisticalPatternsAsync(
         string symbol,
         TimeSpan analysisWindow,
-        PatternType[] patternTypes = null)
+        PatternType[]? patternTypes = null)
     {
         _logger.LogInformation("Detecting statistical patterns for {Symbol} over {Window}", symbol, analysisWindow);
 
@@ -53,7 +53,7 @@ public class StatisticalPatternAgentService
             };
 
             // Get market data
-            var marketData = await GetMarketDataAsync(symbol, analysisWindow);
+            var marketData = GetMarketData(symbol, analysisWindow);
             if (marketData == null || marketData.Count < 50)
             {
                 throw new InvalidOperationException("Insufficient market data for pattern analysis");
@@ -70,12 +70,12 @@ public class StatisticalPatternAgentService
                     PatternType.Momentum => await DetectMomentumPatternsAsync(marketData),
                     PatternType.Seasonality => await DetectSeasonalityPatternsAsync(marketData),
                     PatternType.Volatility => await DetectVolatilityPatternsAsync(marketData),
-                    PatternType.Correlation => await DetectCorrelationPatternsAsync(marketData),
-                    PatternType.Anomaly => await DetectAnomalyPatternsAsync(marketData),
-                    PatternType.Fractal => await DetectFractalPatternsAsync(marketData),
-                    PatternType.Arbitrage => await DetectArbitragePatternsAsync(marketData),
-                    PatternType.Regime => await DetectRegimeChangePatternsAsync(marketData),
-                    PatternType.Microstructure => await DetectMicrostructurePatternsAsync(marketData),
+                    PatternType.Correlation => DetectCorrelationPatterns(marketData),
+                    PatternType.Anomaly => DetectAnomalyPatterns(marketData),
+                    PatternType.Fractal => DetectFractalPatterns(marketData),
+                    PatternType.Arbitrage => DetectArbitragePatterns(marketData),
+                    PatternType.Regime => DetectRegimeChangePatterns(marketData),
+                    PatternType.Microstructure => DetectMicrostructurePatterns(marketData),
                     _ => new List<DetectedPattern>()
                 };
 
@@ -83,10 +83,10 @@ public class StatisticalPatternAgentService
             }
 
             // Rank patterns by exploitability
-            report.DetectedPatterns = await RankPatternsByExploitabilityAsync(detectedPatterns);
+            report.DetectedPatterns = RankPatternsByExploitability(detectedPatterns);
             
             // Generate trading strategies
-            report.TradingStrategies = await GenerateTradingStrategiesAsync(report.DetectedPatterns);
+            report.TradingStrategies = GenerateTradingStrategies(report.DetectedPatterns);
             
             // Calculate risk metrics
             report.RiskMetrics = CalculateRiskMetrics(marketData, report.DetectedPatterns);
@@ -115,7 +115,7 @@ public class StatisticalPatternAgentService
         }
     }
 
-    private async Task<List<MarketDataPoint>> GetMarketDataAsync(string symbol, TimeSpan window)
+    private List<MarketDataPoint> GetMarketData(string symbol, TimeSpan window)
     {
         try
         {
@@ -457,7 +457,7 @@ Consider volatility forecasting accuracy and trading costs.
         }
     }
 
-    private async Task<List<DetectedPattern>> DetectCorrelationPatternsAsync(List<MarketDataPoint> data)
+    private List<DetectedPattern> DetectCorrelationPatterns(List<MarketDataPoint> data)
     {
         // Simplified correlation analysis - in production, you'd analyze multiple assets
         var patterns = new List<DetectedPattern>();
@@ -500,7 +500,7 @@ Consider volatility forecasting accuracy and trading costs.
         }
     }
 
-    private async Task<List<DetectedPattern>> DetectAnomalyPatternsAsync(List<MarketDataPoint> data)
+    private List<DetectedPattern> DetectAnomalyPatterns(List<MarketDataPoint> data)
     {
         try
         {
@@ -543,7 +543,7 @@ Consider volatility forecasting accuracy and trading costs.
         }
     }
 
-    private async Task<List<DetectedPattern>> DetectFractalPatternsAsync(List<MarketDataPoint> data)
+    private List<DetectedPattern> DetectFractalPatterns(List<MarketDataPoint> data)
     {
         try
         {
@@ -586,7 +586,7 @@ Consider volatility forecasting accuracy and trading costs.
         }
     }
 
-    private async Task<List<DetectedPattern>> DetectArbitragePatternsAsync(List<MarketDataPoint> data)
+    private List<DetectedPattern> DetectArbitragePatterns(List<MarketDataPoint> data)
     {
         // Simplified arbitrage detection - in production, you'd compare multiple venues/instruments
         var patterns = new List<DetectedPattern>();
@@ -627,7 +627,7 @@ Consider volatility forecasting accuracy and trading costs.
         }
     }
 
-    private async Task<List<DetectedPattern>> DetectRegimeChangePatternsAsync(List<MarketDataPoint> data)
+    private List<DetectedPattern> DetectRegimeChangePatterns(List<MarketDataPoint> data)
     {
         try
         {
@@ -668,7 +668,7 @@ Consider volatility forecasting accuracy and trading costs.
         }
     }
 
-    private async Task<List<DetectedPattern>> DetectMicrostructurePatternsAsync(List<MarketDataPoint> data)
+    private List<DetectedPattern> DetectMicrostructurePatterns(List<MarketDataPoint> data)
     {
         try
         {
@@ -1057,7 +1057,7 @@ Consider volatility forecasting accuracy and trading costs.
         return totalVolume > 0 ? (buyVolume - sellVolume) / totalVolume : 0;
     }
 
-    private async Task<List<DetectedPattern>> RankPatternsByExploitabilityAsync(List<DetectedPattern> patterns)
+    private List<DetectedPattern> RankPatternsByExploitability(List<DetectedPattern> patterns)
     {
         // Sort by exploitability score (combination of confidence, strength, and exploitability)
         return patterns
@@ -1065,7 +1065,7 @@ Consider volatility forecasting accuracy and trading costs.
             .ToList();
     }
 
-    private async Task<List<string>> GenerateTradingStrategiesAsync(List<DetectedPattern> patterns)
+    private List<string> GenerateTradingStrategies(List<DetectedPattern> patterns)
     {
         var strategies = new List<string>();
         
@@ -1178,7 +1178,7 @@ Focus on practical, actionable implementation steps.
 
     public List<PatternDetection> GetPatternHistory() => _patternHistory.ToList();
 
-    public async Task<string> GeneratePatternTrendAnalysisAsync(string symbol, int days = 30)
+    public string GeneratePatternTrendAnalysis(string symbol, int days = 30)
     {
         try
         {

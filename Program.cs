@@ -59,6 +59,7 @@ namespace QuantResearchAgent
             services.AddSingleton<InteractiveCLI>();
 
             // Add core services
+            services.AddSingleton<LeanDataService>();
             services.AddSingleton<AgentOrchestrator>();
             services.AddSingleton<YouTubeAnalysisService>();
             services.AddSingleton<MarketDataService>();
@@ -68,6 +69,8 @@ namespace QuantResearchAgent
             services.AddSingleton<CompanyValuationService>();
             services.AddSingleton<HighFrequencyDataService>();
             services.AddSingleton<TradingStrategyLibraryService>();
+            services.AddSingleton<AlpacaService>();
+            services.AddSingleton<TechnicalAnalysisService>();
             services.AddSingleton<HttpClient>();
 
             // Add research agents

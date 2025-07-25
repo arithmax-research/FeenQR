@@ -125,7 +125,7 @@ public class TradingPlugin
     }
 
     [KernelFunction, Description("Get current active trading signals")]
-    public async Task<string> GetActiveSignalsAsync()
+    public string GetActiveSignals()
     {
         try
         {
@@ -152,7 +152,7 @@ public class TradingPlugin
     }
 
     [KernelFunction, Description("Get signal history for a specific symbol")]
-    public async Task<string> GetSignalHistoryAsync(
+    public string GetSignalHistory(
         [Description("The trading symbol to get history for")] string symbol,
         [Description("Number of recent signals to return (default: 10)")] int count = 10)
     {

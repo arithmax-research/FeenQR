@@ -38,8 +38,17 @@ public class InteractiveCLI
         Console.WriteLine("  5. market-data [symbol] - Get market data");
         Console.WriteLine("  6. portfolio - View portfolio summary");
         Console.WriteLine("  7. risk-assessment - Assess portfolio risk");
-        Console.WriteLine("  8. help - Show available functions");
-        Console.WriteLine("  9. quit - Exit the application");
+        Console.WriteLine("  8. alpaca-data [symbol] - Get Alpaca market data");
+        Console.WriteLine("  9. alpaca-historical [symbol] [days] - Get historical data");
+        Console.WriteLine(" 10. alpaca-account - View Alpaca account info");
+        Console.WriteLine(" 11. alpaca-positions - View current positions");
+        Console.WriteLine(" 12. alpaca-quotes [symbols] - Get multiple quotes");
+        Console.WriteLine(" 13. technical-analysis [symbol] - Comprehensive TA");
+        Console.WriteLine(" 14. ta-indicators [symbol] [category] - Detailed indicators");
+        Console.WriteLine(" 15. ta-compare [symbols] - Compare TA of multiple symbols");
+        Console.WriteLine(" 16. ta-patterns [symbol] - Pattern recognition analysis");
+        Console.WriteLine(" 17. help - Show available functions");
+        Console.WriteLine(" 18. quit - Exit the application");
         Console.WriteLine();
 
         while (true)
@@ -93,6 +102,42 @@ public class InteractiveCLI
 
                 case "risk-assessment":
                     await RiskAssessmentCommand();
+                    break;
+
+                case "alpaca-data":
+                    await AlpacaDataCommand(parts);
+                    break;
+
+                case "alpaca-historical":
+                    await AlpacaHistoricalCommand(parts);
+                    break;
+
+                case "alpaca-account":
+                    await AlpacaAccountCommand();
+                    break;
+
+                case "alpaca-positions":
+                    await AlpacaPositionsCommand();
+                    break;
+
+                case "alpaca-quotes":
+                    await AlpacaQuotesCommand(parts);
+                    break;
+
+                case "technical-analysis":
+                    await TechnicalAnalysisCommand(parts);
+                    break;
+
+                case "ta-indicators":
+                    await TechnicalIndicatorsCommand(parts);
+                    break;
+
+                case "ta-compare":
+                    await TechnicalCompareCommand(parts);
+                    break;
+
+                case "ta-patterns":
+                    await TechnicalPatternsCommand(parts);
                     break;
 
                 case "help":
@@ -209,6 +254,8 @@ public class InteractiveCLI
             }
             Console.WriteLine();
         }
+
+        await Task.CompletedTask;
     }
 
     private async Task ExecuteSemanticFunction(string input)
@@ -233,7 +280,7 @@ public class InteractiveCLI
         var functionName = functionParts[1];
 
         // Parse parameters
-        var parameters = new Dictionary<string, object>();
+        var parameters = new Dictionary<string, object?>();
         for (int i = 1; i < parts.Length; i++)
         {
             var paramParts = parts[i].Split('=', 2);
@@ -288,12 +335,120 @@ public class InteractiveCLI
         Console.WriteLine("Test sequence completed!");
     }
 
-    public static async Task<InteractiveCLI> CreateAsync(IServiceProvider serviceProvider)
+    public static Task<InteractiveCLI> CreateAsync(IServiceProvider serviceProvider)
     {
         var kernel = serviceProvider.GetRequiredService<Kernel>();
         var orchestrator = serviceProvider.GetRequiredService<AgentOrchestrator>();
         var logger = serviceProvider.GetRequiredService<ILogger<InteractiveCLI>>();
 
-        return new InteractiveCLI(kernel, orchestrator, logger);
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger));
+    }
+
+    // Alpaca Commands
+    private async Task AlpacaDataCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        
+        Console.WriteLine($"Getting Alpaca market data for {symbol}...");
+        
+        var function = _kernel.Plugins["AlpacaPlugin"]["GetMarketData"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
+        
+        Console.WriteLine(result.ToString());
+    }
+
+    private async Task AlpacaHistoricalCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        var days = parts.Length > 2 && int.TryParse(parts[2], out var d) ? d : 30;
+        
+        Console.WriteLine($"Getting Alpaca historical data for {symbol} ({days} days)...");
+        
+        var function = _kernel.Plugins["AlpacaPlugin"]["GetHistoricalData"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol, ["days"] = days });
+        
+        Console.WriteLine(result.ToString());
+    }
+
+    private async Task AlpacaAccountCommand()
+    {
+        Console.WriteLine("Getting Alpaca account information...");
+        
+        var function = _kernel.Plugins["AlpacaPlugin"]["GetAccountInfo"];
+        var result = await _kernel.InvokeAsync(function);
+        
+        Console.WriteLine(result.ToString());
+    }
+
+    private async Task AlpacaPositionsCommand()
+    {
+        Console.WriteLine("Getting Alpaca positions...");
+        
+        var function = _kernel.Plugins["AlpacaPlugin"]["GetPositions"];
+        var result = await _kernel.InvokeAsync(function);
+        
+        Console.WriteLine(result.ToString());
+    }
+
+    private async Task AlpacaQuotesCommand(string[] parts)
+    {
+        var symbols = parts.Length > 1 ? parts[1] : "AAPL,MSFT,GOOGL";
+        
+        Console.WriteLine($"Getting multiple quotes for: {symbols}...");
+        
+        var function = _kernel.Plugins["AlpacaPlugin"]["GetMultipleQuotes"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbols"] = symbols });
+        
+        Console.WriteLine(result.ToString());
+    }
+
+    // Technical Analysis Commands
+    private async Task TechnicalAnalysisCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        
+        Console.WriteLine($"🔍 Performing comprehensive technical analysis for {symbol}...");
+        
+        var function = _kernel.Plugins["TechnicalAnalysisPlugin"]["AnalyzeSymbol"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
+        
+        Console.WriteLine(result.ToString());
+    }
+
+    private async Task TechnicalIndicatorsCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        var category = parts.Length > 2 ? parts[2] : "all";
+        
+        Console.WriteLine($"📊 Getting detailed {category} indicators for {symbol}...");
+        
+        var function = _kernel.Plugins["TechnicalAnalysisPlugin"]["GetDetailedIndicators"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol, ["category"] = category });
+        
+        Console.WriteLine(result.ToString());
+    }
+
+    private async Task TechnicalCompareCommand(string[] parts)
+    {
+        var symbols = parts.Length > 1 ? parts[1] : "AAPL,MSFT,GOOGL";
+        
+        Console.WriteLine($"📈 Comparing technical analysis for: {symbols}...");
+        
+        var function = _kernel.Plugins["TechnicalAnalysisPlugin"]["CompareSymbols"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbols"] = symbols });
+        
+        Console.WriteLine(result.ToString());
+    }
+
+    private async Task TechnicalPatternsCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        
+        Console.WriteLine($"🔍 Analyzing patterns for {symbol}...");
+        
+        var function = _kernel.Plugins["TechnicalAnalysisPlugin"]["GetPatternAnalysis"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
+        
+        Console.WriteLine(result.ToString());
     }
 }

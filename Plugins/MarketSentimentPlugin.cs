@@ -173,7 +173,7 @@ public class MarketSentimentPlugin
     {
         try
         {
-            var trendAnalysis = await _sentimentService.GenerateSentimentTrendAnalysisAsync(assetClass, days);
+            var trendAnalysis = _sentimentService.GenerateSentimentTrendAnalysis(assetClass, days);
             
             var result = $"## Sentiment Trend Analysis\n\n";
             result += $"**Asset Class:** {assetClass.ToUpper()}\n";

@@ -130,7 +130,7 @@ public class RiskManagementPlugin
     }
 
     [KernelFunction, Description("Get risk management configuration and limits")]
-    public async Task<string> GetRiskParametersAsync()
+    public string GetRiskParameters()
     {
         try
         {

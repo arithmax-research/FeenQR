@@ -252,13 +252,13 @@ public class StatisticalPatternPlugin
 
     [KernelFunction]
     [Description("Get pattern detection trends and history")]
-    public async Task<string> GetPatternTrendsAsync(
+    public string GetPatternTrends(
         [Description("Symbol to analyze trends for")] string symbol,
         [Description("Number of days to look back")] int days = 30)
     {
         try
         {
-            var trendAnalysis = await _patternService.GeneratePatternTrendAnalysisAsync(symbol, days);
+            var trendAnalysis = _patternService.GeneratePatternTrendAnalysis(symbol, days);
             
             var result = $"## Pattern Detection Trends\n\n";
             result += $"**Symbol:** {symbol.ToUpper()}\n";

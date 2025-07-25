@@ -113,7 +113,7 @@ public class MarketDataService
             else
             {
                 // For traditional stocks, you could use Alpha Vantage or other APIs
-                return await FetchStockDataAsync(symbol);
+                return FetchStockData(symbol);
             }
         }
         catch (Exception ex)
@@ -164,7 +164,7 @@ public class MarketDataService
         }
     }
 
-    private async Task<MarketData?> FetchStockDataAsync(string symbol)
+    private MarketData? FetchStockData(string symbol)
     {
         try
         {
@@ -202,7 +202,7 @@ public class MarketDataService
             }
             else
             {
-                return await FetchStockHistoricalDataAsync(symbol, limit);
+                return FetchStockHistoricalData(symbol, limit);
             }
         }
         catch (Exception ex)
@@ -265,7 +265,7 @@ public class MarketDataService
         }
     }
 
-    private async Task<List<MarketData>?> FetchStockHistoricalDataAsync(string symbol, int limit)
+    private List<MarketData>? FetchStockHistoricalData(string symbol, int limit)
     {
         // Placeholder for stock historical data
         // Generate mock historical data
