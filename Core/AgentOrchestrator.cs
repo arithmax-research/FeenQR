@@ -297,7 +297,7 @@ public class AgentOrchestrator
             Type = "podcast_analysis",
             Parameters = new Dictionary<string, object>
             {
-                ["podcastUrl"] = "https://open.spotify.com/episode/69tcEMbTyOEcPfgEJ95xos"
+                ["videoUrl"] = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
             },
             Priority = 3
         };
@@ -334,7 +334,7 @@ public class AgentOrchestrator
                     Type = "podcast_analysis",
                     Parameters = new Dictionary<string, object>
                     {
-                        ["podcastUrl"] = "https://open.spotify.com/episode/69tcEMbTyOEcPfgEJ95xos"
+                        ["videoUrl"] = "https://open.spotify.com/episode/69tcEMbTyOEcPfgEJ95xos"
                     },
                     Priority = 3
                 };

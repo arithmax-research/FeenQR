@@ -70,3 +70,8 @@
 /Users/misango/codechest/ArithmaxResearchChest/obj/Release/net8.0/QuantResearchAgent.pdb
 /Users/misango/codechest/ArithmaxResearchChest/obj/Release/net8.0/QuantResearchAgent.genruntimeconfig.cache
 /Users/misango/codechest/ArithmaxResearchChest/obj/Release/net8.0/ref/QuantResearchAgent.dll
+/Users/misango/codechest/ArithmaxResearchChest/bin/Release/net8.0/Alpaca.Markets.dll
+/Users/misango/codechest/ArithmaxResearchChest/bin/Release/net8.0/Polly.dll
+/Users/misango/codechest/ArithmaxResearchChest/bin/Release/net8.0/Polly.Core.dll
+/Users/misango/codechest/ArithmaxResearchChest/bin/Release/net8.0/System.IO.Pipelines.dll
+/Users/misango/codechest/ArithmaxResearchChest/bin/Release/net8.0/System.Threading.Channels.dll

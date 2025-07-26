@@ -54,56 +54,77 @@ public class AlpacaService
     {
         try
         {
+            var cleanSymbol = symbol.Trim().ToUpper();
             if (_dataClient == null)
             {
-                _logger.LogWarning("Alpaca client not initialized. Cannot fetch market data for {Symbol}", symbol);
-                return null;
+                _logger.LogWarning("Alpaca client not initialized. Cannot fetch market data for {Symbol}", cleanSymbol);
+                return await GetLeanMarketDataFallback(cleanSymbol);
             }
 
-            // Get latest quote for real-time price
-            var quote = await _dataClient.GetLatestQuoteAsync(new LatestMarketDataRequest(symbol));
+            _logger.LogDebug("Requesting Alpaca market data for symbol: {Symbol}", cleanSymbol);
 
-            // Get latest trade for volume and price confirmation  
-            var trade = await _dataClient.GetLatestTradeAsync(new LatestMarketDataRequest(symbol));
-
-            // Get recent bars for daily high/low
-            var barsRequest = new HistoricalBarsRequest(
-                symbol,
-                DateTime.UtcNow.AddDays(-2),
-                DateTime.UtcNow,
-                BarTimeFrame.Day);
-
-            var barsResponse = await _dataClient.GetHistoricalBarsAsync(barsRequest);
-            var bars = barsResponse.Items.ContainsKey(symbol) ? barsResponse.Items[symbol].ToList() : new List<IBar>();
-
-            var latestBar = bars.LastOrDefault();
-            var previousBar = bars.Count > 1 ? bars[bars.Count - 2] : null;
-
-            var currentPrice = trade?.Price ?? quote?.BidPrice ?? 0;
-            var previousClose = previousBar?.Close ?? currentPrice;
-            var change24h = currentPrice - previousClose;
-
-            var marketData = new MarketData
+            try
             {
-                Symbol = symbol,
-                Price = (double)currentPrice,
-                Volume = (long)(latestBar?.Volume ?? trade?.Size ?? 0),
-                High24h = (double)(latestBar?.High ?? currentPrice),
-                Low24h = (double)(latestBar?.Low ?? currentPrice),
-                Change24h = (double)change24h,
-                Timestamp = trade?.TimestampUtc ?? quote?.TimestampUtc ?? DateTime.UtcNow
-            };
+                // Get latest quote for real-time price
+                var quote = await _dataClient.GetLatestQuoteAsync(new LatestMarketDataRequest(cleanSymbol));
+                _logger.LogDebug("Alpaca quote response: {Quote}", quote != null ? $"Bid={quote.BidPrice}, Ask={quote.AskPrice}, Timestamp={quote.TimestampUtc}" : "null");
 
-            _logger.LogInformation("Fetched market data for {Symbol}: Price={Price:C}, Volume={Volume}", 
-                symbol, currentPrice, marketData.Volume);
+                // Get latest trade for volume and price confirmation
+                var trade = await _dataClient.GetLatestTradeAsync(new LatestMarketDataRequest(cleanSymbol));
+                _logger.LogDebug("Alpaca trade response: {Trade}", trade != null ? $"Price={trade.Price}, Size={trade.Size}, Timestamp={trade.TimestampUtc}" : "null");
 
-            return marketData;
+                // Get recent bars for daily high/low
+                var barsRequest = new HistoricalBarsRequest(
+                    cleanSymbol,
+                    DateTime.UtcNow.AddDays(-2),
+                    DateTime.UtcNow,
+                    BarTimeFrame.Day);
+
+                var barsResponse = await _dataClient.GetHistoricalBarsAsync(barsRequest);
+                _logger.LogDebug("Alpaca bars response: {BarsCount}", barsResponse.Items.ContainsKey(cleanSymbol) ? barsResponse.Items[cleanSymbol].Count : 0);
+                var bars = barsResponse.Items.ContainsKey(cleanSymbol) ? barsResponse.Items[cleanSymbol].ToList() : new List<IBar>();
+
+                var latestBar = bars.LastOrDefault();
+                var previousBar = bars.Count > 1 ? bars[bars.Count - 2] : null;
+
+                var currentPrice = trade?.Price ?? quote?.BidPrice ?? 0;
+                var previousClose = previousBar?.Close ?? currentPrice;
+                var change24h = currentPrice - previousClose;
+
+                if (currentPrice == 0)
+                {
+                    _logger.LogWarning("Alpaca returned zero price for {Symbol}. Quote: {Quote}, Trade: {Trade}", cleanSymbol, quote, trade);
+                    return await GetLeanMarketDataFallback(cleanSymbol);
+                }
+
+                var marketData = new MarketData
+                {
+                    Symbol = cleanSymbol,
+                    Price = (double)currentPrice,
+                    Volume = (long)(latestBar?.Volume ?? trade?.Size ?? 0),
+                    High24h = (double)(latestBar?.High ?? currentPrice),
+                    Low24h = (double)(latestBar?.Low ?? currentPrice),
+                    Change24h = (double)change24h,
+                    Timestamp = trade?.TimestampUtc ?? quote?.TimestampUtc ?? DateTime.UtcNow
+                };
+
+                _logger.LogInformation("Fetched market data for {Symbol}: Price={Price:C}, Volume={Volume}", 
+                    cleanSymbol, currentPrice, marketData.Volume);
+
+                return marketData;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching market data for {Symbol}. Exception: {Message}", symbol, ex.Message);
+                return await GetLeanMarketDataFallback(cleanSymbol);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching market data for {Symbol}", symbol);
-            return null;
+            _logger.LogError(ex, "Error fetching market data for {Symbol}. Exception: {Message}", symbol, ex.Message);
+            return await GetLeanMarketDataFallback(symbol.Trim().ToUpper());
         }
+
     }
 
     public async Task<List<IBar>> GetHistoricalBarsAsync(string symbol, int days = 30, BarTimeFrame? timeFrame = null)
@@ -144,7 +165,6 @@ public class AlpacaService
         try
         {
             var cacheKey = $"{symbol}_{days}_{timeFrame?.ToString() ?? "1D"}";
-            
             if (_historicalDataCache.TryGetValue(cacheKey, out var cached))
             {
                 // Return cached data if it's less than 5 minutes old
@@ -171,99 +191,141 @@ public class AlpacaService
 
             _logger.LogDebug("Making Alpaca API request for {Symbol} with timeframe {TimeFrame}", symbol, timeFrame ?? BarTimeFrame.Day);
 
-            var response = await _dataClient!.GetHistoricalBarsAsync(request);
-            
-            _logger.LogDebug("Alpaca API response received. Found data for {SymbolCount} symbols: {Symbols}", 
-                response.Items.Count, string.Join(", ", response.Items.Keys));
-            
-            if (!response.Items.ContainsKey(symbol))
+            try
             {
-                _logger.LogWarning("No historical data found in response for symbol {Symbol}. Available symbols: {AvailableSymbols}", 
-                    symbol, string.Join(", ", response.Items.Keys));
-                return new List<IBar>();
-            }
-            
-            var allBars = response.Items[symbol].ToList();
-            
-            // Take only the requested number of most recent bars
-            var bars = allBars.OrderByDescending(b => b.TimeUtc).Take(days).OrderBy(b => b.TimeUtc).ToList();
-
-            _historicalDataCache[cacheKey] = bars;
-            _logger.LogInformation("Fetched {TotalBars} total bars, returning {RequestedBars} most recent bars for {Symbol}", 
-                allBars.Count, bars.Count, symbol);
-
-            if (bars.Count == 0)
-            {
-                _logger.LogWarning("Historical data request returned 0 bars for {Symbol}. Market might be closed or symbol invalid.", symbol);
-                
-                // Log detailed response info for debugging
-                _logger.LogDebug("Response contained {SymbolCount} symbols: {Symbols}", 
+                var response = await _dataClient!.GetHistoricalBarsAsync(request);
+                _logger.LogDebug("Alpaca API response received. Found data for {SymbolCount} symbols: {Symbols}", 
                     response.Items.Count, string.Join(", ", response.Items.Keys));
-            }
 
-            return bars;
+                if (!response.Items.ContainsKey(symbol))
+                {
+                    _logger.LogWarning("No historical data found in response for symbol {Symbol}. Available symbols: {AvailableSymbols}", 
+                        symbol, string.Join(", ", response.Items.Keys));
+                    return await GetLeanHistoricalBarsFallback(symbol, days);
+                }
+
+                var allBars = response.Items[symbol].ToList();
+                // Take only the requested number of most recent bars
+                var bars = allBars.OrderByDescending(b => b.TimeUtc).Take(days).OrderBy(b => b.TimeUtc).ToList();
+
+                _historicalDataCache[cacheKey] = bars;
+                _logger.LogInformation("Fetched {TotalBars} total bars, returning {RequestedBars} most recent bars for {Symbol}", 
+                    allBars.Count, bars.Count, symbol);
+
+                if (bars.Count == 0)
+                {
+                    _logger.LogWarning("Historical data request returned 0 bars for {Symbol}. Market might be closed or symbol invalid.", symbol);
+                    // Log detailed response info for debugging
+                    _logger.LogDebug("Response contained {SymbolCount} symbols: {Symbols}", 
+                        response.Items.Count, string.Join(", ", response.Items.Keys));
+                    return await GetLeanHistoricalBarsFallback(symbol, days);
+                }
+
+                return bars;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching historical bars from Alpaca for {Symbol}: {Message}", symbol, ex.Message);
+                return await GetLeanHistoricalBarsFallback(symbol, days);
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching historical bars from Alpaca for {Symbol}: {Message}", symbol, ex.Message);
-            return new List<IBar>();
+            return await GetLeanHistoricalBarsFallback(symbol, days);
         }
+
     }
+
+    private async Task<List<IBar>> GetLeanHistoricalBarsFallback(string symbol, int days)
+    {
+        if (_leanDataService != null)
+        {
+            var hasLocalData = await _leanDataService.HasDataForSymbolAsync(symbol, false);
+            if (hasLocalData)
+            {
+                var bars = await _leanDataService.GetEquityBarsAsync(symbol, "daily", days);
+                if (bars != null && bars.Count > 0)
+                {
+                    _logger.LogInformation($"Fetched {bars.Count} bars for {symbol} from local Lean data (fallback)");
+                    // If LeanBar implements IBar, cast directly; otherwise, map manually
+                    return bars.Select(b => new AlpacaBar
+                    {
+                        Symbol = symbol,
+                        TimeUtc = b.Time,
+                        Open = (decimal)b.Open,
+                        High = (decimal)b.High,
+                        Low = (decimal)b.Low,
+                        Close = (decimal)b.Close,
+                        Volume = b.Volume
+                    }).Cast<IBar>().ToList();
+                }
+            }
+        }
+        _logger.LogWarning($"No Lean data found for {symbol} (historical fallback)");
+        return new List<IBar>();
+    }
+
+    private async Task<MarketData?> GetLeanMarketDataFallback(string symbol)
+    {
+        if (_leanDataService != null)
+        {
+            var hasLocalData = await _leanDataService.HasDataForSymbolAsync(symbol, false);
+            if (hasLocalData)
+            {
+                var bars = await _leanDataService.GetEquityBarsAsync(symbol, "daily", 1);
+                var latestBar = bars.LastOrDefault();
+                if (latestBar != null)
+                {
+                    _logger.LogInformation($"Fetched market data for {symbol} from local Lean data (fallback)");
+                    return new MarketData
+                    {
+                        Symbol = symbol,
+                        Price = (double)latestBar.Close,
+                        Volume = latestBar.Volume,
+                        High24h = (double)latestBar.High,
+                        Low24h = (double)latestBar.Low,
+                        Change24h = (double)(latestBar.Close - latestBar.Open),
+                        Timestamp = latestBar.Time
+                    };
+                }
+            }
+        }
+        _logger.LogWarning($"No Lean data found for {symbol} (fallback)");
+        return null;
+    }
+
+    // Removed duplicate GetHistoricalBarsAsync
+
+    // Removed duplicate GetAlpacaHistoricalBarsAsync
 
     private async Task<List<IBar>> GetLeanHistoricalBarsAsync(string symbol, int days = 30)
     {
         try
         {
             _logger.LogInformation("Fetching data from Lean data files for {Symbol}", symbol);
-            
-            // Check if we have data for this symbol in Lean format
             var hasEquityData = await _leanDataService.HasDataForSymbolAsync(symbol, false);
-            var hasCryptoData = await _leanDataService.HasDataForSymbolAsync(symbol, true);
-            
-            List<LeanBar> leanBars;
-            
             if (hasEquityData)
             {
-                _logger.LogInformation("Found equity data for {Symbol} in Lean format", symbol);
-                leanBars = await _leanDataService.GetEquityBarsAsync(symbol, "daily", days);
-            }
-            else if (hasCryptoData)
-            {
-                _logger.LogInformation("Found crypto data for {Symbol} in Lean format", symbol);
-                leanBars = await _leanDataService.GetCryptoBarsAsync(symbol, "daily", days);
-            }
-            else
-            {
-                _logger.LogWarning("No Lean data found for {Symbol}. Attempting to download...", symbol);
-                
-                // Try to download data using the Python pipeline
-                var downloadSuccess = await _leanDataService.TriggerDataDownloadAsync(symbol, false, days);
-                if (downloadSuccess)
+                var leanBars = await _leanDataService.GetEquityBarsAsync(symbol, "daily", days);
+                if (leanBars != null && leanBars.Count > 0)
                 {
-                    _logger.LogInformation("Successfully downloaded data for {Symbol}, retrying...", symbol);
-                    leanBars = await _leanDataService.GetEquityBarsAsync(symbol, "daily", days);
-                }
-                else
-                {
-                    _logger.LogError("Failed to download data for {Symbol}", symbol);
-                    return new List<IBar>();
+                    var bars = leanBars.Select(lb => new AlpacaBar
+                    {
+                        Symbol = lb.Symbol,
+                        TimeUtc = lb.Time,
+                        Open = lb.Open,
+                        High = lb.High,
+                        Low = lb.Low,
+                        Close = lb.Close,
+                        Volume = lb.Volume
+                    }).Cast<IBar>().ToList();
+                    _logger.LogInformation("Converted {Count} Lean bars to Alpaca format for {Symbol}", bars.Count, symbol);
+                    return bars;
                 }
             }
-
-            // Convert LeanBar to IBar
-            var bars = leanBars.Select(lb => new AlpacaBar
-            {
-                Symbol = lb.Symbol,
-                TimeUtc = lb.Time,
-                Open = lb.Open,
-                High = lb.High,
-                Low = lb.Low,
-                Close = lb.Close,
-                Volume = lb.Volume
-            }).Cast<IBar>().ToList();
-
-            _logger.LogInformation("Converted {Count} Lean bars to Alpaca format for {Symbol}", bars.Count, symbol);
-            return bars;
+            _logger.LogWarning("No Lean equity data found for {Symbol}", symbol);
+            return new List<IBar>();
         }
         catch (Exception ex)
         {

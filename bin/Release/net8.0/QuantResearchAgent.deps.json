@@ -8,6 +8,7 @@
     ".NETCoreApp,Version=v8.0": {
       "QuantResearchAgent/1.0.0": {
         "dependencies": {
+          "Alpaca.Markets": "7.2.0",
           "CsvHelper": "31.0.4",
           "Google.Apis.YouTube.v3": "1.68.0.3617",
           "MathNet.Numerics": "5.0.0",
@@ -28,6 +29,20 @@
         },
         "runtime": {
           "QuantResearchAgent.dll": {}
+        }
+      },
+      "Alpaca.Markets/7.2.0": {
+        "dependencies": {
+          "Newtonsoft.Json": "13.0.3",
+          "Polly": "8.5.0",
+          "System.IO.Pipelines": "9.0.0",
+          "System.Threading.Channels": "9.0.0"
+        },
+        "runtime": {
+          "lib/net6.0/Alpaca.Markets.dll": {
+            "assemblyVersion": "7.2.0.1",
+            "fileVersion": "7.2.0.1"
+          }
         }
       },
       "Azure.AI.OpenAI/2.1.0-beta.1": {
@@ -590,6 +605,25 @@
           }
         }
       },
+      "Polly/8.5.0": {
+        "dependencies": {
+          "Polly.Core": "8.5.0"
+        },
+        "runtime": {
+          "lib/net6.0/Polly.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.5.0.4130"
+          }
+        }
+      },
+      "Polly.Core/8.5.0": {
+        "runtime": {
+          "lib/net8.0/Polly.Core.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.5.0.4130"
+          }
+        }
+      },
       "RestSharp/112.0.0": {
         "runtime": {
           "lib/net8.0/RestSharp.dll": {
@@ -627,6 +661,14 @@
         }
       },
       "System.Diagnostics.DiagnosticSource/8.0.1": {},
+      "System.IO.Pipelines/9.0.0": {
+        "runtime": {
+          "lib/net8.0/System.IO.Pipelines.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.24.52809"
+          }
+        }
+      },
       "System.Management/7.0.2": {
         "dependencies": {
           "System.CodeDom": "7.0.0"
@@ -681,6 +723,14 @@
         }
       },
       "System.Text.Json/8.0.5": {},
+      "System.Threading.Channels/9.0.0": {
+        "runtime": {
+          "lib/net8.0/System.Threading.Channels.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.24.52809"
+          }
+        }
+      },
       "System.Threading.Tasks.Extensions/4.5.4": {}
     }
   },
@@ -689,6 +739,13 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "Alpaca.Markets/7.2.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-XlrIrXXkcZG9EK9bERIzwsXb08BcKYDMP3S93znYadOK+xlQOr9Jfp4E/dVNORnmevCIyP5cy/nReOMmoIPXkA==",
+      "path": "alpaca.markets/7.2.0",
+      "hashPath": "alpaca.markets.7.2.0.nupkg.sha512"
     },
     "Azure.AI.OpenAI/2.1.0-beta.1": {
       "type": "package",
@@ -1033,6 +1090,20 @@
       "path": "openai-dotnet/8.6.1",
       "hashPath": "openai-dotnet.8.6.1.nupkg.sha512"
     },
+    "Polly/8.5.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-GBNZPy7i7OpkaIruWPRJ0+AWzdGDQDnKY91b7Ic2aAch4lKhPjUc5KSffpH9krIWe0MoyghqaRxwRC0Uwz2PkA==",
+      "path": "polly/8.5.0",
+      "hashPath": "polly.8.5.0.nupkg.sha512"
+    },
+    "Polly.Core/8.5.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-VYYMZNitZ85UEhwOKkTQI63WEMvzUqwQc74I2mm8h/DBVAMcBBxqYPni4DmuRtbCwngmuONuK2yBJfWNRKzI+A==",
+      "path": "polly.core/8.5.0",
+      "hashPath": "polly.core.8.5.0.nupkg.sha512"
+    },
     "RestSharp/112.0.0": {
       "type": "package",
       "serviceable": true,
@@ -1067,6 +1138,13 @@
       "sha512": "sha512-vaoWjvkG1aenR2XdjaVivlCV9fADfgyhW5bZtXT23qaEea0lWiUljdQuze4E31vKM7ZWJaSUsbYIKE3rnzfZUg==",
       "path": "system.diagnostics.diagnosticsource/8.0.1",
       "hashPath": "system.diagnostics.diagnosticsource.8.0.1.nupkg.sha512"
+    },
+    "System.IO.Pipelines/9.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-eA3cinogwaNB4jdjQHOP3Z3EuyiDII7MT35jgtnsA4vkn0LUrrSHsU0nzHTzFzmaFYeKV7MYyMxOocFzsBHpTw==",
+      "path": "system.io.pipelines/9.0.0",
+      "hashPath": "system.io.pipelines.9.0.0.nupkg.sha512"
     },
     "System.Management/7.0.2": {
       "type": "package",
@@ -1130,6 +1208,13 @@
       "sha512": "sha512-0f1B50Ss7rqxXiaBJyzUu9bWFOO2/zSlifZ/UNMdiIpDYe4cY4LQQicP4nirK1OS31I43rn062UIJ1Q9bpmHpg==",
       "path": "system.text.json/8.0.5",
       "hashPath": "system.text.json.8.0.5.nupkg.sha512"
+    },
+    "System.Threading.Channels/9.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-hzACdIf1C+4Dqos5ijV404b94+LqfIC8nfS3mNpCDFWowb1N3PNfJPopneq32ahWlDeyaPZJqjBk76YFR69Rpg==",
+      "path": "system.threading.channels/9.0.0",
+      "hashPath": "system.threading.channels.9.0.0.nupkg.sha512"
     },
     "System.Threading.Tasks.Extensions/4.5.4": {
       "type": "package",

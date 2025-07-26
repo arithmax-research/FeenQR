@@ -1,1 +1,6 @@
 .env
+/data
+/bin
+/logs
+/obj
+/Plugins

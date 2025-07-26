@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "3jg0SQjHuz0=",
+  "dgSpecHash": "NV261t1xGs0=",
   "success": true,
   "projectFilePath": "/Users/misango/codechest/ArithmaxResearchChest/QuantResearchAgent.csproj",
   "expectedPackageFiles": [
@@ -8,6 +8,8 @@
     "/Users/misango/.nuget/packages/azure.ai.openai/2.1.0-beta.1/azure.ai.openai.2.1.0-beta.1.nupkg.sha512",
     "/Users/misango/.nuget/packages/azure.core/1.43.0/azure.core.1.43.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/csvhelper/31.0.4/csvhelper.31.0.4.nupkg.sha512",
+    "/Users/misango/.nuget/packages/flurl/3.0.7/flurl.3.0.7.nupkg.sha512",
+    "/Users/misango/.nuget/packages/flurl.http/3.2.4/flurl.http.3.2.4.nupkg.sha512",
     "/Users/misango/.nuget/packages/google.apis/1.68.0/google.apis.1.68.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/google.apis.auth/1.68.0/google.apis.auth.1.68.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/google.apis.core/1.68.0/google.apis.core.1.68.0.nupkg.sha512",
@@ -69,13 +71,15 @@
     "/Users/misango/.nuget/packages/system.runtime.compilerservices.unsafe/6.0.0/system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/system.security.accesscontrol/4.7.0/system.security.accesscontrol.4.7.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/system.security.principal.windows/4.7.0/system.security.principal.windows.4.7.0.nupkg.sha512",
+    "/Users/misango/.nuget/packages/system.text.encoding.codepages/4.5.1/system.text.encoding.codepages.4.5.1.nupkg.sha512",
     "/Users/misango/.nuget/packages/system.text.encodings.web/6.0.0/system.text.encodings.web.6.0.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/system.text.json/8.0.5/system.text.json.8.0.5.nupkg.sha512",
     "/Users/misango/.nuget/packages/system.threading.channels/9.0.0/system.threading.channels.9.0.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/system.threading.tasks.extensions/4.5.4/system.threading.tasks.extensions.4.5.4.nupkg.sha512",
-    "/Users/misango/.nuget/packages/microsoft.netcore.app.ref/8.0.18/microsoft.netcore.app.ref.8.0.18.nupkg.sha512",
+    "/Users/misango/.nuget/packages/yahoofinanceapi/2.3.3/yahoofinanceapi.2.3.3.nupkg.sha512",
     "/Users/misango/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.18/microsoft.aspnetcore.app.ref.8.0.18.nupkg.sha512",
-    "/Users/misango/.nuget/packages/microsoft.netcore.app.host.osx-x64/8.0.18/microsoft.netcore.app.host.osx-x64.8.0.18.nupkg.sha512"
+    "/Users/misango/.nuget/packages/microsoft.netcore.app.host.osx-x64/8.0.18/microsoft.netcore.app.host.osx-x64.8.0.18.nupkg.sha512",
+    "/Users/misango/.nuget/packages/microsoft.netcore.app.ref/8.0.18/microsoft.netcore.app.ref.8.0.18.nupkg.sha512"
   ],
   "logs": []
 }

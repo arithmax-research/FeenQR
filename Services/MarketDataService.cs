@@ -1,3 +1,4 @@
+using YahooFinanceApi;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using QuantResearchAgent.Core;
@@ -13,17 +14,21 @@ public class MarketDataService
     private readonly IConfiguration _configuration;
     private readonly RestClient _binanceClient;
     private readonly RestClient _alphaVantageClient;
+    private readonly AlpacaService _alpacaService;
+    private readonly LeanDataService _leanDataService;
+    // ...existing code...
     private readonly ConcurrentDictionary<string, MarketData> _marketDataCache = new();
     private readonly ConcurrentDictionary<string, List<MarketData>> _historicalDataCache = new();
 
-    public MarketDataService(ILogger<MarketDataService> logger, IConfiguration configuration)
+    public MarketDataService(ILogger<MarketDataService> logger, IConfiguration configuration, AlpacaService alpacaService, LeanDataService leanDataService)
     {
         _logger = logger;
         _configuration = configuration;
-        
-        // Initialize REST clients
         _binanceClient = new RestClient("https://api.binance.com");
         _alphaVantageClient = new RestClient("https://www.alphavantage.co");
+        _alpacaService = alpacaService;
+        _leanDataService = leanDataService;
+    // ...existing code...
     }
 
     public async Task RefreshMarketDataAsync()
@@ -103,6 +108,11 @@ public class MarketDataService
 
     private async Task<MarketData?> FetchMarketDataAsync(string symbol)
     {
+        return await FetchMarketDataAsync(symbol, frequency: "daily");
+    }
+    // Overload to allow specifying frequency ("daily" or "minute")
+    public async Task<MarketData?> FetchMarketDataAsync(string symbol, string frequency)
+    {
         try
         {
             // Try Binance first for crypto symbols
@@ -110,17 +120,169 @@ public class MarketDataService
             {
                 return await FetchBinanceDataAsync(symbol);
             }
+            // Try LeanDataService for local equity data first
+            var leanSymbol = symbol.Trim().ToUpper();
+            var hasLocalData = await _leanDataService.HasDataForSymbolAsync(leanSymbol, frequency == "minute");
+            if (hasLocalData)
+            {
+                var bars = await _leanDataService.GetEquityBarsAsync(leanSymbol, frequency, 1);
+                var latestBar = bars.LastOrDefault();
+                if (latestBar != null)
+                {
+                    _logger.LogInformation($"Fetched market data for {symbol} from local Lean data ({frequency})");
+                    return new MarketData
+                    {
+                        Symbol = leanSymbol,
+                        Price = (double)latestBar.Close,
+                        Volume = latestBar.Volume,
+                        High24h = (double)latestBar.High,
+                        Low24h = (double)latestBar.Low,
+                        Change24h = (double)(latestBar.Close - latestBar.Open),
+                        Timestamp = latestBar.Time
+                    };
+                }
+            }
+            // Try local zip/csv files if LeanData is missing
+            MarketData? localData = null;
+            if (frequency == "minute")
+            {
+                localData = TryReadLatestMinuteData(symbol);
+            }
             else
             {
-                // For traditional stocks, you could use Alpha Vantage or other APIs
-                return FetchStockData(symbol);
+                localData = TryReadLatestDailyData(symbol);
+            }
+            if (localData != null)
+            {
+                _logger.LogInformation($"Fetched market data for {symbol} from local {frequency} file");
+                return localData;
+            }
+
+            // Fallback to Yahoo for US stocks
+            var yahooData = await FetchYahooFinanceCurrentData(symbol);
+            if (yahooData != null)
+            {
+                _logger.LogInformation($"Fetched market data for {symbol} from Yahoo Finance");
+                return yahooData;
+            }
+
+            // TODO: Use Alpaca WebSocket for recent data if needed
+            _logger.LogWarning($"No market data found for {symbol} (all sources failed)");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to fetch market data for symbol: {symbol}");
+            return null;
+        }
+    }
+
+    // Helper to read latest daily data from zip/csv
+    private MarketData? TryReadLatestDailyData(string symbol)
+    {
+        try
+        {
+            var basePath = "/Users/misango/codechest/ArithmaxResearchChest/data/equity/usa/daily/";
+            var fileName = symbol.ToLower() + ".zip";
+            var filePath = System.IO.Path.Combine(basePath, fileName);
+            if (!System.IO.File.Exists(filePath)) return null;
+            using (var archive = System.IO.Compression.ZipFile.OpenRead(filePath))
+            {
+                var entry = archive.Entries.FirstOrDefault(e => e.FullName.EndsWith(".csv"));
+                if (entry == null) return null;
+                using (var reader = new System.IO.StreamReader(entry.Open()))
+                {
+                    string? line;
+                    string? lastLine = null;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        if (!string.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
+                            lastLine = line;
+                    }
+                    if (lastLine != null)
+                    {
+                        var parts = lastLine.Split(',');
+                        // Assume Lean format: date,open,high,low,close,volume,...
+                        var dt = DateTime.ParseExact(parts[0], "yyyyMMdd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+                        var open = double.Parse(parts[1]);
+                        var high = double.Parse(parts[2]);
+                        var low = double.Parse(parts[3]);
+                        var close = double.Parse(parts[4]);
+                        var volume = double.Parse(parts[5]);
+                        return new MarketData
+                        {
+                            Symbol = symbol.ToUpper(),
+                            Price = close,
+                            Volume = volume,
+                            High24h = high,
+                            Low24h = low,
+                            Change24h = close - open,
+                            Timestamp = dt
+                        };
+                    }
+                }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to fetch market data for symbol: {Symbol}", symbol);
-            return null;
+            _logger.LogError(ex, $"Error reading local daily data for {symbol}");
         }
+        return null;
+    }
+
+    // Helper to read latest minute data from zip/csv
+    private MarketData? TryReadLatestMinuteData(string symbol)
+    {
+        try
+        {
+            var basePath = $"/Users/misango/codechest/ArithmaxResearchChest/data/equity/usa/minute/{symbol.ToLower()}";
+            if (!System.IO.Directory.Exists(basePath)) return null;
+            var files = System.IO.Directory.GetFiles(basePath, "*_trade.zip").OrderByDescending(f => f).ToList();
+            foreach (var file in files)
+            {
+                using (var archive = System.IO.Compression.ZipFile.OpenRead(file))
+                {
+                    var entry = archive.Entries.FirstOrDefault(e => e.FullName.EndsWith(".csv"));
+                    if (entry == null) continue;
+                    using (var reader = new System.IO.StreamReader(entry.Open()))
+                    {
+                        string? line;
+                        string? lastLine = null;
+                        while ((line = reader.ReadLine()) != null)
+                        {
+                            if (!string.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
+                                lastLine = line;
+                        }
+                        if (lastLine != null)
+                        {
+                            var parts = lastLine.Split(',');
+                            // Assume Lean format: datetime,open,high,low,close,volume,...
+                            var dt = DateTime.ParseExact(parts[0], "yyyyMMdd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+                            var open = double.Parse(parts[1]);
+                            var high = double.Parse(parts[2]);
+                            var low = double.Parse(parts[3]);
+                            var close = double.Parse(parts[4]);
+                            var volume = double.Parse(parts[5]);
+                            return new MarketData
+                            {
+                                Symbol = symbol.ToUpper(),
+                                Price = close,
+                                Volume = volume,
+                                High24h = high,
+                                Low24h = low,
+                                Change24h = close - open,
+                                Timestamp = dt
+                            };
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error reading local minute data for {symbol}");
+        }
+        return null;
     }
 
     private async Task<MarketData?> FetchBinanceDataAsync(string symbol)
@@ -164,32 +326,32 @@ public class MarketDataService
         }
     }
 
-    private MarketData? FetchStockData(string symbol)
+
+    // Fetch current data from Yahoo Finance
+    private async Task<MarketData?> FetchYahooFinanceCurrentData(string symbol)
     {
         try
         {
-            // Placeholder for stock data fetching
-            // In a real implementation, you'd use Alpha Vantage, Yahoo Finance, or similar
-            _logger.LogInformation("Stock data fetching not implemented for symbol: {Symbol}", symbol);
-            
-            // Return mock data for now
-            return new MarketData
+            var securities = await Yahoo.Symbols(symbol).Fields(Field.RegularMarketPrice, Field.RegularMarketVolume, Field.RegularMarketDayHigh, Field.RegularMarketDayLow, Field.RegularMarketPreviousClose, Field.RegularMarketOpen, Field.RegularMarketTime).QueryAsync();
+            if (securities.TryGetValue(symbol, out var sec))
             {
-                Symbol = symbol,
-                Price = 100.0 + new Random().NextDouble() * 50, // Mock price
-                Volume = 1000000 + new Random().Next(0, 5000000),
-                Change24h = (new Random().NextDouble() - 0.5) * 10,
-                ChangePercent24h = (new Random().NextDouble() - 0.5) * 5,
-                High24h = 105.0 + new Random().NextDouble() * 45,
-                Low24h = 95.0 + new Random().NextDouble() * 45,
-                Timestamp = DateTime.UtcNow
-            };
+                return new MarketData
+                {
+                    Symbol = symbol.ToUpper(),
+                    Price = (double?)sec[Field.RegularMarketPrice] ?? 0,
+                    Volume = (double?)sec[Field.RegularMarketVolume] ?? 0,
+                    High24h = (double?)sec[Field.RegularMarketDayHigh] ?? 0,
+                    Low24h = (double?)sec[Field.RegularMarketDayLow] ?? 0,
+                    Change24h = ((double?)sec[Field.RegularMarketPrice] ?? 0) - ((double?)sec[Field.RegularMarketPreviousClose] ?? 0),
+                    Timestamp = sec[Field.RegularMarketTime] is DateTime dt ? dt : DateTime.UtcNow
+                };
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching stock data for symbol: {Symbol}", symbol);
-            return null;
+            _logger.LogError(ex, $"Error fetching Yahoo Finance current data for {symbol}");
         }
+        return null;
     }
 
     private async Task<List<MarketData>?> FetchHistoricalDataAsync(string symbol, int limit)
@@ -202,12 +364,59 @@ public class MarketDataService
             }
             else
             {
-                return FetchStockHistoricalData(symbol, limit);
+                var data = FetchStockHistoricalData(symbol, limit);
+                if (data == null || !data.Any())
+                {
+                    // Fallback to Yahoo Finance if no local/Lean data
+                    data = await FetchYahooFinanceHistoricalData(symbol, limit);
+                }
+                if (data != null)
+                {
+                    // Filter: exclude the most recent minute, and only include up to 5 years ago
+                    var now = DateTime.UtcNow;
+                    var fiveYearsAgo = now.AddYears(-5);
+                    data = data.Where(d => d.Timestamp < now.AddMinutes(-1) && d.Timestamp >= fiveYearsAgo)
+                               .OrderBy(d => d.Timestamp)
+                               .TakeLast(limit)
+                               .ToList();
+                }
+                return data;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to fetch historical data for symbol: {Symbol}", symbol);
+            _logger.LogError(ex, $"Failed to fetch historical data for symbol: {symbol}");
+            return null;
+        }
+    }
+    // Fallback: fetch historical data from Yahoo Finance (using YahooFinanceApi)
+    private async Task<List<MarketData>?> FetchYahooFinanceHistoricalData(string symbol, int limit)
+    {
+        try
+        {
+            // Use YahooFinanceApi NuGet package (add to your project if not present)
+            var start = DateTime.UtcNow.AddYears(-5);
+            var end = DateTime.UtcNow.AddMinutes(-1);
+            var history = await Yahoo.GetHistoricalAsync(symbol, start, end, Period.Daily);
+            var data = history.Select(bar => new MarketData
+            {
+                Symbol = symbol.ToUpper(),
+                Price = (double)bar.Close,
+                Volume = (double)bar.Volume,
+                High24h = (double)bar.High,
+                Low24h = (double)bar.Low,
+                Change24h = (double)(bar.Close - bar.Open),
+                Timestamp = bar.DateTime
+            })
+            .OrderBy(d => d.Timestamp)
+            .TakeLast(limit)
+            .ToList();
+            _logger.LogInformation($"Fetched {data.Count} bars from Yahoo Finance for {symbol}");
+            return data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error fetching Yahoo Finance data for {symbol}");
             return null;
         }
     }
@@ -228,7 +437,7 @@ public class MarketDataService
                 return null;
             }
 
-            var klineData = JsonSerializer.Deserialize<decimal[][]>(response.Content);
+            var klineData = JsonSerializer.Deserialize<System.Text.Json.JsonElement[][]>(response.Content);
             if (klineData == null)
             {
                 _logger.LogWarning("Failed to deserialize Binance kline data for {Symbol}", symbol);
@@ -238,12 +447,13 @@ public class MarketDataService
             var historicalData = new List<MarketData>();
             foreach (var kline in klineData)
             {
-                var timestamp = DateTimeOffset.FromUnixTimeMilliseconds((long)kline[0]).DateTime;
-                var open = (double)kline[1];
-                var high = (double)kline[2];
-                var low = (double)kline[3];
-                var close = (double)kline[4];
-                var volume = (double)kline[5];
+                // Binance returns numbers, not strings
+                var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(kline[0].GetInt64()).DateTime;
+                var open = kline[1].GetDouble();
+                var high = kline[2].GetDouble();
+                var low = kline[3].GetDouble();
+                var close = kline[4].GetDouble();
+                var volume = kline[5].GetDouble();
 
                 historicalData.Add(new MarketData
                 {
@@ -267,8 +477,25 @@ public class MarketDataService
 
     private List<MarketData>? FetchStockHistoricalData(string symbol, int limit)
     {
-        // Placeholder for stock historical data
-        // Generate mock historical data
+        // Try to load from local data files if available
+        try
+        {
+            var basePath = "/Users/misango/codechest/ArithmaxResearchChest/data/equity/usa/daily/";
+            var fileName = symbol.ToLower() + ".zip";
+            var filePath = System.IO.Path.Combine(basePath, fileName);
+            if (System.IO.File.Exists(filePath))
+            {
+                _logger.LogInformation($"Found local data file for {symbol}: {filePath}");
+                // TODO: Implement actual reading and parsing of the zip/csv file
+                // For now, just return null to indicate file found but not yet parsed
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error reading local data file for {symbol}");
+        }
+        // Fallback: Generate mock data
         var historicalData = new List<MarketData>();
         var random = new Random();
         var basePrice = 100.0;

@@ -115,6 +115,10 @@
             "System.Text.Json": {
               "target": "Package",
               "version": "[8.0.5, )"
+            },
+            "YahooFinanceApi": {
+              "target": "Package",
+              "version": "[2.3.3, )"
             }
           },
           "imports": [

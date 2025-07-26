@@ -30,3 +30,23 @@
 2025-07-24 18:35:41,993 - utils - INFO - Download completed
 2025-07-24 18:35:41,993 - utils - INFO - Alpaca download completed
 2025-07-24 18:35:41,994 - utils - INFO - Data pipeline completed successfully!
+2025-07-26 00:16:16,877 - utils - INFO - Starting data download from 2024-01-01 to 2025-06-30
+2025-07-26 00:16:16,878 - utils - INFO - Resolution: daily
+2025-07-26 00:16:16,878 - utils - INFO - Starting Alpaca data download...
+2025-07-26 00:16:16,879 - utils - INFO - Starting download for 4 symbols
+2025-07-26 00:16:16,918 - utils - INFO - Downloading AAPL data for daily resolution
+2025-07-26 00:16:17,787 - utils - INFO - Saved 374 bars for AAPL daily
+2025-07-26 00:16:17,788 - utils - INFO - Downloading GOOGL data for daily resolution
+2025-07-26 00:16:18,336 - utils - INFO - Saved 374 bars for GOOGL daily
+2025-07-26 00:16:18,337 - utils - INFO - Downloading MSFT data for daily resolution
+2025-07-26 00:16:18,897 - utils - INFO - Saved 374 bars for MSFT daily
+2025-07-26 00:16:18,898 - utils - INFO - Downloading TSLA data for daily resolution
+2025-07-26 00:16:19,454 - utils - INFO - Saved 374 bars for TSLA daily
+2025-07-26 00:16:19,455 - utils - INFO - Download completed
+2025-07-26 00:16:19,455 - utils - INFO - Alpaca download completed
+2025-07-26 00:16:19,455 - utils - INFO - Data pipeline completed successfully!
+2025-07-26 00:26:39,090 - utils - INFO - Starting data download from 2025-04-27 to 2025-07-26
+2025-07-26 00:26:39,091 - utils - INFO - Resolution: minute
+2025-07-26 00:26:39,091 - utils - INFO - Starting Alpaca data download...
+2025-07-26 00:26:39,091 - utils - INFO - Starting download for 1 symbols
+2025-07-26 00:26:39,124 - utils - INFO - Downloading AAPL data for minute resolution

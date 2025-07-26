@@ -25,7 +25,8 @@
           "OpenAI-DotNet": "8.6.1",
           "RestSharp": "112.0.0",
           "Skender.Stock.Indicators": "3.0.0-preview.1",
-          "System.Text.Json": "8.0.5"
+          "System.Text.Json": "8.0.5",
+          "YahooFinanceApi": "2.3.3"
         },
         "runtime": {
           "QuantResearchAgent.dll": {}
@@ -80,6 +81,27 @@
           "lib/net8.0/CsvHelper.dll": {
             "assemblyVersion": "31.0.0.0",
             "fileVersion": "31.0.4.18"
+          }
+        }
+      },
+      "Flurl/3.0.7": {
+        "runtime": {
+          "lib/netstandard2.0/Flurl.dll": {
+            "assemblyVersion": "3.0.7.0",
+            "fileVersion": "3.0.7.0"
+          }
+        }
+      },
+      "Flurl.Http/3.2.4": {
+        "dependencies": {
+          "Flurl": "3.0.7",
+          "Newtonsoft.Json": "13.0.3",
+          "System.Text.Encoding.CodePages": "4.5.1"
+        },
+        "runtime": {
+          "lib/netstandard2.0/Flurl.Http.dll": {
+            "assemblyVersion": "3.2.4.0",
+            "fileVersion": "3.2.4.0"
           }
         }
       },
@@ -717,6 +739,12 @@
         }
       },
       "System.Security.Principal.Windows/4.7.0": {},
+      "System.Text.Encoding.CodePages/4.5.1": {
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "3.1.0",
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        }
+      },
       "System.Text.Encodings.Web/6.0.0": {
         "dependencies": {
           "System.Runtime.CompilerServices.Unsafe": "6.0.0"
@@ -731,7 +759,21 @@
           }
         }
       },
-      "System.Threading.Tasks.Extensions/4.5.4": {}
+      "System.Threading.Tasks.Extensions/4.5.4": {},
+      "YahooFinanceApi/2.3.3": {
+        "dependencies": {
+          "CsvHelper": "31.0.4",
+          "Flurl": "3.0.7",
+          "Flurl.Http": "3.2.4",
+          "Newtonsoft.Json": "13.0.3"
+        },
+        "runtime": {
+          "lib/netstandard2.0/YahooFinanceApi.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      }
     }
   },
   "libraries": {
@@ -767,6 +809,20 @@
       "sha512": "sha512-m4ikjUAn4XOD1tShxxk4ui42sHxjHdX52P7fPQ9K7tzJkPTEwiCbvEz3k73mTGSSaPTUCOp9VziQC757IqKLew==",
       "path": "csvhelper/31.0.4",
       "hashPath": "csvhelper.31.0.4.nupkg.sha512"
+    },
+    "Flurl/3.0.7": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-W3zHc8m6/yqOAedHwpFQv5VT8t0W/jkS3AVlv1Tj520KDNjUa31at0zMc3XYJy8f9qdOmUcvSUarf6G2nK1ZIg==",
+      "path": "flurl/3.0.7",
+      "hashPath": "flurl.3.0.7.nupkg.sha512"
+    },
+    "Flurl.Http/3.2.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Me9Vm4Lm21vt/pbR0G2Dww/ZOjJgh6mB2FiH28aiUYStJD10ZecDp8jxg2zKxcy6lnkvLm99pjG4yC/k7a/d8w==",
+      "path": "flurl.http/3.2.4",
+      "hashPath": "flurl.http.3.2.4.nupkg.sha512"
     },
     "Google.Apis/1.68.0": {
       "type": "package",
@@ -1195,6 +1251,13 @@
       "path": "system.security.principal.windows/4.7.0",
       "hashPath": "system.security.principal.windows.4.7.0.nupkg.sha512"
     },
+    "System.Text.Encoding.CodePages/4.5.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-4J2JQXbftjPMppIHJ7IC+VXQ9XfEagN92vZZNoG12i+zReYlim5dMoXFC1Zzg7tsnKDM7JPo5bYfFK4Jheq44w==",
+      "path": "system.text.encoding.codepages/4.5.1",
+      "hashPath": "system.text.encoding.codepages.4.5.1.nupkg.sha512"
+    },
     "System.Text.Encodings.Web/6.0.0": {
       "type": "package",
       "serviceable": true,
@@ -1222,6 +1285,13 @@
       "sha512": "sha512-zteT+G8xuGu6mS+mzDzYXbzS7rd3K6Fjb9RiZlYlJPam2/hU7JCBZBVEcywNuR+oZ1ncTvc/cq0faRr3P01OVg==",
       "path": "system.threading.tasks.extensions/4.5.4",
       "hashPath": "system.threading.tasks.extensions.4.5.4.nupkg.sha512"
+    },
+    "YahooFinanceApi/2.3.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-1ZwoNaJJJgRgjFkOoswrj+jw7VYzJjOsg8SKzVSafmDNbGy0+j6iS8WQseKsvLzipgkvkQn77pcBXmXfMGULsg==",
+      "path": "yahoofinanceapi/2.3.3",
+      "hashPath": "yahoofinanceapi.2.3.3.nupkg.sha512"
     }
   }
 }

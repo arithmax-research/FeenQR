@@ -3,10 +3,6 @@ using QuantResearchAgent.Services;
 using System.ComponentModel;
 
 namespace QuantResearchAgent.Plugins;
-
-/// <summary>
-/// Semantic Kernel plugin for market data operations
-/// </summary>
 public class MarketDataPlugin
 {
     private readonly MarketDataService _marketDataService;
@@ -23,15 +19,18 @@ public class MarketDataPlugin
         try
         {
             var marketData = await _marketDataService.GetMarketDataAsync(symbol.ToUpper());
-            
             if (marketData == null)
             {
                 return $"No market data available for {symbol}. Please check the symbol or try again later.";
             }
-            
             var changeIndicator = marketData.ChangePercent24h >= 0 ? "📈" : "📉";
-            
-            return $"{changeIndicator} Market Data for {marketData.Symbol}:\n\n" +
+            string source = "";
+            // Heuristic: If symbol is not crypto and not found in Lean/local, assume Yahoo
+            if (!symbol.ToUpper().Contains("USDT") && !symbol.ToUpper().Contains("BTC") && !symbol.ToUpper().Contains("ETH"))
+            {
+                source = " (Source: Yahoo Finance)";
+            }
+            return $"{changeIndicator} Market Data for {marketData.Symbol}{source}:\n\n" +
                    $"Current Price: ${marketData.Price:F2}\n" +
                    $"24h Change: ${marketData.Change24h:F2} ({marketData.ChangePercent24h:F2}%)\n" +
                    $"24h High: ${marketData.High24h:F2}\n" +

@@ -17,7 +17,8 @@ public class InteractiveCLI
     private readonly Kernel _kernel;
     private readonly AgentOrchestrator _orchestrator;
     private readonly ILogger<InteractiveCLI> _logger;
-
+    
+    // ... existing code ...
     public InteractiveCLI(Kernel kernel, AgentOrchestrator orchestrator, ILogger<InteractiveCLI> logger)
     {
         _kernel = kernel;
@@ -36,6 +37,9 @@ public class InteractiveCLI
         Console.WriteLine("  3. search-finance-videos [query] - Search finance videos");
         Console.WriteLine("  4. generate-signals [symbol] - Generate trading signals");
         Console.WriteLine("  5. market-data [symbol] - Get market data");
+        Console.WriteLine("  6. yahoo-data [symbol] - Get Yahoo Finance market data");
+        Console.WriteLine("  6. yahoo-data [symbol] - Get Yahoo Finance market data");
+        Console.WriteLine("  6. yahoo-data [symbol] - Get Yahoo Finance market data");
         Console.WriteLine("  6. portfolio - View portfolio summary");
         Console.WriteLine("  7. risk-assessment - Assess portfolio risk");
         Console.WriteLine("  8. alpaca-data [symbol] - Get Alpaca market data");
@@ -67,6 +71,7 @@ public class InteractiveCLI
         }
     }
 
+
     private async Task ProcessCommandAsync(string input)
     {
         try
@@ -79,75 +84,60 @@ public class InteractiveCLI
                 case "analyze-video":
                     await AnalyzeVideoCommand(parts);
                     break;
-
                 case "get-quantopian-videos":
                     await GetQuantopianVideosCommand();
                     break;
-
                 case "search-finance-videos":
                     await SearchFinanceVideosCommand(parts);
                     break;
-
                 case "generate-signals":
                     await GenerateSignalsCommand(parts);
                     break;
-
                 case "market-data":
                     await MarketDataCommand(parts);
                     break;
-
+                case "yahoo-data":
+                    await YahooDataCommand(parts);
+                    break;
                 case "portfolio":
                     await PortfolioCommand();
                     break;
-
                 case "risk-assessment":
                     await RiskAssessmentCommand();
                     break;
-
                 case "alpaca-data":
                     await AlpacaDataCommand(parts);
                     break;
-
                 case "alpaca-historical":
                     await AlpacaHistoricalCommand(parts);
                     break;
-
                 case "alpaca-account":
                     await AlpacaAccountCommand();
                     break;
-
                 case "alpaca-positions":
                     await AlpacaPositionsCommand();
                     break;
-
                 case "alpaca-quotes":
                     await AlpacaQuotesCommand(parts);
                     break;
-
                 case "technical-analysis":
                     await TechnicalAnalysisCommand(parts);
                     break;
-
                 case "ta-indicators":
                     await TechnicalIndicatorsCommand(parts);
                     break;
-
                 case "ta-compare":
                     await TechnicalCompareCommand(parts);
                     break;
-
                 case "ta-patterns":
                     await TechnicalPatternsCommand(parts);
                     break;
-
                 case "help":
                     await ShowAvailableFunctions();
                     break;
-
                 case "test":
                     await RunTestSequence();
                     break;
-
                 default:
                     // Try to execute as a direct Semantic Kernel function call
                     await ExecuteSemanticFunction(input);
@@ -335,6 +325,15 @@ public class InteractiveCLI
         Console.WriteLine("Test sequence completed!");
     }
 
+    private async Task YahooDataCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        Console.WriteLine($"Getting Yahoo Finance data for {symbol}...");
+        var function = _kernel.Plugins["MarketDataPlugin"]["GetYahooMarketData"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
+        Console.WriteLine(result.ToString());
+    }
+
     public static Task<InteractiveCLI> CreateAsync(IServiceProvider serviceProvider)
     {
         var kernel = serviceProvider.GetRequiredService<Kernel>();
@@ -451,4 +450,5 @@ public class InteractiveCLI
         
         Console.WriteLine(result.ToString());
     }
+
 }

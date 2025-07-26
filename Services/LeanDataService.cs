@@ -22,7 +22,7 @@ public class LeanDataService
         }
     }
 
-    public async Task<List<LeanBar>> GetEquityBarsAsync(string symbol, string resolution = "daily", int days = 30)
+    public async Task<List<LeanBar>> GetEquityBarsAsync(string symbol, string resolution = "daily", int limit = 10000)
     {
         try
         {
@@ -37,8 +37,7 @@ public class LeanDataService
 
             var bars = new List<LeanBar>();
             var files = Directory.GetFiles(symbolPath, "*.zip")
-                .OrderByDescending(f => f)
-                .Take(days)
+                .OrderBy(f => f)
                 .ToList();
 
             _logger.LogInformation("Found {FileCount} data files for {Symbol}", files.Count, symbol);
@@ -51,7 +50,7 @@ public class LeanDataService
 
             // Sort by date and take the most recent data
             var result = bars.OrderByDescending(b => b.Time)
-                .Take(days)
+                .Take(limit)
                 .OrderBy(b => b.Time)
                 .ToList();
 
@@ -174,13 +173,13 @@ public class LeanDataService
 
     public async Task<bool> HasDataForSymbolAsync(string symbol, bool isCrypto = false)
     {
-        var basePath = isCrypto 
-            ? Path.Combine(_dataPath, "crypto", "binance", "daily")
-            : Path.Combine(_dataPath, "equity", "usa", "daily");
-            
-        var symbolPath = Path.Combine(basePath, symbol.ToLower());
-        
-        return Directory.Exists(symbolPath) && Directory.GetFiles(symbolPath, "*.zip").Length > 0;
+        return await Task.Run(() => {
+            var basePath = isCrypto 
+                ? Path.Combine(_dataPath, "crypto", "binance", "daily")
+                : Path.Combine(_dataPath, "equity", "usa", "daily");
+            var symbolPath = Path.Combine(basePath, symbol.ToLower());
+            return Directory.Exists(symbolPath) && Directory.GetFiles(symbolPath, "*.zip").Length > 0;
+        });
     }
 
     public async Task<List<string>> GetAvailableSymbolsAsync(bool isCrypto = false)
@@ -194,12 +193,13 @@ public class LeanDataService
             if (!Directory.Exists(basePath))
                 return new List<string>();
 
-            var symbols = Directory.GetDirectories(basePath)
-                .Select(Path.GetFileName)
-                .Where(name => !string.IsNullOrEmpty(name))
-                .Select(name => name!.ToUpper())
-                .ToList();
-
+            var symbols = await Task.Run(() =>
+                Directory.GetDirectories(basePath)
+                    .Select(Path.GetFileName)
+                    .Where(name => !string.IsNullOrEmpty(name))
+                    .Select(name => name!.ToUpper())
+                    .ToList()
+            );
             _logger.LogInformation("Found {SymbolCount} available {AssetType} symbols", symbols.Count, isCrypto ? "crypto" : "equity");
             return symbols;
         }

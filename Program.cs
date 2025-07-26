@@ -52,8 +52,20 @@ namespace QuantResearchAgent
             services.AddSingleton(configuration);
             services.AddSingleton(kernel);
 
-            // Add logging
-            services.AddLogging();
+            // Ensure logs directory exists for file logging
+            var logDir = Path.Combine(Directory.GetCurrentDirectory(), "logs");
+            if (!Directory.Exists(logDir))
+            {
+                Directory.CreateDirectory(logDir);
+            }
+
+            // Add logging (console and file)
+            services.AddLogging(builder =>
+            {
+                builder.AddConsole();
+                var logFilePath = configuration["Logging:LogFilePath"] ?? "./logs/agent.log";
+                builder.AddProvider(new QuantResearchAgent.SimpleFileLoggerProvider(logFilePath));
+            });
 
             // Add InteractiveCLI
             services.AddSingleton<InteractiveCLI>();
@@ -62,7 +74,14 @@ namespace QuantResearchAgent
             services.AddSingleton<LeanDataService>();
             services.AddSingleton<AgentOrchestrator>();
             services.AddSingleton<YouTubeAnalysisService>();
-            services.AddSingleton<MarketDataService>();
+            services.AddSingleton<MarketDataService>(sp =>
+                new MarketDataService(
+                    sp.GetRequiredService<ILogger<MarketDataService>>(),
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetRequiredService<AlpacaService>(),
+                    sp.GetRequiredService<LeanDataService>()
+                )
+            );
             services.AddSingleton<TradingSignalService>();
             services.AddSingleton<PortfolioService>();
             services.AddSingleton<RiskManagementService>();
