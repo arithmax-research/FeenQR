@@ -38,8 +38,6 @@ public class InteractiveCLI
         Console.WriteLine("  4. generate-signals [symbol] - Generate trading signals");
         Console.WriteLine("  5. market-data [symbol] - Get market data");
         Console.WriteLine("  6. yahoo-data [symbol] - Get Yahoo Finance market data");
-        Console.WriteLine("  6. yahoo-data [symbol] - Get Yahoo Finance market data");
-        Console.WriteLine("  6. yahoo-data [symbol] - Get Yahoo Finance market data");
         Console.WriteLine("  6. portfolio - View portfolio summary");
         Console.WriteLine("  7. risk-assessment - Assess portfolio risk");
         Console.WriteLine("  8. alpaca-data [symbol] - Get Alpaca market data");

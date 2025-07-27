@@ -12,6 +12,47 @@ public class MarketDataPlugin
         _marketDataService = marketDataService;
     }
 
+    [KernelFunction, Description("Get current Yahoo Finance data for a specific symbol (US stocks)")]
+    public async Task<string> GetYahooMarketData(
+        [Description("The stock symbol (e.g., AAPL, MSFT)")] string symbol)
+    {
+        try
+        {
+            // Use reflection or make FetchYahooFinanceCurrentData public, or call via GetMarketDataAsync if it falls back to Yahoo
+            var method = typeof(MarketDataService).GetMethod("FetchYahooFinanceCurrentData", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (method == null)
+                return $"Yahoo Finance data fetch not available for {symbol}.";
+            var invokeResult = method.Invoke(_marketDataService, new object[] { symbol });
+            if (invokeResult is not Task taskObj)
+                return $"Yahoo Finance data fetch failed for {symbol}.";
+            await taskObj.ConfigureAwait(false);
+            var resultProperty = taskObj.GetType().GetProperty("Result");
+            var result = resultProperty?.GetValue(taskObj);
+            if (result == null)
+                return $"No Yahoo Finance data available for {symbol}.";
+
+            dynamic dyn = result;
+            double price = dyn.Price;
+            double change = dyn.Change24h;
+            double high = dyn.High24h;
+            double low = dyn.Low24h;
+            double volume = dyn.Volume;
+            DateTime timestamp = dyn.Timestamp;
+
+            return $"📈 Yahoo Finance Data for {symbol.ToUpper()}\n" +
+                   $"Current Price: ${price:F2}\n" +
+                   $"Change (24h): ${change:F2}\n" +
+                   $"High (24h): ${high:F2}\n" +
+                   $"Low (24h): ${low:F2}\n" +
+                   $"Volume: {volume:N0}\n" +
+                   $"Last Updated: {timestamp:yyyy-MM-dd HH:mm:ss UTC}";
+        }
+        catch (Exception ex)
+        {
+            return $"Error retrieving Yahoo Finance data for {symbol}: {ex.Message}";
+        }
+    }
+
     [KernelFunction, Description("Get current market data for a specific symbol")]
     public async Task<string> GetMarketDataAsync(
         [Description("The trading symbol (e.g., BTCUSDT, ETHUSDT, AAPL)")] string symbol)
@@ -24,12 +65,7 @@ public class MarketDataPlugin
                 return $"No market data available for {symbol}. Please check the symbol or try again later.";
             }
             var changeIndicator = marketData.ChangePercent24h >= 0 ? "📈" : "📉";
-            string source = "";
-            // Heuristic: If symbol is not crypto and not found in Lean/local, assume Yahoo
-            if (!symbol.ToUpper().Contains("USDT") && !symbol.ToUpper().Contains("BTC") && !symbol.ToUpper().Contains("ETH"))
-            {
-                source = " (Source: Yahoo Finance)";
-            }
+            string source = string.IsNullOrEmpty(marketData.Source) ? "" : $" (Source: {marketData.Source})";
             return $"{changeIndicator} Market Data for {marketData.Symbol}{source}:\n\n" +
                    $"Current Price: ${marketData.Price:F2}\n" +
                    $"24h Change: ${marketData.Change24h:F2} ({marketData.ChangePercent24h:F2}%)\n" +

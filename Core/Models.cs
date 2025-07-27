@@ -59,6 +59,7 @@ public enum SignalStatus
 public class MarketData
 {
     public string Symbol { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty; // e.g. "local", "yahoo", "binance", etc.
     public double Price { get; set; }
     public double Volume { get; set; }
     public double Change24h { get; set; }

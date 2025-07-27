@@ -118,18 +118,23 @@ public class MarketDataService
             // Try Binance first for crypto symbols
             if (symbol.Contains("USDT") || symbol.Contains("BTC") || symbol.Contains("ETH"))
             {
-                return await FetchBinanceDataAsync(symbol);
+                var binanceData = await FetchBinanceDataAsync(symbol);
+                if (binanceData != null) binanceData.Source = "binance";
+                return binanceData;
             }
             // Try LeanDataService for local equity data first
             var leanSymbol = symbol.Trim().ToUpper();
             var hasLocalData = await _leanDataService.HasDataForSymbolAsync(leanSymbol, frequency == "minute");
             if (hasLocalData)
             {
-                var bars = await _leanDataService.GetEquityBarsAsync(leanSymbol, frequency, 1);
+                var bars = await _leanDataService.GetEquityBarsAsync(leanSymbol, frequency, 2);
                 var latestBar = bars.LastOrDefault();
+                var prevBar = bars.Count > 1 ? bars[^2] : null;
                 if (latestBar != null)
                 {
                     _logger.LogInformation($"Fetched market data for {symbol} from local Lean data ({frequency})");
+                    double change24h = prevBar != null ? (double)(latestBar.Close - prevBar.Close) : (double)(latestBar.Close - latestBar.Open);
+                    double changePercent24h = prevBar != null && prevBar.Close != 0 ? (change24h / (double)prevBar.Close) * 100 : 0;
                     return new MarketData
                     {
                         Symbol = leanSymbol,
@@ -137,8 +142,10 @@ public class MarketDataService
                         Volume = latestBar.Volume,
                         High24h = (double)latestBar.High,
                         Low24h = (double)latestBar.Low,
-                        Change24h = (double)(latestBar.Close - latestBar.Open),
-                        Timestamp = latestBar.Time
+                        Change24h = change24h,
+                        ChangePercent24h = changePercent24h,
+                        Timestamp = latestBar.Time,
+                        Source = "local"
                     };
                 }
             }
@@ -192,17 +199,44 @@ public class MarketDataService
                 if (entry == null) return null;
                 using (var reader = new System.IO.StreamReader(entry.Open()))
                 {
+                    var validLines = new List<string>();
                     string? line;
-                    string? lastLine = null;
                     while ((line = reader.ReadLine()) != null)
                     {
                         if (!string.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
-                            lastLine = line;
+                            validLines.Add(line);
                     }
-                    if (lastLine != null)
+                    if (validLines.Count >= 2)
                     {
-                        var parts = lastLine.Split(',');
+                        var prevParts = validLines[validLines.Count - 2].Split(',');
+                        var lastParts = validLines[validLines.Count - 1].Split(',');
                         // Assume Lean format: date,open,high,low,close,volume,...
+                        var dt = DateTime.ParseExact(lastParts[0], "yyyyMMdd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+                        var open = double.Parse(lastParts[1]);
+                        var high = double.Parse(lastParts[2]);
+                        var low = double.Parse(lastParts[3]);
+                        var close = double.Parse(lastParts[4]);
+                        var volume = double.Parse(lastParts[5]);
+                        var prevClose = double.Parse(prevParts[4]);
+                        double change24h = close - prevClose;
+                        double changePercent24h = prevClose != 0 ? (change24h / prevClose) * 100 : 0;
+                        return new MarketData
+                        {
+                            Symbol = symbol.ToUpper(),
+                            Price = close,
+                            Volume = volume,
+                            High24h = high,
+                            Low24h = low,
+                            Change24h = change24h,
+                            ChangePercent24h = changePercent24h,
+                            Timestamp = dt,
+                            Source = "local"
+                        };
+                    }
+                    else if (validLines.Count == 1)
+                    {
+                        // Fallback: only one line, can't compute change
+                        var parts = validLines[0].Split(',');
                         var dt = DateTime.ParseExact(parts[0], "yyyyMMdd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
                         var open = double.Parse(parts[1]);
                         var high = double.Parse(parts[2]);
@@ -217,7 +251,9 @@ public class MarketDataService
                             High24h = high,
                             Low24h = low,
                             Change24h = close - open,
-                            Timestamp = dt
+                            ChangePercent24h = 0,
+                            Timestamp = dt,
+                            Source = "local"
                         };
                     }
                 }
@@ -335,15 +371,21 @@ public class MarketDataService
             var securities = await Yahoo.Symbols(symbol).Fields(Field.RegularMarketPrice, Field.RegularMarketVolume, Field.RegularMarketDayHigh, Field.RegularMarketDayLow, Field.RegularMarketPreviousClose, Field.RegularMarketOpen, Field.RegularMarketTime).QueryAsync();
             if (securities.TryGetValue(symbol, out var sec))
             {
+                double price = (double?)sec[Field.RegularMarketPrice] ?? 0;
+                double prevClose = (double?)sec[Field.RegularMarketPreviousClose] ?? 0;
+                double change24h = price - prevClose;
+                double changePercent24h = prevClose != 0 ? (change24h / prevClose) * 100 : 0;
                 return new MarketData
                 {
                     Symbol = symbol.ToUpper(),
-                    Price = (double?)sec[Field.RegularMarketPrice] ?? 0,
+                    Price = price,
                     Volume = (double?)sec[Field.RegularMarketVolume] ?? 0,
                     High24h = (double?)sec[Field.RegularMarketDayHigh] ?? 0,
                     Low24h = (double?)sec[Field.RegularMarketDayLow] ?? 0,
-                    Change24h = ((double?)sec[Field.RegularMarketPrice] ?? 0) - ((double?)sec[Field.RegularMarketPreviousClose] ?? 0),
-                    Timestamp = sec[Field.RegularMarketTime] is DateTime dt ? dt : DateTime.UtcNow
+                    Change24h = change24h,
+                    ChangePercent24h = changePercent24h,
+                    Timestamp = sec[Field.RegularMarketTime] is DateTime dt ? dt : DateTime.UtcNow,
+                    Source = "yahoo"
                 };
             }
         }
@@ -365,11 +407,7 @@ public class MarketDataService
             else
             {
                 var data = FetchStockHistoricalData(symbol, limit);
-                if (data == null || !data.Any())
-                {
-                    // Fallback to Yahoo Finance if no local/Lean data
-                    data = await FetchYahooFinanceHistoricalData(symbol, limit);
-                }
+                // Do not fallback to Yahoo. Only use local data.
                 if (data != null)
                 {
                     // Filter: exclude the most recent minute, and only include up to 5 years ago
