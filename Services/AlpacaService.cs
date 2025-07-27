@@ -177,7 +177,8 @@ public class AlpacaService
             }
 
             // Extend the date range to account for weekends and holidays
-            var endDate = DateTime.UtcNow;
+            // Use endDate as 30 minutes before now to avoid SIP errors
+            var endDate = DateTime.UtcNow.AddMinutes(-30);
             var startDate = endDate.AddDays(-(days + 10)); // Add extra days to ensure we get enough data
 
             _logger.LogInformation("Fetching historical data for {Symbol} from {StartDate} to {EndDate}", 

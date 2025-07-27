@@ -59,12 +59,11 @@ namespace QuantResearchAgent
                 Directory.CreateDirectory(logDir);
             }
 
-            // Add logging (console and file)
+            // Suppress all logging output
             services.AddLogging(builder =>
             {
-                builder.AddConsole();
-                var logFilePath = configuration["Logging:LogFilePath"] ?? "./logs/agent.log";
-                builder.AddProvider(new QuantResearchAgent.SimpleFileLoggerProvider(logFilePath));
+                builder.ClearProviders();
+                builder.SetMinimumLevel(LogLevel.Critical);
             });
 
             // Add InteractiveCLI

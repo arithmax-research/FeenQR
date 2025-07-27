@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("QuantResearchAgent")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e6870594432852c7ad0306101becde6a461ef698")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fb41e98fd787beea983474f6f2a73f12decd4816")]
 [assembly: System.Reflection.AssemblyProductAttribute("QuantResearchAgent")]
 [assembly: System.Reflection.AssemblyTitleAttribute("QuantResearchAgent")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

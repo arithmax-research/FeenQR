@@ -524,37 +524,81 @@ public class MarketDataService
             if (System.IO.File.Exists(filePath))
             {
                 _logger.LogInformation($"Found local data file for {symbol}: {filePath}");
-                // TODO: Implement actual reading and parsing of the zip/csv file
-                // For now, just return null to indicate file found but not yet parsed
-                return null;
+                var historicalData = new List<MarketData>();
+                using (var archive = System.IO.Compression.ZipFile.OpenRead(filePath))
+                {
+                    var entry = archive.Entries.FirstOrDefault(e => e.FullName.EndsWith(".csv"));
+                    if (entry != null)
+                    {
+                        using (var stream = entry.Open())
+                        using (var reader = new StreamReader(stream))
+                        {
+                            string? line;
+                            bool isHeader = true;
+                            var rows = new List<string>();
+                            while ((line = reader.ReadLine()) != null)
+                            {
+                                if (isHeader) { isHeader = false; continue; }
+                                rows.Add(line);
+                            }
+                            // Take last N rows (limit)
+                            foreach (var row in rows.Skip(Math.Max(0, rows.Count - limit)))
+                            {
+                                var parts = row.Split(',');
+                                if (parts.Length < 7) continue;
+                                // Lean daily: date,open,high,low,close,volume,dividends,splits
+                                // Example: 20240725,200.1,202.5,199.8,201.2,123456,0,0
+                                if (!DateTime.TryParseExact(parts[0], "yyyyMMdd", null, System.Globalization.DateTimeStyles.None, out var date))
+                                    continue;
+                                if (!double.TryParse(parts[1], out var open)) continue;
+                                if (!double.TryParse(parts[2], out var high)) continue;
+                                if (!double.TryParse(parts[3], out var low)) continue;
+                                if (!double.TryParse(parts[4], out var close)) continue;
+                                if (!long.TryParse(parts[5], out var volume)) continue;
+                                historicalData.Add(new MarketData
+                                {
+                                    Symbol = symbol,
+                                    Price = close,
+                                    High24h = high,
+                                    Low24h = low,
+                                    Volume = volume,
+                                    Timestamp = date,
+                                    Source = "Local"
+                                });
+                            }
+                        }
+                    }
+                }
+                if (historicalData.Count > 0)
+                    return historicalData;
+                else
+                    _logger.LogWarning($"No valid rows found in local data file for {symbol}");
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error reading local data file for {symbol}");
         }
-        // Fallback: Generate mock data
-        var historicalData = new List<MarketData>();
+        // Fallback: Generate mock data (for non-equities or if no file)
+        var fallbackData = new List<MarketData>();
         var random = new Random();
         var basePrice = 100.0;
-
         for (int i = limit; i > 0; i--)
         {
             var timestamp = DateTime.UtcNow.AddMinutes(-i * 5);
             var price = basePrice + (random.NextDouble() - 0.5) * 20;
-            
-            historicalData.Add(new MarketData
+            fallbackData.Add(new MarketData
             {
                 Symbol = symbol,
                 Price = price,
                 Volume = 50000 + random.Next(0, 100000),
                 High24h = price + random.NextDouble() * 2,
                 Low24h = price - random.NextDouble() * 2,
-                Timestamp = timestamp
+                Timestamp = timestamp,
+                Source = "Mock"
             });
         }
-
-        return historicalData;
+        return fallbackData;
     }
 }
 
