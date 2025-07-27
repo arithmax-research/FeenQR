@@ -400,7 +400,7 @@ public class InteractiveCLI
         PrintSectionHeader("News Sentiment & Outlook");
         try
         {
-            var sentimentFunction = _kernel.Plugins["MarketSentimentAgentService"]?["AnalyzeMarketSentiment"];
+            var sentimentFunction = _kernel.Plugins["MarketSentimentPlugin"]?["AnalyzeMarketSentimentAsync"];
             if (sentimentFunction != null)
             {
                 var sentimentResult = await _kernel.InvokeAsync(sentimentFunction, new() { ["assetClass"] = "stocks", ["specificAsset"] = symbol });
@@ -494,7 +494,7 @@ public class InteractiveCLI
         PrintSectionHeader("News Sentiment & Outlook");
         try
         {
-            var sentimentFunction = _kernel.Plugins["MarketSentimentAgentService"]?["AnalyzeMarketSentiment"];
+            var sentimentFunction = _kernel.Plugins["MarketSentimentPlugin"]?["AnalyzeMarketSentimentAsync"];
             if (sentimentFunction != null)
             {
                 var sentimentResult = await _kernel.InvokeAsync(sentimentFunction, new() { ["assetClass"] = "stocks", ["specificAsset"] = symbol });
@@ -518,9 +518,23 @@ public class InteractiveCLI
         var symbol = parts.Length > 1 ? parts[1] : "AAPL";
         PrintSectionHeader("Fundamental & Sentiment Analysis");
         Console.WriteLine($"Symbol: {symbol}");
-        var function = _kernel.Plugins["CompanyValuationPlugin"]["AnalyzeCompany"];
-        var result = await _kernel.InvokeAsync(function, new() { ["ticker"] = symbol, ["symbol"] = symbol });
-        Console.WriteLine(result.ToString());
+        try
+        {
+            var function = _kernel.Plugins["CompanyValuationPlugin"]?["AnalyzeStock"];
+            if (function != null)
+            {
+                var result = await _kernel.InvokeAsync(function, new() { ["ticker"] = symbol });
+                Console.WriteLine(result.ToString());
+            }
+            else
+            {
+                Console.WriteLine("(No fundamental analysis function available)");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error analyzing stock {symbol}: {ex.Message}");
+        }
         PrintSectionFooter();
     }
     // --- UI Section Helpers ---
