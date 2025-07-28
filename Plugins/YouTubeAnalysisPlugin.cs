@@ -37,7 +37,9 @@ public class YouTubeAnalysisPlugin
         }
         catch (Exception ex)
         {
-            return $"Error analyzing YouTube video: {ex.Message}";
+            return $"Error analyzing YouTube video: {ex.Message}\n" +
+                   "This may be due to an invalid/missing YouTube API key, quota exhaustion, or a network error.\n" +
+                   $"Details: {ex}";
         }
     }
 
@@ -119,20 +121,21 @@ public class YouTubeAnalysisPlugin
         try
         {
             var videoUrls = await _youtubeService.GetLatestQuantopianVideosAsync(maxResults);
-            
             if (!videoUrls.Any())
             {
-                return "No recent videos found from Quantopian channel.";
+                return "No recent videos found from Quantopian channel.\n" +
+                       "Possible reasons: YouTube API key missing/invalid, quota exceeded, or channel has no public videos.\n" +
+                       "Check your API key and quota in Google Cloud Console.";
             }
-            
             var result = $"Latest {videoUrls.Count} videos from Quantopian channel:\n\n";
             result += string.Join("\n", videoUrls.Select((url, index) => $"{index + 1}. {url}"));
-            
             return result;
         }
         catch (Exception ex)
         {
-            return $"Error retrieving Quantopian videos: {ex.Message}";
+            return $"Error retrieving Quantopian videos: {ex.Message}\n" +
+                   "This may be due to an invalid/missing YouTube API key, quota exhaustion, or a network error.\n" +
+                   $"Details: {ex}";
         }
     }
 
@@ -144,15 +147,12 @@ public class YouTubeAnalysisPlugin
         try
         {
             var videoUrls = await _youtubeService.SearchFinanceVideosAsync(query, maxResults);
-            
             if (!videoUrls.Any())
             {
                 return $"No finance videos found for query: {query}";
             }
-            
             var result = $"Found {videoUrls.Count} finance videos for '{query}':\n\n";
             result += string.Join("\n", videoUrls.Select((url, index) => $"{index + 1}. {url}"));
-            
             return result;
         }
         catch (Exception ex)
@@ -160,4 +160,4 @@ public class YouTubeAnalysisPlugin
             return $"Error searching finance videos: {ex.Message}";
         }
     }
-}
+    }
