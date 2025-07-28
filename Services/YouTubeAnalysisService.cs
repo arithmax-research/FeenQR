@@ -181,11 +181,20 @@ public class YouTubeAnalysisService
         {
             var url = $"{YOUTUBE_API_BASE}/videos?part=snippet&id={videoId}&key={_youTubeApiKey}";
             var response = await _httpClient.GetStringAsync(url);
-            var videoResult = JsonSerializer.Deserialize<YouTubeVideoResponse>(response);
-            
-            var video = videoResult?.Items?.FirstOrDefault();
+            _logger.LogDebug("YouTube API raw response for video {VideoId}: {Response}", videoId, response);
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var videoResult = JsonSerializer.Deserialize<YouTubeVideoResponse>(response, options);
+
+            if (videoResult == null)
+            {
+                _logger.LogError("Deserialization returned null for videoId {VideoId}. Raw response: {Response}", videoId, response);
+                throw new InvalidOperationException($"Failed to parse YouTube API response for video: {videoId}");
+            }
+
+            var video = videoResult.Items?.FirstOrDefault();
             if (video == null)
             {
+                _logger.LogError("No video found in API response for videoId {VideoId}. Raw response: {Response}", videoId, response);
                 throw new InvalidOperationException($"Video not found: {videoId}");
             }
 
