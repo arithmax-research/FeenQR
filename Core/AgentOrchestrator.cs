@@ -94,6 +94,18 @@ public class AgentOrchestrator
         kernel.Plugins.AddFromObject(new CompanyValuationPlugin(_companyValuationService));
         kernel.Plugins.AddFromObject(new HighFrequencyDataPlugin(_hfDataService));
         kernel.Plugins.AddFromObject(new TradingStrategyLibraryPlugin(_strategyLibraryService));
+
+        // Diagnostic: List all registered plugins and their functions
+        Console.WriteLine("=== Registered Plugins and Functions ===");
+        foreach (var plugin in kernel.Plugins)
+        {
+            Console.WriteLine($"Plugin: {plugin.Name}");
+            foreach (var function in plugin)
+            {
+                Console.WriteLine($"  Function: {function.Name}");
+            }
+        }
+        Console.WriteLine("========================================");
     }
 
     private void RegisterPlugins()

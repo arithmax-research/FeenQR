@@ -28,7 +28,7 @@ public class InteractiveCLI
 
     public async Task RunAsync()
     {
-        Console.WriteLine("Quant Research Agent - Interactive CLI");
+        Console.WriteLine("Arithmax CLI Quantitative Research Agent");
         Console.WriteLine("=========================================");
         Console.WriteLine();
         Console.WriteLine("Available commands:");
@@ -400,7 +400,7 @@ public class InteractiveCLI
         PrintSectionHeader("News Sentiment & Outlook");
         try
         {
-            var sentimentFunction = _kernel.Plugins["MarketSentimentPlugin"]?["AnalyzeMarketSentimentAsync"];
+            var sentimentFunction = _kernel.Plugins["MarketSentimentPlugin"]?["AnalyzeMarketSentiment"];
             if (sentimentFunction != null)
             {
                 var sentimentResult = await _kernel.InvokeAsync(sentimentFunction, new() { ["assetClass"] = "stocks", ["specificAsset"] = symbol });
@@ -494,7 +494,7 @@ public class InteractiveCLI
         PrintSectionHeader("News Sentiment & Outlook");
         try
         {
-            var sentimentFunction = _kernel.Plugins["MarketSentimentPlugin"]?["AnalyzeMarketSentimentAsync"];
+            var sentimentFunction = _kernel.Plugins["MarketSentimentPlugin"]?["AnalyzeMarketSentiment"];
             if (sentimentFunction != null)
             {
                 var sentimentResult = await _kernel.InvokeAsync(sentimentFunction, new() { ["assetClass"] = "stocks", ["specificAsset"] = symbol });

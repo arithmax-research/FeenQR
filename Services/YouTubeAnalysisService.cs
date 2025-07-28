@@ -11,6 +11,9 @@ namespace QuantResearchAgent.Services;
 /// <summary>
 /// Service for analyzing YouTube videos from Quantopian channel for trading insights
 /// </summary>
+
+using QuantResearchAgent.Plugins;
+
 public class YouTubeAnalysisService
 {
     private readonly ILogger<YouTubeAnalysisService> _logger;
@@ -18,22 +21,29 @@ public class YouTubeAnalysisService
     private readonly Kernel _kernel;
     private readonly HttpClient _httpClient;
     private readonly string _youTubeApiKey;
+    private readonly IWebSearchPlugin _webSearchPlugin;
+    private readonly IFinancialDataPlugin _financialDataPlugin;
 
     // Quantopian channel ID and common finance YouTube channels
     private const string QUANTOPIAN_CHANNEL_ID = "UC606MUq45P3zFLa4VGKbxfw";
     private const string YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
 
+    // TODO: Inject API keys/config for web search and financial data plugins as needed
     public YouTubeAnalysisService(
         ILogger<YouTubeAnalysisService> logger,
         IConfiguration configuration,
         Kernel kernel,
-        HttpClient httpClient)
+        HttpClient httpClient,
+        IWebSearchPlugin webSearchPlugin,
+        IFinancialDataPlugin financialDataPlugin)
     {
         _logger = logger;
         _configuration = configuration;
         _kernel = kernel;
         _httpClient = httpClient;
         _youTubeApiKey = _configuration["YouTube:ApiKey"] ?? string.Empty;
+        _webSearchPlugin = webSearchPlugin;
+        _financialDataPlugin = financialDataPlugin;
     }
 
     /// <summary>
@@ -216,46 +226,88 @@ public class YouTubeAnalysisService
 
     private async Task AnalyzeTechnicalContentAsync(PodcastEpisode episode)
     {
-        var prompt = $@"
-You are a quantitative finance expert analyzing YouTube video content for trading insights.
+        // Chunk transcript for region-specific prompts
+        var regions = new[] { "USA", "China", "India", "Europe", "Global" };
+        var regionResults = new List<string>();
+
+        foreach (var region in regions)
+        {
+            var searchResults = await _webSearchPlugin.SearchAsync($"{episode.Name} {region} finance trading", 3);
+
+            // 1. Run LLM/web search analysis first (simulate by using searchResults and video info)
+            // 2. Extract tickers from search results and video info
+            var aiContext = $"{episode.Name} {episode.Description} {string.Join(" ", searchResults.Select(r => r.Snippet))}";
+            var tickers = QuantResearchAgent.Plugins.YahooFinanceDataPlugin.ExtractTickersFromText(aiContext);
+
+            // 3. Query only for valid tickers
+            var securities = await _financialDataPlugin.GetSecuritiesForTickersAsync(tickers, 5);
+            var validSecurities = securities.Where(s => !string.IsNullOrWhiteSpace(s.Symbol)).ToList();
+
+            // 4. Only call /news for valid tickers
+            var newsList = new List<QuantResearchAgent.Plugins.FinancialNewsItem>();
+            foreach (var sec in validSecurities)
+            {
+                try
+                {
+                    var news = await _financialDataPlugin.GetNewsAsync(sec.Symbol, 3);
+                    if (news != null) newsList.AddRange(news);
+                }
+                catch { /* skip errors for individual tickers */ }
+            }
+
+            // Build context string
+            var context = $"\nWeb Search Results for {region}:\n" +
+                string.Join("\n", searchResults.Select(r => $"- {r.Title}: {r.Snippet} ({r.Url})")) +
+                "\nSecurities:\n" +
+                string.Join("\n", validSecurities.Select(s => $"- {s.Symbol} ({s.Name}, {s.Exchange})")) +
+                "\nRecent News:\n" +
+                string.Join("\n", newsList.Select(n => $"- {n.Headline}: {n.Summary} [{n.Source}] ({n.Url})"));
+
+            // Region-specific prompt
+            var prompt = $@"
+You are a world-class quantitative finance expert and research analyst. Analyze the following YouTube video content for trading insights, real-world applications, and global context for {region}.
 
 Video Title: {episode.Name}
 Video Description: {episode.Description}
 Channel: Quantopian/Finance Channel
+Region: {region}
 
-Please analyze this content and extract:
+{context}
+
+Please provide:
 1. Technical trading concepts mentioned (indicators, strategies, patterns)
 2. Market analysis or predictions (specific markets, sectors, trends)
 3. Investment strategies discussed (portfolio management, risk strategies)
 4. Risk management principles (position sizing, stop losses, hedging)
 5. Quantitative methods or indicators mentioned (algorithms, backtesting, statistics)
 6. Educational concepts (finance theory, market mechanics)
+7. Real-world applications: Summarize how these concepts and strategies are being applied in {region}. Include recent news, case studies, or notable funds if possible.
+8. Possible securities: List stocks, ETFs, futures, or other instruments (from {region}) that could be used to implement these strategies. Be creative and global.
 
-Focus on actionable insights that could inform trading decisions.
-Provide specific, concise bullet points for each category that has relevant content.
-If a category has no relevant information, skip it.
-Prioritize concrete, implementable insights over general concepts.
+Focus on actionable, concrete insights that could inform trading decisions. For each category, provide concise bullet points. If a category has no relevant information, skip it. Prioritize practical, implementable ideas and global context over general theory.
 ";
 
-        try
-        {
-            var function = _kernel.CreateFunctionFromPrompt(prompt);
-            var result = await _kernel.InvokeAsync(function);
-            
-            var analysis = result.ToString();
-            episode.TechnicalInsights = ParseTechnicalInsights(analysis);
-            
-            // Calculate sentiment score
-            episode.SentimentScore = await CalculateSentimentAsync($"{episode.Name}\n{episode.Description}");
-            
-            _logger.LogInformation("Extracted {InsightCount} technical insights from video: {VideoTitle}", 
-                episode.TechnicalInsights.Count, episode.Name);
+            try
+            {
+                var function = _kernel.CreateFunctionFromPrompt(prompt);
+                var result = await _kernel.InvokeAsync(function);
+                regionResults.Add(result.ToString());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to analyze technical content for region: {region}, video: {episode.Id}");
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to analyze technical content for video: {VideoId}", episode.Id);
-            throw;
-        }
+
+        // Aggregate results
+        var analysis = string.Join("\n\n---\n\n", regionResults);
+        episode.TechnicalInsights = ParseTechnicalInsights(analysis);
+
+        // Calculate sentiment score
+        episode.SentimentScore = await CalculateSentimentAsync($"{episode.Name}\n{episode.Description}");
+
+        _logger.LogInformation("Extracted {InsightCount} technical insights from video: {VideoTitle}", 
+            episode.TechnicalInsights.Count, episode.Name);
     }
 
     private async Task ExtractTradingSignalsAsync(PodcastEpisode episode)
@@ -272,17 +324,13 @@ Technical Insights:
 Video Sentiment Score: {episode.SentimentScore:F2}
 
 Please generate trading signals in the following format:
-- Symbol: [STOCK/ETF/CRYPTO SYMBOL] (use real, liquid symbols like SPY, QQQ, AAPL, BTC, etc.)
+- Symbol: [STOCK/ETF/CRYPTO SYMBOL] (can be from any major market: USA, China, India, Europe, etc. Use real, liquid symbols like SPY, QQQ, AAPL, 510050.SS, RELIANCE.NS, BTC, etc.)
 - Action: [BUY/SELL/HOLD]
 - Strength: [0.1-1.0] (confidence level)
-- Reasoning: [Brief explanation based on the video content]
+- Reasoning: [Brief explanation based on the video content and global context]
 - Time Horizon: [SHORT/MEDIUM/LONG] (days/weeks/months)
 
-Only suggest signals where you have high confidence based on the video content.
-Focus on the most liquid and well-known assets.
-Be conservative and prioritize risk management.
-Maximum 3 signals per video.
-If no strong signals can be derived, return 'No clear trading signals identified.'
+If the video does not provide high-confidence signals, you may suggest illustrative or plausible signals based on the discussed strategies and global market context. Be creative and global, but always explain your reasoning. Maximum 3 signals per video. If truly nothing can be derived, return 'No clear trading signals identified.'
 ";
 
         try

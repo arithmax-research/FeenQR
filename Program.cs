@@ -32,6 +32,15 @@ namespace QuantResearchAgent
 
             ConfigureServices(services, configuration, kernel);
 
+            // Register web search and financial data plugins
+            services.AddHttpClient<QuantResearchAgent.Plugins.GoogleWebSearchPlugin>();
+            services.AddSingleton<QuantResearchAgent.Plugins.IWebSearchPlugin>(sp =>
+                sp.GetRequiredService<QuantResearchAgent.Plugins.GoogleWebSearchPlugin>());
+
+            services.AddHttpClient<QuantResearchAgent.Plugins.YahooFinanceDataPlugin>();
+            services.AddSingleton<QuantResearchAgent.Plugins.IFinancialDataPlugin>(sp =>
+                sp.GetRequiredService<QuantResearchAgent.Plugins.YahooFinanceDataPlugin>());
+
             // Build service provider
             var serviceProvider = services.BuildServiceProvider();
 

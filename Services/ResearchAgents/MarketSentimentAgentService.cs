@@ -93,27 +93,27 @@ public class MarketSentimentAgentService
     {
         try
         {
-            // Mock news data for now - in production, you'd use NewsAPI or similar
-            var newsKeywords = assetClass switch
+            // Use yfinance Flask API for real news
+            var ticker = string.IsNullOrWhiteSpace(specificAsset) ? "AAPL" : specificAsset;
+            var newsPlugin = new QuantResearchAgent.Plugins.MarketSentimentNewsPlugin();
+            var newsItems = await newsPlugin.GetNewsAsync(ticker, 10);
+            if (newsItems == null || newsItems.Count == 0)
             {
-                "crypto" => "cryptocurrency bitcoin ethereum blockchain",
-                "stocks" => "stock market equity trading",
-                "bonds" => "bond yield treasury interest rate",
-                "etf" => "ETF index fund",
-                _ => "financial market"
-            };
-
-            if (!string.IsNullOrEmpty(specificAsset))
-            {
-                newsKeywords += $" {specificAsset}";
+                _logger.LogWarning($"No news found for ticker {ticker}, falling back to mock data.");
+                // Map NewsItem to MarketNewsItem
+                newsItems = GenerateMockNewsData(ticker)
+                    .Select(n => new QuantResearchAgent.Plugins.MarketNewsItem {
+                        Title = n.Title,
+                        Summary = n.Summary,
+                        Publisher = n.Source,
+                        ProviderPublishTime = n.PublishedAt
+                    }).ToList();
             }
 
-            var mockNewsData = GenerateMockNewsData(newsKeywords);
-            
             var prompt = $@"
 Analyze the sentiment of these financial news headlines and summaries:
 
-{string.Join("\n", mockNewsData.Select(n => $"- {n.Title}: {n.Summary}"))}
+{string.Join("\n", newsItems.Select(n => $"- {n.Title}: {n.Summary}"))}
 
 Asset Focus: {assetClass} {specificAsset}
 
@@ -129,7 +129,6 @@ Focus on market-moving news and investor sentiment indicators.
 
             var function = _kernel.CreateFunctionFromPrompt(prompt);
             var result = await _kernel.InvokeAsync(function);
-            
             return ParseSentimentResult(result.ToString(), "News");
         }
         catch (Exception ex)
