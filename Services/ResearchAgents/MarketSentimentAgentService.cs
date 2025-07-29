@@ -99,15 +99,8 @@ public class MarketSentimentAgentService
             var newsItems = await newsPlugin.GetNewsAsync(ticker, 10);
             if (newsItems == null || newsItems.Count == 0)
             {
-                _logger.LogWarning($"No news found for ticker {ticker}, falling back to mock data.");
-                // Map NewsItem to MarketNewsItem
-                newsItems = GenerateMockNewsData(ticker)
-                    .Select(n => new QuantResearchAgent.Plugins.MarketNewsItem {
-                        Title = n.Title,
-                        Summary = n.Summary,
-                        Publisher = n.Source,
-                        ProviderPublishTime = n.PublishedAt
-                    }).ToList();
+                _logger.LogWarning($"No news found for ticker {ticker} and no mock data fallback. Returning empty sentiment.");
+                return new SentimentData { Source = "News", Score = 0, Confidence = 0 };
             }
 
             var prompt = $@"
