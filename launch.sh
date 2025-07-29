@@ -24,7 +24,7 @@ fi
 
 # Build the project
 echo "🔨 Building the project..."
-dotnet build --configuration Release
+dotnet build QuantResearchAgent.csproj --configuration Release
 
 if [ $? -ne 0 ]; then
     echo " Build failed. Please fix the compilation errors."
@@ -41,6 +41,14 @@ if [ -z "$OPENAI_API_KEY" ]; then
     echo ""
 fi
 
+
+
+# Start the Python Flask API in the background
+echo "Starting Python yfinance Flask API..."
+PYTHON_API_LOG=python_api.log
+python3 data_pipeline/yfinance_api.py > "$PYTHON_API_LOG" 2>&1 &
+PYTHON_API_PID=$!
+sleep 2
 
 # Ask user for run mode
 echo "Select run mode:"
@@ -70,6 +78,11 @@ case $choice in
         dotnet run --configuration Release -- --interactive
         ;;
 esac
+
+# Kill the Python Flask API on exit
+echo "Stopping Python yfinance Flask API..."
+kill $PYTHON_API_PID 2>/dev/null
+wait $PYTHON_API_PID 2>/dev/null
 
 echo ""
 echo " Quant Research Agent stopped. Goodbye!"
