@@ -101,6 +101,7 @@ namespace QuantResearchAgent
             services.AddSingleton<HttpClient>();
 
             // Add research agents
+            services.AddSingleton<NewsScrapingService>();
             services.AddSingleton<MarketSentimentAgentService>();
             services.AddSingleton<StatisticalPatternAgentService>();
         }
