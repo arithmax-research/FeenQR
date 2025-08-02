@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using QuantResearchAgent.Core;
+using QuantResearchAgent.Services;
 using RestSharp;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -16,19 +17,20 @@ public class MarketSentimentAgentService
     private readonly ILogger<MarketSentimentAgentService> _logger;
     private readonly IConfiguration _configuration;
     private readonly Kernel _kernel;
-    private readonly RestClient _newsApiClient;
+    private readonly NewsScrapingService _newsScrapingService;
     private readonly RestClient _redditClient;
     private readonly List<SentimentAnalysis> _sentimentHistory = new();
 
     public MarketSentimentAgentService(
         ILogger<MarketSentimentAgentService> logger,
         IConfiguration configuration,
-        Kernel kernel)
+        Kernel kernel,
+        NewsScrapingService newsScrapingService)
     {
         _logger = logger;
         _configuration = configuration;
         _kernel = kernel;
-        _newsApiClient = new RestClient("https://newsapi.org");
+        _newsScrapingService = newsScrapingService;
         _redditClient = new RestClient("https://www.reddit.com");
     }
 
@@ -93,41 +95,89 @@ public class MarketSentimentAgentService
     {
         try
         {
-            // Use yfinance Flask API for real news
+            // Use web scraping for real news data
             var ticker = string.IsNullOrWhiteSpace(specificAsset) ? "AAPL" : specificAsset;
-            var newsPlugin = new QuantResearchAgent.Plugins.MarketSentimentNewsPlugin();
-            var newsItems = await newsPlugin.GetNewsAsync(ticker, 10);
-            if (newsItems == null || newsItems.Count == 0)
+            _logger.LogInformation($"Scraping real news data for ticker: {ticker}");
+            
+            // Try multiple news sources for better coverage
+            var allArticles = new List<NewsArticle>();
+            var sources = new[] { "Yahoo Finance", "Bloomberg", "Google Finance" };
+            
+            foreach (var source in sources)
             {
-                _logger.LogWarning($"No news found for ticker {ticker} and no mock data fallback. Returning empty sentiment.");
-                return new SentimentData { Source = "News", Score = 0, Confidence = 0 };
+                try
+                {
+                    var articles = await _newsScrapingService.GetNewsArticlesAsync(ticker, source, 5);
+                    allArticles.AddRange(articles);
+                    _logger.LogInformation($"Scraped {articles.Count} articles from {source} for {ticker}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Failed to scrape from {source} for {ticker}");
+                }
+            }
+            
+            if (allArticles.Count == 0)
+            {
+                _logger.LogWarning($"No real news data found for ticker {ticker} from web scraping.");
+                return new SentimentData { Source = "News", Score = 0, Confidence = 0, Analysis = "No news data available from web scraping" };
             }
 
+            _logger.LogInformation($"Successfully scraped {allArticles.Count} news articles for {ticker}");
+
+            // Create content for sentiment analysis - include both titles and content
+            var newsContent = string.Join("\n\n", allArticles.Select(article => 
+                $"**{article.Title}** (Source: {article.Source})\n{article.Summary}\nPublished: {article.PublishedAt:yyyy-MM-dd HH:mm}"));
+
             var prompt = $@"
-Analyze the sentiment of these financial news headlines and summaries:
+Analyze the sentiment of these REAL financial news articles for {ticker}:
 
-{string.Join("\n", newsItems.Select(n => $"- {n.Title}: {n.Summary}"))}
+{newsContent}
 
-Asset Focus: {assetClass} {specificAsset}
+You must provide your analysis in this EXACT format:
 
-Provide sentiment analysis:
-1. OVERALL_SENTIMENT_SCORE: -1.0 to +1.0 (negative to positive)
-2. CONFIDENCE: 0.0 to 1.0 (how confident are you in this assessment)
-3. KEY_THEMES: Main themes affecting sentiment
-4. SENTIMENT_DRIVERS: What's driving the sentiment (positive/negative factors)
-5. OUTLOOK: Short-term outlook based on news sentiment
+SENTIMENT_SCORE: [number between -1.0 and 1.0]
+CONFIDENCE: [number between 0.0 and 1.0]
 
-Focus on market-moving news and investor sentiment indicators.
+KEY_THEMES: [main themes from the news]
+SENTIMENT_DRIVERS: [what's driving the sentiment]
+OUTLOOK: [short-term outlook]
+
+Instructions:
+- SENTIMENT_SCORE: -1.0 = very negative, 0.0 = neutral, +1.0 = very positive
+- CONFIDENCE: 0.0 = no confidence, 1.0 = very confident
+- Focus on market-moving news and investor sentiment
+- Consider recency (more recent = higher weight)
+- Analyze both headlines and content
+
+Example format:
+SENTIMENT_SCORE: 0.3
+CONFIDENCE: 0.8
 ";
 
             var function = _kernel.CreateFunctionFromPrompt(prompt);
             var result = await _kernel.InvokeAsync(function);
-            return ParseSentimentResult(result.ToString(), "News");
+            var sentimentData = ParseSentimentResult(result.ToString(), "News");
+            
+            // Add metadata about the real data source
+            var sourceBreakdown = allArticles.GroupBy(a => a.Source)
+                .Select(g => $"{g.Key}: {g.Count()} articles")
+                .ToList();
+            
+            sentimentData.Analysis = $"Analysis based on {allArticles.Count} real news articles from web scraping.\n" +
+                                   $"Sources: {string.Join(", ", sourceBreakdown)}\n\n" + sentimentData.Analysis;
+            
+            return sentimentData;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to analyze news sentiment");
-            return new SentimentData { Source = "News", Score = 0, Confidence = 0 };
+            _logger.LogError(ex, "Failed to analyze news sentiment from web scraping");
+            return new SentimentData { 
+                Source = "News", 
+                Score = 0, 
+                Confidence = 0, 
+                Analysis = $"Error accessing news via web scraping: {ex.Message}" 
+            };
         }
     }
 
@@ -144,15 +194,25 @@ Analyze sentiment from social media discussions about {assetClass} {specificAsse
 Recent Posts/Comments:
 {string.Join("\n", socialData.Select(s => $"- {s.Platform}: {s.Content} (Engagement: {s.EngagementScore})"))}
 
-Provide social media sentiment analysis:
-1. SENTIMENT_SCORE: -1.0 to +1.0
-2. CONFIDENCE: 0.0 to 1.0
-3. VIRAL_TRENDS: Any trending topics or viral content
-4. INFLUENCER_SENTIMENT: Sentiment from key influencers/accounts
-5. VOLUME_ANALYSIS: Is discussion volume increasing/decreasing?
-6. EMOTIONAL_INDICATORS: Fear, greed, FOMO, panic indicators
+You must provide your analysis in this EXACT format:
 
-Consider the engagement levels and reach of different posts.
+SENTIMENT_SCORE: [number between -1.0 and 1.0]
+CONFIDENCE: [number between 0.0 and 1.0]
+
+VIRAL_TRENDS: [trending topics or viral content]
+INFLUENCER_SENTIMENT: [sentiment from key influencers]
+VOLUME_ANALYSIS: [discussion volume trends]
+EMOTIONAL_INDICATORS: [fear, greed, FOMO, panic indicators]
+
+Instructions:
+- SENTIMENT_SCORE: -1.0 = very bearish, 0.0 = neutral, +1.0 = very bullish
+- CONFIDENCE: 0.0 = no confidence, 1.0 = very confident
+- Consider engagement levels and reach of posts
+- Weight high-engagement posts more heavily
+
+Example format:
+SENTIMENT_SCORE: 0.4
+CONFIDENCE: 0.75
 ";
 
             var function = _kernel.CreateFunctionFromPrompt(prompt);
@@ -189,17 +249,24 @@ Fear & Greed Index: {fearGreedValue}/100
 Volatility Index: {volatilityIndex:F1}
 Market Momentum (7-day): {marketMomentum:F1}%
 
-Additional Context:
-- High volatility typically indicates fear/uncertainty
-- Strong momentum can indicate greed or fear depending on direction
-- Consider contrarian indicators (extreme fear = buying opportunity)
+You must provide your analysis in this EXACT format:
 
-Provide fear/greed sentiment analysis:
-1. SENTIMENT_SCORE: Convert to -1.0 to +1.0 scale
-2. CONFIDENCE: 0.0 to 1.0
-3. FEAR_GREED_INTERPRETATION: What this level typically means
-4. CONTRARIAN_SIGNALS: Any contrarian opportunities
-5. RISK_ASSESSMENT: Current risk environment
+SENTIMENT_SCORE: [number between -1.0 and 1.0]
+CONFIDENCE: [number between 0.0 and 1.0]
+
+FEAR_GREED_INTERPRETATION: [what this level means]
+CONTRARIAN_SIGNALS: [contrarian opportunities]
+RISK_ASSESSMENT: [current risk environment]
+
+Instructions:
+- SENTIMENT_SCORE: Convert Fear/Greed to -1.0 to +1.0 scale
+- CONFIDENCE: Based on clarity of signals
+- Consider contrarian indicators (extreme fear = buying opportunity)
+- High volatility typically indicates fear/uncertainty
+
+Example format:
+SENTIMENT_SCORE: -0.2
+CONFIDENCE: 0.5
 ";
 
             var function = _kernel.CreateFunctionFromPrompt(prompt);
@@ -235,18 +302,25 @@ Technical Indicators:
 - Support Level: ${support:F0}
 - Resistance Level: ${resistance:F0}
 
-Market Structure Analysis:
-- Price action relative to support/resistance
-- Momentum indicators alignment
-- Trend strength assessment
+You must provide your analysis in this EXACT format:
 
-Provide technical sentiment analysis:
-1. SENTIMENT_SCORE: -1.0 to +1.0 based on technical setup
-2. CONFIDENCE: 0.0 to 1.0 based on signal clarity
-3. TECHNICAL_BIAS: Bullish/Bearish/Neutral technical bias
-4. KEY_LEVELS: Important support/resistance levels
-5. MOMENTUM_ANALYSIS: Is momentum building or weakening?
-6. BREAKOUT_POTENTIAL: Any potential breakout scenarios
+SENTIMENT_SCORE: [number between -1.0 and 1.0]
+CONFIDENCE: [number between 0.0 and 1.0]
+
+TECHNICAL_BIAS: [Bullish/Bearish/Neutral technical bias]
+KEY_LEVELS: [important support/resistance levels]
+MOMENTUM_ANALYSIS: [momentum building or weakening]
+BREAKOUT_POTENTIAL: [potential breakout scenarios]
+
+Instructions:
+- SENTIMENT_SCORE: -1.0 = very bearish, 0.0 = neutral, +1.0 = very bullish
+- CONFIDENCE: Based on signal clarity and alignment
+- Consider price action relative to support/resistance
+- Assess momentum indicators alignment
+
+Example format:
+SENTIMENT_SCORE: 0.1
+CONFIDENCE: 0.6
 ";
 
             var function = _kernel.CreateFunctionFromPrompt(prompt);
@@ -267,30 +341,101 @@ Provide technical sentiment analysis:
         {
             var sentiment = new SentimentData { Source = source };
             
-            // Extract sentiment score
-            var scoreMatch = Regex.Match(result, @"SENTIMENT_SCORE[:\s]+(-?\d+\.?\d*)", RegexOptions.IgnoreCase);
-            if (scoreMatch.Success && double.TryParse(scoreMatch.Groups[1].Value, out var score))
+            // More flexible regex patterns to match various AI response formats
+            var scorePatterns = new[]
             {
-                sentiment.Score = Math.Max(-1.0, Math.Min(1.0, score));
+                @"(?:OVERALL_)?SENTIMENT_SCORE[:\s]*(-?\d+\.?\d*)",
+                @"(?:SENTIMENT[:\s]*)?SCORE[:\s]*[:]?\s*(-?\d+\.?\d*)",
+                @"Score[:\s]*(-?\d+\.?\d*)",
+                @"sentiment[:\s]*(-?\d+\.?\d*)",
+                @"(-?\d+\.?\d*)\s*(?:sentiment|score)"
+            };
+            
+            foreach (var pattern in scorePatterns)
+            {
+                var scoreMatch = Regex.Match(result, pattern, RegexOptions.IgnoreCase);
+                if (scoreMatch.Success && double.TryParse(scoreMatch.Groups[1].Value, out var score))
+                {
+                    sentiment.Score = Math.Max(-1.0, Math.Min(1.0, score));
+                    break;
+                }
             }
             
-            // Extract confidence
-            var confidenceMatch = Regex.Match(result, @"CONFIDENCE[:\s]+(\d+\.?\d*)", RegexOptions.IgnoreCase);
-            if (confidenceMatch.Success && double.TryParse(confidenceMatch.Groups[1].Value, out var confidence))
+            // More flexible confidence patterns
+            var confidencePatterns = new[]
             {
-                sentiment.Confidence = Math.Max(0.0, Math.Min(1.0, confidence));
+                @"CONFIDENCE[:\s]*(\d+\.?\d*)",
+                @"confidence[:\s]*(\d+\.?\d*)",
+                @"Confidence[:\s]*(\d+\.?\d*)",
+                @"(\d+\.?\d*)\s*confidence"
+            };
+            
+            foreach (var pattern in confidencePatterns)
+            {
+                var confidenceMatch = Regex.Match(result, pattern, RegexOptions.IgnoreCase);
+                if (confidenceMatch.Success && double.TryParse(confidenceMatch.Groups[1].Value, out var confidence))
+                {
+                    // Handle both 0-1 and 0-100 scales
+                    if (confidence > 1.0)
+                        confidence = confidence / 100.0;
+                    sentiment.Confidence = Math.Max(0.0, Math.Min(1.0, confidence));
+                    break;
+                }
+            }
+            
+            // If no explicit values found, try to infer from text
+            if (sentiment.Score == 0 && sentiment.Confidence == 0)
+            {
+                sentiment = InferSentimentFromText(result, source);
             }
             
             // Extract key themes or analysis
             sentiment.Analysis = result;
+            
+            // Ensure minimum confidence for valid analysis
+            if (sentiment.Confidence == 0 && !string.IsNullOrEmpty(result))
+            {
+                sentiment.Confidence = 0.5; // Default moderate confidence if analysis exists
+            }
             
             return sentiment;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to parse sentiment result for {Source}", source);
-            return new SentimentData { Source = source, Score = 0, Confidence = 0 };
+            return new SentimentData { Source = source, Score = 0, Confidence = 0.3, Analysis = result };
         }
+    }
+
+    private SentimentData InferSentimentFromText(string text, string source)
+    {
+        var sentiment = new SentimentData { Source = source };
+        
+        // Keyword-based sentiment inference as fallback
+        var positiveKeywords = new[] { "bullish", "positive", "optimistic", "strong", "growth", "buy", "upward", "rally", "gain" };
+        var negativeKeywords = new[] { "bearish", "negative", "pessimistic", "weak", "decline", "sell", "downward", "crash", "loss" };
+        
+        var lowerText = text.ToLower();
+        var positiveCount = positiveKeywords.Count(keyword => lowerText.Contains(keyword));
+        var negativeCount = negativeKeywords.Count(keyword => lowerText.Contains(keyword));
+        
+        if (positiveCount > negativeCount)
+        {
+            sentiment.Score = Math.Min(0.6, positiveCount * 0.2);
+            sentiment.Confidence = 0.6;
+        }
+        else if (negativeCount > positiveCount)
+        {
+            sentiment.Score = Math.Max(-0.6, -negativeCount * 0.2);
+            sentiment.Confidence = 0.6;
+        }
+        else
+        {
+            sentiment.Score = 0;
+            sentiment.Confidence = 0.4;
+        }
+        
+        return sentiment;
     }
 
     private SentimentData CalculateOverallSentiment(MarketSentimentReport report)
