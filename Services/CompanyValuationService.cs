@@ -32,20 +32,48 @@ public class CompanyValuationService
             var analysis = await PerformTechnicalAnalysisAsync(stockData);
             var valuation = await CalculateValuationMetricsAsync(ticker, stockData);
             var sentiment = await GetMarketSentimentAsync(ticker);
+            var recommendation = await GenerateRecommendationAsync(ticker, valuation, analysis, sentiment);
+            var riskAssessment = await AssessRiskAsync(stockData);
 
-            var comprehensiveAnalysis = new
-            {
-                Ticker = ticker,
-                CurrentPrice = stockData.CurrentPrice,
-                ValuationMetrics = valuation,
-                TechnicalAnalysis = analysis,
-                MarketSentiment = sentiment,
-                Recommendation = await GenerateRecommendationAsync(ticker, valuation, analysis, sentiment),
-                RiskAssessment = await AssessRiskAsync(stockData),
-                Timestamp = DateTime.UtcNow
-            };
+            // Format as clean, readable text
+            var result = $@"
+📊 FUNDAMENTAL ANALYSIS: {ticker.ToUpper()}
+═══════════════════════════════════════════════════════════
 
-            return JsonSerializer.Serialize(comprehensiveAnalysis, new JsonSerializerOptions { WriteIndented = true });
+💰 CURRENT VALUATION
+Current Price: ${stockData.CurrentPrice:F2}
+Market Cap: ${stockData.MarketCap:N0}
+
+📈 VALUATION METRICS
+• P/E Ratio: {valuation.PERatio:F1}
+• PEG Ratio: {valuation.PEGRatio:F1}
+• Price to Book: {valuation.PriceToBook:F1}
+• Price to Sales: {valuation.PriceToSales:F1}
+• Debt to Equity: {valuation.DebtToEquity:F1}
+• Return on Equity: {valuation.ReturnOnEquity:P1}
+• Dividend Yield: {valuation.DividendYield:P2}
+• Free Cash Flow Yield: {valuation.FreeCashFlowYield:P1}
+
+🔍 TECHNICAL ANALYSIS
+• SMA 50: ${analysis.SMA50:F2}
+• SMA 200: ${analysis.SMA200:F2}
+• RSI: {analysis.RSI:F1}
+• Volatility: {analysis.Volatility:P1}
+• Trend: {analysis.Trend}
+
+📰 MARKET SENTIMENT
+{sentiment}
+
+💡 INVESTMENT RECOMMENDATION
+{recommendation}
+
+⚠️ RISK ASSESSMENT
+{riskAssessment}
+
+Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC
+";
+
+            return result;
         }
         catch (Exception ex)
         {
@@ -100,12 +128,25 @@ public class CompanyValuationService
         var request = new RestRequest($"https://api.example.com/stock/{ticker}/data");
         request.AddParameter("period", periodDays);
         
-        // Mock implementation - replace with actual API calls
+        // Mock implementation with sample historical prices - replace with actual API calls
+        var random = new Random();
+        var basePrice = 150.0m;
+        var historicalPrices = new List<decimal>();
+        
+        // Generate mock historical prices for the past 200 days
+        for (int i = 0; i < Math.Min(periodDays, 200); i++)
+        {
+            var change = (decimal)(random.NextDouble() - 0.5) * 2; // -1 to +1
+            basePrice += change;
+            if (basePrice < 1) basePrice = 1; // Ensure price doesn't go negative
+            historicalPrices.Add(basePrice);
+        }
+        
         var stockData = new StockData
         {
             Ticker = ticker,
-            CurrentPrice = 150.0m,
-            HistoricalPrices = new List<decimal>(),
+            CurrentPrice = basePrice,
+            HistoricalPrices = historicalPrices,
             Volume = 1000000,
             MarketCap = 1000000000,
             PERatio = 25.0m,
@@ -152,7 +193,8 @@ public class CompanyValuationService
         var prompt = $@"
             Analyze current market sentiment for {ticker} based on recent news, analyst ratings, and market trends.
             Consider both fundamental and technical factors.
-            Provide a sentiment score from 1-10 and brief explanation.
+            Provide a sentiment score from 1-10 and brief explanation in plain text format.
+            Keep the response concise and avoid markdown formatting.
         ";
 
         var sentiment = await _kernel.InvokePromptAsync(prompt);
@@ -163,13 +205,23 @@ public class CompanyValuationService
         TechnicalAnalysis technical, string sentiment)
     {
         var prompt = $@"
-            Generate an investment recommendation for {ticker} based on:
+            Generate a concise investment recommendation for {ticker} based on:
             
-            Valuation: {JsonSerializer.Serialize(valuation)}
-            Technical: {JsonSerializer.Serialize(technical)}
-            Sentiment: {sentiment}
+            Valuation Metrics:
+            - P/E Ratio: {valuation.PERatio:F1}
+            - PEG Ratio: {valuation.PEGRatio:F1}
+            - Price to Book: {valuation.PriceToBook:F1}
+            - ROE: {valuation.ReturnOnEquity:P1}
             
-            Provide: BUY/HOLD/SELL recommendation with price targets and risk assessment.
+            Technical Analysis:
+            - RSI: {technical.RSI:F1}
+            - Trend: {technical.Trend}
+            - Volatility: {technical.Volatility:P1}
+            
+            Market Sentiment: {sentiment}
+            
+            Provide a clear BUY/HOLD/SELL recommendation with brief reasoning and price targets.
+            Use plain text format without markdown or special formatting.
         ";
 
         var recommendation = await _kernel.InvokePromptAsync(prompt);
@@ -199,7 +251,7 @@ public class CompanyValuationService
 
     // Technical indicator calculations
     private decimal CalculateSMA(List<decimal> prices, int period) => 
-        prices.TakeLast(period).Average();
+        prices.Any() ? prices.TakeLast(Math.Min(period, prices.Count)).Average() : 0;
 
     private decimal CalculateRSI(List<decimal> prices, int period) => 50.0m; // Placeholder
     private object CalculateMACD(List<decimal> prices) => new { MACD = 0, Signal = 0, Histogram = 0 };
@@ -215,7 +267,29 @@ public class CompanyValuationService
     private Task<decimal> CalculateDebtToEquityAsync(string ticker) => Task.FromResult(0.3m);
     private Task<decimal> CalculateROEAsync(string ticker) => Task.FromResult(0.15m);
     private Task<decimal> CalculateFCFYieldAsync(string ticker) => Task.FromResult(0.05m);
-    private Task<string> AssessRiskAsync(StockData stockData) => Task.FromResult("Moderate Risk");
+    private Task<string> AssessRiskAsync(StockData stockData) 
+    {
+        var riskLevel = stockData.PERatio > 30 ? "High" : 
+                       stockData.PERatio > 20 ? "Moderate" : "Low";
+        
+        var riskFactors = new List<string>();
+        
+        if (stockData.PERatio > 25) riskFactors.Add("High P/E ratio indicates growth expectations");
+        if (stockData.DividendYield < 0.01m) riskFactors.Add("No dividend provides no income cushion");
+        if (stockData.HistoricalPrices.Count > 0)
+        {
+            var volatility = CalculateVolatility(stockData.HistoricalPrices);
+            if (volatility > 0.3m) riskFactors.Add("High volatility increases price risk");
+        }
+        
+        var riskAssessment = $"{riskLevel} Risk";
+        if (riskFactors.Any())
+        {
+            riskAssessment += $"\nKey Risk Factors: {string.Join(", ", riskFactors)}";
+        }
+        
+        return Task.FromResult(riskAssessment);
+    }
 
     public class StockData
     {

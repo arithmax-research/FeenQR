@@ -30,7 +30,7 @@ namespace QuantResearchAgent.Services
                 _logger.LogInformation($"Scraping real news articles for {ticker} from {source}");
 
                 // Ensure the Python script exists
-                await EnsurePythonScriptExists();
+                EnsurePythonScriptExists();
 
                 // Try to scrape real news first
                 var scrapedArticles = await ExecutePythonScraperAsync(ticker, source, maxArticles);
@@ -56,10 +56,10 @@ namespace QuantResearchAgent.Services
             }
         }
 
-        private async Task EnsurePythonScriptExists()
+        private void EnsurePythonScriptExists()
         {
             var scriptsDir = Path.GetDirectoryName(_pythonScriptPath);
-            if (!Directory.Exists(scriptsDir))
+            if (!string.IsNullOrEmpty(scriptsDir) && !Directory.Exists(scriptsDir))
             {
                 Directory.CreateDirectory(scriptsDir);
             }

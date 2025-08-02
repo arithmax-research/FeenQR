@@ -16,7 +16,7 @@ public class YouTubeAnalysisPlugin
         _youtubeService = youtubeService;
     }
 
-    [KernelFunction, Description("Analyze a YouTube video (especially from Quantopian channel) for trading insights and signals")]
+        [KernelFunction, Description("Analyze a YouTube video for trading insights and signals")]
     public async Task<string> AnalyzeVideoAsync(
         [Description("The YouTube URL of the video to analyze")] string videoUrl)
     {
@@ -30,8 +30,8 @@ public class YouTubeAnalysisPlugin
                         $"Sentiment Score: {episode.SentimentScore:F2}\n" +
                         $"Technical Insights: {episode.TechnicalInsights.Count}\n" +
                         $"Trading Signals: {episode.TradingSignals.Count}\n\n" +
-                        $"Key Insights:\n{string.Join("\n- ", episode.TechnicalInsights.Take(5))}\n\n" +
-                        $"Generated Signals:\n{string.Join("\n", episode.TradingSignals.Take(3))}";
+                        $"Key Insights:\n{FormatInsights(episode.TechnicalInsights.Take(5))}\n\n" +
+                        $"Generated Signals:\n{FormatTradingSignals(episode.TradingSignals.Take(3))}";
             
             return result;
         }
@@ -41,6 +41,40 @@ public class YouTubeAnalysisPlugin
                    "This may be due to an invalid/missing YouTube API key, quota exhaustion, or a network error.\n" +
                    $"Details: {ex}";
         }
+    }
+
+    private string FormatInsights(IEnumerable<string> insights)
+    {
+        var cleanInsights = insights.Select(CleanMarkdown).ToList();
+        return string.Join("\n", cleanInsights.Select((insight, index) => $"{index + 1}. {insight}"));
+    }
+
+    private string FormatTradingSignals(IEnumerable<string> signals)
+    {
+        var cleanSignals = signals.Select(CleanMarkdown).ToList();
+        return string.Join("\n\n", cleanSignals.Select((signal, index) => 
+        {
+            var lines = signal.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            var cleanLines = lines.Select(line => line.Trim().TrimStart('-', '*', '#').Trim()).ToList();
+            return $"Signal {index + 1}:\n" + string.Join("\n", cleanLines);
+        }));
+    }
+
+    private string CleanMarkdown(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return text;
+        
+        // Remove markdown formatting
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\*\*(.*?)\*\*", "$1"); // Bold
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\*(.*?)\*", "$1"); // Italic
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"#{1,6}\s*", ""); // Headers
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"^\s*[-\*\+]\s*", "", System.Text.RegularExpressions.RegexOptions.Multiline); // List items
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"^\s*\d+\.\s*", "", System.Text.RegularExpressions.RegexOptions.Multiline); // Numbered lists
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"`([^`]*)`", "$1"); // Inline code
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"```[^`]*```", "", System.Text.RegularExpressions.RegexOptions.Singleline); // Code blocks
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\[([^\]]*)\]\([^\)]*\)", "$1"); // Links
+        
+        return text.Trim();
     }
 
     [KernelFunction, Description("Get the sentiment analysis of YouTube video content")]

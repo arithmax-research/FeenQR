@@ -13,9 +13,12 @@ namespace QuantResearchAgent.Plugins
     public class YahooFinanceDataPlugin : IFinancialDataPlugin
     {
         private readonly HttpClient _httpClient;
-        public YahooFinanceDataPlugin(HttpClient httpClient)
+        private readonly IConfiguration _configuration;
+        
+        public YahooFinanceDataPlugin(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
+            _configuration = configuration;
         }
 
 
@@ -26,7 +29,9 @@ namespace QuantResearchAgent.Plugins
         {
             var validTickers = tickers.Where(IsValidTicker).ToList();
             if (!validTickers.Any()) return new List<SecurityInfo>();
-            var url = $"http://localhost:5001/securities?tickers={string.Join(",", validTickers)}";
+            
+            var baseUrl = _configuration["NewsApi:BaseUrl"] ?? "http://127.0.0.1:5000";
+            var url = $"{baseUrl}/securities?tickers={string.Join(",", validTickers)}";
             var response = await _httpClient.GetStringAsync(url);
             var results = JsonSerializer.Deserialize<List<SecurityInfo>>(response) ?? new List<SecurityInfo>();
             return results.Take(maxResults).ToList();
@@ -72,7 +77,8 @@ namespace QuantResearchAgent.Plugins
         {
             // For demo: use the first word in query as ticker, or parse as needed
             var ticker = query.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "AAPL";
-            var url = $"http://localhost:5001/news?ticker={ticker}";
+            var baseUrl = _configuration["NewsApi:BaseUrl"] ?? "http://127.0.0.1:5000";
+            var url = $"{baseUrl}/news?ticker={ticker}";
             var response = await _httpClient.GetStringAsync(url);
             var newsList = JsonSerializer.Deserialize<List<FinancialNewsItem>>(response) ?? new List<FinancialNewsItem>();
             return newsList.Take(maxResults).ToList();
