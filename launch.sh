@@ -34,14 +34,6 @@ fi
 echo " Build successful!"
 echo ""
 
-# Check for environment variables or prompt user
-if [ -z "$OPENAI_API_KEY" ]; then
-    echo "   Warning: OPENAI_API_KEY environment variable not set."
-    echo "   Please update appsettings.json with your API key."
-    echo ""
-fi
-
-
 
 # Start the Python Flask API in the background
 echo "Starting Python yfinance Flask API..."

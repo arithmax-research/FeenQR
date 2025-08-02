@@ -93,7 +93,14 @@ namespace QuantResearchAgent
             services.AddSingleton<TradingSignalService>();
             services.AddSingleton<PortfolioService>();
             services.AddSingleton<RiskManagementService>();
-            services.AddSingleton<CompanyValuationService>();
+            services.AddSingleton<CompanyValuationService>(sp =>
+                new CompanyValuationService(
+                    sp.GetRequiredService<Kernel>(),
+                    sp.GetRequiredService<ILogger<CompanyValuationService>>(),
+                    sp.GetRequiredService<AlpacaService>(),
+                    sp.GetRequiredService<QuantResearchAgent.Plugins.YahooFinanceDataPlugin>()
+                )
+            );
             services.AddSingleton<HighFrequencyDataService>();
             services.AddSingleton<TradingStrategyLibraryService>();
             services.AddSingleton<AlpacaService>();
