@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using QuantResearchAgent.Core;
 using QuantResearchAgent.Services;
+using QuantResearchAgent.Services.ResearchAgents;
 using QuantResearchAgent.Plugins;
 using System.Text.Json;
 
@@ -17,13 +18,33 @@ public class InteractiveCLI
     private readonly Kernel _kernel;
     private readonly AgentOrchestrator _orchestrator;
     private readonly ILogger<InteractiveCLI> _logger;
+    private readonly ComprehensiveStockAnalysisAgent _comprehensiveAgent;
+    private readonly AcademicResearchPaperAgent _researchAgent;
+    private readonly YahooFinanceService _yahooFinanceService;
+    private readonly AlpacaService _alpacaService;
+    private readonly PolygonService _polygonService;
+    private readonly DataBentoService _dataBentoService;
     
-    // ... existing code ...
-    public InteractiveCLI(Kernel kernel, AgentOrchestrator orchestrator, ILogger<InteractiveCLI> logger)
+    public InteractiveCLI(
+        Kernel kernel, 
+        AgentOrchestrator orchestrator, 
+        ILogger<InteractiveCLI> logger,
+        ComprehensiveStockAnalysisAgent comprehensiveAgent,
+        AcademicResearchPaperAgent researchAgent,
+        YahooFinanceService yahooFinanceService,
+        AlpacaService alpacaService,
+        PolygonService polygonService,
+        DataBentoService dataBentoService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
         _logger = logger;
+        _comprehensiveAgent = comprehensiveAgent;
+        _researchAgent = researchAgent;
+        _yahooFinanceService = yahooFinanceService;
+        _alpacaService = alpacaService;
+        _polygonService = polygonService;
+        _dataBentoService = dataBentoService;
     }
 
     public async Task RunAsync()
@@ -38,20 +59,31 @@ public class InteractiveCLI
         Console.WriteLine("  4. technical-analysis [symbol] - Short-term (100d) technical analysis");
         Console.WriteLine("  5. technical-analysis-long [symbol] - Long-term (7y) technical analysis");
         Console.WriteLine("  6. fundamental-analysis [symbol] - Fundamental & sentiment analysis");
-        Console.WriteLine("  5. market-data [symbol] - Get market data");
-        Console.WriteLine("  7. yahoo-data [symbol] - Get Yahoo Finance market data");
-        Console.WriteLine("  8. portfolio - View portfolio summary");
-        Console.WriteLine("  9. risk-assessment - Assess portfolio risk");
-        Console.WriteLine(" 10. alpaca-data [symbol] - Get Alpaca market data");
-        Console.WriteLine(" 11. alpaca-historical [symbol] [days] - Get historical data");
-        Console.WriteLine(" 12. alpaca-account - View Alpaca account info");
-        Console.WriteLine(" 13. alpaca-positions - View current positions");
-        Console.WriteLine(" 14. alpaca-quotes [symbols] - Get multiple quotes");
-        Console.WriteLine(" 15. ta-indicators [symbol] [category] - Detailed indicators");
-        Console.WriteLine(" 16. ta-compare [symbols] - Compare TA of multiple symbols");
-        Console.WriteLine(" 17. ta-patterns [symbol] - Pattern recognition analysis");
-        Console.WriteLine(" 18. help - Show available functions");
-        Console.WriteLine(" 19. quit - Exit the application");
+        Console.WriteLine("  7. market-data [symbol] - Get market data");
+        Console.WriteLine("  8. yahoo-data [symbol] - Get Yahoo Finance market data");
+        Console.WriteLine("  9. portfolio - View portfolio summary");
+        Console.WriteLine(" 10. risk-assessment - Assess portfolio risk");
+        Console.WriteLine(" 11. alpaca-data [symbol] - Get Alpaca market data");
+        Console.WriteLine(" 12. alpaca-historical [symbol] [days] - Get historical data");
+        Console.WriteLine(" 13. alpaca-account - View Alpaca account info");
+        Console.WriteLine(" 14. alpaca-positions - View current positions");
+        Console.WriteLine(" 15. alpaca-quotes [symbols] - Get multiple quotes");
+        Console.WriteLine(" 16. ta-indicators [symbol] [category] - Detailed indicators");
+        Console.WriteLine(" 17. ta-compare [symbols] - Compare TA of multiple symbols");
+        Console.WriteLine(" 18. ta-patterns [symbol] - Pattern recognition analysis");
+        Console.WriteLine(" 19. comprehensive-analysis [symbol] [asset_type] - Full analysis & recommendation");
+        Console.WriteLine(" 20. research-papers [topic] - Search academic finance papers");
+        Console.WriteLine(" 21. analyze-paper [url] [focus_area] - Analyze paper & generate blueprint");
+        Console.WriteLine(" 22. research-synthesis [topic] [max_papers] - Research & synthesize topic");
+        Console.WriteLine(" 23. test-apis [symbol] - Test API connectivity and configuration");
+        Console.WriteLine(" 24. polygon-data [symbol] - Get Polygon.io market data");
+        Console.WriteLine(" 25. polygon-news [symbol] - Get Polygon.io news for symbol");
+        Console.WriteLine(" 26. polygon-financials [symbol] - Get Polygon.io financial data");
+        Console.WriteLine(" 27. databento-ohlcv [symbol] [days] - Get DataBento OHLCV data");
+        Console.WriteLine(" 28. databento-futures [symbol] - Get DataBento futures contracts");
+        Console.WriteLine(" 29. clear - Clear terminal and show menu");
+        Console.WriteLine(" 30. help - Show available functions");
+        Console.WriteLine(" 31. quit - Exit the application");
         Console.WriteLine();
 
         while (true)
@@ -133,6 +165,39 @@ public class InteractiveCLI
                     break;
                 case "ta-patterns":
                     await TechnicalPatternsCommand(parts);
+                    break;
+                case "comprehensive-analysis":
+                    await ComprehensiveAnalysisCommand(parts);
+                    break;
+                case "research-papers":
+                    await ResearchPapersCommand(parts);
+                    break;
+                case "analyze-paper":
+                    await AnalyzePaperCommand(parts);
+                    break;
+                case "research-synthesis":
+                    await ResearchSynthesisCommand(parts);
+                    break;
+                case "test-apis":
+                    await TestApisCommand(parts);
+                    break;
+                case "polygon-data":
+                    await PolygonDataCommand(parts);
+                    break;
+                case "polygon-news":
+                    await PolygonNewsCommand(parts);
+                    break;
+                case "polygon-financials":
+                    await PolygonFinancialsCommand(parts);
+                    break;
+                case "databento-ohlcv":
+                    await DataBentoOhlcvCommand(parts);
+                    break;
+                case "databento-futures":
+                    await DataBentoFuturesCommand(parts);
+                    break;
+                case "clear":
+                    await ClearCommand();
                     break;
                 case "help":
                     await ShowAvailableFunctions();
@@ -326,8 +391,14 @@ public class InteractiveCLI
         var kernel = serviceProvider.GetRequiredService<Kernel>();
         var orchestrator = serviceProvider.GetRequiredService<AgentOrchestrator>();
         var logger = serviceProvider.GetRequiredService<ILogger<InteractiveCLI>>();
+        var comprehensiveAgent = serviceProvider.GetRequiredService<ComprehensiveStockAnalysisAgent>();
+        var researchAgent = serviceProvider.GetRequiredService<AcademicResearchPaperAgent>();
+        var yahooFinanceService = serviceProvider.GetRequiredService<YahooFinanceService>();
+        var alpacaService = serviceProvider.GetRequiredService<AlpacaService>();
+        var polygonService = serviceProvider.GetRequiredService<PolygonService>();
+        var dataBentoService = serviceProvider.GetRequiredService<DataBentoService>();
 
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger));
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService));
     }
 
     // Alpaca Commands
@@ -551,6 +622,385 @@ public class InteractiveCLI
     {
         Console.WriteLine(new string('=', 60));
         Console.WriteLine();
+    }
+
+    // --- New Research Commands ---
+    
+    private async Task ComprehensiveAnalysisCommand(string[] parts)
+    {
+        try
+        {
+            var symbol = parts.Length > 1 ? parts[1].ToUpper() : "AAPL";
+            var assetType = parts.Length > 2 ? parts[2].ToLower() : "stock";
+            
+            PrintSectionHeader($"Comprehensive Analysis: {symbol}");
+            Console.WriteLine($"Asset Type: {assetType}");
+            Console.WriteLine("Performing comprehensive analysis including web search, sentiment, technical, and fundamental analysis...");
+            Console.WriteLine();
+            
+            var result = await _comprehensiveAgent.AnalyzeAndRecommendAsync(symbol, assetType);
+            Console.WriteLine(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error performing comprehensive analysis: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+    
+    private async Task ResearchPapersCommand(string[] parts)
+    {
+        try
+        {
+            var topic = parts.Length > 1 ? string.Join(" ", parts[1..]) : "algorithmic trading";
+            
+            PrintSectionHeader($"Academic Papers Search: {topic}");
+            Console.WriteLine("Searching for academic finance/quantitative research papers...");
+            Console.WriteLine();
+            
+            var result = await _researchAgent.SearchAcademicPapersAsync(topic, 5);
+            Console.WriteLine(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error searching academic papers: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+    
+    private async Task AnalyzePaperCommand(string[] parts)
+    {
+        try
+        {
+            if (parts.Length < 2)
+            {
+                Console.WriteLine("Usage: analyze-paper [url] [optional_focus_area]");
+                return;
+            }
+            
+            var paperUrl = parts[1];
+            var focusArea = parts.Length > 2 ? string.Join(" ", parts[2..]) : "";
+            
+            PrintSectionHeader($"Paper Analysis & Blueprint Generation");
+            Console.WriteLine($"Paper URL: {paperUrl}");
+            if (!string.IsNullOrEmpty(focusArea))
+            {
+                Console.WriteLine($"Focus Area: {focusArea}");
+            }
+            Console.WriteLine("Analyzing paper and generating implementation blueprint...");
+            Console.WriteLine();
+            
+            var result = await _researchAgent.AnalyzePaperAndGenerateBlueprintAsync(paperUrl, focusArea);
+            Console.WriteLine(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error analyzing paper: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+    
+    private async Task ResearchSynthesisCommand(string[] parts)
+    {
+        try
+        {
+            var topic = parts.Length > 1 ? string.Join(" ", parts[1..^1]) : "momentum trading";
+            var maxPapers = 3;
+            
+            if (parts.Length > 1 && int.TryParse(parts[^1], out var parsedMaxPapers))
+            {
+                maxPapers = parsedMaxPapers;
+                if (parts.Length > 2)
+                {
+                    topic = string.Join(" ", parts[1..^1]);
+                }
+            }
+            else if (parts.Length > 1)
+            {
+                topic = string.Join(" ", parts[1..]);
+            }
+            
+            PrintSectionHeader($"Research Synthesis: {topic}");
+            Console.WriteLine($"Max Papers: {maxPapers}");
+            Console.WriteLine("Researching topic and synthesizing findings from multiple papers...");
+            Console.WriteLine("This may take several minutes...");
+            Console.WriteLine();
+            
+            var result = await _researchAgent.ResearchTopicAndSynthesizeAsync(topic, maxPapers);
+            Console.WriteLine(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error performing research synthesis: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task ClearCommand()
+    {
+        // Clear the console
+        Console.Clear();
+        
+        // Show the welcome message and menu again
+        Console.WriteLine("Arithmax CLI Quantitative Research Agent");
+        Console.WriteLine("=========================================");
+        Console.WriteLine();
+        Console.WriteLine("Available commands:");
+        Console.WriteLine("  1. analyze-video [url] - Analyze a YouTube video");
+        Console.WriteLine("  2. get-quantopian-videos - Get latest Quantopian videos");
+        Console.WriteLine("  3. search-finance-videos [query] - Search finance videos");
+        Console.WriteLine("  4. technical-analysis [symbol] - Short-term (100d) technical analysis");
+        Console.WriteLine("  5. technical-analysis-long [symbol] - Long-term (7y) technical analysis");
+        Console.WriteLine("  6. fundamental-analysis [symbol] - Fundamental & sentiment analysis");
+        Console.WriteLine("  7. market-data [symbol] - Get market data");
+        Console.WriteLine("  8. yahoo-data [symbol] - Get Yahoo Finance market data");
+        Console.WriteLine("  9. portfolio - View portfolio summary");
+        Console.WriteLine(" 10. risk-assessment - Assess portfolio risk");
+        Console.WriteLine(" 11. alpaca-data [symbol] - Get Alpaca market data");
+        Console.WriteLine(" 12. alpaca-historical [symbol] [days] - Get historical data");
+        Console.WriteLine(" 13. alpaca-account - View Alpaca account info");
+        Console.WriteLine(" 14. alpaca-positions - View current positions");
+        Console.WriteLine(" 15. alpaca-quotes [symbols] - Get multiple quotes");
+        Console.WriteLine(" 16. ta-indicators [symbol] [category] - Detailed indicators");
+        Console.WriteLine(" 17. ta-compare [symbols] - Compare TA of multiple symbols");
+        Console.WriteLine(" 18. ta-patterns [symbol] - Pattern recognition analysis");
+        Console.WriteLine(" 19. comprehensive-analysis [symbol] [asset_type] - Full analysis & recommendation");
+        Console.WriteLine(" 20. research-papers [topic] - Search academic finance papers");
+        Console.WriteLine(" 21. analyze-paper [url] [focus_area] - Analyze paper & generate blueprint");
+        Console.WriteLine(" 22. research-synthesis [topic] [max_papers] - Research & synthesize topic");
+        Console.WriteLine(" 23. test-apis [symbol] - Test API connectivity and configuration");
+        Console.WriteLine(" 24. polygon-data [symbol] - Get Polygon.io market data");
+        Console.WriteLine(" 25. polygon-news [symbol] - Get Polygon.io news for symbol");
+        Console.WriteLine(" 26. polygon-financials [symbol] - Get Polygon.io financial data");
+        Console.WriteLine(" 27. databento-ohlcv [symbol] [days] - Get DataBento OHLCV data");
+        Console.WriteLine(" 28. databento-futures [symbol] - Get DataBento futures contracts");
+        Console.WriteLine(" 29. clear - Clear terminal and show menu");
+        Console.WriteLine(" 30. help - Show available functions");
+        Console.WriteLine(" 31. quit - Exit the application");
+        Console.WriteLine();
+        
+        // Since this is an async method, we need to return a completed task
+        await Task.CompletedTask;
+    }
+
+    private async Task TestApisCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        
+        PrintSectionHeader($"API Connectivity Test - {symbol}");
+        
+        try
+        {
+            // Test Yahoo Finance
+            Console.WriteLine("Testing Yahoo Finance API...");
+            var yahooData = await _yahooFinanceService.GetMarketDataAsync(symbol);
+            Console.WriteLine(yahooData != null ? "✓ Yahoo Finance: Connected" : "✗ Yahoo Finance: Failed");
+            
+            // Test Alpaca
+            Console.WriteLine("Testing Alpaca API...");
+            var alpacaData = await _alpacaService.GetMarketDataAsync(symbol);
+            Console.WriteLine(alpacaData != null ? "✓ Alpaca: Connected" : "✗ Alpaca: Failed");
+            
+            // Test Polygon
+            Console.WriteLine("Testing Polygon.io API...");
+            var polygonData = await _polygonService.GetQuoteAsync(symbol);
+            Console.WriteLine(polygonData != null ? "✓ Polygon.io: Connected" : "✗ Polygon.io: Failed");
+            
+            // Test DataBento
+            Console.WriteLine("Testing DataBento API...");
+            var start = DateTime.Now.AddDays(-7);
+            var end = DateTime.Now;
+            var dataBentoData = await _dataBentoService.GetOHLCVAsync(symbol, start, end);
+            Console.WriteLine(dataBentoData != null && dataBentoData.Any() ? "✓ DataBento: Connected" : "✗ DataBento: Failed");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error testing APIs: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task PolygonDataCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        
+        PrintSectionHeader($"Polygon.io Market Data - {symbol}");
+        
+        try
+        {
+            var quote = await _polygonService.GetQuoteAsync(symbol);
+            if (quote != null)
+            {
+                Console.WriteLine($"Symbol: {quote.Symbol}");
+                Console.WriteLine($"Price: ${quote.Price:F2}");
+                Console.WriteLine($"Size: {quote.Size:N0}");
+                Console.WriteLine($"Timestamp: {quote.Timestamp:yyyy-MM-dd HH:mm:ss}");
+            }
+            else
+            {
+                Console.WriteLine("No data available from Polygon.io");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving Polygon data: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task PolygonNewsCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        
+        PrintSectionHeader($"Polygon.io News - {symbol}");
+        
+        try
+        {
+            var news = await _polygonService.GetNewsAsync(symbol, 5);
+            if (news.Any())
+            {
+                foreach (var article in news.Take(5))
+                {
+                    Console.WriteLine($"Title: {article.Title}");
+                    Console.WriteLine($"Published: {article.PublishedUtc:yyyy-MM-dd HH:mm:ss}");
+                    Console.WriteLine($"Author: {article.Author}");
+                    Console.WriteLine($"URL: {article.ArticleUrl}");
+                    Console.WriteLine();
+                }
+            }
+            else
+            {
+                Console.WriteLine("No news available from Polygon.io");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving Polygon news: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task PolygonFinancialsCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        
+        PrintSectionHeader($"Polygon.io Financial Data - {symbol}");
+        
+        try
+        {
+            var financials = await _polygonService.GetFinancialsAsync(symbol);
+            if (financials != null)
+            {
+                Console.WriteLine($"Ticker: {financials.Ticker}");
+                Console.WriteLine($"Period: {financials.PeriodOfReportDate:yyyy-MM-dd}");
+                
+                if (financials.Financials?.IncomeStatement?.Revenues?.Value != null)
+                {
+                    Console.WriteLine($"Revenue: ${financials.Financials.IncomeStatement.Revenues.Value:N0}");
+                }
+                
+                if (financials.Financials?.IncomeStatement?.NetIncomeLoss?.Value != null)
+                {
+                    Console.WriteLine($"Net Income: ${financials.Financials.IncomeStatement.NetIncomeLoss.Value:N0}");
+                }
+                
+                if (financials.Financials?.BalanceSheet?.Assets?.Value != null)
+                {
+                    Console.WriteLine($"Assets: ${financials.Financials.BalanceSheet.Assets.Value:N0}");
+                }
+                
+                if (financials.Financials?.BalanceSheet?.Liabilities?.Value != null)
+                {
+                    Console.WriteLine($"Liabilities: ${financials.Financials.BalanceSheet.Liabilities.Value:N0}");
+                }
+                
+                if (financials.Financials?.BalanceSheet?.Equity?.Value != null)
+                {
+                    Console.WriteLine($"Equity: ${financials.Financials.BalanceSheet.Equity.Value:N0}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("No financial data available from Polygon.io");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving Polygon financials: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task DataBentoOhlcvCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        var days = parts.Length > 2 && int.TryParse(parts[2], out var d) ? d : 5;
+        
+        PrintSectionHeader($"DataBento OHLCV Data - {symbol} ({days} days)");
+        
+        try
+        {
+            var start = DateTime.Now.AddDays(-days);
+            var end = DateTime.Now;
+            var ohlcvData = await _dataBentoService.GetOHLCVAsync(symbol, start, end);
+            
+            if (ohlcvData.Any())
+            {
+                Console.WriteLine($"{"Date",-12} {"Open",-10} {"High",-10} {"Low",-10} {"Close",-10} {"Volume",-12}");
+                Console.WriteLine(new string('-', 70));
+                
+                foreach (var bar in ohlcvData.Take(10))
+                {
+                    Console.WriteLine($"{bar.EventTime:yyyy-MM-dd} ${bar.Open,-9:F2} ${bar.High,-9:F2} ${bar.Low,-9:F2} ${bar.Close,-9:F2} {bar.Volume,-12:N0}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("No OHLCV data available from DataBento");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving DataBento OHLCV: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task DataBentoFuturesCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "ES";
+        
+        PrintSectionHeader($"DataBento Futures Contracts - {symbol}");
+        
+        try
+        {
+            var futures = await _dataBentoService.GetFuturesContractsAsync(symbol);
+            if (futures.Any())
+            {
+                Console.WriteLine($"{"Symbol",-15} {"Description",-30} {"Start Date",-12} {"End Date",-12} {"Days to Expiry",-15}");
+                Console.WriteLine(new string('-', 85));
+                
+                foreach (var contract in futures.Take(10))
+                {
+                    Console.WriteLine($"{contract.Symbol,-15} {contract.Description,-30} {contract.StartDate:yyyy-MM-dd} {contract.EndDate:yyyy-MM-dd} {contract.DaysToExpiry,-15}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("No futures contracts available from DataBento");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving DataBento futures: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
     }
 }
 
