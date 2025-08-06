@@ -22,6 +22,11 @@ if [ ! -f "appsettings.json" ]; then
     exit 1
 fi
 
+#clean the project first before building
+# Clean the project first before building
+echo "🧹 Cleaning previous build..."
+dotnet clean QuantResearchAgent.csproj --configuration Release
+
 # Build the project
 echo "🔨 Building the project..."
 dotnet build QuantResearchAgent.csproj --configuration Release

@@ -98,7 +98,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<Kernel>(),
                     sp.GetRequiredService<ILogger<CompanyValuationService>>(),
                     sp.GetRequiredService<AlpacaService>(),
-                    sp.GetRequiredService<QuantResearchAgent.Plugins.YahooFinanceDataPlugin>()
+                    sp.GetRequiredService<QuantResearchAgent.Plugins.YahooFinanceDataPlugin>(),
+                    sp.GetRequiredService<HttpClient>()
                 )
             );
             services.AddSingleton<HighFrequencyDataService>();
