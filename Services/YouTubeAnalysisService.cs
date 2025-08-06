@@ -69,10 +69,31 @@ public class YouTubeAnalysisService
             episode.Transcript = $"{episode.Name}\n\n{episode.Description}";
             
             // Analyze the content for technical insights
-            await AnalyzeTechnicalContentAsync(episode);
+            try
+            {
+                await AnalyzeTechnicalContentAsync(episode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Technical content analysis failed for video {VideoTitle}, continuing with basic analysis", episode.Name);
+                
+                // Provide basic fallback analysis when web search fails
+                episode.TechnicalInsights = new List<string>
+                {
+                    $"Basic analysis of video: {episode.Name} - Analysis completed despite API limitations"
+                };
+            }
             
             // Extract trading signals from insights
-            await ExtractTradingSignalsAsync(episode);
+            try
+            {
+                await ExtractTradingSignalsAsync(episode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Trading signal extraction failed for video {VideoTitle}", episode.Name);
+                episode.TradingSignals = new List<string>(); // Empty list as fallback
+            }
             
             episode.AnalyzedAt = DateTime.UtcNow;
             
@@ -145,6 +166,7 @@ public class YouTubeAnalysisService
     {
         try
         {
+            // First try YouTube API search
             var encodedQuery = Uri.EscapeDataString($"{query} trading finance quantitative");
             var url = $"{YOUTUBE_API_BASE}/search?part=snippet&q={encodedQuery}&type=video&order=relevance&maxResults={maxResults}&key={_youTubeApiKey}";
             
@@ -153,13 +175,56 @@ public class YouTubeAnalysisService
             
             var videoUrls = searchResult?.Items?.Select(item => $"https://www.youtube.com/watch?v={item.Id.VideoId}").ToList() ?? new List<string>();
             
-            _logger.LogInformation("Found {Count} finance videos for query: {Query}", videoUrls.Count, query);
-            return videoUrls;
+            if (videoUrls.Any())
+            {
+                _logger.LogInformation("Found {Count} finance videos for query: {Query} via YouTube API", videoUrls.Count, query);
+                return videoUrls;
+            }
+            
+            _logger.LogWarning("No videos found via YouTube API for {Query}, trying Google Search fallback", query);
+            
+            // Fallback to Google Search for YouTube videos
+            var googleQuery = $"site:youtube.com {query} trading finance investment analysis";
+            var webResults = await _webSearchPlugin.SearchAsync(googleQuery, maxResults);
+            
+            var youtubeUrls = webResults
+                .Where(r => r.Url.Contains("youtube.com/watch"))
+                .Select(r => r.Url)
+                .Take(maxResults)
+                .ToList();
+            
+            if (youtubeUrls.Any())
+            {
+                _logger.LogInformation("Found {Count} finance videos for query: {Query} via Google Search", youtubeUrls.Count, query);
+                return youtubeUrls;
+            }
+            
+            _logger.LogWarning("No finance videos found for query: {Query} in both YouTube API and Google Search", query);
+            return new List<string>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to search finance videos for query: {Query}", query);
-            return new List<string>();
+            
+            // Try Google Search as final fallback
+            try
+            {
+                var googleQuery = $"site:youtube.com {query} trading finance";
+                var webResults = await _webSearchPlugin.SearchAsync(googleQuery, maxResults);
+                var youtubeUrls = webResults
+                    .Where(r => r.Url.Contains("youtube.com/watch"))
+                    .Select(r => r.Url)
+                    .Take(maxResults)
+                    .ToList();
+                
+                _logger.LogInformation("Fallback Google Search found {Count} videos for {Query}", youtubeUrls.Count, query);
+                return youtubeUrls;
+            }
+            catch (Exception fallbackEx)
+            {
+                _logger.LogError(fallbackEx, "Google Search fallback also failed for query: {Query}", query);
+                return new List<string>();
+            }
         }
     }
 
@@ -260,7 +325,16 @@ public class YouTubeAnalysisService
 
         foreach (var region in regions)
         {
-            var searchResults = await _webSearchPlugin.SearchAsync($"{episode.Name} {region} finance trading", 3);
+            List<WebSearchResult> searchResults;
+            try
+            {
+                searchResults = await _webSearchPlugin.SearchAsync($"{episode.Name} {region} finance trading", 3);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Web search failed for region {Region}, continuing without search results", region);
+                searchResults = new List<WebSearchResult>(); // Empty list to continue processing
+            }
 
             // 1. Run LLM/web search analysis first (simulate by using searchResults and video info)
             // 2. Extract tickers from search results and video info

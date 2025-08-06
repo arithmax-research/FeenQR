@@ -26,33 +26,33 @@ public class MarketSentimentPlugin
         {
             var report = await _sentimentService.AnalyzeMarketSentimentAsync(assetClass, specificAsset);
             
-            var result = $"## Market Sentiment Analysis\n\n";
-            result += $"**Asset:** {assetClass} {specificAsset}\n";
-            result += $"**Analysis Date:** {report.AnalysisDate:yyyy-MM-dd HH:mm} UTC\n\n";
+            var result = $"Market Sentiment Analysis\n\n";
+            result += $"Asset: {assetClass} {specificAsset}\n";
+            result += $"Analysis Date: {report.AnalysisDate:yyyy-MM-dd HH:mm} UTC\n\n";
             
             // Overall sentiment
-            result += $"### Overall Sentiment: {report.OverallSentiment.Label}\n";
-            result += $"**Score:** {report.OverallSentiment.Score:F2} (-1.0 to +1.0)\n";
-            result += $"**Confidence:** {report.OverallSentiment.Confidence:P0}\n\n";
+            result += $"Overall Sentiment: {report.OverallSentiment.Label}\n";
+            result += $"Score: {report.OverallSentiment.Score:F2} (-1.0 to +1.0)\n";
+            result += $"Confidence: {report.OverallSentiment.Confidence:P0}\n\n";
             
             // Component analysis
-            result += "### Sentiment Breakdown\n";
-            result += $"📰 **News Sentiment:** {report.NewsSentiment.Score:F2} (Confidence: {report.NewsSentiment.Confidence:P0})\n";
-            result += $"📱 **Social Media:** {report.SocialMediaSentiment.Score:F2} (Confidence: {report.SocialMediaSentiment.Confidence:P0})\n";
-            result += $"😰 **Fear & Greed:** {report.FearGreedIndex.Score:F2} (Confidence: {report.FearGreedIndex.Confidence:P0})\n";
-            result += $"📊 **Technical:** {report.TechnicalSentiment.Score:F2} (Confidence: {report.TechnicalSentiment.Confidence:P0})\n\n";
+            result += "Sentiment Breakdown:\n";
+            result += $"News Sentiment: {report.NewsSentiment.Score:F2} (Confidence: {report.NewsSentiment.Confidence:P0})\n";
+            result += $"Social Media: {report.SocialMediaSentiment.Score:F2} (Confidence: {report.SocialMediaSentiment.Confidence:P0})\n";
+            result += $"Fear & Greed: {report.FearGreedIndex.Score:F2} (Confidence: {report.FearGreedIndex.Confidence:P0})\n";
+            result += $"Technical: {report.TechnicalSentiment.Score:F2} (Confidence: {report.TechnicalSentiment.Confidence:P0})\n\n";
             
-            // Market direction
-            result += $"### Market Direction Prediction\n";
-            result += $"{report.MarketDirection}\n\n";
+            // Market direction - clean the markdown from this text
+            result += "Market Direction Prediction:\n";
+            result += CleanMarkdownText(report.MarketDirection) + "\n\n";
             
             // Trading recommendations
             if (report.TradingRecommendations.Any())
             {
-                result += "### Trading Recommendations\n";
+                result += "Trading Recommendations:\n";
                 foreach (var recommendation in report.TradingRecommendations)
                 {
-                    result += $"• {recommendation}\n";
+                    result += $"• {CleanMarkdownText(recommendation)}\n";
                 }
                 result += "\n";
             }
@@ -63,6 +63,23 @@ public class MarketSentimentPlugin
         {
             return $"Error analyzing market sentiment: {ex.Message}";
         }
+    }
+
+    private string CleanMarkdownText(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return text;
+        
+        // Remove markdown formatting
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\*\*(.*?)\*\*", "$1"); // Bold
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\*(.*?)\*", "$1"); // Italic
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"#{1,6}\s*", ""); // Headers
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"^\s*[-\*\+]\s*", "", System.Text.RegularExpressions.RegexOptions.Multiline); // List items
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"^\s*\d+\.\s*", "", System.Text.RegularExpressions.RegexOptions.Multiline); // Numbered lists
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"`([^`]*)`", "$1"); // Inline code
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"```[^`]*```", "", System.Text.RegularExpressions.RegexOptions.Singleline); // Code blocks
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\[([^\]]*)\]\([^\)]*\)", "$1"); // Links
+        
+        return text.Trim();
     }
 
     [KernelFunction]

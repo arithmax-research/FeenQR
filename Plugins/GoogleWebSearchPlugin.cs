@@ -1,50 +1,93 @@
+using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using Microsoft.Extensions.Configuration;
 using System.Text.Json;
-using System.Linq;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace QuantResearchAgent.Plugins
 {
     /// <summary>
-    /// Google Custom Search API implementation of IWebSearchPlugin
+    /// Google Custom Search API implementation for web search functionality
     /// </summary>
     public class GoogleWebSearchPlugin : IWebSearchPlugin
     {
-        private readonly string _apiKey;
-        private readonly string _searchEngineId;
         private readonly HttpClient _httpClient;
+        private readonly ILogger<GoogleWebSearchPlugin> _logger;
+        private readonly string? _apiKey;
+        private readonly string? _searchEngineId;
+        private const string GoogleSearchApiUrl = "https://www.googleapis.com/customsearch/v1";
 
-        public GoogleWebSearchPlugin(IConfiguration config, HttpClient httpClient)
+        public GoogleWebSearchPlugin(HttpClient httpClient, ILogger<GoogleWebSearchPlugin> logger, IConfiguration configuration)
         {
-            _apiKey = config["GoogleSearch:ApiKey"] ?? string.Empty;
-            _searchEngineId = config["GoogleSearch:SearchEngineId"] ?? string.Empty;
             _httpClient = httpClient;
+            _logger = logger;
+            _apiKey = configuration["GoogleSearch:ApiKey"];
+            _searchEngineId = configuration["GoogleSearch:SearchEngineId"];
         }
 
         public async Task<List<WebSearchResult>> SearchAsync(string query, int maxResults = 5)
         {
             var results = new List<WebSearchResult>();
-            if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_searchEngineId))
-                return results;
 
-            var url = $"https://www.googleapis.com/customsearch/v1?key={_apiKey}&cx={_searchEngineId}&q={System.Net.WebUtility.UrlEncode(query)}&num={maxResults}";
-            var response = await _httpClient.GetStringAsync(url);
-            using var doc = JsonDocument.Parse(response);
-            if (doc.RootElement.TryGetProperty("items", out var items))
+            try
             {
-                foreach (var item in items.EnumerateArray())
+                if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_searchEngineId))
                 {
-                    results.Add(new WebSearchResult
-                    {
-                        Title = item.GetProperty("title").GetString() ?? string.Empty,
-                        Snippet = item.GetProperty("snippet").GetString() ?? string.Empty,
-                        Url = item.GetProperty("link").GetString() ?? string.Empty
-                    });
+                    _logger.LogWarning("Google Search API key or Search Engine ID not configured. Returning empty results.");
+                    return results;
                 }
+
+                var requestUrl = $"{GoogleSearchApiUrl}?key={_apiKey}&cx={_searchEngineId}&q={Uri.EscapeDataString(query)}&num={Math.Min(maxResults, 10)}";
+
+                _logger.LogInformation($"Searching Google for: {query}");
+
+                var response = await _httpClient.GetStringAsync(requestUrl);
+                var searchResponse = JsonSerializer.Deserialize<GoogleSearchResponse>(response);
+
+                if (searchResponse?.Items != null)
+                {
+                    foreach (var item in searchResponse.Items)
+                    {
+                        results.Add(new WebSearchResult
+                        {
+                            Title = item.Title ?? string.Empty,
+                            Snippet = item.Snippet ?? string.Empty,
+                            Url = item.Link ?? string.Empty
+                        });
+                    }
+                }
+
+                _logger.LogInformation($"Found {results.Count} search results");
             }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP error occurred while searching Google");
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Error parsing Google search response");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error occurred while searching Google");
+            }
+
             return results;
         }
+    }
+
+    // Google Custom Search API response models
+    internal class GoogleSearchResponse
+    {
+        public GoogleSearchItem[]? Items { get; set; }
+    }
+
+    internal class GoogleSearchItem
+    {
+        public string? Title { get; set; }
+        public string? Link { get; set; }
+        public string? Snippet { get; set; }
     }
 }
