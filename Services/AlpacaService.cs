@@ -73,11 +73,14 @@ public class AlpacaService
                 var trade = await _dataClient.GetLatestTradeAsync(new LatestMarketDataRequest(cleanSymbol));
                 _logger.LogDebug("Alpaca trade response: {Trade}", trade != null ? $"Price={trade.Price}, Size={trade.Size}, Timestamp={trade.TimestampUtc}" : "null");
 
-                // Get recent bars for daily high/low
+                // Get recent bars for daily high/low - Use proper historical data with 15+ minute delay
+                var endTime = DateTime.UtcNow.AddMinutes(-20); // 20 minute delay to ensure data availability
+                var startTime = endTime.AddDays(-5); // Get last 5 days to ensure we have data
+                
                 var barsRequest = new HistoricalBarsRequest(
                     cleanSymbol,
-                    DateTime.UtcNow.AddDays(-2),
-                    DateTime.UtcNow,
+                    startTime,
+                    endTime,
                     BarTimeFrame.Day);
 
                 var barsResponse = await _dataClient.GetHistoricalBarsAsync(barsRequest);
@@ -87,29 +90,44 @@ public class AlpacaService
                 var latestBar = bars.LastOrDefault();
                 var previousBar = bars.Count > 1 ? bars[bars.Count - 2] : null;
 
-                var currentPrice = trade?.Price ?? quote?.BidPrice ?? 0;
-                var previousClose = previousBar?.Close ?? currentPrice;
+                // Prefer trade price, then quote, then bar close
+                var currentPrice = trade?.Price ?? quote?.BidPrice ?? quote?.AskPrice ?? latestBar?.Close ?? 0;
+                var previousClose = previousBar?.Close ?? latestBar?.Open ?? currentPrice;
                 var change24h = currentPrice - previousClose;
 
-                if (currentPrice == 0)
+                // Log detailed information for debugging
+                _logger.LogInformation("Alpaca data for {Symbol}: Quote={QuoteAvailable}, Trade={TradeAvailable}, Bars={BarCount}, CurrentPrice={Price}", 
+                    cleanSymbol, quote != null, trade != null, bars.Count, currentPrice);
+
+                if (currentPrice == 0 && latestBar == null)
                 {
-                    _logger.LogWarning("Alpaca returned zero price for {Symbol}. Quote: {Quote}, Trade: {Trade}", cleanSymbol, quote, trade);
+                    _logger.LogWarning("Alpaca returned no usable data for {Symbol}. Quote: {Quote}, Trade: {Trade}, Bars: {BarCount}", 
+                        cleanSymbol, quote != null ? "Available" : "null", trade != null ? "Available" : "null", bars.Count);
                     return await GetLeanMarketDataFallback(cleanSymbol);
+                }
+
+                // Use bar data if real-time data is not available
+                if (currentPrice == 0 && latestBar != null)
+                {
+                    currentPrice = latestBar.Close;
+                    _logger.LogInformation("Using bar close price {Price} for {Symbol} as real-time data not available", currentPrice, cleanSymbol);
                 }
 
                 var marketData = new MarketData
                 {
                     Symbol = cleanSymbol,
+                    Source = "Alpaca",
                     Price = (double)currentPrice,
-                    Volume = (long)(latestBar?.Volume ?? trade?.Size ?? 0),
+                    Volume = (double)(latestBar?.Volume ?? trade?.Size ?? 0),
                     High24h = (double)(latestBar?.High ?? currentPrice),
                     Low24h = (double)(latestBar?.Low ?? currentPrice),
                     Change24h = (double)change24h,
-                    Timestamp = trade?.TimestampUtc ?? quote?.TimestampUtc ?? DateTime.UtcNow
+                    ChangePercent24h = previousClose != 0 ? (double)((change24h / previousClose) * 100) : 0,
+                    Timestamp = trade?.TimestampUtc ?? quote?.TimestampUtc ?? latestBar?.TimeUtc ?? DateTime.UtcNow
                 };
 
-                _logger.LogInformation("Fetched market data for {Symbol}: Price={Price:C}, Volume={Volume}", 
-                    cleanSymbol, currentPrice, marketData.Volume);
+                _logger.LogInformation("Successfully fetched market data for {Symbol}: Price=${Price:F2}, Change={Change:F2}%", 
+                    cleanSymbol, marketData.Price, marketData.ChangePercent24h);
 
                 return marketData;
             }
@@ -177,11 +195,11 @@ public class AlpacaService
             }
 
             // Extend the date range to account for weekends and holidays
-            // Use endDate as 30 minutes before now to avoid SIP errors
-            var endDate = DateTime.UtcNow.AddMinutes(-30);
+            // Use endDate with 20+ minute delay to ensure data availability (Free plan requirement)
+            var endDate = DateTime.UtcNow.AddMinutes(-20);
             var startDate = endDate.AddDays(-(days + 10)); // Add extra days to ensure we get enough data
 
-            _logger.LogInformation("Fetching historical data for {Symbol} from {StartDate} to {EndDate}", 
+            _logger.LogInformation("Fetching historical data for {Symbol} from {StartDate} to {EndDate} (20min delay for data availability)", 
                 symbol, startDate, endDate);
 
             var request = new HistoricalBarsRequest(

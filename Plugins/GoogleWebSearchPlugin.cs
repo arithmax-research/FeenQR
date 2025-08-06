@@ -33,23 +33,34 @@ namespace QuantResearchAgent.Plugins
 
             try
             {
+                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Starting search for: {query}");
+                
                 if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_searchEngineId))
                 {
+                    Console.WriteLine("DEBUG GoogleWebSearchPlugin: API key or Search Engine ID not configured");
                     _logger.LogWarning("Google Search API key or Search Engine ID not configured. Returning empty results.");
                     return results;
                 }
 
                 var requestUrl = $"{GoogleSearchApiUrl}?key={_apiKey}&cx={_searchEngineId}&q={Uri.EscapeDataString(query)}&num={Math.Min(maxResults, 10)}";
 
+                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Making request to: {requestUrl.Substring(0, 100)}...");
                 _logger.LogInformation($"Searching Google for: {query}");
+                _logger.LogDebug($"Request URL: {requestUrl}");
 
                 var response = await _httpClient.GetStringAsync(requestUrl);
+                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Received response, length: {response.Length}");
+                _logger.LogDebug($"Google API response: {response.Substring(0, Math.Min(500, response.Length))}...");
                 var searchResponse = JsonSerializer.Deserialize<GoogleSearchResponse>(response);
+
+                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Deserialized response, items count: {searchResponse?.Items?.Length ?? 0}");
 
                 if (searchResponse?.Items != null)
                 {
+                    Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Processing {searchResponse.Items.Length} items");
                     foreach (var item in searchResponse.Items)
                     {
+                        Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Adding result - Title: {item.Title?.Substring(0, Math.Min(50, item.Title?.Length ?? 0))}...");
                         results.Add(new WebSearchResult
                         {
                             Title = item.Title ?? string.Empty,
@@ -59,18 +70,22 @@ namespace QuantResearchAgent.Plugins
                     }
                 }
 
+                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Final results count: {results.Count}");
                 _logger.LogInformation($"Found {results.Count} search results");
             }
             catch (HttpRequestException ex)
             {
+                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: HTTP error - {ex.Message}");
                 _logger.LogError(ex, "HTTP error occurred while searching Google");
             }
             catch (JsonException ex)
             {
+                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: JSON parsing error - {ex.Message}");
                 _logger.LogError(ex, "Error parsing Google search response");
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Unexpected error - {ex.Message}");
                 _logger.LogError(ex, "Unexpected error occurred while searching Google");
             }
 
