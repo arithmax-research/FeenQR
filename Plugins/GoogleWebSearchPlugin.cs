@@ -33,59 +33,99 @@ namespace QuantResearchAgent.Plugins
 
             try
             {
-                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Starting search for: {query}");
-                
                 if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_searchEngineId))
                 {
-                    Console.WriteLine("DEBUG GoogleWebSearchPlugin: API key or Search Engine ID not configured");
-                    _logger.LogWarning("Google Search API key or Search Engine ID not configured. Returning empty results.");
+                    _logger.LogError("Google Search API key or Search Engine ID not configured. Returning empty results.");
                     return results;
                 }
 
                 var requestUrl = $"{GoogleSearchApiUrl}?key={_apiKey}&cx={_searchEngineId}&q={Uri.EscapeDataString(query)}&num={Math.Min(maxResults, 10)}";
 
-                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Making request to: {requestUrl.Substring(0, 100)}...");
                 _logger.LogInformation($"Searching Google for: {query}");
-                _logger.LogDebug($"Request URL: {requestUrl}");
 
-                var response = await _httpClient.GetStringAsync(requestUrl);
-                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Received response, length: {response.Length}");
-                _logger.LogDebug($"Google API response: {response.Substring(0, Math.Min(500, response.Length))}...");
-                var searchResponse = JsonSerializer.Deserialize<GoogleSearchResponse>(response);
+                // Add delay to allow rate limits to reset from previous requests
+                await Task.Delay(10000);
 
-                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Deserialized response, items count: {searchResponse?.Items?.Length ?? 0}");
+                // Implement retry logic for rate limiting
+                GoogleSearchResponse? searchResponse = null;
+                bool success = false;
 
-                if (searchResponse?.Items != null)
+                for (int attempt = 0; attempt < 3 && !success; attempt++)
                 {
-                    Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Processing {searchResponse.Items.Length} items");
-                    foreach (var item in searchResponse.Items)
+                    try
                     {
-                        Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Adding result - Title: {item.Title?.Substring(0, Math.Min(50, item.Title?.Length ?? 0))}...");
-                        results.Add(new WebSearchResult
+                        var response = await _httpClient.GetStringAsync(requestUrl);
+                        _logger.LogInformation($"Raw API response length: {response.Length}");
+                        
+                        searchResponse = JsonSerializer.Deserialize<GoogleSearchResponse>(response);
+                        _logger.LogInformation($"Parsed response - Items count: {searchResponse?.Items?.Length ?? 0}");
+                        
+                        success = true; // Mark as successful
+                    }
+                    catch (HttpRequestException ex) when (ex.Message.Contains("429") || ex.Message.Contains("Too Many Requests"))
+                    {
+                        // Rate limiting - wait and retry
+                        var waitTime = (attempt + 1) * 30000; // 30, 60, 90 seconds
+                        _logger.LogWarning($"Rate limited on attempt {attempt + 1}, waiting {waitTime}ms before retry");
+                        
+                        if (attempt < 2) // Not the last attempt
                         {
-                            Title = item.Title ?? string.Empty,
-                            Snippet = item.Snippet ?? string.Empty,
-                            Url = item.Link ?? string.Empty
-                        });
+                            await Task.Delay(waitTime);
+                        }
+                        else
+                        {
+                            _logger.LogError("Max retry attempts reached due to rate limiting");
+                            throw;
+                        }
+                    }
+                    catch (Exception ex) when ((ex.Data.Contains("StatusCode") && ex.Data["StatusCode"]?.ToString() == "429") || 
+                                               ex.Message.Contains("429") || 
+                                               ex.Message.Contains("Too Many Requests"))
+                    {
+                        // Alternative rate limiting detection
+                        var waitTime = (attempt + 1) * 30000; // 30, 60, 90 seconds
+                        _logger.LogWarning($"Rate limited on attempt {attempt + 1}, waiting {waitTime}ms before retry. Error: {ex.Message}");
+                        
+                        if (attempt < 2) // Not the last attempt
+                        {
+                            await Task.Delay(waitTime);
+                        }
+                        else
+                        {
+                            _logger.LogError("Max retry attempts reached due to rate limiting");
+                            throw;
+                        }
                     }
                 }
 
-                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Final results count: {results.Count}");
+                // Process the results after successful API call
+                if (searchResponse?.Items != null)
+                {
+                    foreach (var item in searchResponse.Items)
+                    {
+                        var result = new WebSearchResult
+                        {
+                            Title = item.Title ?? "No Title",
+                            Url = item.Link ?? "No URL",
+                            Snippet = item.Snippet ?? "No Description"
+                        };
+                        
+                        results.Add(result);
+                    }
+                }
+
                 _logger.LogInformation($"Found {results.Count} search results");
             }
             catch (HttpRequestException ex)
             {
-                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: HTTP error - {ex.Message}");
                 _logger.LogError(ex, "HTTP error occurred while searching Google");
             }
             catch (JsonException ex)
             {
-                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: JSON parsing error - {ex.Message}");
                 _logger.LogError(ex, "Error parsing Google search response");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"DEBUG GoogleWebSearchPlugin: Unexpected error - {ex.Message}");
                 _logger.LogError(ex, "Unexpected error occurred while searching Google");
             }
 
