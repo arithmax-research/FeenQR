@@ -24,6 +24,8 @@ public class InteractiveCLI
     private readonly AlpacaService _alpacaService;
     private readonly PolygonService _polygonService;
     private readonly DataBentoService _dataBentoService;
+    private readonly YFinanceNewsService _yfinanceNewsService;
+    private readonly FinvizNewsService _finvizNewsService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -34,7 +36,9 @@ public class InteractiveCLI
         YahooFinanceService yahooFinanceService,
         AlpacaService alpacaService,
         PolygonService polygonService,
-        DataBentoService dataBentoService)
+        DataBentoService dataBentoService,
+        YFinanceNewsService yfinanceNewsService,
+        FinvizNewsService finvizNewsService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -45,6 +49,8 @@ public class InteractiveCLI
         _alpacaService = alpacaService;
         _polygonService = polygonService;
         _dataBentoService = dataBentoService;
+        _yfinanceNewsService = yfinanceNewsService;
+        _finvizNewsService = finvizNewsService;
     }
 
     public async Task RunAsync()
@@ -81,9 +87,10 @@ public class InteractiveCLI
         Console.WriteLine(" 26. polygon-financials [symbol] - Get Polygon.io financial data");
         Console.WriteLine(" 27. databento-ohlcv [symbol] [days] - Get DataBento OHLCV data");
         Console.WriteLine(" 28. databento-futures [symbol] - Get DataBento futures contracts");
-        Console.WriteLine(" 29. clear - Clear terminal and show menu");
-        Console.WriteLine(" 30. help - Show available functions");
-        Console.WriteLine(" 31. quit - Exit the application");
+        Console.WriteLine(" 29. live-news [symbol/keyword] - Get live financial news");
+        Console.WriteLine(" 30. clear - Clear terminal and show menu");
+        Console.WriteLine(" 31. help - Show available functions");
+        Console.WriteLine(" 32. quit - Exit the application");
         Console.WriteLine();
 
         while (true)
@@ -195,6 +202,9 @@ public class InteractiveCLI
                     break;
                 case "databento-futures":
                     await DataBentoFuturesCommand(parts);
+                    break;
+                case "live-news":
+                    await LiveNewsCommand(parts);
                     break;
                 case "clear":
                     await ClearCommand();
@@ -397,8 +407,10 @@ public class InteractiveCLI
         var alpacaService = serviceProvider.GetRequiredService<AlpacaService>();
         var polygonService = serviceProvider.GetRequiredService<PolygonService>();
         var dataBentoService = serviceProvider.GetRequiredService<DataBentoService>();
+        var yfinanceNewsService = serviceProvider.GetRequiredService<YFinanceNewsService>();
+        var finvizNewsService = serviceProvider.GetRequiredService<FinvizNewsService>();
 
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService));
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService, yfinanceNewsService, finvizNewsService));
     }
 
     // Alpaca Commands
@@ -774,9 +786,10 @@ public class InteractiveCLI
         Console.WriteLine(" 26. polygon-financials [symbol] - Get Polygon.io financial data");
         Console.WriteLine(" 27. databento-ohlcv [symbol] [days] - Get DataBento OHLCV data");
         Console.WriteLine(" 28. databento-futures [symbol] - Get DataBento futures contracts");
-        Console.WriteLine(" 29. clear - Clear terminal and show menu");
-        Console.WriteLine(" 30. help - Show available functions");
-        Console.WriteLine(" 31. quit - Exit the application");
+        Console.WriteLine(" 29. live-news [symbol/keyword] - Get live financial news");
+        Console.WriteLine(" 30. clear - Clear terminal and show menu");
+        Console.WriteLine(" 31. help - Show available functions");
+        Console.WriteLine(" 32. quit - Exit the application");
         Console.WriteLine();
         
         // Since this is an async method, we need to return a completed task
@@ -829,22 +842,47 @@ public class InteractiveCLI
         
         try
         {
+            // Get previous day's data (available on free tier)
             var quote = await _polygonService.GetQuoteAsync(symbol);
             if (quote != null)
             {
                 Console.WriteLine($"Symbol: {quote.Symbol}");
-                Console.WriteLine($"Price: ${quote.Price:F2}");
-                Console.WriteLine($"Size: {quote.Size:N0}");
-                Console.WriteLine($"Timestamp: {quote.Timestamp:yyyy-MM-dd HH:mm:ss}");
+                Console.WriteLine($"Previous Close: ${quote.Price:F2}");
+                Console.WriteLine($"Volume: {quote.Size:N0}");
+                Console.WriteLine($"Date: {quote.Timestamp:yyyy-MM-dd}");
+                Console.WriteLine();
+                Console.WriteLine("Note: This shows previous day's data (free tier). For real-time data, upgrade to a paid plan.");
             }
             else
             {
                 Console.WriteLine("No data available from Polygon.io");
+                Console.WriteLine("This might be due to:");
+                Console.WriteLine("- Invalid symbol");
+                Console.WriteLine("- API rate limiting");
+                Console.WriteLine("- Free tier limitations");
+            }
+            
+            // Also get market status
+            var marketStatus = await _polygonService.GetMarketStatusAsync();
+            if (marketStatus != null)
+            {
+                Console.WriteLine();
+                Console.WriteLine($"Market Status: {marketStatus.Market}");
+                Console.WriteLine($"Server Time: {marketStatus.ServerTime:yyyy-MM-dd HH:mm:ss}");
+                if (marketStatus.Exchanges != null)
+                {
+                    Console.WriteLine($"NYSE: {marketStatus.Exchanges.Nyse}");
+                    Console.WriteLine($"NASDAQ: {marketStatus.Exchanges.Nasdaq}");
+                }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error retrieving Polygon data: {ex.Message}");
+            if (ex.Message.Contains("NOT_AUTHORIZED"))
+            {
+                Console.WriteLine("Your current API key has limited access. Consider upgrading your Polygon.io plan.");
+            }
         }
         
         PrintSectionFooter();
@@ -854,14 +892,15 @@ public class InteractiveCLI
     {
         var symbol = parts.Length > 1 ? parts[1] : "AAPL";
         
-        PrintSectionHeader($"Polygon.io News - {symbol}");
+        PrintSectionHeader($"Financial News - {symbol}");
         
         try
         {
-            var news = await _polygonService.GetNewsAsync(symbol, 5);
-            if (news.Any())
+            Console.WriteLine("=== Polygon.io News ===");
+            var polygonNews = await _polygonService.GetNewsAsync(symbol, 3);
+            if (polygonNews.Any())
             {
-                foreach (var article in news.Take(5))
+                foreach (var article in polygonNews.Take(3))
                 {
                     Console.WriteLine($"Title: {article.Title}");
                     Console.WriteLine($"Published: {article.PublishedUtc:yyyy-MM-dd HH:mm:ss}");
@@ -872,12 +911,53 @@ public class InteractiveCLI
             }
             else
             {
-                Console.WriteLine("No news available from Polygon.io");
+                Console.WriteLine("No news available from Polygon.io (may require paid subscription)");
+            }
+            
+            Console.WriteLine("\n=== Yahoo Finance News (Live) ===");
+            var yfinanceNews = await _yfinanceNewsService.GetNewsAsync(symbol, 3);
+            if (yfinanceNews.Any())
+            {
+                foreach (var article in yfinanceNews.Take(3))
+                {
+                    Console.WriteLine($"Title: {article.Title}");
+                    Console.WriteLine($"Published: {article.PublishedDate:yyyy-MM-dd HH:mm:ss}");
+                    Console.WriteLine($"Publisher: {article.Publisher}");
+                    Console.WriteLine($"Summary: {(article.Summary.Length > 100 ? article.Summary.Substring(0, 100) + "..." : article.Summary)}");
+                    Console.WriteLine($"URL: {article.Link}");
+                    Console.WriteLine();
+                }
+            }
+            else
+            {
+                Console.WriteLine("No news available from Yahoo Finance");
+            }
+            
+            Console.WriteLine("\n=== Finviz News ===");
+            var finvizNews = await _finvizNewsService.GetNewsAsync(symbol, 3);
+            if (finvizNews.Any())
+            {
+                foreach (var article in finvizNews.Take(3))
+                {
+                    Console.WriteLine($"Title: {article.Title}");
+                    Console.WriteLine($"Published: {article.PublishedDate:yyyy-MM-dd HH:mm:ss}");
+                    Console.WriteLine($"Publisher: {article.Publisher}");
+                    if (!string.IsNullOrEmpty(article.Summary))
+                    {
+                        Console.WriteLine($"Summary: {(article.Summary.Length > 100 ? article.Summary.Substring(0, 100) + "..." : article.Summary)}");
+                    }
+                    Console.WriteLine($"URL: {article.Link}");
+                    Console.WriteLine();
+                }
+            }
+            else
+            {
+                Console.WriteLine("No news available from Finviz");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error retrieving Polygon news: {ex.Message}");
+            Console.WriteLine($"Error retrieving news: {ex.Message}");
         }
         
         PrintSectionFooter();
@@ -961,11 +1041,20 @@ public class InteractiveCLI
             else
             {
                 Console.WriteLine("No OHLCV data available from DataBento");
+                Console.WriteLine();
+                Console.WriteLine("This might be due to:");
+                Console.WriteLine("- DataBento API authentication issues");
+                Console.WriteLine("- Invalid API key or insufficient subscription");
+                Console.WriteLine("- Symbol not available in the dataset");
+                Console.WriteLine();
+                Console.WriteLine("DataBento requires a paid subscription for most endpoints.");
+                Console.WriteLine("Visit https://databento.com for more information.");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error retrieving DataBento OHLCV: {ex.Message}");
+            Console.WriteLine("DataBento requires valid API credentials and subscription.");
         }
         
         PrintSectionFooter();
@@ -998,6 +1087,110 @@ public class InteractiveCLI
         catch (Exception ex)
         {
             Console.WriteLine($"Error retrieving DataBento futures: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task LiveNewsCommand(string[] parts)
+    {
+        var query = parts.Length > 1 ? parts[1] : "";
+        
+        PrintSectionHeader($"Live Financial News{(string.IsNullOrEmpty(query) ? " - Market Overview" : $" - {query}")}");
+        
+        try
+        {
+            // Fetch from both sources concurrently
+            Task<List<YFinanceNewsItem>> yahooTask;
+            Task<List<FinvizNewsItem>> finvizTask;
+            
+            if (string.IsNullOrEmpty(query))
+            {
+                Console.WriteLine("Getting market overview news from Yahoo Finance and Finviz...");
+                yahooTask = _yfinanceNewsService.GetMarketNewsAsync(8);
+                finvizTask = _finvizNewsService.GetMarketNewsAsync(8);
+            }
+            else if (query.Length <= 5 && query.All(char.IsLetterOrDigit))
+            {
+                // Treat as symbol
+                Console.WriteLine($"Getting news for symbol: {query} from Yahoo Finance and Finviz...");
+                yahooTask = _yfinanceNewsService.GetNewsAsync(query, 6);
+                finvizTask = _finvizNewsService.GetNewsAsync(query, 6);
+            }
+            else
+            {
+                // Treat as keyword search
+                Console.WriteLine($"Searching news for: {query} from Yahoo Finance and Finviz...");
+                yahooTask = _yfinanceNewsService.SearchNewsAsync(query, 6);
+                finvizTask = _finvizNewsService.SearchNewsAsync(query, 6);
+            }
+            
+            // Wait for both sources
+            var yahooNews = await yahooTask;
+            var finvizNews = await finvizTask;
+            
+            // Display Yahoo Finance News
+            if (yahooNews.Any())
+            {
+                Console.WriteLine("\n=== Yahoo Finance News ===");
+                foreach (var article in yahooNews.Take(6))
+                {
+                    Console.WriteLine($"📰 {article.Title}");
+                    Console.WriteLine($"   Publisher: {article.Publisher} | {article.PublishedDate:MMM dd, HH:mm}");
+                    
+                    if (!string.IsNullOrEmpty(article.Summary))
+                    {
+                        var summary = article.Summary.Length > 150 ? 
+                            article.Summary.Substring(0, 150) + "..." : 
+                            article.Summary;
+                        Console.WriteLine($"   {summary}");
+                    }
+                    
+                    if (article.RelatedTickers?.Any() == true)
+                    {
+                        Console.WriteLine($"   Tickers: {string.Join(", ", article.RelatedTickers.Take(5))}");
+                    }
+                    
+                    Console.WriteLine($"   🔗 {article.Link}");
+                    Console.WriteLine();
+                }
+            }
+            
+            // Display Finviz News
+            if (finvizNews.Any())
+            {
+                Console.WriteLine("\n=== Finviz News ===");
+                foreach (var article in finvizNews.Take(6))
+                {
+                    Console.WriteLine($"📈 {article.Title}");
+                    Console.WriteLine($"   Publisher: {article.Publisher} | {article.PublishedDate:MMM dd, HH:mm}");
+                    
+                    if (!string.IsNullOrEmpty(article.Summary))
+                    {
+                        var summary = article.Summary.Length > 150 ? 
+                            article.Summary.Substring(0, 150) + "..." : 
+                            article.Summary;
+                        Console.WriteLine($"   {summary}");
+                    }
+                    
+                    Console.WriteLine($"   🔗 {article.Link}");
+                    Console.WriteLine();
+                }
+            }
+            
+            var totalCount = yahooNews.Count + finvizNews.Count;
+            if (totalCount > 0)
+            {
+                Console.WriteLine($"Found {totalCount} articles ({yahooNews.Count} from Yahoo Finance, {finvizNews.Count} from Finviz)");
+            }
+            else
+            {
+                Console.WriteLine("No news articles found from either source");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving live news: {ex.Message}");
         }
         
         PrintSectionFooter();
