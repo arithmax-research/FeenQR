@@ -109,6 +109,8 @@ namespace QuantResearchAgent
             services.AddSingleton<HttpClient>();
             services.AddSingleton<PolygonService>();
             services.AddSingleton<DataBentoService>();
+            services.AddSingleton<YFinanceNewsService>();
+            services.AddSingleton<FinvizNewsService>();
             services.AddSingleton<YahooFinanceService>();
 
             // Add research agents
