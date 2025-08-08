@@ -68,11 +68,11 @@ namespace QuantResearchAgent
                 Directory.CreateDirectory(logDir);
             }
 
-            // Suppress all logging output
+            // Minimal logging for production
             services.AddLogging(builder =>
             {
-                builder.ClearProviders();
-                builder.SetMinimumLevel(LogLevel.Critical);
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Warning);
             });
 
             // Add InteractiveCLI
