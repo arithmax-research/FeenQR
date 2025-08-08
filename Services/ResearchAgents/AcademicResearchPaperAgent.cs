@@ -38,8 +38,7 @@ namespace QuantResearchAgent.Services.ResearchAgents
         {
             try
             {
-                Console.WriteLine($"DEBUG: Starting search for topic: {topic}");
-                Console.WriteLine($"DEBUG: WebSearchPlugin type: {_webSearchPlugin.GetType().Name}");
+                _logger.LogInformation($"Starting search for topic: {topic}");
                 
                 var searchQueries = new[]
                 {
@@ -54,15 +53,13 @@ namespace QuantResearchAgent.Services.ResearchAgents
                 
                 foreach (var query in searchQueries)
                 {
-                    Console.WriteLine($"DEBUG: Searching with query: {query}");
                     _logger.LogInformation($"Searching with query: {query}");
                     var results = await _webSearchPlugin.SearchAsync(query, maxResults);
-                    Console.WriteLine($"DEBUG: Found {results.Count} results for query: {query}");
                     _logger.LogInformation($"Found {results.Count} results for query: {query}");
                     allResults.AddRange(results);
                 }
 
-                Console.WriteLine($"DEBUG: Total results before deduplication: {allResults.Count}");
+                _logger.LogInformation($"Total results before deduplication: {allResults.Count}");
 
                 var uniqueResults = allResults
                     .GroupBy(r => r.Url)
@@ -70,7 +67,6 @@ namespace QuantResearchAgent.Services.ResearchAgents
                     .Take(maxResults * 2)
                     .ToList();
 
-                Console.WriteLine($"DEBUG: Total unique results after deduplication: {uniqueResults.Count}");
                 _logger.LogInformation($"Total unique results after deduplication: {uniqueResults.Count}");
 
                 var resultBuilder = new StringBuilder();

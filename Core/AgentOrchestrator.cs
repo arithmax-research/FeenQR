@@ -98,17 +98,7 @@ public class AgentOrchestrator
         // Register General AI Plugin for analysis
         kernel.Plugins.AddFromObject(new GeneralAIPlugin(_kernel));
 
-        // Diagnostic: List all registered plugins and their functions
-        Console.WriteLine("=== Registered Plugins and Functions ===");
-        foreach (var plugin in kernel.Plugins)
-        {
-            Console.WriteLine($"Plugin: {plugin.Name}");
-            foreach (var function in plugin)
-            {
-                Console.WriteLine($"  Function: {function.Name}");
-            }
-        }
-        Console.WriteLine("========================================");
+        // Plugins registered successfully
     }
 
     private void RegisterPlugins()

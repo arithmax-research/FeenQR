@@ -23,24 +23,26 @@ namespace QuantResearchAgent.Services
         }
 
         /// <summary>
-        /// Get real-time quote for a stock
+        /// Get previous day's market data for a stock (free tier available)
         /// </summary>
         public async Task<PolygonQuote?> GetQuoteAsync(string symbol)
         {
             try
             {
-                var url = $"{BaseUrl}/v2/last/trade/{symbol}?apikey={_apiKey}";
+                // Use previous close endpoint which is available on free tier
+                var url = $"{BaseUrl}/v2/aggs/ticker/{symbol}/prev?adjusted=true&apikey={_apiKey}";
                 var response = await _httpClient.GetStringAsync(url);
-                var result = JsonSerializer.Deserialize<PolygonQuoteResponse>(response);
+                var result = JsonSerializer.Deserialize<PolygonPrevCloseResponse>(response);
                 
-                if (result?.Results != null)
+                if (result?.Results != null && result.Results.Count > 0)
                 {
+                    var data = result.Results[0];
                     return new PolygonQuote
                     {
                         Symbol = symbol,
-                        Price = result.Results.Price,
-                        Size = result.Results.Size,
-                        Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(result.Results.Timestamp).DateTime
+                        Price = data.Close,
+                        Size = data.Volume,
+                        Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(data.Timestamp).DateTime
                     };
                 }
                 
@@ -48,7 +50,7 @@ namespace QuantResearchAgent.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting quote for {Symbol}", symbol);
+                _logger.LogError(ex, "Error getting quote for {Symbol}. Note: Free tier has limited access to real-time data.", symbol);
                 return null;
             }
         }
@@ -413,5 +415,47 @@ namespace QuantResearchAgent.Services
         
         [JsonPropertyName("otc")]
         public string Otc { get; set; } = string.Empty;
+    }
+
+    public class PolygonPrevCloseResponse
+    {
+        [JsonPropertyName("ticker")]
+        public string Ticker { get; set; } = string.Empty;
+        
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+        
+        [JsonPropertyName("results")]
+        public List<PolygonPrevCloseResult>? Results { get; set; }
+    }
+
+    public class PolygonPrevCloseResult
+    {
+        [JsonPropertyName("T")]
+        public string Ticker { get; set; } = string.Empty;
+        
+        [JsonPropertyName("v")]
+        public long Volume { get; set; }
+        
+        [JsonPropertyName("vw")]
+        public decimal VolumeWeightedPrice { get; set; }
+        
+        [JsonPropertyName("o")]
+        public decimal Open { get; set; }
+        
+        [JsonPropertyName("c")]
+        public decimal Close { get; set; }
+        
+        [JsonPropertyName("h")]
+        public decimal High { get; set; }
+        
+        [JsonPropertyName("l")]
+        public decimal Low { get; set; }
+        
+        [JsonPropertyName("t")]
+        public long Timestamp { get; set; }
+        
+        [JsonPropertyName("n")]
+        public int NumberOfTransactions { get; set; }
     }
 }

@@ -67,13 +67,13 @@ namespace QuantResearchAgent.Services
         }
 
         /// <summary>
-        /// Get OHLCV bars for a symbol
+        /// Get OHLCV bars for a symbol (focus on US Equities - free tier)
         /// </summary>
         public async Task<List<DataBentoOHLCV>> GetOHLCVAsync(
             string symbol,
             DateTime start,
             DateTime end,
-            string dataset = "XNAS.ITCH",
+            string dataset = "XNAS.ITCH", // US Equities NASDAQ
             string schema = "ohlcv-1d")
         {
             try
@@ -81,13 +81,17 @@ namespace QuantResearchAgent.Services
                 var startStr = start.ToString("yyyy-MM-dd");
                 var endStr = end.ToString("yyyy-MM-dd");
                 
+                // Add API key as query parameter instead of Basic auth
                 var url = $"{BaseUrl}/v0/timeseries.get_range?" +
                          $"dataset={dataset}&" +
                          $"symbols={symbol}&" +
                          $"schema={schema}&" +
                          $"start={startStr}&" +
-                         $"end={endStr}";
+                         $"end={endStr}&" +
+                         $"key={_apiKey}";
 
+                // Clear any existing auth headers and use query param
+                _httpClient.DefaultRequestHeaders.Authorization = null;
                 var response = await _httpClient.GetStringAsync(url);
                 var bars = JsonSerializer.Deserialize<List<DataBentoOHLCV>>(response);
                 
@@ -95,19 +99,20 @@ namespace QuantResearchAgent.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting OHLCV for {Symbol}", symbol);
+                _logger.LogError(ex, "Error getting OHLCV for {Symbol}. Note: Free tier limited to US Equities historical data.", symbol);
                 return new List<DataBentoOHLCV>();
             }
         }
 
         /// <summary>
-        /// Get futures symbols for a commodity
+        /// Get futures symbols for CME/CBOT (available with subscription)
         /// </summary>
         public async Task<List<DataBentoSymbol>> GetFuturesSymbolsAsync(string dataset = "CME.FUT")
         {
             try
             {
-                var url = $"{BaseUrl}/v0/metadata.list_symbols?dataset={dataset}";
+                var url = $"{BaseUrl}/v0/metadata.list_symbols?dataset={dataset}&key={_apiKey}";
+                _httpClient.DefaultRequestHeaders.Authorization = null;
                 var response = await _httpClient.GetStringAsync(url);
                 var symbols = JsonSerializer.Deserialize<DataBentoSymbolsResponse>(response);
                 
@@ -115,7 +120,7 @@ namespace QuantResearchAgent.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting futures symbols");
+                _logger.LogError(ex, "Error getting futures symbols. Check subscription for CME data access.");
                 return new List<DataBentoSymbol>();
             }
         }
