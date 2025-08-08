@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "/Users/misango/codechest/ArithmaxResearchChest/QuantResearchAgent.csproj": {}
+    "/home/runner/work/ArithmaxResearchChest/ArithmaxResearchChest/QuantResearchAgent.csproj": {}
   },
   "projects": {
-    "/Users/misango/codechest/ArithmaxResearchChest/QuantResearchAgent.csproj": {
+    "/home/runner/work/ArithmaxResearchChest/ArithmaxResearchChest/QuantResearchAgent.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/misango/codechest/ArithmaxResearchChest/QuantResearchAgent.csproj",
+        "projectUniqueName": "/home/runner/work/ArithmaxResearchChest/ArithmaxResearchChest/QuantResearchAgent.csproj",
         "projectName": "QuantResearchAgent",
-        "projectPath": "/Users/misango/codechest/ArithmaxResearchChest/QuantResearchAgent.csproj",
-        "packagesPath": "/Users/misango/.nuget/packages/",
-        "outputPath": "/Users/misango/codechest/ArithmaxResearchChest/obj/",
+        "projectPath": "/home/runner/work/ArithmaxResearchChest/ArithmaxResearchChest/QuantResearchAgent.csproj",
+        "packagesPath": "/home/runner/.nuget/packages/",
+        "outputPath": "/home/runner/work/ArithmaxResearchChest/ArithmaxResearchChest/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/misango/.nuget/NuGet/NuGet.Config"
+          "/home/runner/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -32,13 +32,7 @@
           "warnAsError": [
             "NU1605"
           ]
-        },
-        "restoreAuditProperties": {
-          "enableAudit": "true",
-          "auditLevel": "low",
-          "auditMode": "direct"
-        },
-        "SdkAnalysisLevel": "9.0.300"
+        }
       },
       "frameworks": {
         "net8.0": {
@@ -132,26 +126,12 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[8.0.18, 8.0.18]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Host.osx-x64",
-              "version": "[8.0.18, 8.0.18]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[8.0.18, 8.0.18]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.302/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.118/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
