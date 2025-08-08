@@ -2,3 +2,10 @@
 /data
 /bin
 /obj
+bin/
+obj/
+*.dll
+*.pdb
+*.cache
+*.editorconfig
+apphost

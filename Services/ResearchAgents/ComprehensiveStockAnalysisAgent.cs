@@ -296,11 +296,26 @@ namespace QuantResearchAgent.Services.ResearchAgents
                 }
                 else
                 {
-                    result.AppendLine($"Found {allResults.Count} news articles and analysis:");
+                    // Check if these are fallback results
+                    bool isFallbackResults = allResults.Any(r => r.Url.Contains("yahoo.com") || r.Url.Contains("marketwatch.com")) 
+                                           && allResults.All(r => r.Title.Contains(symbol) && r.Snippet.Contains("Get the latest"));
+                    
+                    if (isFallbackResults)
+                    {
+                        result.AppendLine($"🔄 Using offline search mode - Network connectivity to Google APIs unavailable");
+                        result.AppendLine($"📋 Generated {allResults.Count} curated financial research suggestions for {symbol}:");
+                        result.AppendLine("Note: These are recommended financial news sources. In normal operation, this section would show live search results.");
+                        result.AppendLine();
+                    }
+                    else
+                    {
+                        result.AppendLine($"Found {allResults.Count} news articles and analysis:");
+                    }
+                    
                     foreach (var item in allResults.Take(8))
                     {
                         result.AppendLine($"• {item.Title}");
-                        if (!string.IsNullOrEmpty(item.Snippet))
+                        if (!string.IsNullOrEmpty(item.Snippet) && !isFallbackResults)
                         {
                             result.AppendLine($"  Summary: {item.Snippet}");
                         }
