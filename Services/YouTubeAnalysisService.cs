@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using QuantResearchAgent.Core;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Net.Http;
 
@@ -597,36 +598,54 @@ Educational content without strong directional bias should be close to 0.0.
 // YouTube API response models
 public class YouTubeSearchResponse
 {
+    [JsonPropertyName("items")]
     public List<YouTubeSearchItem>? Items { get; set; }
 }
 
 public class YouTubeSearchItem
 {
+    [JsonPropertyName("id")]
     public YouTubeVideoId Id { get; set; } = new();
+    
+    [JsonPropertyName("snippet")]
     public YouTubeSnippet Snippet { get; set; } = new();
 }
 
 public class YouTubeVideoId
 {
+    [JsonPropertyName("videoId")]
     public string VideoId { get; set; } = string.Empty;
+    
+    [JsonPropertyName("channelId")]
     public string ChannelId { get; set; } = string.Empty;
 }
 
 public class YouTubeVideoResponse
 {
+    [JsonPropertyName("items")]
     public List<YouTubeVideo>? Items { get; set; }
 }
 
 public class YouTubeVideo
 {
+    [JsonPropertyName("id")]
     public string Id { get; set; } = string.Empty;
+    
+    [JsonPropertyName("snippet")]
     public YouTubeSnippet Snippet { get; set; } = new();
 }
 
 public class YouTubeSnippet
 {
+    [JsonPropertyName("title")]
     public string Title { get; set; } = string.Empty;
+    
+    [JsonPropertyName("description")]
     public string Description { get; set; } = string.Empty;
+    
+    [JsonPropertyName("publishedAt")]
     public string PublishedAt { get; set; } = string.Empty;
+    
+    [JsonPropertyName("channelTitle")]
     public string ChannelTitle { get; set; } = string.Empty;
 }

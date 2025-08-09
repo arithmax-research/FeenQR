@@ -58,7 +58,7 @@ read -p "Enter your choice (1-3): " choice
 case $choice in
     1)
         echo " Starting in interactive CLI mode..."
-        dotnet run --configuration Release -- --interactive
+        dotnet run --no-restore
         ;;
     2)
         echo " Starting in background agent mode..."
