@@ -42,11 +42,11 @@ namespace QuantResearchAgent.Services.ResearchAgents
                 
                 var searchQueries = new[]
                 {
-                    $"site:arxiv.org {topic} quantitative finance",
-                    $"site:ssrn.com {topic} algorithmic trading",
-                    $"site:papers.ssrn.com {topic} mathematical finance",
-                    $"\"{topic}\" filetype:pdf finance strategy",
-                    $"{topic} high frequency trading research paper"
+                    $"{topic} finance research",
+                    $"{topic} trading analysis",
+                    $"{topic} investment strategy",
+                    $"{topic} financial modeling",
+                    $"{topic} quantitative finance"
                 };
 
                 var allResults = new List<WebSearchResult>();

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 
@@ -44,7 +45,7 @@ namespace QuantResearchAgent.Plugins
                 _logger.LogInformation($"Searching Google for: {query}");
 
                 // Add delay to allow rate limits to reset from previous requests
-                await Task.Delay(10000);
+                await Task.Delay(2000); // Reduced from 10 seconds to 2 seconds
 
                 // Implement retry logic for rate limiting
                 GoogleSearchResponse? searchResponse = null;
@@ -136,13 +137,19 @@ namespace QuantResearchAgent.Plugins
     // Google Custom Search API response models
     internal class GoogleSearchResponse
     {
+        [JsonPropertyName("items")]
         public GoogleSearchItem[]? Items { get; set; }
     }
 
     internal class GoogleSearchItem
     {
+        [JsonPropertyName("title")]
         public string? Title { get; set; }
+        
+        [JsonPropertyName("link")]
         public string? Link { get; set; }
+        
+        [JsonPropertyName("snippet")]
         public string? Snippet { get; set; }
     }
 }
