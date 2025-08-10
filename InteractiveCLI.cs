@@ -26,6 +26,7 @@ public class InteractiveCLI
     private readonly DataBentoService _dataBentoService;
     private readonly YFinanceNewsService _yfinanceNewsService;
     private readonly FinvizNewsService _finvizNewsService;
+    private readonly NewsSentimentAnalysisService _newsSentimentService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -38,7 +39,8 @@ public class InteractiveCLI
         PolygonService polygonService,
         DataBentoService dataBentoService,
         YFinanceNewsService yfinanceNewsService,
-        FinvizNewsService finvizNewsService)
+        FinvizNewsService finvizNewsService,
+        NewsSentimentAnalysisService newsSentimentService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -51,6 +53,7 @@ public class InteractiveCLI
         _dataBentoService = dataBentoService;
         _yfinanceNewsService = yfinanceNewsService;
         _finvizNewsService = finvizNewsService;
+        _newsSentimentService = newsSentimentService;
     }
 
     public async Task RunAsync()
@@ -81,22 +84,32 @@ public class InteractiveCLI
         Console.WriteLine(" 20. research-papers [topic] - Search academic finance papers");
         Console.WriteLine(" 21. analyze-paper [url] [focus_area] - Analyze paper & generate blueprint");
         Console.WriteLine(" 22. research-synthesis [topic] [max_papers] - Research & synthesize topic");
-        Console.WriteLine(" 23. test-apis [symbol] - Test API connectivity and configuration");
-        Console.WriteLine(" 24. polygon-data [symbol] - Get Polygon.io market data");
-        Console.WriteLine(" 25. polygon-news [symbol] - Get Polygon.io news for symbol");
-        Console.WriteLine(" 26. polygon-financials [symbol] - Get Polygon.io financial data");
-        Console.WriteLine(" 27. databento-ohlcv [symbol] [days] - Get DataBento OHLCV data");
-        Console.WriteLine(" 28. databento-futures [symbol] - Get DataBento futures contracts");
-        Console.WriteLine(" 29. live-news [symbol/keyword] - Get live financial news");
-        Console.WriteLine(" 30. clear - Clear terminal and show menu");
-        Console.WriteLine(" 31. help - Show available functions");
-        Console.WriteLine(" 32. quit - Exit the application");
+        Console.WriteLine(" 23. quick-research [topic] [max_papers] - Quick research overview (faster)");
+        Console.WriteLine(" 24. test-apis [symbol] - Test API connectivity and configuration");
+        Console.WriteLine(" 25. polygon-data [symbol] - Get Polygon.io market data");
+        Console.WriteLine(" 26. polygon-news [symbol] - Get Polygon.io news for symbol");
+        Console.WriteLine(" 27. polygon-financials [symbol] - Get Polygon.io financial data");
+        Console.WriteLine(" 28. databento-ohlcv [symbol] [days] - Get DataBento OHLCV data");
+        Console.WriteLine(" 29. databento-futures [symbol] - Get DataBento futures contracts");
+        Console.WriteLine(" 30. live-news [symbol/keyword] - Get live financial news");
+        Console.WriteLine(" 31. sentiment-analysis [symbol] - AI-powered sentiment analysis for specific stock");
+        Console.WriteLine(" 32. market-sentiment - AI-powered overall market sentiment analysis");
+        Console.WriteLine(" 33. clear - Clear terminal and show menu");
+        Console.WriteLine(" 34. help - Show available functions");
+        Console.WriteLine(" 35. quit - Exit the application");
         Console.WriteLine();
 
         while (true)
         {
             Console.Write("agent> ");
             var input = Console.ReadLine()?.Trim();
+
+            // Handle null input (EOF from pipe or Ctrl+D)
+            if (input == null)
+            {
+                Console.WriteLine();
+                break;
+            }
 
             if (string.IsNullOrEmpty(input))
                 continue;
@@ -185,6 +198,9 @@ public class InteractiveCLI
                 case "research-synthesis":
                     await ResearchSynthesisCommand(parts);
                     break;
+                case "quick-research":
+                    await QuickResearchCommand(parts);
+                    break;
                 case "test-apis":
                     await TestApisCommand(parts);
                     break;
@@ -205,6 +221,12 @@ public class InteractiveCLI
                     break;
                 case "live-news":
                     await LiveNewsCommand(parts);
+                    break;
+                case "sentiment-analysis":
+                    await SentimentAnalysisCommand(parts);
+                    break;
+                case "market-sentiment":
+                    await MarketSentimentCommand(parts);
                     break;
                 case "clear":
                     await ClearCommand();
@@ -320,14 +342,14 @@ public class InteractiveCLI
         
         if (parts.Length == 0 || !parts[0].Contains('.'))
         {
-            Console.WriteLine("❌ Invalid function format. Use: PluginName.FunctionName [param=value]");
+            Console.WriteLine("ERROR: Invalid function format. Use: PluginName.FunctionName [param=value]");
             return;
         }
 
         var functionParts = parts[0].Split('.');
         if (functionParts.Length != 2)
         {
-            Console.WriteLine("❌ Invalid function format. Use: PluginName.FunctionName [param=value]");
+            Console.WriteLine("ERROR: Invalid function format. Use: PluginName.FunctionName [param=value]");
             return;
         }
 
@@ -353,13 +375,13 @@ public class InteractiveCLI
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Function execution failed: {ex.Message}");
+            Console.WriteLine($"ERROR: Function execution failed: {ex.Message}");
         }
     }
 
     private async Task RunTestSequence()
     {
-        Console.WriteLine("🧪 Running test sequence...");
+        Console.WriteLine("Running test sequence...");
         Console.WriteLine();
 
         // Test 1: Get Quantopian Videos
@@ -409,8 +431,9 @@ public class InteractiveCLI
         var dataBentoService = serviceProvider.GetRequiredService<DataBentoService>();
         var yfinanceNewsService = serviceProvider.GetRequiredService<YFinanceNewsService>();
         var finvizNewsService = serviceProvider.GetRequiredService<FinvizNewsService>();
+        var newsSentimentService = serviceProvider.GetRequiredService<NewsSentimentAnalysisService>();
 
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService, yfinanceNewsService, finvizNewsService));
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService));
     }
 
     // Alpaca Commands
@@ -748,6 +771,42 @@ public class InteractiveCLI
         PrintSectionFooter();
     }
 
+    private async Task QuickResearchCommand(string[] parts)
+    {
+        try
+        {
+            var topic = parts.Length > 1 ? string.Join(" ", parts[1..^1]) : "machine learning trading";
+            var maxPapers = 3;
+            
+            if (parts.Length > 1 && int.TryParse(parts[^1], out var parsedMaxPapers))
+            {
+                maxPapers = parsedMaxPapers;
+                if (parts.Length > 2)
+                {
+                    topic = string.Join(" ", parts[1..^1]);
+                }
+            }
+            else if (parts.Length > 1)
+            {
+                topic = string.Join(" ", parts[1..]);
+            }
+            
+            PrintSectionHeader($"Quick Research Overview: {topic}");
+            Console.WriteLine($"Max Papers: {maxPapers}");
+            Console.WriteLine("Performing quick research scan...");
+            Console.WriteLine("This should complete in under a minute...");
+            Console.WriteLine();
+            
+            var result = await _researchAgent.GetQuickResearchOverviewAsync(topic, maxPapers);
+            Console.WriteLine(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error performing quick research: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
     private async Task ClearCommand()
     {
         // Clear the console
@@ -780,16 +839,19 @@ public class InteractiveCLI
         Console.WriteLine(" 20. research-papers [topic] - Search academic finance papers");
         Console.WriteLine(" 21. analyze-paper [url] [focus_area] - Analyze paper & generate blueprint");
         Console.WriteLine(" 22. research-synthesis [topic] [max_papers] - Research & synthesize topic");
-        Console.WriteLine(" 23. test-apis [symbol] - Test API connectivity and configuration");
-        Console.WriteLine(" 24. polygon-data [symbol] - Get Polygon.io market data");
-        Console.WriteLine(" 25. polygon-news [symbol] - Get Polygon.io news for symbol");
-        Console.WriteLine(" 26. polygon-financials [symbol] - Get Polygon.io financial data");
-        Console.WriteLine(" 27. databento-ohlcv [symbol] [days] - Get DataBento OHLCV data");
-        Console.WriteLine(" 28. databento-futures [symbol] - Get DataBento futures contracts");
-        Console.WriteLine(" 29. live-news [symbol/keyword] - Get live financial news");
-        Console.WriteLine(" 30. clear - Clear terminal and show menu");
-        Console.WriteLine(" 31. help - Show available functions");
-        Console.WriteLine(" 32. quit - Exit the application");
+        Console.WriteLine(" 23. quick-research [topic] [max_papers] - Quick research overview (faster)");
+        Console.WriteLine(" 24. test-apis [symbol] - Test API connectivity and configuration");
+        Console.WriteLine(" 25. polygon-data [symbol] - Get Polygon.io market data");
+        Console.WriteLine(" 26. polygon-news [symbol] - Get Polygon.io news for symbol");
+        Console.WriteLine(" 27. polygon-financials [symbol] - Get Polygon.io financial data");
+        Console.WriteLine(" 28. databento-ohlcv [symbol] [days] - Get DataBento OHLCV data");
+        Console.WriteLine(" 29. databento-futures [symbol] - Get DataBento futures contracts");
+        Console.WriteLine(" 30. live-news [symbol/keyword] - Get live financial news");
+        Console.WriteLine(" 31. sentiment-analysis [symbol] - AI-powered sentiment analysis for specific stock");
+        Console.WriteLine(" 32. market-sentiment - AI-powered overall market sentiment analysis");
+        Console.WriteLine(" 33. clear - Clear terminal and show menu");
+        Console.WriteLine(" 34. help - Show available functions");
+        Console.WriteLine(" 35. quit - Exit the application");
         Console.WriteLine();
         
         // Since this is an async method, we need to return a completed task
@@ -802,34 +864,102 @@ public class InteractiveCLI
         
         PrintSectionHeader($"API Connectivity Test - {symbol}");
         
+        // Test Yahoo Finance
+        Console.WriteLine("Testing Yahoo Finance API...");
         try
         {
-            // Test Yahoo Finance
-            Console.WriteLine("Testing Yahoo Finance API...");
             var yahooData = await _yahooFinanceService.GetMarketDataAsync(symbol);
-            Console.WriteLine(yahooData != null ? "✓ Yahoo Finance: Connected" : "✗ Yahoo Finance: Failed");
-            
-            // Test Alpaca
-            Console.WriteLine("Testing Alpaca API...");
-            var alpacaData = await _alpacaService.GetMarketDataAsync(symbol);
-            Console.WriteLine(alpacaData != null ? "✓ Alpaca: Connected" : "✗ Alpaca: Failed");
-            
-            // Test Polygon
-            Console.WriteLine("Testing Polygon.io API...");
-            var polygonData = await _polygonService.GetQuoteAsync(symbol);
-            Console.WriteLine(polygonData != null ? "✓ Polygon.io: Connected" : "✗ Polygon.io: Failed");
-            
-            // Test DataBento
-            Console.WriteLine("Testing DataBento API...");
-            var start = DateTime.Now.AddDays(-7);
-            var end = DateTime.Now;
-            var dataBentoData = await _dataBentoService.GetOHLCVAsync(symbol, start, end);
-            Console.WriteLine(dataBentoData != null && dataBentoData.Any() ? "✓ DataBento: Connected" : "✗ DataBento: Failed");
+            if (yahooData != null)
+            {
+                Console.WriteLine("SUCCESS: Yahoo Finance: Connected");
+                Console.WriteLine($"  Price: ${yahooData.CurrentPrice:F2}, Volume: {yahooData.Volume:N0}");
+            }
+            else
+            {
+                Console.WriteLine("FAILED: Yahoo Finance: Failed");
+                Console.WriteLine("  Possible issues: Plugin not loaded, invalid symbol, or API rate limits");
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error testing APIs: {ex.Message}");
+            Console.WriteLine("FAILED: Yahoo Finance: Failed");
+            Console.WriteLine($"  Error: {ex.Message}");
         }
+        
+        // Test Alpaca
+        Console.WriteLine("\nTesting Alpaca API...");
+        try
+        {
+            var alpacaData = await _alpacaService.GetMarketDataAsync(symbol);
+            if (alpacaData != null)
+            {
+                Console.WriteLine("SUCCESS: Alpaca: Connected");
+                Console.WriteLine($"  Price: ${alpacaData.Price:F2}, Volume: {alpacaData.Volume:N0}");
+            }
+            else
+            {
+                Console.WriteLine("FAILED: Alpaca: Failed");
+                Console.WriteLine("  Possible issues: Invalid credentials, market closed, or invalid symbol");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("FAILED: Alpaca: Failed");
+            Console.WriteLine($"  Error: {ex.Message}");
+        }
+        
+        // Test Polygon
+        Console.WriteLine("\nTesting Polygon.io API...");
+        try
+        {
+            var polygonData = await _polygonService.GetQuoteAsync(symbol);
+            if (polygonData != null)
+            {
+                Console.WriteLine("SUCCESS: Polygon.io: Connected");
+                Console.WriteLine($"  Price: ${polygonData.Price:F2}, Volume: {polygonData.Size:N0}");
+            }
+            else
+            {
+                Console.WriteLine("FAILED: Polygon.io: Failed");
+                Console.WriteLine("  Possible issues: Invalid API key, rate limits, or free tier restrictions");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("FAILED: Polygon.io: Failed");
+            Console.WriteLine($"  Error: {ex.Message}");
+        }
+        
+        // Test DataBento
+        Console.WriteLine("\nTesting DataBento API...");
+        try
+        {
+            var start = DateTime.Now.AddDays(-7);
+            var end = DateTime.Now;
+            var dataBentoData = await _dataBentoService.GetOHLCVAsync(symbol, start, end);
+            if (dataBentoData != null && dataBentoData.Any())
+            {
+                Console.WriteLine("SUCCESS: DataBento: Connected");
+                Console.WriteLine($"  Retrieved {dataBentoData.Count} data points");
+            }
+            else
+            {
+                Console.WriteLine("FAILED: DataBento: Failed");
+                Console.WriteLine("  Possible issues: Invalid credentials, subscription limits, or data availability");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("FAILED: DataBento: Failed");
+            Console.WriteLine($"  Error: {ex.Message}");
+        }
+        
+        Console.WriteLine("\nTroubleshooting Tips:");
+        Console.WriteLine("1. Check API keys in appsettings.json");
+        Console.WriteLine("2. Verify your internet connection");
+        Console.WriteLine("3. Some APIs have rate limits or require subscriptions");
+        Console.WriteLine("4. Market data may not be available outside trading hours");
+        Console.WriteLine("5. Try different symbols (e.g., TSLA, MSFT, GOOGL)");
         
         PrintSectionFooter();
     }
@@ -1135,7 +1265,7 @@ public class InteractiveCLI
                 Console.WriteLine("\n=== Yahoo Finance News ===");
                 foreach (var article in yahooNews.Take(6))
                 {
-                    Console.WriteLine($"📰 {article.Title}");
+                    Console.WriteLine($"NEWS: {article.Title}");
                     Console.WriteLine($"   Publisher: {article.Publisher} | {article.PublishedDate:MMM dd, HH:mm}");
                     
                     if (!string.IsNullOrEmpty(article.Summary))
@@ -1151,7 +1281,7 @@ public class InteractiveCLI
                         Console.WriteLine($"   Tickers: {string.Join(", ", article.RelatedTickers.Take(5))}");
                     }
                     
-                    Console.WriteLine($"   🔗 {article.Link}");
+                    Console.WriteLine($"   Link: {article.Link}");
                     Console.WriteLine();
                 }
             }
@@ -1162,7 +1292,7 @@ public class InteractiveCLI
                 Console.WriteLine("\n=== Finviz News ===");
                 foreach (var article in finvizNews.Take(6))
                 {
-                    Console.WriteLine($"📈 {article.Title}");
+                    Console.WriteLine($"MARKET: {article.Title}");
                     Console.WriteLine($"   Publisher: {article.Publisher} | {article.PublishedDate:MMM dd, HH:mm}");
                     
                     if (!string.IsNullOrEmpty(article.Summary))
@@ -1173,7 +1303,7 @@ public class InteractiveCLI
                         Console.WriteLine($"   {summary}");
                     }
                     
-                    Console.WriteLine($"   🔗 {article.Link}");
+                    Console.WriteLine($"   Link: {article.Link}");
                     Console.WriteLine();
                 }
             }
@@ -1191,6 +1321,190 @@ public class InteractiveCLI
         catch (Exception ex)
         {
             Console.WriteLine($"Error retrieving live news: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task SentimentAnalysisCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("ERROR: Please provide a stock symbol. Usage: sentiment-analysis [SYMBOL]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        PrintSectionHeader($"AI-Powered Quantitative Sentiment Analysis for {symbol}");
+
+        try
+        {
+            var analysis = await _newsSentimentService.AnalyzeSymbolSentimentAsync(symbol);
+            
+            if (analysis != null)
+            {
+                // Display overall sentiment
+                var sentimentEmoji = analysis.OverallSentiment switch
+                {
+                    "Very Positive" => "[VERY+]",
+                    "Positive" => "[POS]",
+                    "Negative" => "[NEG]",
+                    "Very Negative" => "[VERY-]",
+                    "Neutral" => "[NEUT]",
+                    _ => "[UNKNOWN]"
+                };
+                
+                Console.WriteLine($"\nOverall Sentiment: {sentimentEmoji} {analysis.OverallSentiment} (Score: {analysis.SentimentScore:F3})");
+                Console.WriteLine($"Confidence Level: {analysis.Confidence:F1}%");
+                Console.WriteLine($"Trend Direction: {analysis.TrendDirection}");
+                
+                // Display quantitative insights
+                Console.WriteLine($"\nQUANTITATIVE INSIGHTS:");
+                Console.WriteLine($"   Trading Signal: {analysis.TradingSignal}");
+                Console.WriteLine($"   Volatility Indicator: {analysis.VolatilityIndicator}");
+                Console.WriteLine($"   Price Target Bias: {analysis.PriceTargetBias}");
+                Console.WriteLine($"   Institutional Sentiment: {analysis.InstitutionalSentiment}");
+                Console.WriteLine($"   Retail Sentiment: {analysis.RetailSentiment}");
+                Console.WriteLine($"   Analyst Consensus: {analysis.AnalystConsensus}");
+                Console.WriteLine($"   Earnings Impact: {analysis.EarningsImpact}");
+                Console.WriteLine($"   Sector Comparison: {analysis.SectorComparison}");
+                Console.WriteLine($"   Momentum Signal: {analysis.MomentumSignal}");
+                
+                // Display key themes
+                if (analysis.KeyThemes?.Any() == true)
+                {
+                    Console.WriteLine($"\nKey Themes:");
+                    foreach (var theme in analysis.KeyThemes)
+                    {
+                        Console.WriteLine($"   • {theme}");
+                    }
+                }
+                
+                // Display risk factors
+                if (analysis.RiskFactors?.Any() == true)
+                {
+                    Console.WriteLine($"\nRisk Factors:");
+                    foreach (var risk in analysis.RiskFactors)
+                    {
+                        Console.WriteLine($"   • {risk}");
+                    }
+                }
+                
+                // Display analysis summary
+                if (!string.IsNullOrEmpty(analysis.Summary))
+                {
+                    Console.WriteLine($"\nQuantitative Analysis Summary:");
+                    Console.WriteLine($"   {analysis.Summary}");
+                }
+                
+                // Display analyzed news articles with links
+                if (analysis.NewsItems?.Any() == true)
+                {
+                    Console.WriteLine($"\nAnalyzed News Articles ({analysis.NewsItems.Count} articles):");
+                    foreach (var article in analysis.NewsItems.Take(10))
+                    {
+                        var articleSentiment = article.SentimentLabel switch
+                        {
+                            "Very Positive" => "[VERY+]",
+                            "Positive" => "[POS]",
+                            "Negative" => "[NEG]",
+                            "Very Negative" => "[VERY-]",
+                            "Neutral" => "[NEUT]",
+                            _ => "[UNKNOWN]"
+                        };
+                        
+                        Console.WriteLine($"\n   {articleSentiment} {article.Title}");
+                        Console.WriteLine($"      Date: {article.PublishedDate:MMM dd, HH:mm} | Score: {article.SentimentScore:F2} | Publisher: {article.Publisher}");
+                        
+                        if (!string.IsNullOrEmpty(article.Summary) && article.Summary.Length > 50)
+                        {
+                            var summary = article.Summary.Length > 120 ? 
+                                article.Summary.Substring(0, 120) + "..." : 
+                                article.Summary;
+                            Console.WriteLine($"      Summary: {summary}");
+                        }
+                        
+                        if (article.KeyTopics?.Any() == true)
+                        {
+                            Console.WriteLine($"      Topics: {string.Join(", ", article.KeyTopics.Take(3))}");
+                        }
+                        
+                        Console.WriteLine($"      Link: {article.Link}");
+                    }
+                    
+                    Console.WriteLine($"\nAnalysis Time: {analysis.AnalysisDate:MMM dd, yyyy HH:mm} UTC");
+                }
+            }
+            else
+            {
+                Console.WriteLine("ERROR: Unable to perform sentiment analysis. No news data available.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"ERROR: Error performing sentiment analysis: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task MarketSentimentCommand(string[] parts)
+    {
+        PrintSectionHeader("AI-Powered Overall Market Sentiment Analysis");
+
+        try
+        {
+            var analysis = await _newsSentimentService.AnalyzeMarketSentimentAsync();
+            
+            if (analysis != null)
+            {
+                // Display overall market sentiment
+                var sentimentEmoji = analysis.OverallSentiment switch
+                {
+                    "POSITIVE" => "[POS]",
+                    "NEGATIVE" => "[NEG]",
+                    "NEUTRAL" => "[NEUT]",
+                    _ => "[UNKNOWN]"
+                };
+                
+                Console.WriteLine($"\nOverall Market Sentiment: {sentimentEmoji} {analysis.OverallSentiment} (Score: {analysis.SentimentScore:F2})");
+                Console.WriteLine($"📈 Confidence Level: {analysis.Confidence:F1}%");
+                
+                // Display key market themes
+                if (analysis.KeyThemes?.Any() == true)
+                {
+                    Console.WriteLine($"\n🔍 Key Market Themes:");
+                    foreach (var theme in analysis.KeyThemes)
+                    {
+                        Console.WriteLine($"   • {theme}");
+                    }
+                }
+                
+                // Display market analysis summary
+                if (!string.IsNullOrEmpty(analysis.Summary))
+                {
+                    Console.WriteLine($"\n📝 Market Analysis Summary:");
+                    Console.WriteLine($"   {analysis.Summary}");
+                }
+                
+                // Display analysis scope
+                if (analysis.NewsItems?.Any() == true)
+                {
+                    Console.WriteLine($"\n📰 Analyzed {analysis.NewsItems.Count} market news articles");
+                    Console.WriteLine($"⏰ Analysis Time: {analysis.AnalysisDate:MMM dd, yyyy HH:mm} UTC");
+                }
+                
+                Console.WriteLine($"\n💡 This analysis combines news from multiple financial sources");
+                Console.WriteLine($"   and uses AI to provide comprehensive market sentiment insights.");
+            }
+            else
+            {
+                Console.WriteLine("❌ Unable to perform market sentiment analysis. No market news data available.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error performing market sentiment analysis: {ex.Message}");
         }
         
         PrintSectionFooter();

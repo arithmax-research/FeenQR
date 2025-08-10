@@ -208,7 +208,7 @@ This system builds upon your existing Python quantitative strategies:
 - **Natural Language Interface**: Conversational trading interactions
 - **Multi-Source Integration**: Podcast, market data, and news analysis
 
-## 🔄 Agent Workflow
+## Agent Workflow
 
 1. **Initialization**: Load configuration and register plugins
 2. **Scheduled Jobs**: Podcast analysis, market data updates
@@ -285,7 +285,7 @@ Built-in risk controls include:
 - **Contextual Decision Making**: Market regime awareness
 - **Natural Language Interaction**: Conversational AI interface
 
-## 🔗 Next Steps
+## Next Steps
 
 1. **Audio Processing**: Integrate speech-to-text for actual podcast transcription
 2. **Live Trading**: Connect to real exchange APIs
