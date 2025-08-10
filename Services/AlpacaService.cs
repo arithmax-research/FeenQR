@@ -37,7 +37,7 @@ public class AlpacaService
 
         try
         {
-            var environment = isPaperTrading ? Environments.Paper : Environments.Live;
+            var environment = isPaperTrading ? Alpaca.Markets.Environments.Paper : Alpaca.Markets.Environments.Live;
 
             _tradingClient = environment.GetAlpacaTradingClient(new SecretKey(apiKey, secretKey));
             _dataClient = environment.GetAlpacaDataClient(new SecretKey(apiKey, secretKey));

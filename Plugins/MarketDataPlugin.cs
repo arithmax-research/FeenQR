@@ -39,7 +39,7 @@ public class MarketDataPlugin
             double volume = dyn.Volume;
             DateTime timestamp = dyn.Timestamp;
 
-            return $"📈 Yahoo Finance Data for {symbol.ToUpper()}\n" +
+            return $" Yahoo Finance Data for {symbol.ToUpper()}\n" +
                    $"Current Price: ${price:F2}\n" +
                    $"Change (24h): ${change:F2}\n" +
                    $"High (24h): ${high:F2}\n" +
@@ -64,7 +64,7 @@ public class MarketDataPlugin
             {
                 return $"No market data available for {symbol}. Please check the symbol or try again later.";
             }
-            var changeIndicator = marketData.ChangePercent24h >= 0 ? "📈" : "📉";
+            var changeIndicator = marketData.ChangePercent24h >= 0 ? "" : "TREND:";
             string source = string.IsNullOrEmpty(marketData.Source) ? "" : $" (Source: {marketData.Source})";
             return $"{changeIndicator} Market Data for {marketData.Symbol}{source}:\n\n" +
                    $"Current Price: ${marketData.Price:F2}\n" +
@@ -105,7 +105,7 @@ public class MarketDataPlugin
             var minPrice = prices.Min();
             var volatility = CalculateVolatility(prices);
             
-            return $"📊 Historical Data for {symbol} (Last {historicalData.Count} periods):\n\n" +
+            return $"ANALYSIS: Historical Data for {symbol} (Last {historicalData.Count} periods):\n\n" +
                    $"Period: {oldestData.Timestamp:yyyy-MM-dd HH:mm} to {latestData.Timestamp:yyyy-MM-dd HH:mm}\n" +
                    $"Total Return: {totalReturn:F2}%\n\n" +
                    $"Price Statistics:\n" +
@@ -130,11 +130,11 @@ public class MarketDataPlugin
         try
         {
             await _marketDataService.RefreshMarketDataAsync();
-            return "✅ Market data refreshed successfully for all tracked symbols.";
+            return "SUCCESS: Market data refreshed successfully for all tracked symbols.";
         }
         catch (Exception ex)
         {
-            return $"❌ Error refreshing market data: {ex.Message}";
+            return $"ERROR: Error refreshing market data: {ex.Message}";
         }
     }
 
@@ -172,12 +172,12 @@ public class MarketDataPlugin
             // Sort by performance
             var sortedData = comparisonData.OrderByDescending(d => d.ChangePercent24h).ToList();
             
-            var result = $"📊 Symbol Performance Comparison (24h):\n\n";
+            var result = $"ANALYSIS: Symbol Performance Comparison (24h):\n\n";
             
             for (int i = 0; i < sortedData.Count; i++)
             {
                 var data = sortedData[i];
-                var indicator = data.ChangePercent24h >= 0 ? "📈" : "📉";
+                var indicator = data.ChangePercent24h >= 0 ? "" : "TREND:";
                 var position = i == 0 ? "🥇" : i == 1 ? "🥈" : i == 2 ? "🥉" : $"{i + 1}.";
                 
                 result += $"{position} {indicator} {data.Symbol}\n" +
@@ -189,8 +189,8 @@ public class MarketDataPlugin
             var bestPerformer = sortedData.First();
             var worstPerformer = sortedData.Last();
             
-            result += $"🏆 Best Performer: {bestPerformer.Symbol} (+{bestPerformer.ChangePercent24h:F2}%)\n" +
-                     $"📉 Worst Performer: {worstPerformer.Symbol} ({worstPerformer.ChangePercent24h:F2}%)";
+            result += $"BEST: Best Performer: {bestPerformer.Symbol} (+{bestPerformer.ChangePercent24h:F2}%)\n" +
+                     $"WORST: Worst Performer: {worstPerformer.Symbol} ({worstPerformer.ChangePercent24h:F2}%)";
             
             return result;
         }
@@ -235,16 +235,16 @@ public class MarketDataPlugin
             var totalVolume = marketOverview.Sum(m => m.Volume);
             var avgChange = marketOverview.Average(m => m.ChangePercent24h);
             
-            var result = $"🌍 Crypto Market Overview:\n\n";
+            var result = $"CRYPTO: Crypto Market Overview:\n\n";
             
-            result += $"📊 Market Summary:\n" +
+            result += $"ANALYSIS: Market Summary:\n" +
                      $"• Average Change: {avgChange:F2}%\n" +
                      $"• Total Volume: {totalVolume:N0}\n" +
                      $"• Symbols Tracked: {marketOverview.Count}\n\n";
             
             if (gainers.Any())
             {
-                result += $"📈 Top Gainers:\n";
+                result += $" Top Gainers:\n";
                 foreach (var gainer in gainers)
                 {
                     result += $"• {gainer.Symbol}: +{gainer.ChangePercent24h:F2}%\n";
@@ -254,7 +254,7 @@ public class MarketDataPlugin
             
             if (losers.Any())
             {
-                result += $"📉 Top Losers:\n";
+                result += $"TREND: Top Losers:\n";
                 foreach (var loser in losers)
                 {
                     result += $"• {loser.Symbol}: {loser.ChangePercent24h:F2}%\n";

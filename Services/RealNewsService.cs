@@ -102,7 +102,7 @@ public class RealNewsService
             result.NewsArticles = ExtractNewsArticles(output);
 
             // Extract overall label
-            var labelMatch = Regex.Match(output, @"Overall Label:\s*🟢\s*(\w+)|🔴\s*(\w+)|🟡\s*(\w+)", RegexOptions.IgnoreCase);
+            var labelMatch = Regex.Match(output, @"Overall Label:\s*[POSITIVE]\s*(\w+)|[NEGATIVE]\s*(\w+)|[NEUTRAL]\s*(\w+)", RegexOptions.IgnoreCase);
             if (labelMatch.Success)
             {
                 result.SentimentLabel = labelMatch.Groups[1].Value + labelMatch.Groups[2].Value + labelMatch.Groups[3].Value;
@@ -137,7 +137,7 @@ public class RealNewsService
         try
         {
             // Extract individual articles from the output
-            var articlePattern = @"\*\*(\d+)\.\s*(🟢|🔴|🟡)\s*([^*]+)\*\*\s*📰 Title:\s*([^\n]+)\s*🏢 Publisher:\s*([^\n]+)\s*📊 Sentiment Score:\s*(-?\d+\.?\d*)\s*🔗 URL:\s*([^\n]+)";
+            var articlePattern = @"\*\*(\d+)\.\s*([POSITIVE]|[NEGATIVE]|[NEUTRAL])\s*([^*]+)\*\*\s* Title:\s*([^\n]+)\s*Publisher:\s*([^\n]+)\s*ANALYSIS: Sentiment Score:\s*(-?\d+\.?\d*)\s*URL: URL:\s*([^\n]+)";
             var matches = Regex.Matches(output, articlePattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
             foreach (Match match in matches)

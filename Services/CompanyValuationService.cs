@@ -57,7 +57,7 @@ public class CompanyValuationService
             
             if (stockData == null)
             {
-                return $"❌ Unable to fetch data for {ticker.ToUpper()}. Please check the symbol or try again later.";
+                return $"ERROR: Unable to fetch data for {ticker.ToUpper()}. Please check the symbol or try again later.";
             }
             
             var analysis = await PerformTechnicalAnalysisAsync(stockData);
@@ -70,30 +70,30 @@ public class CompanyValuationService
             // Format as clean, readable text
             var instrumentType = isETF ? "ETF" : "STOCK";
             var result = $@"
-📊 FUNDAMENTAL ANALYSIS: {ticker.ToUpper()} ({instrumentType})
+ANALYSIS: FUNDAMENTAL ANALYSIS: {ticker.ToUpper()} ({instrumentType})
 ═══════════════════════════════════════════════════════════
 
-💰 CURRENT VALUATION
+MONEY: CURRENT VALUATION
 Current Price: ${stockData.CurrentPrice:F2}
 {(isETF ? "Net Assets" : "Market Cap")}: ${stockData.MarketCap:N0}
 
-📈 {(isETF ? "ETF METRICS" : "VALUATION METRICS")}
+ {(isETF ? "ETF METRICS" : "VALUATION METRICS")}
 {(isETF ? FormatETFMetrics(valuation) : FormatValuationMetrics(valuation))}
 
-🔍 TECHNICAL ANALYSIS
+SEARCH: TECHNICAL ANALYSIS
 • SMA 50: ${analysis.SMA50:F2}
 • SMA 200: ${analysis.SMA200:F2}
 • RSI: {analysis.RSI:F1}
 • Volatility: {analysis.Volatility:P1}
 • Trend: {analysis.Trend}
 
-📰 MARKET SENTIMENT
+ MARKET SENTIMENT
 {sentiment}
 
-💡 INVESTMENT RECOMMENDATION
+TIP: INVESTMENT RECOMMENDATION
 {recommendation}
 
-⚠️ RISK ASSESSMENT
+WARNING: RISK ASSESSMENT
 {riskAssessment}
 
 Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC
@@ -104,7 +104,7 @@ Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing {Ticker}", ticker);
-            return $"❌ Error analyzing stock {ticker}: {ex.Message}";
+            return $"ERROR: Error analyzing stock {ticker}: {ex.Message}";
         }
     }
 
@@ -141,7 +141,7 @@ Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC
             3. Key catalysts to watch
             4. Market timing considerations
             
-            Format as a professional investment research note.
+            Format as a professional investment research note using PLAIN TEXT ONLY - no markdown, no asterisks, no hashtags.
         ");
 
         return recommendation.ToString();
@@ -398,42 +398,42 @@ Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC
             var underlyingInfo = GetUnderlyingIndex(ticker);
             
             var result = $@"
-📊 LEVERAGED ETF ANALYSIS: {ticker.ToUpper()}
+ANALYSIS: LEVERAGED ETF ANALYSIS: {ticker.ToUpper()}
 ═══════════════════════════════════════════════════════════
 
-⚡ ETF DETAILS
+ETF DETAILS
 Current Price: ${stockData.CurrentPrice:F2}
 Net Assets: ${stockData.MarketCap:N0}
 Underlying Index: {underlyingInfo.Index}
 Leverage Factor: {underlyingInfo.Leverage}
 Direction: {underlyingInfo.Direction}
 
-📈 ETF METRICS
+ ETF METRICS
 • Expense Ratio: {underlyingInfo.ExpenseRatio:P2}
 • Average Volume: {stockData.Volume:N0}
 • Volatility: {analysis.Volatility:P1} (High due to leverage)
 • Daily Rebalancing: Yes (causes decay over time)
 
-🔍 TECHNICAL ANALYSIS
+SEARCH: TECHNICAL ANALYSIS
 • SMA 50: ${analysis.SMA50:F2}
 • SMA 200: ${analysis.SMA200:F2}
 • RSI: {analysis.RSI:F1}
 • Trend: {analysis.Trend}
 
-⚠️ LEVERAGED ETF RISKS
+WARNING: LEVERAGED ETF RISKS
 • Volatility Decay: Compounding effect reduces long-term returns
 • Daily Rebalancing: Not suitable for buy-and-hold strategies
 • High Risk: {underlyingInfo.Leverage}x leverage amplifies both gains and losses
 • Best Use: Short-term tactical trades, not long-term investing
 
-💡 TRADING RECOMMENDATION
+TIP: TRADING RECOMMENDATION
 Given the leveraged nature of {ticker.ToUpper()}:
 
 Short-term Trading Only: This ETF is designed for short-term trading (days to weeks)
 Current Technical Setup: {analysis.Trend} trend with RSI at {analysis.RSI:F1}
 Risk Management: Use tight stop-losses due to high volatility
 
-⚠️ RISK LEVEL: VERY HIGH
+WARNING: RISK LEVEL: VERY HIGH
 Suitable only for experienced traders who understand leverage risks.
 
 Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC
@@ -444,7 +444,7 @@ Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing leveraged ETF {Ticker}", ticker);
-            return $"❌ Error analyzing leveraged ETF {ticker}: {ex.Message}";
+            return $"ERROR: Error analyzing leveraged ETF {ticker}: {ex.Message}";
         }
     }
 

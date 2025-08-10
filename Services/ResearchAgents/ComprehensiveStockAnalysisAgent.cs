@@ -64,19 +64,19 @@ namespace QuantResearchAgent.Services.ResearchAgents
             {
                 // 1. Current Market Data
                 var marketData = await GetCurrentMarketDataAsync(symbol);
-                analysisBuilder.AppendLine("\n📊 CURRENT MARKET DATA");
+                analysisBuilder.AppendLine("\nANALYSIS: CURRENT MARKET DATA");
                 analysisBuilder.AppendLine(new string('-', 40));
                 analysisBuilder.AppendLine(marketData);
 
                 // 2. Web Search for Recent News and Sentiment
                 var newsAnalysis = await PerformWebSearchAnalysisAsync(symbol, assetType);
-                analysisBuilder.AppendLine("\n🌐 NEWS & MARKET SENTIMENT");
+                analysisBuilder.AppendLine("\nNEWS & MARKET SENTIMENT");
                 analysisBuilder.AppendLine(new string('-', 40));
                 analysisBuilder.AppendLine(newsAnalysis);
 
                 // 3. Technical Analysis
                 var technicalAnalysis = await PerformTechnicalAnalysisAsync(symbol);
-                analysisBuilder.AppendLine("\n📈 TECHNICAL ANALYSIS");
+                analysisBuilder.AppendLine("\n TECHNICAL ANALYSIS");
                 analysisBuilder.AppendLine(new string('-', 40));
                 analysisBuilder.AppendLine(technicalAnalysis);
 
@@ -87,20 +87,20 @@ namespace QuantResearchAgent.Services.ResearchAgents
                     fundamentalAnalysis = await PerformFundamentalAnalysisAsync(symbol);
                     // Remove risk assessment section from fundamental analysis to avoid duplication
                     fundamentalAnalysis = RemoveRiskAssessmentSection(fundamentalAnalysis);
-                    analysisBuilder.AppendLine("\n💼 FUNDAMENTAL ANALYSIS");
+                    analysisBuilder.AppendLine("\nBUSINESS: FUNDAMENTAL ANALYSIS");
                     analysisBuilder.AppendLine(new string('-', 40));
                     analysisBuilder.AppendLine(fundamentalAnalysis);
                 }
 
                 // 5. Comprehensive Risk Assessment (combining technical and fundamental risks)
                 var riskAssessment = await PerformComprehensiveRiskAssessmentAsync(symbol, assetType, fundamentalAnalysis);
-                analysisBuilder.AppendLine("\n⚠️ COMPREHENSIVE RISK ASSESSMENT");
+                analysisBuilder.AppendLine("\nWARNING: COMPREHENSIVE RISK ASSESSMENT");
                 analysisBuilder.AppendLine(new string('-', 40));
                 analysisBuilder.AppendLine(riskAssessment);
 
                 // 6. Generate AI-Powered Investment Recommendation
                 var recommendation = await GenerateInvestmentRecommendationAsync(symbol, assetType, analysisBuilder.ToString());
-                analysisBuilder.AppendLine("\n🎯 INVESTMENT RECOMMENDATION");
+                analysisBuilder.AppendLine("\nTARGET: INVESTMENT RECOMMENDATION");
                 analysisBuilder.AppendLine(new string('-', 40));
                 analysisBuilder.AppendLine(recommendation);
 
@@ -316,13 +316,13 @@ namespace QuantResearchAgent.Services.ResearchAgents
                     
                     if (!allResults.Any())
                     {
-                        result.AppendLine("\n📊 General Market Sentiment Analysis:");
+                        result.AppendLine("\nANALYSIS: General Market Sentiment Analysis:");
                         result.AppendLine("(Based on overall market conditions and general sentiment indicators)");
                         result.AppendLine("Note: This sentiment analysis uses broader market data since specific news wasn't found.");
                     }
                     else
                     {
-                        result.AppendLine("\n📊 Market Sentiment Analysis:");
+                        result.AppendLine("\nANALYSIS: Market Sentiment Analysis:");
                         result.AppendLine("(Based on news analysis and market sentiment indicators)");
                     }
                     
@@ -551,7 +551,7 @@ namespace QuantResearchAgent.Services.ResearchAgents
                 var lowerLine = line.ToLower();
                 
                 // Start of risk section
-                if (lowerLine.Contains("⚠️") && lowerLine.Contains("risk"))
+                if (lowerLine.Contains("WARNING:") && lowerLine.Contains("risk"))
                 {
                     inRiskSection = true;
                     continue;
@@ -560,9 +560,9 @@ namespace QuantResearchAgent.Services.ResearchAgents
                 // End of risk section (next section starts)
                 if (inRiskSection && (lowerLine.Contains("timestamp:") || 
                     lowerLine.StartsWith("=") || 
-                    lowerLine.Contains("📊") || 
-                    lowerLine.Contains("💰") ||
-                    lowerLine.Contains("📈")))
+                    lowerLine.Contains("ANALYSIS:") || 
+                    lowerLine.Contains("MONEY:") ||
+                    lowerLine.Contains("")))
                 {
                     inRiskSection = false;
                 }
@@ -589,7 +589,7 @@ namespace QuantResearchAgent.Services.ResearchAgents
             {
                 var lowerLine = line.ToLower();
                 
-                if (lowerLine.Contains("risk") && !lowerLine.Contains("⚠️"))
+                if (lowerLine.Contains("risk") && !lowerLine.Contains("WARNING:"))
                 {
                     // Extract specific risk mentions
                     if (lowerLine.Contains("p/e") && lowerLine.Contains("high"))

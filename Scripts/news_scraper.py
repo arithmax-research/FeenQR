@@ -45,7 +45,7 @@ def get_yahoo_finance_news(ticker, max_articles=5):
                     'scraped_at': datetime.now().isoformat()
                 })
                 
-                print(f"✓ Found: {title[:60]}...", file=sys.stderr)
+                print(f"Found: {title[:60]}...", file=sys.stderr)
                 
             except Exception as e:
                 print(f"Error parsing RSS item: {e}", file=sys.stderr)
@@ -99,7 +99,7 @@ def get_marketwatch_news(ticker, max_articles=5):
                         'scraped_at': datetime.now().isoformat()
                     })
                     
-                    print(f"✓ Found: {title[:60]}...", file=sys.stderr)
+                    print(f"Found: {title[:60]}...", file=sys.stderr)
                     
             except Exception as e:
                 print(f"Error parsing MarketWatch item: {e}", file=sys.stderr)

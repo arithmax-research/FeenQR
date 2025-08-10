@@ -26,11 +26,11 @@ public class RiskManagementPlugin
         try
         {
             var riskAssessment = await _riskService.AssessPortfolioRiskAsync();
-            return $"🛡️ Portfolio Risk Assessment:\n\n{riskAssessment}";
+            return $"RISK: Portfolio Risk Assessment:\n\n{riskAssessment}";
         }
         catch (Exception ex)
         {
-            return $"❌ Error assessing portfolio risk: {ex.Message}";
+            return $"ERROR: Error assessing portfolio risk: {ex.Message}";
         }
     }
 
@@ -45,28 +45,28 @@ public class RiskManagementPlugin
             
             if (!positions.Any())
             {
-                return $"💰 Portfolio Summary:\n\n" +
+                return $"MONEY: Portfolio Summary:\n\n" +
                        $"Cash Balance: ${cashBalance:F2}\n" +
                        $"Total Portfolio Value: ${metrics.TotalValue:F2}\n" +
                        $"No active positions.";
             }
             
-            var result = $"💰 Portfolio Summary:\n\n" +
+            var result = $"MONEY: Portfolio Summary:\n\n" +
                         $"Total Value: ${metrics.TotalValue:F2}\n" +
                         $"Cash Balance: ${cashBalance:F2}\n" +
                         $"Total P&L: ${metrics.TotalPnL:F2} ({metrics.TotalPnLPercent:F2}%)\n" +
                         $"Active Positions: {positions.Count}\n\n" +
-                        $"📈 Performance Metrics:\n" +
+                        $" Performance Metrics:\n" +
                         $"• Daily Return: {metrics.DailyReturn:F2}%\n" +
                         $"• Volatility: {metrics.Volatility:F2}%\n" +
                         $"• Sharpe Ratio: {metrics.SharpeRatio:F2}\n" +
                         $"• Max Drawdown: {metrics.MaxDrawdown:F2}%\n" +
                         $"• Win Rate: {metrics.WinRate:F2}%\n\n" +
-                        $"🎯 Current Positions:\n";
+                        $"TARGET: Current Positions:\n";
             
             foreach (var position in positions.OrderByDescending(p => Math.Abs(p.UnrealizedPnL)))
             {
-                var pnlIndicator = position.UnrealizedPnL >= 0 ? "📈" : "📉";
+                var pnlIndicator = position.UnrealizedPnL >= 0 ? "" : "TREND:";
                 var positionValue = position.Quantity * position.CurrentPrice;
                 
                 result += $"{pnlIndicator} {position.Symbol}\n" +
@@ -81,7 +81,7 @@ public class RiskManagementPlugin
         }
         catch (Exception ex)
         {
-            return $"❌ Error retrieving portfolio summary: {ex.Message}";
+            return $"ERROR: Error retrieving portfolio summary: {ex.Message}";
         }
     }
 
@@ -95,7 +95,7 @@ public class RiskManagementPlugin
         {
             if (signalStrength < 0 || signalStrength > 1)
             {
-                return "❌ Signal strength must be between 0.0 and 1.0";
+                return "ERROR: Signal strength must be between 0.0 and 1.0";
             }
             
             // Create a mock signal for position sizing calculation
@@ -112,7 +112,7 @@ public class RiskManagementPlugin
             var metrics = await _portfolioService.CalculateMetricsAsync();
             var portfolioPercentage = metrics.TotalValue > 0 ? (positionValue / metrics.TotalValue) * 100 : 0;
             
-            return $"📊 Position Size Calculation for {symbol}:\n\n" +
+            return $"ANALYSIS: Position Size Calculation for {symbol}:\n\n" +
                    $"Signal Strength: {signalStrength:F2}\n" +
                    $"Current Price: ${currentPrice:F2}\n" +
                    $"Recommended Quantity: {quantity:F6}\n" +
@@ -125,7 +125,7 @@ public class RiskManagementPlugin
         }
         catch (Exception ex)
         {
-            return $"❌ Error calculating position size: {ex.Message}";
+            return $"ERROR: Error calculating position size: {ex.Message}";
         }
     }
 
@@ -136,7 +136,7 @@ public class RiskManagementPlugin
         {
             var config = _riskService.GetConfig();
             
-            return $"🛡️ Risk Management Parameters:\n\n" +
+            return $"RISK: Risk Management Parameters:\n\n" +
                    $"Portfolio Limits:\n" +
                    $"• Max Drawdown: {config.MaxDrawdown:P}\n" +
                    $"• Volatility Target: {config.VolatilityTarget:P}\n" +
@@ -150,7 +150,7 @@ public class RiskManagementPlugin
         }
         catch (Exception ex)
         {
-            return $"❌ Error retrieving risk parameters: {ex.Message}";
+            return $"ERROR: Error retrieving risk parameters: {ex.Message}";
         }
     }
 
@@ -163,7 +163,7 @@ public class RiskManagementPlugin
             
             if (!positions.Any())
             {
-                return "📊 Diversification Analysis:\n\nNo positions to analyze.";
+                return "ANALYSIS: Diversification Analysis:\n\nNo positions to analyze.";
             }
             
             var totalValue = positions.Sum(p => p.Quantity * p.CurrentPrice);
@@ -182,7 +182,7 @@ public class RiskManagementPlugin
             var largestPosition = positionsByValue.First().Percentage;
             var top3Concentration = positionsByValue.Take(3).Sum(p => p.Percentage);
             
-            var result = $"📊 Portfolio Diversification Analysis:\n\n" +
+            var result = $"ANALYSIS: Portfolio Diversification Analysis:\n\n" +
                         $"Concentration Metrics:\n" +
                         $"• Herfindahl Index: {herfindahlIndex:F4}\n" +
                         $"• Effective # Positions: {effectiveNumPositions:F1}\n" +
@@ -194,17 +194,17 @@ public class RiskManagementPlugin
             {
                 var riskLevel = position.Percentage switch
                 {
-                    > 30 => "🔴 High Risk",
-                    > 20 => "🟡 Medium Risk", 
-                    > 10 => "🟢 Low Risk",
-                    _ => "✅ Safe"
+                    > 30 => "[NEGATIVE] High Risk",
+                    > 20 => "[NEUTRAL] Medium Risk", 
+                    > 10 => "[POSITIVE] Low Risk",
+                    _ => "SUCCESS: Safe"
                 };
                 
                 result += $"• {position.Symbol}: {position.Percentage:F1}% {riskLevel}\n";
             }
             
             // Add recommendations
-            result += "\n📋 Recommendations:\n";
+            result += "\nRECOMMENDATIONS:\n";
             
             if (largestPosition > 30)
                 result += "• Reduce concentration in largest position\n";
@@ -218,14 +218,14 @@ public class RiskManagementPlugin
             if (effectiveNumPositions < 3)
                 result += "• Portfolio is under-diversified\n";
             
-            if (result.EndsWith("📋 Recommendations:\n"))
+            if (result.EndsWith("RECOMMENDATIONS:\n"))
                 result += "• Portfolio diversification looks good\n";
             
             return result;
         }
         catch (Exception ex)
         {
-            return $"❌ Error analyzing diversification: {ex.Message}";
+            return $"ERROR: Error analyzing diversification: {ex.Message}";
         }
     }
 
@@ -242,7 +242,7 @@ public class RiskManagementPlugin
             
             if (position == null)
             {
-                return $"❌ No position found for {symbol}";
+                return $"ERROR: No position found for {symbol}";
             }
             
             // Validate stop loss and take profit levels
@@ -253,22 +253,22 @@ public class RiskManagementPlugin
             {
                 if (stopLossPrice >= currentPrice)
                 {
-                    return "❌ Stop loss must be below current price for long positions";
+                    return "ERROR: Stop loss must be below current price for long positions";
                 }
                 if (takeProfitPrice <= currentPrice)
                 {
-                    return "❌ Take profit must be above current price for long positions";
+                    return "ERROR: Take profit must be above current price for long positions";
                 }
             }
             else
             {
                 if (stopLossPrice <= currentPrice)
                 {
-                    return "❌ Stop loss must be above current price for short positions";
+                    return "ERROR: Stop loss must be above current price for short positions";
                 }
                 if (takeProfitPrice >= currentPrice)
                 {
-                    return "❌ Take profit must be below current price for short positions";
+                    return "ERROR: Take profit must be below current price for short positions";
                 }
             }
             
@@ -281,17 +281,17 @@ public class RiskManagementPlugin
             position.StopLoss = stopLossPrice.ToString("F2");
             position.TakeProfit = takeProfitPrice.ToString("F2");
             
-            return $"✅ Stop Loss & Take Profit Set for {symbol}:\n\n" +
+            return $"SUCCESS: Stop Loss & Take Profit Set for {symbol}:\n\n" +
                    $"Current Price: ${currentPrice:F2}\n" +
                    $"Stop Loss: ${stopLossPrice:F2}\n" +
                    $"Take Profit: ${takeProfitPrice:F2}\n" +
                    $"Risk/Reward Ratio: 1:{riskRewardRatio:F2}\n" +
                    $"Position Type: {(isLongPosition ? "Long" : "Short")}\n\n" +
-                   $"Risk Management Status: " + (riskRewardRatio >= 1.5 ? "✅ Good" : "⚠️ Consider better ratio");
+                   $"Risk Management Status: " + (riskRewardRatio >= 1.5 ? "SUCCESS: Good" : "WARNING: Consider better ratio");
         }
         catch (Exception ex)
         {
-            return $"❌ Error setting stop loss and take profit: {ex.Message}";
+            return $"ERROR: Error setting stop loss and take profit: {ex.Message}";
         }
     }
 }

@@ -26,13 +26,13 @@ public class TechnicalAnalysisPlugin
         {
             var analysis = await _technicalAnalysisService.PerformFullAnalysisAsync(symbol, lookbackDays);
             
-            var result = $"📊 Technical Analysis for {symbol}\n" +
+            var result = $"ANALYSIS: Technical Analysis for {symbol}\n" +
                         $"Current Price: ${analysis.CurrentPrice:F2}\n" +
                         $"Signal: {GetSignalEmoji(analysis.OverallSignal)} {analysis.OverallSignal.ToString().ToUpper()}\n" +
                         $"Strength: {analysis.SignalStrength:F2}\n" +
                         $"Timestamp: {analysis.Timestamp:yyyy-MM-dd HH:mm:ss}\n\n" +
                         
-                        "🔍 Key Technical Indicators:\n" +
+                        "SEARCH: Key Technical Indicators:\n" +
                         $"• RSI: {GetIndicatorValue(analysis, "RSI"):F1} {GetRSICondition(GetIndicatorValue(analysis, "RSI"))}\n" +
                         $"• MACD: {GetIndicatorValue(analysis, "MACD"):F4} (Signal: {GetIndicatorValue(analysis, "MACD_Signal"):F4})\n" +
                         $"• SMA 20: ${GetIndicatorValue(analysis, "SMA_20"):F2}\n" +
@@ -41,30 +41,30 @@ public class TechnicalAnalysisPlugin
                         $"• ATR: {GetIndicatorValue(analysis, "ATR"):F2}\n" +
                         $"• Volume (OBV): {GetIndicatorValue(analysis, "OBV"):F0}\n\n" +
                         
-                        "📈 Bollinger Bands:\n" +
+                        " Bollinger Bands:\n" +
                         $"• Upper: ${GetIndicatorValue(analysis, "BB_Upper"):F2}\n" +
                         $"• Middle: ${GetIndicatorValue(analysis, "BB_Middle"):F2}\n" +
                         $"• Lower: ${GetIndicatorValue(analysis, "BB_Lower"):F2}\n" +
                         $"• %B: {GetIndicatorValue(analysis, "BB_PercentB"):F3}\n\n" +
                         
-                        "🎯 Support & Resistance:\n" +
+                        "TARGET: Support & Resistance:\n" +
                         $"• Pivot Point: ${GetIndicatorValue(analysis, "Pivot_Point"):F2}\n" +
                         $"• Support 1: ${GetIndicatorValue(analysis, "Support_1"):F2}\n" +
                         $"• Resistance 1: ${GetIndicatorValue(analysis, "Resistance_1"):F2}\n\n" +
                         
-                        $"💡 Analysis: {analysis.Reasoning}";
+                        $"TIP: Analysis: {analysis.Reasoning}";
 
             if (analysis.Indicators.TryGetValue("Patterns", out var patternsObj) && 
                 patternsObj is List<string> patterns && patterns.Any())
             {
-                result += $"\n\n🔍 Detected Patterns:\n{string.Join("\n", patterns.Select(p => $"• {p}"))}";
+                result += $"\n\nSEARCH: Detected Patterns:\n{string.Join("\n", patterns.Select(p => $"• {p}"))}";
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            return $"❌ Error analyzing {symbol}: {ex.Message}";
+            return $"ERROR: Error analyzing {symbol}: {ex.Message}";
         }
     }
 
@@ -78,7 +78,7 @@ public class TechnicalAnalysisPlugin
             var analysis = await _technicalAnalysisService.PerformFullAnalysisAsync(symbol);
             var indicators = analysis.Indicators;
             
-            var result = $"📊 Detailed {category.ToUpper()} Indicators for {symbol}\n";
+            var result = $"ANALYSIS: Detailed {category.ToUpper()} Indicators for {symbol}\n";
             result += new string('=', 50) + "\n\n";
 
             switch (category.ToLower())
@@ -107,7 +107,7 @@ public class TechnicalAnalysisPlugin
         }
         catch (Exception ex)
         {
-            return $"❌ Error getting indicators for {symbol}: {ex.Message}";
+            return $"ERROR: Error getting indicators for {symbol}: {ex.Message}";
         }
     }
 
@@ -125,7 +125,7 @@ public class TechnicalAnalysisPlugin
                 analyses[symbol] = await _technicalAnalysisService.PerformFullAnalysisAsync(symbol);
             }
 
-            var result = $"📊 Technical Analysis Comparison\n";
+            var result = $"ANALYSIS: Technical Analysis Comparison\n";
             result += new string('=', 50) + "\n\n";
 
             // Summary table
@@ -144,7 +144,7 @@ public class TechnicalAnalysisPlugin
                          $"{analysis.SignalStrength:F2}\n";
             }
 
-            result += "\n📈 Key Observations:\n";
+            result += "\n Key Observations:\n";
             
             // Find strongest signals
             var strongestBull = analyses.Where(a => a.Value.OverallSignal == Core.SignalType.StrongBuy || a.Value.OverallSignal == Core.SignalType.Buy)
@@ -165,7 +165,7 @@ public class TechnicalAnalysisPlugin
         }
         catch (Exception ex)
         {
-            return $"❌ Error comparing symbols: {ex.Message}";
+            return $"ERROR: Error comparing symbols: {ex.Message}";
         }
     }
 
@@ -177,7 +177,7 @@ public class TechnicalAnalysisPlugin
         {
             var analysis = await _technicalAnalysisService.PerformFullAnalysisAsync(symbol);
             
-            var result = $"🔍 Pattern Recognition Analysis for {symbol}\n";
+            var result = $"SEARCH: Pattern Recognition Analysis for {symbol}\n";
             result += new string('=', 50) + "\n\n";
 
             if (analysis.Indicators.TryGetValue("Patterns", out var patternsObj) && 
@@ -188,7 +188,7 @@ public class TechnicalAnalysisPlugin
                     result += "Detected Patterns:\n";
                     foreach (var pattern in patterns)
                     {
-                        result += $"✓ {pattern}\n";
+                        result += $"FOUND: {pattern}\n";
                     }
                 }
                 else
@@ -198,14 +198,14 @@ public class TechnicalAnalysisPlugin
             }
 
             // Add candlestick pattern analysis (basic)
-            result += "\n📊 Key Technical Levels:\n";
+            result += "\nANALYSIS: Key Technical Levels:\n";
             result += $"• Current Price: ${analysis.CurrentPrice:F2}\n";
             result += $"• Pivot Point: ${GetIndicatorValue(analysis, "Pivot_Point"):F2}\n";
             result += $"• Immediate Support: ${GetIndicatorValue(analysis, "Support_1"):F2}\n";
             result += $"• Immediate Resistance: ${GetIndicatorValue(analysis, "Resistance_1"):F2}\n";
 
             // Fibonacci levels
-            result += "\n🌀 Fibonacci Retracement Levels:\n";
+            result += "\nFIB: Fibonacci Retracement Levels:\n";
             result += $"• 23.6%: ${GetIndicatorValue(analysis, "Fib_236"):F2}\n";
             result += $"• 38.2%: ${GetIndicatorValue(analysis, "Fib_382"):F2}\n";
             result += $"• 50.0%: ${GetIndicatorValue(analysis, "Fib_500"):F2}\n";
@@ -215,7 +215,7 @@ public class TechnicalAnalysisPlugin
         }
         catch (Exception ex)
         {
-            return $"❌ Error analyzing patterns for {symbol}: {ex.Message}";
+            return $"ERROR: Error analyzing patterns for {symbol}: {ex.Message}";
         }
     }
 
@@ -228,12 +228,12 @@ public class TechnicalAnalysisPlugin
     {
         return signal switch
         {
-            Core.SignalType.StrongBuy => "🟢",
-            Core.SignalType.Buy => "🔵",
-            Core.SignalType.Hold => "⚪",
-            Core.SignalType.Sell => "🟠",
-            Core.SignalType.StrongSell => "🔴",
-            _ => "⚪"
+            Core.SignalType.StrongBuy => "[STRONG BUY]",
+            Core.SignalType.Buy => "[BUY]",
+            Core.SignalType.Hold => "[HOLD]",
+            Core.SignalType.Sell => "[SELL]",
+            Core.SignalType.StrongSell => "[STRONG SELL]",
+            _ => "[HOLD]"
         };
     }
 
@@ -249,7 +249,7 @@ public class TechnicalAnalysisPlugin
 
     private static string FormatTrendIndicators(Dictionary<string, object> indicators)
     {
-        return "📈 TREND INDICATORS:\n" +
+        return " TREND INDICATORS:\n" +
                $"• SMA 20: ${GetValue(indicators, "SMA_20"):F2}\n" +
                $"• SMA 50: ${GetValue(indicators, "SMA_50"):F2}\n" +
                $"• SMA 200: ${GetValue(indicators, "SMA_200"):F2}\n" +
@@ -266,7 +266,7 @@ public class TechnicalAnalysisPlugin
 
     private static string FormatMomentumIndicators(Dictionary<string, object> indicators)
     {
-        return "⚡ MOMENTUM INDICATORS:\n" +
+        return "MOMENTUM INDICATORS:\n" +
                $"• RSI: {GetValue(indicators, "RSI"):F1}\n" +
                $"• Stochastic %K: {GetValue(indicators, "Stoch_K"):F1}\n" +
                $"• Stochastic %D: {GetValue(indicators, "Stoch_D"):F1}\n" +
@@ -280,7 +280,7 @@ public class TechnicalAnalysisPlugin
 
     private static string FormatVolumeIndicators(Dictionary<string, object> indicators)
     {
-        return "📊 VOLUME INDICATORS:\n" +
+        return "ANALYSIS: VOLUME INDICATORS:\n" +
                $"• OBV: {GetValue(indicators, "OBV"):F0}\n" +
                $"• VWAP: ${GetValue(indicators, "VWAP"):F2}\n" +
                $"• A/D Line: {GetValue(indicators, "ADL"):F0}\n" +
@@ -291,7 +291,7 @@ public class TechnicalAnalysisPlugin
 
     private static string FormatVolatilityIndicators(Dictionary<string, object> indicators)
     {
-        return "📊 VOLATILITY INDICATORS:\n" +
+        return "ANALYSIS: VOLATILITY INDICATORS:\n" +
                $"• Bollinger Upper: ${GetValue(indicators, "BB_Upper"):F2}\n" +
                $"• Bollinger Middle: ${GetValue(indicators, "BB_Middle"):F2}\n" +
                $"• Bollinger Lower: ${GetValue(indicators, "BB_Lower"):F2}\n" +

@@ -27,10 +27,10 @@ public class AlpacaPlugin
             
             if (marketData == null)
             {
-                return $"❌ No market data available for {symbol}. Please check the symbol or try again later.";
+                return $"ERROR: No market data available for {symbol}. Please check the symbol or try again later.";
             }
 
-            return $"📊 Market Data for {symbol}\n" +
+            return $"ANALYSIS: Market Data for {symbol}\n" +
                    $"Price: ${marketData.Price:F2}\n" +
                    $"Volume: {marketData.Volume:F0}\n" +
                    $"24h High: ${marketData.High24h:F2}\n" +
@@ -40,7 +40,7 @@ public class AlpacaPlugin
         }
         catch (Exception ex)
         {
-            return $"❌ Error fetching market data for {symbol}: {ex.Message}";
+            return $"ERROR: Error fetching market data for {symbol}: {ex.Message}";
         }
     }
 
@@ -63,10 +63,10 @@ public class AlpacaPlugin
             
             if (!bars.Any())
             {
-                return $"❌ No historical data available for {symbol}";
+                return $"ERROR: No historical data available for {symbol}";
             }
 
-            var result = $"📈 Historical Data for {symbol} ({days} days, {timeframe})\n";
+            var result = $" Historical Data for {symbol} ({days} days, {timeframe})\n";
             result += new string('=', 50) + "\n";
             result += "Date".PadRight(12) + " | " + "Open".PadRight(8) + " | " + "High".PadRight(8) + " | " + 
                      "Low".PadRight(8) + " | " + "Close".PadRight(8) + " | Volume\n";
@@ -90,7 +90,7 @@ public class AlpacaPlugin
             var priceChange = prices.Last() - prices.First();
             var priceChangePercent = (priceChange / prices.First()) * 100;
 
-            result += $"\n📊 Summary:\n";
+            result += $"\nANALYSIS: Summary:\n";
             result += $"• Average Price: ${avgPrice:F2}\n";
             result += $"• Period High: ${maxPrice:F2}\n";
             result += $"• Period Low: ${minPrice:F2}\n";
@@ -101,7 +101,7 @@ public class AlpacaPlugin
         }
         catch (Exception ex)
         {
-            return $"❌ Error fetching historical data for {symbol}: {ex.Message}";
+            return $"ERROR: Error fetching historical data for {symbol}: {ex.Message}";
         }
     }
 
@@ -114,10 +114,10 @@ public class AlpacaPlugin
             
             if (account == null)
             {
-                return "❌ Unable to retrieve account information. Please check your Alpaca API credentials.";
+                return "ERROR: Unable to retrieve account information. Please check your Alpaca API credentials.";
             }
 
-            return $"💼 Alpaca Account Information\n" +
+            return $"BUSINESS: Alpaca Account Information\n" +
                    $"Account Number: {account.AccountNumber}\n" +
                    $"Status: {account.Status}\n" +
                    $"Trading Blocked: {account.IsTradingBlocked}\n" +
@@ -131,7 +131,7 @@ public class AlpacaPlugin
         }
         catch (Exception ex)
         {
-            return $"❌ Error retrieving account information: {ex.Message}";
+            return $"ERROR: Error retrieving account information: {ex.Message}";
         }
     }
 
@@ -144,10 +144,10 @@ public class AlpacaPlugin
             
             if (!positions.Any())
             {
-                return "📊 No open positions found.";
+                return "ANALYSIS: No open positions found.";
             }
 
-            var result = $"📊 Current Positions ({positions.Count})\n";
+            var result = $"ANALYSIS: Current Positions ({positions.Count})\n";
             result += new string('=', 60) + "\n";
             result += "Symbol".PadRight(8) + " | " + "Qty".PadRight(8) + " | " + "Avg Price".PadRight(10) + " | " + 
                      "Current".PadRight(10) + " | " + "P&L".PadRight(10) + " | Side\n";
@@ -175,7 +175,7 @@ public class AlpacaPlugin
         }
         catch (Exception ex)
         {
-            return $"❌ Error retrieving positions: {ex.Message}";
+            return $"ERROR: Error retrieving positions: {ex.Message}";
         }
     }
 
@@ -189,7 +189,7 @@ public class AlpacaPlugin
         {
             if (quantity <= 0)
             {
-                return "❌ Quantity must be greater than 0";
+                return "ERROR: Quantity must be greater than 0";
             }
 
             var orderSide = side.ToLower() switch
@@ -208,10 +208,10 @@ public class AlpacaPlugin
 
             if (order == null)
             {
-                return $"❌ Failed to place order for {symbol}";
+                return $"ERROR: Failed to place order for {symbol}";
             }
 
-            return $"✅ Market Order Placed\n" +
+            return $"SUCCESS: Market Order Placed\n" +
                    $"Order ID: {order.OrderId}\n" +
                    $"Symbol: {order.Symbol}\n" +
                    $"Side: {order.OrderSide}\n" +
@@ -219,11 +219,11 @@ public class AlpacaPlugin
                    $"Type: {order.OrderType}\n" +
                    $"Status: {order.OrderStatus}\n" +
                    $"Submitted: {order.SubmittedAtUtc:yyyy-MM-dd HH:mm:ss UTC}\n" +
-                   $"⚠️ Note: This is a paper trading order";
+                   $"WARNING: Note: This is a paper trading order";
         }
         catch (Exception ex)
         {
-            return $"❌ Error placing order: {ex.Message}";
+            return $"ERROR: Error placing order: {ex.Message}";
         }
     }
 
@@ -238,17 +238,17 @@ public class AlpacaPlugin
             
             if (!marketDataList.Any())
             {
-                return $"❌ No market data available for the provided symbols";
+                return $"ERROR: No market data available for the provided symbols";
             }
 
-            var result = $"📊 Market Data for Multiple Symbols\n";
+            var result = $"ANALYSIS: Market Data for Multiple Symbols\n";
             result += new string('=', 50) + "\n";
             result += "Symbol".PadRight(8) + " | " + "Price".PadRight(10) + " | " + "Volume".PadRight(12) + " | Change\n";
             result += new string('-', 45) + "\n";
 
             foreach (var data in marketDataList)
             {
-                var changeEmoji = data.Change24h >= 0 ? "📈" : "📉";
+                var changeEmoji = data.Change24h >= 0 ? "" : "TREND:";
                 result += $"{data.Symbol}".PadRight(8) + " | " +
                          $"${data.Price:F2}".PadRight(10) + " | " +
                          $"{data.Volume:F0}".PadRight(12) + " | " +
@@ -259,7 +259,7 @@ public class AlpacaPlugin
         }
         catch (Exception ex)
         {
-            return $"❌ Error fetching multiple quotes: {ex.Message}";
+            return $"ERROR: Error fetching multiple quotes: {ex.Message}";
         }
     }
 }

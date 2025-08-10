@@ -98,6 +98,8 @@ public class TradingStrategyLibraryService
                 3. Market condition suitability
                 4. Recommendation for current market
                 5. Portfolio allocation suggestions
+                
+                Format output as PLAIN TEXT ONLY - no markdown, no asterisks, no hashtags.
             ");
 
             return comparison.ToString();
@@ -189,6 +191,8 @@ public class TradingStrategyLibraryService
                 3. Risk-return optimization
                 4. Rebalancing schedule
                 5. Performance projections
+                
+                Format output as PLAIN TEXT ONLY - no markdown, no asterisks, no hashtags.
             ");
 
             return optimization.ToString();
@@ -227,7 +231,7 @@ public class TradingStrategyLibraryService
             - Volatile (high volatility)
             - Calm (low volatility)
             
-            Return only the regime name.
+            Return only the regime name in PLAIN TEXT - no markdown formatting.
         ";
 
         var regime = await _kernel.InvokePromptAsync(prompt);

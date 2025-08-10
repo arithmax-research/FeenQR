@@ -216,10 +216,10 @@ public class TradingPlugin
         var actionColor = signal.Type switch
         {
             SignalType.StrongBuy => "STRONG BUY",
-            SignalType.Buy => "🔵 BUY",
-            SignalType.Hold => "⚪ HOLD",
+            SignalType.Buy => "BUY",
+            SignalType.Hold => "HOLD",
             SignalType.Sell => "SELL",
-            SignalType.StrongSell => "⚫ STRONG SELL",
+            SignalType.StrongSell => "STRONG SELL",
             _ => signal.Type.ToString()
         };
         

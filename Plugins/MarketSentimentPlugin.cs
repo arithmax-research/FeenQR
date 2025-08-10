@@ -144,7 +144,7 @@ public class MarketSentimentPlugin
                 }
                 catch (Exception ex)
                 {
-                    result += $"⚠️ Error analyzing {asset}: {ex.Message}\n";
+                    result += $"WARNING: Error analyzing {asset}: {ex.Message}\n";
                 }
             }
 
@@ -157,7 +157,7 @@ public class MarketSentimentPlugin
                 for (int i = 0; i < sortedSentiments.Count; i++)
                 {
                     var sentiment = sortedSentiments[i];
-                    var emoji = sentiment.Score > 0.2 ? "🟢" : sentiment.Score < -0.2 ? "🔴" : "🟡";
+                    var emoji = sentiment.Score > 0.2 ? "[POSITIVE]" : sentiment.Score < -0.2 ? "[NEGATIVE]" : "[NEUTRAL]";
                     result += $"{i + 1}. {emoji} **{sentiment.Asset}**: {sentiment.Label} ";
                     result += $"(Score: {sentiment.Score:F2}, Confidence: {sentiment.Confidence:P0})\n";
                 }
@@ -281,18 +281,18 @@ public class MarketSentimentPlugin
                     // Check for extreme sentiment conditions
                     if (Math.Abs(report.OverallSentiment.Score) > 0.7 && report.OverallSentiment.Confidence > 0.6)
                     {
-                        var alertType = report.OverallSentiment.Score > 0.7 ? "🚨 EXTREME GREED" : "🚨 EXTREME FEAR";
+                        var alertType = report.OverallSentiment.Score > 0.7 ? "ALERT: EXTREME GREED" : "ALERT: EXTREME FEAR";
                         alerts.Add($"{alertType} - {asset.ToUpper()}: {report.OverallSentiment.Label} (Score: {report.OverallSentiment.Score:F2})");
                     }
                     else if (Math.Abs(report.OverallSentiment.Score) > 0.4)
                     {
-                        var alertType = report.OverallSentiment.Score > 0.4 ? "⚠️ High Greed" : "⚠️ High Fear";
+                        var alertType = report.OverallSentiment.Score > 0.4 ? "WARNING: High Greed" : "WARNING: High Fear";
                         alerts.Add($"{alertType} - {asset.ToUpper()}: {report.OverallSentiment.Label} (Score: {report.OverallSentiment.Score:F2})");
                     }
                 }
                 catch (Exception ex)
                 {
-                    alerts.Add($"❌ Error monitoring {asset}: {ex.Message}");
+                    alerts.Add($"ERROR: Error monitoring {asset}: {ex.Message}");
                 }
             }
 
@@ -393,10 +393,10 @@ public class MarketSentimentPlugin
         
         var components = new[]
         {
-            ("📰 News", report.NewsSentiment),
-            ("📱 Social", report.SocialMediaSentiment),
-            ("😰 Fear/Greed", report.FearGreedIndex),
-            ("📊 Technical", report.TechnicalSentiment)
+            ("NEWS: News", report.NewsSentiment),
+            ("SOCIAL: Social", report.SocialMediaSentiment),
+            ("FEAR: Fear/Greed", report.FearGreedIndex),
+            ("TECH: Technical", report.TechnicalSentiment)
         };
 
         foreach (var (name, sentiment) in components)
@@ -408,7 +408,7 @@ public class MarketSentimentPlugin
                 _ => "Neutral"
             };
             
-            var emoji = sentiment.Score > 0.3 ? "🟢" : sentiment.Score < -0.3 ? "🔴" : "🟡";
+            var emoji = sentiment.Score > 0.3 ? "[POSITIVE]" : sentiment.Score < -0.3 ? "[NEGATIVE]" : "[NEUTRAL]";
             result += $"{emoji} {name}: {signal} ({sentiment.Score:F2})\n";
         }
 
@@ -421,17 +421,17 @@ public class MarketSentimentPlugin
 
         if (report.OverallSentiment.Confidence < 0.5)
         {
-            warnings.Add("⚠️ Low confidence in sentiment analysis - use smaller position sizes");
+            warnings.Add("WARNING: Low confidence in sentiment analysis - use smaller position sizes");
         }
 
         if (Math.Abs(report.OverallSentiment.Score) > 0.8)
         {
-            warnings.Add("⚠️ Extreme sentiment levels - consider contrarian positioning");
+            warnings.Add("WARNING: Extreme sentiment levels - consider contrarian positioning");
         }
 
         if (riskTolerance.ToLower() == "low" && Math.Abs(report.OverallSentiment.Score) > 0.5)
         {
-            warnings.Add("⚠️ High sentiment volatility - consider avoiding positions for low risk tolerance");
+            warnings.Add("WARNING: High sentiment volatility - consider avoiding positions for low risk tolerance");
         }
 
         // Check for divergent signals
@@ -441,9 +441,9 @@ public class MarketSentimentPlugin
         
         if (divergence > 1.0)
         {
-            warnings.Add("⚠️ High divergence between sentiment sources - mixed signals detected");
+            warnings.Add("WARNING: High divergence between sentiment sources - mixed signals detected");
         }
 
-        return warnings.Any() ? string.Join("\n", warnings) : "✅ No significant risk warnings identified";
+        return warnings.Any() ? string.Join("\n", warnings) : "SUCCESS: No significant risk warnings identified";
     }
 }
