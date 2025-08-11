@@ -187,6 +187,12 @@ namespace QuantResearchAgent
             services.AddSingleton<FinvizNewsService>();
             services.AddSingleton<NewsSentimentAnalysisService>();
             services.AddSingleton<YahooFinanceService>();
+            services.AddSingleton<RedditScrapingService>();
+            services.AddSingleton<PortfolioOptimizationService>();
+            services.AddSingleton<SocialMediaScrapingService>();
+            services.AddSingleton<WebDataExtractionService>();
+            services.AddSingleton<ReportGenerationService>();
+            services.AddSingleton<SatelliteImageryAnalysisService>();
 
             // Add research agents
             services.AddSingleton<NewsScrapingService>();

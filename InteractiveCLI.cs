@@ -27,6 +27,12 @@ public class InteractiveCLI
     private readonly YFinanceNewsService _yfinanceNewsService;
     private readonly FinvizNewsService _finvizNewsService;
     private readonly NewsSentimentAnalysisService _newsSentimentService;
+    private readonly RedditScrapingService _redditScrapingService;
+    private readonly PortfolioOptimizationService _portfolioOptimizationService;
+    private readonly SocialMediaScrapingService _socialMediaScrapingService;
+    private readonly WebDataExtractionService _webDataExtractionService;
+    private readonly ReportGenerationService _reportGenerationService;
+    private readonly SatelliteImageryAnalysisService _satelliteImageryAnalysisService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -40,7 +46,13 @@ public class InteractiveCLI
         DataBentoService dataBentoService,
         YFinanceNewsService yfinanceNewsService,
         FinvizNewsService finvizNewsService,
-        NewsSentimentAnalysisService newsSentimentService)
+        NewsSentimentAnalysisService newsSentimentService,
+        RedditScrapingService redditScrapingService,
+        PortfolioOptimizationService portfolioOptimizationService,
+        SocialMediaScrapingService socialMediaScrapingService,
+        WebDataExtractionService webDataExtractionService,
+        ReportGenerationService reportGenerationService,
+        SatelliteImageryAnalysisService satelliteImageryAnalysisService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -54,6 +66,12 @@ public class InteractiveCLI
         _yfinanceNewsService = yfinanceNewsService;
         _finvizNewsService = finvizNewsService;
         _newsSentimentService = newsSentimentService;
+        _redditScrapingService = redditScrapingService;
+        _portfolioOptimizationService = portfolioOptimizationService;
+        _socialMediaScrapingService = socialMediaScrapingService;
+        _webDataExtractionService = webDataExtractionService;
+        _reportGenerationService = reportGenerationService;
+        _satelliteImageryAnalysisService = satelliteImageryAnalysisService;
     }
 
     public async Task RunAsync()
@@ -94,9 +112,16 @@ public class InteractiveCLI
         Console.WriteLine(" 30. live-news [symbol/keyword] - Get live financial news");
         Console.WriteLine(" 31. sentiment-analysis [symbol] - AI-powered sentiment analysis for specific stock");
         Console.WriteLine(" 32. market-sentiment - AI-powered overall market sentiment analysis");
-        Console.WriteLine(" 33. clear - Clear terminal and show menu");
-        Console.WriteLine(" 34. help - Show available functions");
-        Console.WriteLine(" 35. quit - Exit the application");
+        Console.WriteLine(" 33. reddit-sentiment [subreddit] [symbol] - Reddit sentiment analysis for symbol");
+        Console.WriteLine(" 34. reddit-scrape [subreddit] - Scrape Reddit posts from subreddit");
+        Console.WriteLine(" 35. optimize-portfolio [tickers] - Portfolio optimization (equal weight)");
+        Console.WriteLine(" 36. extract-web-data [url] - Extract structured data from web pages");
+        Console.WriteLine(" 37. generate-report [symbol/portfolio] [report_type] - Generate comprehensive reports");
+        Console.WriteLine(" 38. analyze-satellite-imagery [symbol] - Analyze satellite imagery for company operations");
+        Console.WriteLine(" 39. scrape-social-media [symbol] - Social media sentiment analysis");
+        Console.WriteLine(" 40. clear - Clear terminal and show menu");
+        Console.WriteLine(" 41. help - Show available functions");
+        Console.WriteLine(" 42. quit - Exit the application");
         Console.WriteLine();
 
         while (true)
@@ -227,6 +252,27 @@ public class InteractiveCLI
                     break;
                 case "market-sentiment":
                     await MarketSentimentCommand(parts);
+                    break;
+                case "reddit-sentiment":
+                    await RedditSentimentCommand(parts);
+                    break;
+                case "reddit-scrape":
+                    await RedditScrapeCommand(parts);
+                    break;
+                case "optimize-portfolio":
+                    await OptimizePortfolioCommand(parts);
+                    break;
+                case "extract-web-data":
+                    await ExtractWebDataCommand(parts);
+                    break;
+                case "generate-report":
+                    await GenerateReportCommand(parts);
+                    break;
+                case "analyze-satellite-imagery":
+                    await AnalyzeSatelliteImageryCommand(parts);
+                    break;
+                case "scrape-social-media":
+                    await ScrapeSocialMediaCommand(parts);
                     break;
                 case "clear":
                     await ClearCommand();
@@ -432,8 +478,14 @@ public class InteractiveCLI
         var yfinanceNewsService = serviceProvider.GetRequiredService<YFinanceNewsService>();
         var finvizNewsService = serviceProvider.GetRequiredService<FinvizNewsService>();
         var newsSentimentService = serviceProvider.GetRequiredService<NewsSentimentAnalysisService>();
+        var redditScrapingService = serviceProvider.GetRequiredService<RedditScrapingService>();
+        var portfolioOptimizationService = serviceProvider.GetRequiredService<PortfolioOptimizationService>();
+        var socialMediaScrapingService = serviceProvider.GetRequiredService<SocialMediaScrapingService>();
+        var webDataExtractionService = serviceProvider.GetRequiredService<WebDataExtractionService>();
+        var reportGenerationService = serviceProvider.GetRequiredService<ReportGenerationService>();
+        var satelliteImageryAnalysisService = serviceProvider.GetRequiredService<SatelliteImageryAnalysisService>();
 
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService));
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService));
     }
 
     // Alpaca Commands
@@ -849,9 +901,16 @@ public class InteractiveCLI
         Console.WriteLine(" 30. live-news [symbol/keyword] - Get live financial news");
         Console.WriteLine(" 31. sentiment-analysis [symbol] - AI-powered sentiment analysis for specific stock");
         Console.WriteLine(" 32. market-sentiment - AI-powered overall market sentiment analysis");
-        Console.WriteLine(" 33. clear - Clear terminal and show menu");
-        Console.WriteLine(" 34. help - Show available functions");
-        Console.WriteLine(" 35. quit - Exit the application");
+        Console.WriteLine(" 33. reddit-sentiment [subreddit] [symbol] - Reddit sentiment analysis for symbol");
+        Console.WriteLine(" 34. reddit-scrape [subreddit] - Scrape Reddit posts from subreddit");
+        Console.WriteLine(" 35. optimize-portfolio [tickers] - Portfolio optimization (equal weight)");
+        Console.WriteLine(" 36. extract-web-data [url] - Extract structured data from web pages");
+        Console.WriteLine(" 37. generate-report [symbol/portfolio] [report_type] - Generate comprehensive reports");
+        Console.WriteLine(" 38. analyze-satellite-imagery [symbol] - Analyze satellite imagery for company operations");
+        Console.WriteLine(" 39. scrape-social-media [symbol] - Social media sentiment analysis");
+        Console.WriteLine(" 40. clear - Clear terminal and show menu");
+        Console.WriteLine(" 41. help - Show available functions");
+        Console.WriteLine(" 42. quit - Exit the application");
         Console.WriteLine();
         
         // Since this is an async method, we need to return a completed task
@@ -1505,6 +1564,685 @@ public class InteractiveCLI
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Error performing market sentiment analysis: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    // Reddit Commands
+    private async Task RedditSentimentCommand(string[] parts)
+    {
+        var subreddit = parts.Length > 1 ? parts[1] : "wallstreetbets";
+        var symbol = parts.Length > 2 ? parts[2] : "";
+        
+        PrintSectionHeader($"Reddit Sentiment Analysis - r/{subreddit}" + (string.IsNullOrEmpty(symbol) ? "" : $" for {symbol}"));
+
+        try
+        {
+            var sentiment = await _redditScrapingService.AnalyzeSubredditSentimentAsync(subreddit, symbol);
+            
+            if (sentiment != null)
+            {
+                var sentimentEmoji = sentiment.OverallSentiment switch
+                {
+                    "BULLISH" => "[📈]",
+                    "BEARISH" => "[📉]", 
+                    "NEUTRAL" => "[➡️]",
+                    _ => "[❓]"
+                };
+                
+                Console.WriteLine($"Overall Sentiment: {sentimentEmoji} {sentiment.OverallSentiment}");
+                Console.WriteLine($"Sentiment Score: {sentiment.SentimentScore:F2}");
+                Console.WriteLine($"Posts Analyzed: {sentiment.TotalPosts}");
+                Console.WriteLine($"Analysis Time: {sentiment.AnalysisDate:MMM dd, yyyy HH:mm} UTC");
+                Console.WriteLine($"Average Score: {sentiment.AverageScore:F1}");
+                Console.WriteLine($"Total Upvotes: {sentiment.TotalUpvotes:N0}");
+                Console.WriteLine($"Total Comments: {sentiment.TotalComments:N0}");
+            }
+            else
+            {
+                Console.WriteLine("❌ Unable to analyze Reddit sentiment. No data available.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error analyzing Reddit sentiment: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task RedditScrapeCommand(string[] parts)
+    {
+        var subreddit = parts.Length > 1 ? parts[1] : "wallstreetbets";
+        
+        PrintSectionHeader($"Reddit Scraping - r/{subreddit}");
+
+        try
+        {
+            var posts = await _redditScrapingService.ScrapeSubredditAsync(subreddit, 25);
+            
+            if (posts?.Any() == true)
+            {
+                Console.WriteLine($"Found {posts.Count} posts from r/{subreddit}:\n");
+                
+                foreach (var post in posts.Take(10)) // Show first 10
+                {
+                    Console.WriteLine($"🔥 {post.Score} | {post.Title}");
+                    Console.WriteLine($"   💬 {post.Comments} comments | Posted: {post.CreatedUtc:MMM dd, HH:mm}");
+                    Console.WriteLine($"   🔗 {post.Url}");
+                    Console.WriteLine();
+                }
+                
+                if (posts.Count > 10)
+                {
+                    Console.WriteLine($"... and {posts.Count - 10} more posts");
+                }
+            }
+            else
+            {
+                Console.WriteLine("❌ No posts found or unable to scrape subreddit.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error scraping Reddit: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    // Portfolio Optimization Commands
+    private async Task OptimizePortfolioCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: optimize-portfolio AAPL,MSFT,GOOGL,TSLA");
+            return;
+        }
+
+        var tickers = parts[1].Split(',', StringSplitOptions.RemoveEmptyEntries);
+        
+        PrintSectionHeader($"Portfolio Optimization - {string.Join(", ", tickers)}");
+
+        try
+        {
+            var result = await _portfolioOptimizationService.OptimizePortfolioAsync(tickers);
+            
+            if (result != null)
+            {
+                Console.WriteLine($"📊 Optimization Results (as of {result.OptimizationDate:MMM dd, yyyy HH:mm} UTC):");
+                Console.WriteLine($"Expected Return: {result.ExpectedReturn:P2}");
+                Console.WriteLine($"Risk (Volatility): {result.Risk:P2}");
+                Console.WriteLine($"Sharpe Ratio: {result.SharpeRatio:F4}");
+                Console.WriteLine();
+                
+                Console.WriteLine("🎯 Optimized Portfolio Weights:");
+                foreach (var kvp in result.OptimizedWeights)
+                {
+                    Console.WriteLine($"   {kvp.Key}: {kvp.Value:P1}");
+                }
+                
+                Console.WriteLine();
+                Console.WriteLine("📈 Expected Individual Returns:");
+                foreach (var kvp in result.ExpectedReturns)
+                {
+                    Console.WriteLine($"   {kvp.Key}: {kvp.Value:P2}");
+                }
+                
+                Console.WriteLine($"\n💡 Note: This uses equal weighting due to limited historical data access.");
+                Console.WriteLine($"   For production use, implement proper mean-variance optimization.");
+            }
+            else
+            {
+                Console.WriteLine("❌ Unable to optimize portfolio. Insufficient data.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error optimizing portfolio: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    // Advanced Data Extraction Commands
+    private async Task ExtractWebDataCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: extract-web-data [url]");
+            return;
+        }
+
+        var url = parts[1];
+        PrintSectionHeader($"Web Data Extraction - {url}");
+
+        try
+        {
+            var extractedData = await _webDataExtractionService.ExtractStructuredDataAsync(url);
+            
+            if (extractedData != null)
+            {
+                Console.WriteLine($"🌐 Data extracted from: {extractedData.Url}");
+                Console.WriteLine($"📄 Page Title: {extractedData.Title}");
+                Console.WriteLine($"📅 Extraction Date: {extractedData.ExtractedAt:MMM dd, yyyy HH:mm} UTC");
+                Console.WriteLine($"� Data Type: {extractedData.DataType}");
+                Console.WriteLine($"�🔢 Structured Data: {extractedData.StructuredData?.Count ?? 0} items");
+                Console.WriteLine($"📊 Tables: {extractedData.Tables?.Count ?? 0}");
+                Console.WriteLine($"💰 Financial Data: {extractedData.FinancialData?.Count ?? 0} items");
+
+                // Special handling for academic papers
+                if (extractedData.DataType == "PDF" && extractedData.StructuredData?.ContainsKey("document_type") == true && 
+                    extractedData.StructuredData["document_type"]?.ToString() == "arxiv_paper")
+                {
+                    await DisplayAcademicPaperAnalysis(extractedData);
+                }
+                else
+                {
+                    // Standard web content display
+                    await DisplayStandardWebContent(extractedData);
+                }
+            }
+            else
+            {
+                Console.WriteLine("❌ Unable to extract data from the specified URL.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error extracting web data: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task DisplayAcademicPaperAnalysis(WebDataExtractionResult extractedData)
+    {
+        Console.WriteLine("\n🎓 ACADEMIC PAPER ANALYSIS");
+        Console.WriteLine("=" + new string('=', 50));
+
+        // Show basic paper information
+        if (extractedData.StructuredData?.ContainsKey("abstract") == true)
+        {
+            Console.WriteLine("\n📝 Abstract:");
+            Console.WriteLine($"   {extractedData.StructuredData["abstract"]}");
+        }
+
+        if (extractedData.StructuredData?.ContainsKey("keywords") == true)
+        {
+            Console.WriteLine("\n🏷️  Keywords:");
+            var keywords = extractedData.StructuredData["keywords"] as List<object> ?? new List<object>();
+            Console.WriteLine($"   {string.Join(", ", keywords.Take(10))}");
+        }
+
+        if (extractedData.StructuredData?.ContainsKey("sections") == true)
+        {
+            Console.WriteLine("\n📚 Paper Sections:");
+            var sections = extractedData.StructuredData["sections"] as List<object> ?? new List<object>();
+            foreach (var section in sections.Take(8))
+            {
+                Console.WriteLine($"   • {section}");
+            }
+        }
+
+        // Show AI analysis results
+        if (extractedData.StructuredData?.ContainsKey("ai_analysis") == true)
+        {
+            var aiAnalysis = extractedData.StructuredData["ai_analysis"] as Dictionary<string, object>;
+            if (aiAnalysis != null)
+            {
+                await DisplayAIAnalysisResults(aiAnalysis);
+            }
+        }
+        else
+        {
+            Console.WriteLine("\n⚠️  AI analysis not available - this may indicate an analysis error or missing OpenAI API key.");
+        }
+    }
+
+    private async Task DisplayAIAnalysisResults(Dictionary<string, object> aiAnalysis)
+    {
+        Console.WriteLine("\n🤖 AI-POWERED DEEP ANALYSIS");
+        Console.WriteLine("=" + new string('=', 50));
+
+        // Summary
+        if (aiAnalysis.ContainsKey("summary"))
+        {
+            Console.WriteLine("\n📋 EXECUTIVE SUMMARY");
+            Console.WriteLine(new string('-', 30));
+            Console.WriteLine(FormatAnalysisText(aiAnalysis["summary"]?.ToString()));
+        }
+
+        // Strategy Blueprint
+        if (aiAnalysis.ContainsKey("strategy_blueprint"))
+        {
+            Console.WriteLine("\n🎯 STRATEGY BLUEPRINT");
+            Console.WriteLine(new string('-', 30));
+            Console.WriteLine(FormatAnalysisText(aiAnalysis["strategy_blueprint"]?.ToString()));
+        }
+
+        // Implementation Guide
+        if (aiAnalysis.ContainsKey("implementation"))
+        {
+            Console.WriteLine("\n⚙️  IMPLEMENTATION PSEUDOCODE");
+            Console.WriteLine(new string('-', 30));
+            Console.WriteLine(FormatAnalysisText(aiAnalysis["implementation"]?.ToString()));
+        }
+
+        // Methodology
+        if (aiAnalysis.ContainsKey("methodology"))
+        {
+            Console.WriteLine("\n🔬 METHODOLOGY BREAKDOWN");
+            Console.WriteLine(new string('-', 30));
+            Console.WriteLine(FormatAnalysisText(aiAnalysis["methodology"]?.ToString()));
+        }
+
+        // Key Contributions
+        if (aiAnalysis.ContainsKey("key_contributions"))
+        {
+            Console.WriteLine("\n💡 KEY CONTRIBUTIONS");
+            Console.WriteLine(new string('-', 30));
+            Console.WriteLine(FormatAnalysisText(aiAnalysis["key_contributions"]?.ToString()));
+        }
+
+        // Practical Applications
+        if (aiAnalysis.ContainsKey("practical_applications"))
+        {
+            Console.WriteLine("\n🏦 PRACTICAL APPLICATIONS");
+            Console.WriteLine(new string('-', 30));
+            Console.WriteLine(FormatAnalysisText(aiAnalysis["practical_applications"]?.ToString()));
+        }
+
+        // Limitations
+        if (aiAnalysis.ContainsKey("limitations"))
+        {
+            Console.WriteLine("\n⚠️  LIMITATIONS & CHALLENGES");
+            Console.WriteLine(new string('-', 30));
+            Console.WriteLine(FormatAnalysisText(aiAnalysis["limitations"]?.ToString()));
+        }
+
+        // Future Work
+        if (aiAnalysis.ContainsKey("future_work"))
+        {
+            Console.WriteLine("\n� FUTURE RESEARCH DIRECTIONS");
+            Console.WriteLine(new string('-', 30));
+            Console.WriteLine(FormatAnalysisText(aiAnalysis["future_work"]?.ToString()));
+        }
+    }
+
+    private async Task DisplayStandardWebContent(WebDataExtractionResult extractedData)
+    {
+        if (!string.IsNullOrEmpty(extractedData.Content) && extractedData.Content.Length > 50)
+        {
+            Console.WriteLine($"\n📝 Content Preview:");
+            var preview = extractedData.Content.Length > 200 ? 
+                extractedData.Content.Substring(0, 200) + "..." : 
+                extractedData.Content;
+            Console.WriteLine($"   {preview}");
+        }
+        
+        if (extractedData.StructuredData?.Any() == true)
+        {
+            Console.WriteLine($"\n🔍 Structured Data:");
+            foreach (var kvp in extractedData.StructuredData.Take(10))
+            {
+                Console.WriteLine($"   • {kvp.Key}: {kvp.Value}");
+            }
+        }
+        
+        if (extractedData.FinancialData?.Any() == true)
+        {
+            Console.WriteLine($"\n💰 Financial Data:");
+            foreach (var kvp in extractedData.FinancialData.Take(5))
+            {
+                Console.WriteLine($"   • {kvp.Key}: {kvp.Value}");
+            }
+        }
+        
+        if (extractedData.Tables?.Any() == true)
+        {
+            Console.WriteLine($"\n📊 Extracted Tables:");
+            foreach (var table in extractedData.Tables.Take(3))
+            {
+                Console.WriteLine($"   Table with {table.Headers?.Count ?? 0} columns and {table.Rows?.Count ?? 0} rows");
+                if (table.Headers?.Any() == true)
+                {
+                    Console.WriteLine($"   Headers: {string.Join(", ", table.Headers.Take(5))}");
+                }
+            }
+        }
+    }
+
+    private string FormatAnalysisText(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return "   Analysis not available.";
+
+        // Split into paragraphs and add proper indentation
+        var paragraphs = text.Split(new[] { "\n\n", "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+        var formatted = new List<string>();
+
+        foreach (var paragraph in paragraphs)
+        {
+            var cleanParagraph = paragraph.Replace("\n", " ").Replace("\r", " ").Trim();
+            if (!string.IsNullOrEmpty(cleanParagraph))
+            {
+                // Wrap long lines
+                var wrapped = WrapText(cleanParagraph, 90);
+                formatted.Add("   " + wrapped.Replace("\n", "\n   "));
+            }
+        }
+
+        return string.Join("\n\n", formatted);
+    }
+
+    private string WrapText(string text, int maxWidth)
+    {
+        if (text.Length <= maxWidth) return text;
+
+        var words = text.Split(' ');
+        var lines = new List<string>();
+        var currentLine = "";
+
+        foreach (var word in words)
+        {
+            if ((currentLine + " " + word).Length <= maxWidth)
+            {
+                currentLine += (currentLine.Length > 0 ? " " : "") + word;
+            }
+            else
+            {
+                if (currentLine.Length > 0)
+                {
+                    lines.Add(currentLine);
+                    currentLine = word;
+                }
+                else
+                {
+                    lines.Add(word); // Word is longer than maxWidth
+                }
+            }
+        }
+
+        if (currentLine.Length > 0)
+        {
+            lines.Add(currentLine);
+        }
+
+        return string.Join("\n", lines);
+    }
+
+    private async Task GenerateReportCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: generate-report [symbol/portfolio] [optional_report_type]");
+            Console.WriteLine("Report types: stock-analysis, earnings-analysis, technical-analysis, portfolio-analysis, market-sector");
+            return;
+        }
+
+        var target = parts[1];
+        var reportTypeStr = parts.Length > 2 ? parts[2] : "stock-analysis";
+        
+        // Convert string to enum
+        var reportType = reportTypeStr.ToLower() switch
+        {
+            "stock-analysis" => ReportType.StockAnalysis,
+            "earnings-analysis" => ReportType.EarningsAnalysis,
+            "technical-analysis" => ReportType.TechnicalAnalysis,
+            "portfolio-analysis" => ReportType.PortfolioAnalysis,
+            "market-sector" => ReportType.MarketSector,
+            _ => ReportType.StockAnalysis
+        };
+        
+        PrintSectionHeader($"Report Generation - {target} ({reportType})");
+
+        try
+        {
+            var report = await _reportGenerationService.GenerateComprehensiveReportAsync(target, reportType);
+            
+            if (report != null)
+            {
+                Console.WriteLine($"📊 Report Generated: {report.Title}");
+                Console.WriteLine($"🎯 Symbol: {report.Symbol}");
+                Console.WriteLine($"📋 Type: {report.ReportType}");
+                Console.WriteLine($"📅 Generated: {report.GeneratedAt:MMM dd, yyyy HH:mm} UTC");
+                Console.WriteLine($"📏 Sections: {report.Sections?.Count ?? 0}");
+                
+                if (!string.IsNullOrEmpty(report.ExecutiveSummary))
+                {
+                    Console.WriteLine($"\n📝 Executive Summary:");
+                    Console.WriteLine($"   {report.ExecutiveSummary}");
+                }
+                
+                if (report.Sections?.Any() == true)
+                {
+                    Console.WriteLine($"\n� Report Sections:");
+                    foreach (var section in report.Sections.Take(5))
+                    {
+                        Console.WriteLine($"   • {section.Title} ({section.SectionType})");
+                        if (section.Charts?.Any() == true)
+                        {
+                            Console.WriteLine($"     Charts: {section.Charts.Count}");
+                        }
+                        if (section.Tables?.Any() == true)
+                        {
+                            Console.WriteLine($"     Tables: {section.Tables.Count}");
+                        }
+                    }
+                }
+                
+                Console.WriteLine($"\n📄 Full report generated with {report.Sections?.Count ?? 0} detailed sections");
+                Console.WriteLine($"📁 Export formats available: HTML, Markdown, JSON");
+                if (!string.IsNullOrEmpty(report.HtmlContent))
+                {
+                    Console.WriteLine($"📄 HTML content: {report.HtmlContent.Length} characters");
+                }
+                if (!string.IsNullOrEmpty(report.MarkdownContent))
+                {
+                    Console.WriteLine($"📄 Markdown content: {report.MarkdownContent.Length} characters");
+                }
+                
+                // Display saved file paths
+                if (report.SavedFilePaths?.Any() == true)
+                {
+                    Console.WriteLine($"\n💾 Report saved to files:");
+                    foreach (var (format, path) in report.SavedFilePaths)
+                    {
+                        Console.WriteLine($"   📄 {format.ToUpper()}: {path}");
+                    }
+                    Console.WriteLine($"📂 Reports directory: {Path.Combine(Directory.GetCurrentDirectory(), "reports")}");
+                };
+            }
+            else
+            {
+                Console.WriteLine("❌ Unable to generate report. Insufficient data.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error generating report: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task AnalyzeSatelliteImageryCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: analyze-satellite-imagery [symbol]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        PrintSectionHeader($"Satellite Imagery Analysis - {symbol}");
+
+        try
+        {
+            var analysis = await _satelliteImageryAnalysisService.AnalyzeCompanyOperationsAsync(symbol);
+            
+            if (analysis != null)
+            {
+                Console.WriteLine($"🛰️ Satellite Analysis for: {analysis.Symbol}");
+                Console.WriteLine($"🏢 Company: {analysis.CompanyName}");
+                Console.WriteLine($"📅 Analysis Date: {analysis.AnalysisDate:MMM dd, yyyy HH:mm} UTC");
+                Console.WriteLine($"🏭 Facilities Analyzed: {analysis.Facilities?.Count ?? 0}");
+                
+                if (analysis.Metrics != null)
+                {
+                    Console.WriteLine($"\n📊 Satellite Metrics:");
+                    Console.WriteLine($"   Total Facilities: {analysis.Metrics.TotalFacilities}");
+                    Console.WriteLine($"   Average Activity Level: {analysis.Metrics.AverageActivityLevel:F2}");
+                    Console.WriteLine($"   Capacity Utilization: {analysis.Metrics.AverageCapacityUtilization:F2}");
+                    Console.WriteLine($"   Operational Efficiency: {analysis.Metrics.OperationalEfficiencyScore:F2}");
+                }
+                
+                if (analysis.Facilities?.Any() == true)
+                {
+                    Console.WriteLine($"\n🏭 Facility Analyses:");
+                    foreach (var facility in analysis.Facilities.Take(5))
+                    {
+                        Console.WriteLine($"   📍 {facility.Facility.Name} ({facility.Facility.Address})");
+                        Console.WriteLine($"      Activity Level: {facility.ActivityLevel:F2}");
+                        Console.WriteLine($"      Capacity Utilization: {facility.CapacityUtilization:F2}");
+                        Console.WriteLine($"      Vehicle Count: {facility.VehicleCount}");
+                    }
+                }
+                
+                if (analysis.OperationalInsights?.Any() == true)
+                {
+                    Console.WriteLine($"\n🔍 Operational Insights:");
+                    foreach (var insight in analysis.OperationalInsights.Take(5))
+                    {
+                        Console.WriteLine($"   • {insight.Category}: {insight.Insight}");
+                        Console.WriteLine($"     Confidence: {insight.Confidence:F1}, Impact: {insight.ImpactLevel}");
+                    }
+                }
+                
+                if (!string.IsNullOrEmpty(analysis.AnalysisSummary))
+                {
+                    Console.WriteLine($"\n� Analysis Summary:");
+                    Console.WriteLine($"   {analysis.AnalysisSummary}");
+                }
+                
+                Console.WriteLine($"\n📡 Note: Satellite imagery analysis provides operational insights");
+                Console.WriteLine($"   that may not be reflected in traditional financial metrics.");
+            }
+            else
+            {
+                Console.WriteLine("❌ Unable to analyze satellite imagery. Company facilities not found.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error analyzing satellite imagery: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task ScrapeSocialMediaCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: scrape-social-media [symbol]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        var platforms = new List<SocialMediaPlatform> 
+        { 
+            SocialMediaPlatform.Twitter, 
+            SocialMediaPlatform.Reddit, 
+            SocialMediaPlatform.StockTwits 
+        };
+        
+        PrintSectionHeader($"Social Media Sentiment Analysis - {symbol}");
+
+        try
+        {
+            var analysis = await _socialMediaScrapingService.AnalyzeSocialMediaSentimentAsync(symbol, platforms);
+            
+            if (analysis != null)
+            {
+                var sentimentEmoji = analysis.OverallMetrics.OverallSentimentScore switch
+                {
+                    > 0.7 => "🚀",
+                    > 0.6 => "📈",
+                    > 0.4 => "➡️",
+                    > 0.3 => "📉",
+                    _ => "💥"
+                };
+                
+                Console.WriteLine($"📱 Social Media Analysis for: {analysis.Symbol}");
+                Console.WriteLine($"📅 Analysis Date: {analysis.AnalysisDate:MMM dd, yyyy HH:mm} UTC");
+                Console.WriteLine($"⏰ Time Range: {analysis.TimeRange.Days} days");
+                Console.WriteLine($"📊 Platforms: {analysis.PlatformAnalyses.Count}");
+                
+                Console.WriteLine($"\n{sentimentEmoji} Overall Sentiment: {analysis.OverallMetrics.OverallSentimentScore:F2} (Score: 0-1)");
+                Console.WriteLine($"📈 Total Posts: {analysis.OverallMetrics.TotalPosts:N0}");
+                Console.WriteLine($"💬 Total Engagement: {analysis.OverallMetrics.TotalEngagement:N0}");
+                Console.WriteLine($"📊 Post Frequency: {analysis.OverallMetrics.AveragePostFrequency:F1} posts/day");
+                
+                if (analysis.OverallMetrics.SentimentDistribution?.Any() == true)
+                {
+                    Console.WriteLine($"\n📊 Sentiment Distribution:");
+                    foreach (var kvp in analysis.OverallMetrics.SentimentDistribution)
+                    {
+                        Console.WriteLine($"   {kvp.Key}: {kvp.Value:P1}");
+                    }
+                }
+                
+                if (analysis.PlatformAnalyses?.Any() == true)
+                {
+                    Console.WriteLine($"\n📱 Platform Breakdown:");
+                    foreach (var platform in analysis.PlatformAnalyses)
+                    {
+                        var platformEmoji = platform.Platform switch
+                        {
+                            SocialMediaPlatform.Twitter => "🐦",
+                            SocialMediaPlatform.Reddit => "🤖",
+                            SocialMediaPlatform.StockTwits => "📊",
+                            _ => "📱"
+                        };
+                        
+                        Console.WriteLine($"   {platformEmoji} {platform.Platform}:");
+                        Console.WriteLine($"      Posts: {platform.PostCount:N0}");
+                        Console.WriteLine($"      Sentiment: {platform.SentimentScore:F2}");
+                        Console.WriteLine($"      Engagement: {platform.EngagementMetrics.TotalLikes + platform.EngagementMetrics.TotalComments:N0}");
+                    }
+                }
+                
+                if (analysis.TrendingTopics?.Any() == true)
+                {
+                    Console.WriteLine($"\n🔥 Trending Topics:");
+                    foreach (var topic in analysis.TrendingTopics.Take(5))
+                    {
+                        Console.WriteLine($"   #{topic.Topic} (Mentions: {topic.MentionCount})");
+                    }
+                }
+                
+                if (analysis.AIInsights?.Any() == true)
+                {
+                    Console.WriteLine($"\n🤖 AI Insights:");
+                    foreach (var insight in analysis.AIInsights.Take(3))
+                    {
+                        Console.WriteLine($"   • {insight}");
+                    }
+                }
+                
+                Console.WriteLine($"\n💡 Note: Social media sentiment can be highly volatile and may not");
+                Console.WriteLine($"   directly correlate with stock price movements.");
+            }
+            else
+            {
+                Console.WriteLine("❌ Unable to analyze social media sentiment. No data available.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error analyzing social media: {ex.Message}");
         }
         
         PrintSectionFooter();
