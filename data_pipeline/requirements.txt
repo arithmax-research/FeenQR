@@ -7,3 +7,5 @@ yfinance==0.2.18
 python-dateutil==2.8.2
 pytz==2023.3
 tqdm==4.65.0
+polygon-api-client==1.14.0
+databento>=0.50.0

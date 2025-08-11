@@ -26,14 +26,14 @@ namespace QuantResearchAgent.Services
         {
             try
             {
-                // Check if YahooFinanceDataPlugin is available
-                if (!_kernel.Plugins.Any(p => p.Name.Contains("YahooFinance")))
+                // Check if MarketDataPlugin is available
+                if (!_kernel.Plugins.Any(p => p.Name.Contains("MarketData")))
                 {
-                    _logger.LogWarning("Yahoo Finance plugin not available");
+                    _logger.LogWarning("MarketData plugin not available");
                     return null;
                 }
 
-                var function = _kernel.Plugins["YahooFinanceDataPlugin"]["GetMarketData"];
+                var function = _kernel.Plugins["MarketDataPlugin"]["GetYahooMarketData"];
                 var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
                 
                 var resultString = result.ToString();
