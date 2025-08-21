@@ -1,4 +1,4 @@
-# Arithmax Research Quantitative Research 1.0.0
+# FeenQR
 
 An intelligent, agentic system built with the Microsoft Semantic Kernel Architecture and C# that performs quantitative research by analyzing YouTube videos, Market trends, and generating trading signals. This system combines the power of AI-driven content analysis with sophisticated trading algorithms.
 
