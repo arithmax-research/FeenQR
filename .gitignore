@@ -2,4 +2,4 @@
 /data
 /bin
 /obj
-.json
+appsettings.json
