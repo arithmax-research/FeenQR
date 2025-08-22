@@ -183,6 +183,23 @@ public class TechnicalAnalysisService
         var trix = quotes.ToTrix(14).LastOrDefault()?.Trix;
         result.Indicators["TRIX"] = trix ?? 0;
 
+        // Stochastic RSI
+        var stochRsi = quotes.ToStochRsi(14, 14, 3, 3).LastOrDefault();
+        result.Indicators["StochRSI_K"] = stochRsi?.StochRsi ?? 0;
+        result.Indicators["StochRSI_D"] = stochRsi?.StochRsi ?? 0;
+
+        // Connors RSI
+        var connorsRsi = quotes.ToConnorsRsi(3, 2, 100).LastOrDefault()?.ConnorsRsi;
+        result.Indicators["ConnorsRSI"] = connorsRsi ?? 0;
+
+        // 52 Week High/Low
+        var last252Days = quotes.TakeLast(252).ToList();
+        if (last252Days.Any())
+        {
+            result.Indicators["52Week_High"] = (double)last252Days.Max(q => q.High);
+            result.Indicators["52Week_Low"] = (double)last252Days.Min(q => q.Low);
+        }
+
         return Task.CompletedTask;
     }
 
@@ -247,6 +264,26 @@ public class TechnicalAnalysisService
         // Standard Deviation
         var stdDev = quotes.ToStdDev(20).LastOrDefault()?.StdDev;
         result.Indicators["StdDev_20"] = stdDev ?? 0;
+
+        // SuperTrend
+        var superTrend = quotes.ToSuperTrend(10, 3).LastOrDefault();
+        result.Indicators["SuperTrend"] = superTrend?.SuperTrend ?? 0;
+        result.Indicators["SuperTrend_Signal"] = superTrend?.UpperBand != null ? "BUY" : "SELL";
+
+        // Choppiness Index
+        var chop = quotes.ToChop(14).LastOrDefault()?.Chop;
+        result.Indicators["Choppiness_Index"] = chop ?? 0;
+
+        // Historical Volatility (simplified)
+        var returns = quotes.TakeLast(30).Select((q, i) => 
+            i > 0 ? Math.Log((double)q.Close / (double)quotes[quotes.Count - 30 + i - 1].Close) : 0
+        ).Skip(1).ToList();
+        
+        if (returns.Any())
+        {
+            var volatility = returns.StandardDeviation() * Math.Sqrt(252);
+            result.Indicators["Historical_Volatility"] = volatility;
+        }
 
         return Task.CompletedTask;
     }

@@ -13,20 +13,21 @@ namespace QuantResearchAgent.Services
     public class NewsSentimentAnalysisService
     {
         private readonly ILogger<NewsSentimentAnalysisService> _logger;
-        private readonly Kernel _kernel;
+    //private readonly Kernel _kernel;
+    private readonly DeepSeekService _deepSeekService;
         private readonly YFinanceNewsService _yfinanceNewsService;
         private readonly FinvizNewsService _finvizNewsService;
         private readonly HttpClient _httpClient;
 
         public NewsSentimentAnalysisService(
             ILogger<NewsSentimentAnalysisService> logger,
-            Kernel kernel,
+            DeepSeekService deepSeekService,
             YFinanceNewsService yfinanceNewsService,
             FinvizNewsService finvizNewsService,
             HttpClient httpClient)
         {
             _logger = logger;
-            _kernel = kernel;
+            _deepSeekService = deepSeekService;
             _yfinanceNewsService = yfinanceNewsService;
             _finvizNewsService = finvizNewsService;
             _httpClient = httpClient;
@@ -243,8 +244,8 @@ Consider:
 - Company performance indicators
 ";
 
-                var response = await _kernel.InvokePromptAsync(prompt);
-                var jsonResponse = response.ToString();
+
+                var jsonResponse = await _deepSeekService.GetChatCompletionAsync(prompt);
 
                 // Clean and parse JSON
                 var cleanJson = ExtractJsonFromResponse(jsonResponse);
@@ -311,8 +312,8 @@ Focus on:
 - Revenue/profit margin trends
 - Market share and competitive positioning";
 
-            var response = await _kernel.InvokePromptAsync(prompt);
-            var jsonResponse = ExtractJsonFromResponse(response.ToString());
+            var jsonResponse = await _deepSeekService.GetChatCompletionAsync(prompt);
+            var jsonClean = ExtractJsonFromResponse(jsonResponse);
             var data = JsonSerializer.Deserialize<JsonElement>(jsonResponse);
 
             return new OverallSentimentResult
@@ -361,8 +362,8 @@ Provide analysis in this JSON format:
     ""summary"": ""<2-3 sentence market summary>""
 }}";
 
-            var response = await _kernel.InvokePromptAsync(prompt);
-            var jsonResponse = ExtractJsonFromResponse(response.ToString());
+            var jsonResponse = await _deepSeekService.GetChatCompletionAsync(prompt);
+            var jsonClean = ExtractJsonFromResponse(jsonResponse);
             var data = JsonSerializer.Deserialize<JsonElement>(jsonResponse);
 
             var sectorSentiments = new Dictionary<string, double>();
