@@ -42,6 +42,25 @@ public class MarketSentimentPlugin
             result += $"Fear & Greed: {report.FearGreedIndex.Score:F2} (Confidence: {report.FearGreedIndex.Confidence:P0})\n";
             result += $"Technical: {report.TechnicalSentiment.Score:F2} (Confidence: {report.TechnicalSentiment.Confidence:P0})\n\n";
             
+            // Add news sources and summaries if available
+            if (!string.IsNullOrEmpty(report.NewsSentiment.Analysis))
+            {
+                if (report.NewsSentiment.Analysis.Contains("NEWS SOURCES:"))
+                {
+                    var sourcesStart = report.NewsSentiment.Analysis.IndexOf("NEWS SOURCES:");
+                    var sourcesEnd = report.NewsSentiment.Analysis.IndexOf("\nSOURCE BREAKDOWN:");
+                    if (sourcesStart >= 0 && sourcesEnd > sourcesStart)
+                    {
+                        var sourcesSection = report.NewsSentiment.Analysis.Substring(sourcesStart, sourcesEnd - sourcesStart);
+                        result += sourcesSection + "\n\n";
+                    }
+                }
+                else if (report.NewsSentiment.Analysis.Contains("No real news"))
+                {
+                    result += "NEWS SOURCES: No real financial news found\n\n";
+                }
+            }
+            
             // Market direction - clean the markdown from this text
             result += "Market Direction Prediction:\n";
             result += CleanMarkdownText(report.MarketDirection) + "\n\n";
