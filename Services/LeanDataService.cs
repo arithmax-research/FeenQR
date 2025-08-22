@@ -64,7 +64,7 @@ public class LeanDataService
         }
     }
 
-    public async Task<List<LeanBar>> GetCryptoBarsAsync(string symbol, string resolution = "daily", int days = 30)
+    public async Task<List<LeanBar>> GetCryptoBarsAsync(string symbol, string resolution = "daily", int limit = 10000)
     {
         try
         {
@@ -79,8 +79,7 @@ public class LeanDataService
 
             var bars = new List<LeanBar>();
             var files = Directory.GetFiles(symbolPath, "*.zip")
-                .OrderByDescending(f => f)
-                .Take(days)
+                .OrderBy(f => f)
                 .ToList();
 
             _logger.LogInformation("Found {FileCount} crypto data files for {Symbol}", files.Count, symbol);
@@ -92,7 +91,7 @@ public class LeanDataService
             }
 
             var result = bars.OrderByDescending(b => b.Time)
-                .Take(days)
+                .Take(limit)
                 .OrderBy(b => b.Time)
                 .ToList();
 
