@@ -179,7 +179,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<WebDataExtractionService>(),
                     sp.GetRequiredService<ReportGenerationService>(),
                     sp.GetRequiredService<SatelliteImageryAnalysisService>(),
-                    sp.GetRequiredService<ILLMService>()
+                    sp.GetRequiredService<ILLMService>(),
+                    sp.GetRequiredService<TechnicalAnalysisService>()
                 )
             );
 
