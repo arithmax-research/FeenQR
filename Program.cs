@@ -36,16 +36,8 @@ namespace QuantResearchAgent
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .Build();
 
-            // Build semantic kernel
-            var openAiApiKey = configuration["OpenAI:ApiKey"];
-            var modelId = configuration["OpenAI:ModelId"] ?? "gpt-4o";
-            
-            var kernel = Kernel.CreateBuilder()
-                .AddOpenAIChatCompletion(modelId, openAiApiKey!)
-                .Build();
-
-            // Configure services
-            ConfigureServices(builder.Services, configuration, kernel);
+            // Configure services (DeepSeekService is used for LLM completions)
+            ConfigureServices(builder.Services, configuration, null);
 
             // Add API controllers
             builder.Services.AddControllers();
@@ -96,15 +88,8 @@ namespace QuantResearchAgent
             // Create service collection
             var services = new ServiceCollection();
             
-            // Build semantic kernel
-            var openAiApiKey = configuration["OpenAI:ApiKey"];
-            var modelId = configuration["OpenAI:ModelId"] ?? "gpt-4o";
-            
-            var kernel = Kernel.CreateBuilder()
-                .AddOpenAIChatCompletion(modelId, openAiApiKey!)
-                .Build();
-
-            ConfigureServices(services, configuration, kernel);
+            // Configure services (DeepSeekService is used for LLM completions)
+            ConfigureServices(services, configuration, null);
 
             // Register web search and financial data plugins
             services.AddHttpClient<QuantResearchAgent.Plugins.GoogleWebSearchPlugin>();
@@ -129,11 +114,33 @@ namespace QuantResearchAgent
             await cli.RunAsync();
         }
 
-        static void ConfigureServices(IServiceCollection services, IConfiguration configuration, Kernel kernel)
+    static void ConfigureServices(IServiceCollection services, IConfiguration configuration, Kernel? kernel = null)
         {
             // Add configuration
             services.AddSingleton(configuration);
-            services.AddSingleton(kernel);
+            // Register Kernel for DI with AI service configured
+            services.AddSingleton<Kernel>(sp => 
+            {
+                if (kernel != null) return kernel;
+                
+                var kernelBuilder = Kernel.CreateBuilder();
+                var config = sp.GetRequiredService<IConfiguration>();
+                
+                // Add OpenAI service to kernel
+                var openAiKey = config["OpenAI:ApiKey"];
+                var openAiModel = config["OpenAI:ModelId"] ?? "gpt-4o-mini";
+                
+                if (!string.IsNullOrEmpty(openAiKey))
+                {
+                    kernelBuilder.AddOpenAIChatCompletion(openAiModel, openAiKey);
+                }
+                
+                return kernelBuilder.Build();
+            });
+            // Register LLM services
+            services.AddSingleton<OpenAIService>();
+            services.AddSingleton<DeepSeekService>();
+            services.AddSingleton<ILLMService, LLMRouterService>();
 
             // Ensure logs directory exists for file logging
             var logDir = Path.Combine(Directory.GetCurrentDirectory(), "logs");
@@ -150,7 +157,31 @@ namespace QuantResearchAgent
             });
 
             // Add InteractiveCLI
-            services.AddSingleton<InteractiveCLI>();
+            // (Removed default registration; using factory registration below)
+            // Replace InteractiveCLI registration to inject ILLMService (LLMRouterService)
+            services.AddSingleton<InteractiveCLI>(sp =>
+                new InteractiveCLI(
+                    sp.GetRequiredService<Kernel>(),
+                    sp.GetRequiredService<AgentOrchestrator>(),
+                    sp.GetRequiredService<ILogger<InteractiveCLI>>(),
+                    sp.GetRequiredService<ComprehensiveStockAnalysisAgent>(),
+                    sp.GetRequiredService<AcademicResearchPaperAgent>(),
+                    sp.GetRequiredService<YahooFinanceService>(),
+                    sp.GetRequiredService<AlpacaService>(),
+                    sp.GetRequiredService<PolygonService>(),
+                    sp.GetRequiredService<DataBentoService>(),
+                    sp.GetRequiredService<YFinanceNewsService>(),
+                    sp.GetRequiredService<FinvizNewsService>(),
+                    sp.GetRequiredService<NewsSentimentAnalysisService>(),
+                    sp.GetRequiredService<RedditScrapingService>(),
+                    sp.GetRequiredService<PortfolioOptimizationService>(),
+                    sp.GetRequiredService<SocialMediaScrapingService>(),
+                    sp.GetRequiredService<WebDataExtractionService>(),
+                    sp.GetRequiredService<ReportGenerationService>(),
+                    sp.GetRequiredService<SatelliteImageryAnalysisService>(),
+                    sp.GetRequiredService<ILLMService>()
+                )
+            );
 
             // Add core services
             services.AddSingleton<LeanDataService>();
@@ -185,7 +216,7 @@ namespace QuantResearchAgent
             services.AddSingleton<DataBentoService>();
             services.AddSingleton<YFinanceNewsService>();
             services.AddSingleton<FinvizNewsService>();
-            services.AddSingleton<NewsSentimentAnalysisService>();
+            services.AddSingleton<NewsSentimentAnalysisService>(); // Uses DeepSeekService now
             services.AddSingleton<YahooFinanceService>();
             services.AddSingleton<RedditScrapingService>();
             services.AddSingleton<PortfolioOptimizationService>();

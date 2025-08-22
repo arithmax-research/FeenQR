@@ -33,6 +33,7 @@ public class InteractiveCLI
     private readonly WebDataExtractionService _webDataExtractionService;
     private readonly ReportGenerationService _reportGenerationService;
     private readonly SatelliteImageryAnalysisService _satelliteImageryAnalysisService;
+    private readonly ILLMService _llmService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -52,7 +53,8 @@ public class InteractiveCLI
         SocialMediaScrapingService socialMediaScrapingService,
         WebDataExtractionService webDataExtractionService,
         ReportGenerationService reportGenerationService,
-        SatelliteImageryAnalysisService satelliteImageryAnalysisService)
+        SatelliteImageryAnalysisService satelliteImageryAnalysisService,
+        ILLMService llmService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -72,6 +74,7 @@ public class InteractiveCLI
         _webDataExtractionService = webDataExtractionService;
         _reportGenerationService = reportGenerationService;
         _satelliteImageryAnalysisService = satelliteImageryAnalysisService;
+        _llmService = llmService;
     }
 
     public async Task RunAsync()
@@ -485,7 +488,8 @@ public class InteractiveCLI
         var reportGenerationService = serviceProvider.GetRequiredService<ReportGenerationService>();
         var satelliteImageryAnalysisService = serviceProvider.GetRequiredService<SatelliteImageryAnalysisService>();
 
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService));
+        var llmService = serviceProvider.GetRequiredService<ILLMService>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService));
     }
 
     // Alpaca Commands
@@ -2248,4 +2252,3 @@ public class InteractiveCLI
         PrintSectionFooter();
     }
 }
-
