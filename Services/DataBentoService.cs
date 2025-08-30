@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Net.Http.Headers;
 
 namespace QuantResearchAgent.Services
 {
@@ -24,11 +26,13 @@ namespace QuantResearchAgent.Services
             _apiKey = configuration["DataBento:ApiKey"] ?? throw new ArgumentException("DataBento API key not configured");
             _userId = configuration["DataBento:UserId"] ?? throw new ArgumentException("DataBento UserId not configured");
             _prodName = configuration["DataBento:ProdName"] ?? throw new ArgumentException("DataBento ProdName not configured");
-            
-            // Set authentication header
-            _httpClient.DefaultRequestHeaders.Authorization = 
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", 
-                    Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{_userId}:{_apiKey}")));
+            // Removed default Authorization header to set it per request
+        }
+
+        private AuthenticationHeaderValue GetAuthHeader()
+        {
+            var byteArray = Encoding.ASCII.GetBytes($"{_apiKey}:");  // API key as username, empty password
+            return new AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
         }
 
         /// <summary>
@@ -54,9 +58,19 @@ namespace QuantResearchAgent.Services
                          $"end={endStr}&" +
                          $"limit={limit}";
 
-                var response = await _httpClient.GetStringAsync(url);
-                var trades = JsonSerializer.Deserialize<List<DataBentoTrade>>(response);
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Authorization = GetAuthHeader();
                 
+                var httpResponse = await _httpClient.SendAsync(request);
+                var responseBody = await httpResponse.Content.ReadAsStringAsync();
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    var errorMsg = $"DataBento API error: StatusCode={httpResponse.StatusCode}, Body={responseBody}";
+                    _logger.LogError(errorMsg);
+                    Console.WriteLine(errorMsg);
+                    return new List<DataBentoTrade>();
+                }
+                var trades = JsonSerializer.Deserialize<List<DataBentoTrade>>(responseBody);
                 return trades ?? new List<DataBentoTrade>();
             }
             catch (Exception ex)
@@ -80,26 +94,32 @@ namespace QuantResearchAgent.Services
             {
                 var startStr = start.ToString("yyyy-MM-dd");
                 var endStr = end.ToString("yyyy-MM-dd");
-                
-                // Add API key as query parameter instead of Basic auth
                 var url = $"{BaseUrl}/v0/timeseries.get_range?" +
                          $"dataset={dataset}&" +
                          $"symbols={symbol}&" +
                          $"schema={schema}&" +
                          $"start={startStr}&" +
-                         $"end={endStr}&" +
-                         $"key={_apiKey}";
-
-                // Clear any existing auth headers and use query param
-                _httpClient.DefaultRequestHeaders.Authorization = null;
-                var response = await _httpClient.GetStringAsync(url);
-                var bars = JsonSerializer.Deserialize<List<DataBentoOHLCV>>(response);
+                         $"end={endStr}";
                 
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Authorization = GetAuthHeader();
+                
+                var httpResponse = await _httpClient.SendAsync(request);
+                var responseBody = await httpResponse.Content.ReadAsStringAsync();
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    var errorMsg = $"DataBento API error: StatusCode={httpResponse.StatusCode}, Body={responseBody}";
+                    _logger.LogError(errorMsg);
+                    Console.WriteLine(errorMsg);
+                    return new List<DataBentoOHLCV>();
+                }
+                var bars = JsonSerializer.Deserialize<List<DataBentoOHLCV>>(responseBody);
                 return bars ?? new List<DataBentoOHLCV>();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting OHLCV for {Symbol}. Note: Free tier limited to US Equities historical data.", symbol);
+                Console.WriteLine($"DataBento API exception: {ex.Message}");
                 return new List<DataBentoOHLCV>();
             }
         }
@@ -111,11 +131,21 @@ namespace QuantResearchAgent.Services
         {
             try
             {
-                var url = $"{BaseUrl}/v0/metadata.list_symbols?dataset={dataset}&key={_apiKey}";
-                _httpClient.DefaultRequestHeaders.Authorization = null;
-                var response = await _httpClient.GetStringAsync(url);
-                var symbols = JsonSerializer.Deserialize<DataBentoSymbolsResponse>(response);
+                var url = $"{BaseUrl}/v0/metadata.list_symbols?dataset={dataset}";
                 
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Authorization = GetAuthHeader();
+                
+                var httpResponse = await _httpClient.SendAsync(request);
+                var responseBody = await httpResponse.Content.ReadAsStringAsync();
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    var errorMsg = $"DataBento API error: StatusCode={httpResponse.StatusCode}, Body={responseBody}";
+                    _logger.LogError(errorMsg);
+                    Console.WriteLine(errorMsg);
+                    return new List<DataBentoSymbol>();
+                }
+                var symbols = JsonSerializer.Deserialize<DataBentoSymbolsResponse>(responseBody);
                 return symbols?.Symbols ?? new List<DataBentoSymbol>();
             }
             catch (Exception ex)
@@ -133,9 +163,20 @@ namespace QuantResearchAgent.Services
             try
             {
                 var url = $"{BaseUrl}/v0/metadata.list_datasets";
-                var response = await _httpClient.GetStringAsync(url);
-                var datasets = JsonSerializer.Deserialize<DataBentoDatasetsResponse>(response);
                 
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Authorization = GetAuthHeader();
+                
+                var httpResponse = await _httpClient.SendAsync(request);
+                var responseBody = await httpResponse.Content.ReadAsStringAsync();
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    var errorMsg = $"DataBento API error: StatusCode={httpResponse.StatusCode}, Body={responseBody}";
+                    _logger.LogError(errorMsg);
+                    Console.WriteLine(errorMsg);
+                    return new List<DataBentoDataset>();
+                }
+                var datasets = JsonSerializer.Deserialize<DataBentoDatasetsResponse>(responseBody);
                 return datasets?.Datasets ?? new List<DataBentoDataset>();
             }
             catch (Exception ex)
@@ -203,10 +244,20 @@ namespace QuantResearchAgent.Services
                          $"start={startStr}&" +
                          $"end={endStr}&" +
                          $"limit=1";
-
-                var response = await _httpClient.GetStringAsync(url);
-                var stats = JsonSerializer.Deserialize<List<DataBentoStats>>(response);
                 
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Authorization = GetAuthHeader();
+                
+                var httpResponse = await _httpClient.SendAsync(request);
+                var responseBody = await httpResponse.Content.ReadAsStringAsync();
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    var errorMsg = $"DataBento API error: StatusCode={httpResponse.StatusCode}, Body={responseBody}";
+                    _logger.LogError(errorMsg);
+                    Console.WriteLine(errorMsg);
+                    return null;
+                }
+                var stats = JsonSerializer.Deserialize<List<DataBentoStats>>(responseBody);
                 return stats?.FirstOrDefault();
             }
             catch (Exception ex)
@@ -217,7 +268,7 @@ namespace QuantResearchAgent.Services
         }
     }
 
-    // DataBento data models
+    // DataBento data models (unchanged)
     public class DataBentoTrade
     {
         [JsonPropertyName("ts_event")]
