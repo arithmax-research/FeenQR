@@ -349,12 +349,9 @@ Format output as PLAIN TEXT ONLY - no markdown, no asterisks, no hashtags, no co
         {
             try
             {
-                // For PDF URLs, we'll extract what we can from the abstract/metadata
-                // In a production environment, you'd want to use a PDF parsing library
-                
+                // If arXiv, use abstract
                 if (url.Contains("arxiv.org"))
                 {
-                    // Extract ArXiv ID and get abstract
                     var arxivId = ExtractArxivId(url);
                     if (!string.IsNullOrEmpty(arxivId))
                     {
@@ -362,13 +359,42 @@ Format output as PLAIN TEXT ONLY - no markdown, no asterisks, no hashtags, no co
                     }
                 }
 
+                // If PDF URL, download and extract text using PdfPig
+                if (url.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) || url.Contains(".pdf?"))
+                {
+                    try
+                    {
+                        using (var httpClient = new System.Net.Http.HttpClient())
+                        using (var stream = await httpClient.GetStreamAsync(url))
+                        using (var memoryStream = new System.IO.MemoryStream())
+                        {
+                            await stream.CopyToAsync(memoryStream);
+                            memoryStream.Position = 0;
+                            var text = new System.Text.StringBuilder();
+                            using (var pdf = UglyToad.PdfPig.PdfDocument.Open(memoryStream))
+                            {
+                                foreach (var page in pdf.GetPages())
+                                {
+                                    text.AppendLine(page.Text);
+                                }
+                            }
+                            // Limit to first 10000 characters for analysis
+                            var result = text.ToString();
+                            return result.Length > 10000 ? result.Substring(0, 10000) : result;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Error extracting PDF content from URL: {url}");
+                        // Fallback to HTML/text extraction below
+                    }
+                }
+
                 // For other URLs, try to get the page content
                 var response = await _httpClient.GetStringAsync(url);
-                
                 // Clean up HTML and extract meaningful content
                 var cleanContent = Regex.Replace(response, @"<[^>]*>", " ");
                 cleanContent = Regex.Replace(cleanContent, @"\s+", " ");
-                
                 // Take first 5000 characters as a reasonable sample
                 return cleanContent.Length > 5000 ? cleanContent.Substring(0, 5000) : cleanContent;
             }

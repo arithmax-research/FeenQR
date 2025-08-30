@@ -30,10 +30,19 @@ namespace QuantResearchAgent.Services
             try
             {
                 // Use previous close endpoint which is available on free tier
-                var url = $"{BaseUrl}/v2/aggs/ticker/{symbol}/prev?adjusted=true&apikey={_apiKey}";
-                var response = await _httpClient.GetStringAsync(url);
-                var result = JsonSerializer.Deserialize<PolygonPrevCloseResponse>(response);
-                
+                var url = $"{BaseUrl}/v2/aggs/ticker/{symbol}/prev?adjusted=true";
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiKey);
+                var httpResponse = await _httpClient.SendAsync(request);
+                var responseBody = await httpResponse.Content.ReadAsStringAsync();
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    var errorMsg = $"Polygon API error: StatusCode={httpResponse.StatusCode}, Body={responseBody}";
+                    _logger.LogError(errorMsg);
+                    Console.WriteLine(errorMsg);
+                    return null;
+                }
+                var result = JsonSerializer.Deserialize<PolygonPrevCloseResponse>(responseBody);
                 if (result?.Results != null && result.Results.Count > 0)
                 {
                     var data = result.Results[0];
@@ -45,12 +54,12 @@ namespace QuantResearchAgent.Services
                         Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(data.Timestamp).DateTime
                     };
                 }
-                
                 return null;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting quote for {Symbol}. Note: Free tier has limited access to real-time data.", symbol);
+                Console.WriteLine($"Polygon API exception: {ex.Message}");
                 return null;
             }
         }
@@ -63,10 +72,19 @@ namespace QuantResearchAgent.Services
             try
             {
                 var dateStr = date.ToString("yyyy-MM-dd");
-                var url = $"{BaseUrl}/v1/open-close/{symbol}/{dateStr}?adjusted=true&apikey={_apiKey}";
-                var response = await _httpClient.GetStringAsync(url);
-                var result = JsonSerializer.Deserialize<PolygonDailyBar>(response);
-                
+                var url = $"{BaseUrl}/v1/open-close/{symbol}/{dateStr}?adjusted=true";
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiKey);
+                var httpResponse = await _httpClient.SendAsync(request);
+                var responseBody = await httpResponse.Content.ReadAsStringAsync();
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    var errorMsg = $"Polygon API error: StatusCode={httpResponse.StatusCode}, Body={responseBody}";
+                    _logger.LogError(errorMsg);
+                    Console.WriteLine(errorMsg);
+                    return null;
+                }
+                var result = JsonSerializer.Deserialize<PolygonDailyBar>(responseBody);
                 return result;
             }
             catch (Exception ex)
@@ -95,11 +113,19 @@ namespace QuantResearchAgent.Services
                 var fromStr = from.Value.ToString("yyyy-MM-dd");
                 var toStr = to.Value.ToString("yyyy-MM-dd");
                 
-                var url = $"{BaseUrl}/v2/aggs/ticker/{symbol}/range/{multiplier}/{timespan}/{fromStr}/{toStr}?adjusted=true&sort=asc&limit={limit}&apikey={_apiKey}";
-                
-                var response = await _httpClient.GetStringAsync(url);
-                var result = JsonSerializer.Deserialize<PolygonAggregatesResponse>(response);
-                
+                var url = $"{BaseUrl}/v2/aggs/ticker/{symbol}/range/{multiplier}/{timespan}/{fromStr}/{toStr}?adjusted=true&sort=asc&limit={limit}";
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiKey);
+                var httpResponse = await _httpClient.SendAsync(request);
+                var responseBody = await httpResponse.Content.ReadAsStringAsync();
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    var errorMsg = $"Polygon API error: StatusCode={httpResponse.StatusCode}, Body={responseBody}";
+                    _logger.LogError(errorMsg);
+                    Console.WriteLine(errorMsg);
+                    return new List<PolygonAggregateBar>();
+                }
+                var result = JsonSerializer.Deserialize<PolygonAggregatesResponse>(responseBody);
                 return result?.Results ?? new List<PolygonAggregateBar>();
             }
             catch (Exception ex)
@@ -119,7 +145,7 @@ namespace QuantResearchAgent.Services
         {
             try
             {
-                var queryParams = new List<string> { $"limit={limit}", $"apikey={_apiKey}" };
+                var queryParams = new List<string> { $"limit={limit}" };
                 
                 if (!string.IsNullOrEmpty(ticker))
                 {
@@ -132,10 +158,18 @@ namespace QuantResearchAgent.Services
                 }
                 
                 var url = $"{BaseUrl}/v2/reference/news?{string.Join("&", queryParams)}";
-                
-                var response = await _httpClient.GetStringAsync(url);
-                var result = JsonSerializer.Deserialize<PolygonNewsResponse>(response);
-                
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiKey);
+                var httpResponse = await _httpClient.SendAsync(request);
+                var responseBody = await httpResponse.Content.ReadAsStringAsync();
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    var errorMsg = $"Polygon API error: StatusCode={httpResponse.StatusCode}, Body={responseBody}";
+                    _logger.LogError(errorMsg);
+                    Console.WriteLine(errorMsg);
+                    return new List<PolygonNewsArticle>();
+                }
+                var result = JsonSerializer.Deserialize<PolygonNewsResponse>(responseBody);
                 return result?.Results ?? new List<PolygonNewsArticle>();
             }
             catch (Exception ex)
@@ -152,10 +186,19 @@ namespace QuantResearchAgent.Services
         {
             try
             {
-                var url = $"{BaseUrl}/vX/reference/financials?ticker={symbol}&limit={limit}&apikey={_apiKey}";
-                var response = await _httpClient.GetStringAsync(url);
-                var result = JsonSerializer.Deserialize<PolygonFinancialsResponse>(response);
-                
+                var url = $"{BaseUrl}/vX/reference/financials?ticker={symbol}&limit={limit}";
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiKey);
+                var httpResponse = await _httpClient.SendAsync(request);
+                var responseBody = await httpResponse.Content.ReadAsStringAsync();
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    var errorMsg = $"Polygon API error: StatusCode={httpResponse.StatusCode}, Body={responseBody}";
+                    _logger.LogError(errorMsg);
+                    Console.WriteLine(errorMsg);
+                    return null;
+                }
+                var result = JsonSerializer.Deserialize<PolygonFinancialsResponse>(responseBody);
                 return result?.Results?.FirstOrDefault();
             }
             catch (Exception ex)
@@ -172,10 +215,19 @@ namespace QuantResearchAgent.Services
         {
             try
             {
-                var url = $"{BaseUrl}/v1/marketstatus/now?apikey={_apiKey}";
-                var response = await _httpClient.GetStringAsync(url);
-                var result = JsonSerializer.Deserialize<PolygonMarketStatus>(response);
-                
+                var url = $"{BaseUrl}/v1/marketstatus/now";
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiKey);
+                var httpResponse = await _httpClient.SendAsync(request);
+                var responseBody = await httpResponse.Content.ReadAsStringAsync();
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    var errorMsg = $"Polygon API error: StatusCode={httpResponse.StatusCode}, Body={responseBody}";
+                    _logger.LogError(errorMsg);
+                    Console.WriteLine(errorMsg);
+                    return null;
+                }
+                var result = JsonSerializer.Deserialize<PolygonMarketStatus>(responseBody);
                 return result;
             }
             catch (Exception ex)
@@ -191,7 +243,7 @@ namespace QuantResearchAgent.Services
     {
         public string Symbol { get; set; } = string.Empty;
         public decimal Price { get; set; }
-        public long Size { get; set; }
+        public double Size { get; set; }
         public DateTime Timestamp { get; set; }
     }
 
@@ -231,7 +283,7 @@ namespace QuantResearchAgent.Services
         public decimal Close { get; set; }
         
         [JsonPropertyName("volume")]
-        public long Volume { get; set; }
+        public double Volume { get; set; }
         
         [JsonPropertyName("from")]
         public string Date { get; set; } = string.Empty;
@@ -252,7 +304,7 @@ namespace QuantResearchAgent.Services
         public decimal Close { get; set; }
         
         [JsonPropertyName("v")]
-        public long Volume { get; set; }
+        public double Volume { get; set; }
         
         [JsonPropertyName("t")]
         public long Timestamp { get; set; }
@@ -435,7 +487,7 @@ namespace QuantResearchAgent.Services
         public string Ticker { get; set; } = string.Empty;
         
         [JsonPropertyName("v")]
-        public long Volume { get; set; }
+        public double Volume { get; set; }
         
         [JsonPropertyName("vw")]
         public decimal VolumeWeightedPrice { get; set; }
