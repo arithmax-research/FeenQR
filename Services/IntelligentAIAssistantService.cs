@@ -222,6 +222,12 @@ Examples that REQUIRE web search:
 
 For video content requests without specific URLs, use web-search FIRST to find the content, then analyze if URLs are found.
 
+For Reddit strategy analysis requests:
+- Use 'reddit-scrape' to find posts about strategies
+- The reddit-scrape tool will automatically analyze any videos found in those posts
+- This provides deep strategy breakdowns from video content
+- Include 'web-search' for additional context if needed
+
 User request: ""{userInput}""
 
 Conversation history:
@@ -238,7 +244,10 @@ Return your analysis in this JSON format:
         ""includeNews"": true/false,
         ""includeSentiment"": true/false,
         ""days"": 100,
-        ""maxResults"": 10
+        ""maxResults"": 10,
+        ""subreddit"": ""quant|algotrading|investing"",
+        ""query"": ""strategy search terms"",
+        ""limit"": 10
     }}
 }}
 ";
@@ -353,8 +362,10 @@ Return your analysis in this JSON format:
                     
                     // Social Media & Reddit
                     case "reddit_sentiment":
-                    case "reddit_scrape":
                         return await ExecuteRedditSentimentAsync(symbols);
+                    
+                    case "reddit_scrape":
+                        return await ExecuteRedditScrapeWithAnalysisAsync(parameters);
                     
                     case "social_media":
                     case "scrape_social_media":
@@ -584,6 +595,165 @@ Return your analysis in this JSON format:
                 Success = true, 
                 Data = results 
             };
+        }
+
+        private async Task<ToolResult> ExecuteRedditScrapeWithAnalysisAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                // Get subreddit from parameters, default to quant-related subreddits
+                var subreddit = GetStringParameter(parameters, "subreddit", "quant");
+                var searchQuery = GetStringParameter(parameters, "query", "strategy");
+                var limit = GetIntParameter(parameters, "limit", 10);
+
+                _logger.LogInformation($"Scraping Reddit r/{subreddit} for strategies with query: {searchQuery}");
+
+                // Scrape Reddit posts
+                var posts = await _redditScrapingService.ScrapeSubredditAsync(subreddit, limit);
+                
+                if (posts.Count == 0)
+                {
+                    return new ToolResult 
+                    { 
+                        ToolName = "reddit-scrape", 
+                        Success = true, 
+                        Data = "No posts found in the specified subreddit."
+                    };
+                }
+
+                var analysisResults = new List<object>();
+                var videoAnalysisResults = new List<object>();
+
+                // Process posts and extract video URLs
+                foreach (var post in posts.Take(5)) // Analyze top 5 posts
+                {
+                    var postAnalysis = new
+                    {
+                        Title = post.Title,
+                        Author = post.Author,
+                        Score = post.Score,
+                        Comments = post.Comments,
+                        Content = post.Content,
+                        Url = post.Url,
+                        CreatedUtc = post.CreatedUtc
+                    };
+                    
+                    analysisResults.Add(postAnalysis);
+
+                    // Check if the post contains YouTube or video URLs
+                    if (ContainsVideoUrl(post.Url) || ContainsVideoUrl(post.Content))
+                    {
+                        var videoUrl = ExtractVideoUrl(post.Url) ?? ExtractVideoUrl(post.Content);
+                        if (!string.IsNullOrEmpty(videoUrl))
+                        {
+                            try
+                            {
+                                _logger.LogInformation($"Analyzing video from Reddit post: {videoUrl}");
+                                var videoAnalysis = await _youtubeAnalysisService.AnalyzeVideoAsync(videoUrl);
+                                videoAnalysisResults.Add(new 
+                                {
+                                    RedditPost = post.Title,
+                                    VideoUrl = videoUrl,
+                                    VideoAnalysis = videoAnalysis
+                                });
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, $"Failed to analyze video: {videoUrl}");
+                                videoAnalysisResults.Add(new 
+                                {
+                                    RedditPost = post.Title,
+                                    VideoUrl = videoUrl,
+                                    Error = $"Video analysis failed: {ex.Message}"
+                                });
+                            }
+                        }
+                    }
+                }
+
+                var result = new
+                {
+                    Subreddit = subreddit,
+                    SearchQuery = searchQuery,
+                    PostsFound = posts.Count,
+                    RedditPosts = analysisResults,
+                    VideoAnalyses = videoAnalysisResults,
+                    Summary = GenerateRedditAnalysisSummary(posts, videoAnalysisResults.Count)
+                };
+
+                return new ToolResult 
+                { 
+                    ToolName = "reddit-scrape", 
+                    Success = true, 
+                    Data = result
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in Reddit scrape with analysis");
+                return new ToolResult 
+                { 
+                    ToolName = "reddit-scrape", 
+                    Success = false, 
+                    ErrorMessage = $"Reddit analysis failed: {ex.Message}" 
+                };
+            }
+        }
+
+        private bool ContainsVideoUrl(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+            
+            var videoPatterns = new[]
+            {
+                "youtube.com/watch",
+                "youtu.be/",
+                "vimeo.com/",
+                "twitch.tv/videos/",
+                "streamable.com/"
+            };
+            
+            return videoPatterns.Any(pattern => text.Contains(pattern, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private string? ExtractVideoUrl(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            
+            // YouTube patterns
+            var youtubePatterns = new[]
+            {
+                @"(?:https?://)?(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([a-zA-Z0-9_-]{11})",
+                @"(?:https?://)?(?:www\.)?youtube\.com/embed/([a-zA-Z0-9_-]{11})"
+            };
+            
+            foreach (var pattern in youtubePatterns)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(text, pattern);
+                if (match.Success)
+                {
+                    return $"https://www.youtube.com/watch?v={match.Groups[1].Value}";
+                }
+            }
+            
+            // Direct URL patterns
+            var urlPattern = @"https?://[^\s]+";
+            var urlMatch = System.Text.RegularExpressions.Regex.Match(text, urlPattern);
+            if (urlMatch.Success && ContainsVideoUrl(urlMatch.Value))
+            {
+                return urlMatch.Value;
+            }
+            
+            return null;
+        }
+
+        private string GenerateRedditAnalysisSummary(List<RedditPost> posts, int videoAnalysisCount)
+        {
+            var summary = new StringBuilder();
+            summary.AppendLine($"Analyzed {posts.Count} Reddit posts");
+            summary.AppendLine($"Found and analyzed {videoAnalysisCount} videos with strategy content");
+            summary.AppendLine("Key findings include detailed strategy breakdowns from video content");
+            return summary.ToString();
         }
 
         private async Task<ToolResult> ExecuteLiveNewsAsync(string[] symbols)
