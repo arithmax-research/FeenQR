@@ -52,7 +52,7 @@ public class YouTubeAnalysisService
     /// </summary>
     public async Task<PodcastEpisode> AnalyzeVideoAsync(string videoUrl)
     {
-        _logger.LogInformation("Starting YouTube video analysis for URL: {VideoUrl}", videoUrl);
+        
 
         try
         {
@@ -252,7 +252,7 @@ public class YouTubeAnalysisService
                 if (match.Success && match.Groups[1].Value.Length == 11)
                 {
                     var videoId = match.Groups[1].Value;
-                    _logger.LogDebug("Extracted video ID: {VideoId} from URL: {VideoUrl}", videoId, videoUrl);
+                    
                     return videoId;
                 }
             }
@@ -264,7 +264,7 @@ public class YouTubeAnalysisService
                 var possibleId = lastPart.Substring(0, Math.Min(11, lastPart.Length));
                 if (Regex.IsMatch(possibleId, @"^[a-zA-Z0-9_-]{11}$"))
                 {
-                    _logger.LogDebug("Extracted video ID from last part: {VideoId}", possibleId);
+                    
                     return possibleId;
                 }
             }
@@ -285,7 +285,7 @@ public class YouTubeAnalysisService
         {
             var url = $"{YOUTUBE_API_BASE}/videos?part=snippet&id={videoId}&key={_youTubeApiKey}";
             var response = await _httpClient.GetStringAsync(url);
-            _logger.LogDebug("YouTube API raw response for video {VideoId}: {Response}", videoId, response);
+            
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var videoResult = JsonSerializer.Deserialize<YouTubeVideoResponse>(response, options);
 

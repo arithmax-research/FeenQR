@@ -33,7 +33,6 @@ public class MarketDataService
 
     public async Task RefreshMarketDataAsync()
     {
-        _logger.LogInformation("Refreshing market data...");
         
         var symbols = new[] { "BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "SOLUSDT" };
         var tasks = symbols.Select(symbol => RefreshSymbolDataAsync(symbol));
@@ -97,7 +96,7 @@ public class MarketDataService
             if (marketData != null)
             {
                 _marketDataCache[symbol] = marketData;
-                _logger.LogDebug("Refreshed market data for {Symbol}: ${Price:F2}", symbol, marketData.Price);
+                
             }
         }
         catch (Exception ex)
