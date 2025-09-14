@@ -6,6 +6,7 @@ using QuantResearchAgent.Core;
 using QuantResearchAgent.Services;
 using QuantResearchAgent.Services.ResearchAgents;
 using QuantResearchAgent.Plugins;
+using System.Linq;
 using System.Text.Json;
 
 namespace QuantResearchAgent;
@@ -35,6 +36,7 @@ public class InteractiveCLI
     private readonly SatelliteImageryAnalysisService _satelliteImageryAnalysisService;
     private readonly ILLMService _llmService;
     private readonly TechnicalAnalysisService _technicalAnalysisService;
+    private readonly IntelligentAIAssistantService _aiAssistantService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -56,7 +58,8 @@ public class InteractiveCLI
         ReportGenerationService reportGenerationService,
         SatelliteImageryAnalysisService satelliteImageryAnalysisService,
         ILLMService llmService,
-        TechnicalAnalysisService technicalAnalysisService)
+        TechnicalAnalysisService technicalAnalysisService,
+        IntelligentAIAssistantService aiAssistantService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -78,6 +81,7 @@ public class InteractiveCLI
         _satelliteImageryAnalysisService = satelliteImageryAnalysisService;
         _llmService = llmService;
         _technicalAnalysisService = technicalAnalysisService;
+        _aiAssistantService = aiAssistantService;
     }
 
     public async Task RunAsync()
@@ -86,48 +90,50 @@ public class InteractiveCLI
         Console.WriteLine("=========================================");
         Console.WriteLine();
         Console.WriteLine("Available commands:");
-        Console.WriteLine("  1. analyze-video [url] - Analyze a YouTube video");
-        Console.WriteLine("  2. get-quantopian-videos - Get latest Quantopian videos");
-        Console.WriteLine("  3. search-finance-videos [query] - Search finance videos");
-        Console.WriteLine("  4. technical-analysis [symbol] - Short-term (100d) technical analysis");
-        Console.WriteLine("  5. technical-analysis-long [symbol] - Long-term (7y) technical analysis");
-        Console.WriteLine("  6. fundamental-analysis [symbol] - Fundamental & sentiment analysis");
-        Console.WriteLine("  7. market-data [symbol] - Get market data");
-        Console.WriteLine("  8. yahoo-data [symbol] - Get Yahoo Finance market data");
-        Console.WriteLine("  9. portfolio - View portfolio summary");
-        Console.WriteLine(" 10. risk-assessment - Assess portfolio risk");
-        Console.WriteLine(" 11. alpaca-data [symbol] - Get Alpaca market data");
-        Console.WriteLine(" 12. alpaca-historical [symbol] [days] - Get historical data");
-        Console.WriteLine(" 13. alpaca-account - View Alpaca account info");
-        Console.WriteLine(" 14. alpaca-positions - View current positions");
-        Console.WriteLine(" 15. alpaca-quotes [symbols] - Get multiple quotes");
-        Console.WriteLine(" 16. ta-indicators [symbol] [category] - Detailed indicators");
-        Console.WriteLine(" 17. ta-compare [symbols] - Compare TA of multiple symbols");
-        Console.WriteLine(" 18. ta-patterns [symbol] - Pattern recognition analysis");
-        Console.WriteLine(" 19. comprehensive-analysis [symbol] [asset_type] - Full analysis & recommendation");
-        Console.WriteLine(" 20. research-papers [topic] - Search academic finance papers");
-        Console.WriteLine(" 21. analyze-paper [url] [focus_area] - Analyze paper & generate blueprint");
-        Console.WriteLine(" 22. research-synthesis [topic] [max_papers] - Research & synthesize topic");
-        Console.WriteLine(" 23. quick-research [topic] [max_papers] - Quick research overview (faster)");
-        Console.WriteLine(" 24. test-apis [symbol] - Test API connectivity and configuration");
-        Console.WriteLine(" 25. polygon-data [symbol] - Get Polygon.io market data");
-        Console.WriteLine(" 26. polygon-news [symbol] - Get Polygon.io news for symbol");
-        Console.WriteLine(" 27. polygon-financials [symbol] - Get Polygon.io financial data");
-        Console.WriteLine(" 28. databento-ohlcv [symbol] [days] - Get DataBento OHLCV data");
-        Console.WriteLine(" 29. databento-futures [symbol] - Get DataBento futures contracts");
-        Console.WriteLine(" 30. live-news [symbol/keyword] - Get live financial news");
-        Console.WriteLine(" 31. sentiment-analysis [symbol] - AI-powered sentiment analysis for specific stock");
-        Console.WriteLine(" 32. market-sentiment - AI-powered overall market sentiment analysis");
-        Console.WriteLine(" 33. reddit-sentiment [subreddit] [symbol] - Reddit sentiment analysis for symbol");
-        Console.WriteLine(" 34. reddit-scrape [subreddit] - Scrape Reddit posts from subreddit");
-        Console.WriteLine(" 35. optimize-portfolio [tickers] - Portfolio optimization (equal weight)");
-        Console.WriteLine(" 36. extract-web-data [url] - Extract structured data from web pages");
-        Console.WriteLine(" 37. generate-report [symbol/portfolio] [report_type] - Generate comprehensive reports");
-        Console.WriteLine(" 38. analyze-satellite-imagery [symbol] - Analyze satellite imagery for company operations");
-        Console.WriteLine(" 39. scrape-social-media [symbol] - Social media sentiment analysis");
-        Console.WriteLine(" 40. clear - Clear terminal and show menu");
-        Console.WriteLine(" 41. help - Show available functions");
-        Console.WriteLine(" 42. quit - Exit the application");
+        Console.WriteLine("  1. ai-assistant [query] - Intelligent AI Assistant (data analysis & tools)");
+        Console.WriteLine("  2. deepseek-chat [query] - DeepSeek R1 Chat (strategy & math analysis)");
+        Console.WriteLine("  3. analyze-video [url] - Analyze a YouTube video");
+        Console.WriteLine("  4. get-quantopian-videos - Get latest Quantopian videos");
+        Console.WriteLine("  5. search-finance-videos [query] - Search finance videos");
+        Console.WriteLine("  6. technical-analysis [symbol] - Short-term (100d) technical analysis");
+        Console.WriteLine("  7. technical-analysis-long [symbol] - Long-term (7y) technical analysis");
+        Console.WriteLine("  8. fundamental-analysis [symbol] - Fundamental & sentiment analysis");
+        Console.WriteLine("  9. market-data [symbol] - Get market data");
+        Console.WriteLine(" 10. yahoo-data [symbol] - Get Yahoo Finance market data");
+        Console.WriteLine(" 11. portfolio - View portfolio summary");
+        Console.WriteLine(" 12. risk-assessment - Assess portfolio risk");
+        Console.WriteLine(" 13. alpaca-data [symbol] - Get Alpaca market data");
+        Console.WriteLine(" 14. alpaca-historical [symbol] [days] - Get historical data");
+        Console.WriteLine(" 15. alpaca-account - View Alpaca account info");
+        Console.WriteLine(" 16. alpaca-positions - View current positions");
+        Console.WriteLine(" 17. alpaca-quotes [symbols] - Get multiple quotes");
+        Console.WriteLine(" 18. ta-indicators [symbol] [category] - Detailed indicators");
+        Console.WriteLine(" 19. ta-compare [symbols] - Compare TA of multiple symbols");
+        Console.WriteLine(" 20. ta-patterns [symbol] - Pattern recognition analysis");
+        Console.WriteLine(" 21. comprehensive-analysis [symbol] [asset_type] - Full analysis & recommendation");
+        Console.WriteLine(" 22. research-papers [topic] - Search academic finance papers");
+        Console.WriteLine(" 23. analyze-paper [url] [focus_area] - Analyze paper & generate blueprint");
+        Console.WriteLine(" 24. research-synthesis [topic] [max_papers] - Research & synthesize topic");
+        Console.WriteLine(" 25. quick-research [topic] [max_papers] - Quick research overview (faster)");
+        Console.WriteLine(" 26. test-apis [symbol] - Test API connectivity and configuration");
+        Console.WriteLine(" 27. polygon-data [symbol] - Get Polygon.io market data");
+        Console.WriteLine(" 28. polygon-news [symbol] - Get Polygon.io news for symbol");
+        Console.WriteLine(" 29. polygon-financials [symbol] - Get Polygon.io financial data");
+        Console.WriteLine(" 30. databento-ohlcv [symbol] [days] - Get DataBento OHLCV data");
+        Console.WriteLine(" 31. databento-futures [symbol] - Get DataBento futures contracts");
+        Console.WriteLine(" 32. live-news [symbol/keyword] - Get live financial news");
+        Console.WriteLine(" 33. sentiment-analysis [symbol] - AI-powered sentiment analysis for specific stock");
+        Console.WriteLine(" 34. market-sentiment - AI-powered overall market sentiment analysis");
+        Console.WriteLine(" 35. reddit-sentiment [subreddit] [symbol] - Reddit sentiment analysis for symbol");
+        Console.WriteLine(" 36. reddit-scrape [subreddit] - Scrape Reddit posts from subreddit");
+        Console.WriteLine(" 37. optimize-portfolio [tickers] - Portfolio optimization (equal weight)");
+        Console.WriteLine(" 38. extract-web-data [url] - Extract structured data from web pages");
+        Console.WriteLine(" 39. generate-report [symbol/portfolio] [report_type] - Generate comprehensive reports");
+        Console.WriteLine(" 40. analyze-satellite-imagery [symbol] - Analyze satellite imagery for company operations");
+        Console.WriteLine(" 41. scrape-social-media [symbol] - Social media sentiment analysis");
+        Console.WriteLine(" 42. clear - Clear terminal and show menu");
+        Console.WriteLine(" 43. help - Show available functions");
+        Console.WriteLine(" 44. quit - Exit the application");
         Console.WriteLine();
 
         while (true)
@@ -163,6 +169,17 @@ public class InteractiveCLI
 
             switch (command)
             {
+                case "ai-assistant":
+                case "chat":
+                case "assistant":
+                    await AiAssistantCommand(parts);
+                    break;
+                case "deepseek-chat":
+                case "deepseek":
+                case "strategy":
+                case "math":
+                    await DeepSeekChatCommand(parts);
+                    break;
                 case "analyze-video":
                     await AnalyzeVideoCommand(parts);
                     break;
@@ -276,6 +293,18 @@ public class InteractiveCLI
                     break;
                 case "reddit-scrape":
                     await RedditScrapeCommand(parts);
+                    break;
+                case "reddit-finance-trending":
+                    await RedditFinanceTrendingCommand(parts);
+                    break;
+                case "reddit-finance-search":
+                    await RedditFinanceSearchCommand(parts);
+                    break;
+                case "reddit-finance-sentiment":
+                    await RedditFinanceSentimentCommand(parts);
+                    break;
+                case "reddit-market-pulse":
+                    await RedditMarketPulseCommand(parts);
                     break;
                 case "optimize-portfolio":
                     await OptimizePortfolioCommand(parts);
@@ -538,7 +567,8 @@ public class InteractiveCLI
 
         var llmService = serviceProvider.GetRequiredService<ILLMService>();
         var technicalAnalysisService = serviceProvider.GetRequiredService<TechnicalAnalysisService>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService));
+        var aiAssistantService = serviceProvider.GetRequiredService<IntelligentAIAssistantService>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService));
     }
 
     // Alpaca Commands
@@ -1082,57 +1112,8 @@ public class InteractiveCLI
         // Clear the console
         Console.Clear();
         
-        // Show the welcome message and menu again
-        Console.WriteLine("FeenQR : Quantitative Research Agent");
-        Console.WriteLine("=========================================");
-        Console.WriteLine();
-        Console.WriteLine("Available commands:");
-        Console.WriteLine("  1. analyze-video [url] - Analyze a YouTube video");
-        Console.WriteLine("  2. get-quantopian-videos - Get latest Quantopian videos");
-        Console.WriteLine("  3. search-finance-videos [query] - Search finance videos");
-        Console.WriteLine("  4. technical-analysis [symbol] - Short-term (100d) technical analysis");
-        Console.WriteLine("  5. technical-analysis-long [symbol] - Long-term (7y) technical analysis");
-        Console.WriteLine("  6. fundamental-analysis [symbol] - Fundamental & sentiment analysis");
-        Console.WriteLine("  7. market-data [symbol] - Get market data");
-        Console.WriteLine("  8. yahoo-data [symbol] - Get Yahoo Finance market data");
-        Console.WriteLine("  9. portfolio - View portfolio summary");
-        Console.WriteLine(" 10. risk-assessment - Assess portfolio risk");
-        Console.WriteLine(" 11. alpaca-data [symbol] - Get Alpaca market data");
-        Console.WriteLine(" 12. alpaca-historical [symbol] [days] - Get historical data");
-        Console.WriteLine(" 13. alpaca-account - View Alpaca account info");
-        Console.WriteLine(" 14. alpaca-positions - View current positions");
-        Console.WriteLine(" 15. alpaca-quotes [symbols] - Get multiple quotes");
-        Console.WriteLine(" 16. ta-indicators [symbol] [category] - Detailed indicators");
-        Console.WriteLine(" 17. ta-compare [symbols] - Compare TA of multiple symbols");
-        Console.WriteLine(" 18. ta-patterns [symbol] - Pattern recognition analysis");
-        Console.WriteLine(" 19. comprehensive-analysis [symbol] [asset_type] - Full analysis & recommendation");
-        Console.WriteLine(" 20. research-papers [topic] - Search academic finance papers");
-        Console.WriteLine(" 21. analyze-paper [url] [focus_area] - Analyze paper & generate blueprint");
-        Console.WriteLine(" 22. research-synthesis [topic] [max_papers] - Research & synthesize topic");
-        Console.WriteLine(" 23. quick-research [topic] [max_papers] - Quick research overview (faster)");
-        Console.WriteLine(" 24. test-apis [symbol] - Test API connectivity and configuration");
-        Console.WriteLine(" 25. polygon-data [symbol] - Get Polygon.io market data");
-        Console.WriteLine(" 26. polygon-news [symbol] - Get Polygon.io news for symbol");
-        Console.WriteLine(" 27. polygon-financials [symbol] - Get Polygon.io financial data");
-        Console.WriteLine(" 28. databento-ohlcv [symbol] [days] - Get DataBento OHLCV data");
-        Console.WriteLine(" 29. databento-futures [symbol] - Get DataBento futures contracts");
-        Console.WriteLine(" 30. live-news [symbol/keyword] - Get live financial news");
-        Console.WriteLine(" 31. sentiment-analysis [symbol] - AI-powered sentiment analysis for specific stock");
-        Console.WriteLine(" 32. market-sentiment - AI-powered overall market sentiment analysis");
-        Console.WriteLine(" 33. reddit-sentiment [subreddit] [symbol] - Reddit sentiment analysis for symbol");
-        Console.WriteLine(" 34. reddit-scrape [subreddit] - Scrape Reddit posts from subreddit");
-        Console.WriteLine(" 35. optimize-portfolio [tickers] - Portfolio optimization (equal weight)");
-        Console.WriteLine(" 36. extract-web-data [url] - Extract structured data from web pages");
-        Console.WriteLine(" 37. generate-report [symbol/portfolio] [report_type] - Generate comprehensive reports");
-        Console.WriteLine(" 38. analyze-satellite-imagery [symbol] - Analyze satellite imagery for company operations");
-        Console.WriteLine(" 39. scrape-social-media [symbol] - Social media sentiment analysis");
-        Console.WriteLine(" 40. clear - Clear terminal and show menu");
-        Console.WriteLine(" 41. help - Show available functions");
-        Console.WriteLine(" 42. quit - Exit the application");
-        Console.WriteLine();
-        
-        // Since this is an async method, we need to return a completed task
-        await Task.CompletedTask;
+        // Show the welcome message and current menu
+        await ShowAvailableFunctions();
     }
 
     private async Task TestApisCommand(string[] parts)
@@ -1871,6 +1852,119 @@ public class InteractiveCLI
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Error scraping Reddit: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    // Reddit Finance Plugin Commands
+    private async Task RedditFinanceTrendingCommand(string[] parts)
+    {
+        var postsPerSubreddit = parts.Length > 1 && int.TryParse(parts[1], out var count) ? count : 10;
+        
+        PrintSectionHeader($"Reddit Finance - Trending Posts ({postsPerSubreddit} per subreddit)");
+
+        try
+        {
+            var result = await _kernel.InvokeAsync("RedditFinancePlugin", "GetTrendingFinancialPostsAsync", 
+                new KernelArguments 
+                { 
+                    ["postsPerSubreddit"] = postsPerSubreddit 
+                });
+            
+            Console.WriteLine(result.GetValue<string>());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error getting trending financial posts: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task RedditFinanceSearchCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: reddit-finance-search SYMBOL [results_per_subreddit]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        var resultsPerSubreddit = parts.Length > 2 && int.TryParse(parts[2], out var count) ? count : 5;
+        
+        PrintSectionHeader($"Reddit Finance - Search Results for {symbol}");
+
+        try
+        {
+            var result = await _kernel.InvokeAsync("RedditFinancePlugin", "SearchSymbolMentionsAsync", 
+                new KernelArguments 
+                { 
+                    ["symbol"] = symbol,
+                    ["resultsPerSubreddit"] = resultsPerSubreddit 
+                });
+            
+            Console.WriteLine(result.GetValue<string>());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error searching for {symbol} mentions: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task RedditFinanceSentimentCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: reddit-finance-sentiment SYMBOL [posts_to_analyze]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        var postsToAnalyze = parts.Length > 2 && int.TryParse(parts[2], out var count) ? count : 20;
+        
+        PrintSectionHeader($"Reddit Finance - Sentiment Analysis for {symbol}");
+
+        try
+        {
+            var result = await _kernel.InvokeAsync("RedditFinancePlugin", "AnalyzeSymbolSentimentAsync", 
+                new KernelArguments 
+                { 
+                    ["symbol"] = symbol,
+                    ["postsToAnalyze"] = postsToAnalyze 
+                });
+            
+            Console.WriteLine(result.GetValue<string>());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error analyzing sentiment for {symbol}: {ex.Message}");
+        }
+        
+        PrintSectionFooter();
+    }
+
+    private async Task RedditMarketPulseCommand(string[] parts)
+    {
+        var postsPerSubreddit = parts.Length > 1 && int.TryParse(parts[1], out var count) ? count : 15;
+        
+        PrintSectionHeader($"Reddit Finance - Market Pulse ({postsPerSubreddit} posts per subreddit)");
+
+        try
+        {
+            var result = await _kernel.InvokeAsync("RedditFinancePlugin", "GetMarketPulseAsync", 
+                new KernelArguments 
+                { 
+                    ["postsPerSubreddit"] = postsPerSubreddit 
+                });
+            
+            Console.WriteLine(result.GetValue<string>());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error getting market pulse: {ex.Message}");
         }
         
         PrintSectionFooter();
@@ -2755,5 +2849,140 @@ public class InteractiveCLI
         Console.WriteLine("   • Target: <100 tCO2e/$M by 2025");
         
         PrintSectionFooter();
+    }
+
+    private async Task AiAssistantCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("❌ Error: Please provide a query for the AI assistant.");
+            Console.WriteLine("Usage: ai-assistant [your question or request]");
+            Console.WriteLine("Example: ai-assistant What's the current status of PLTR?");
+            return;
+        }
+
+        var query = string.Join(" ", parts.Skip(1));
+        
+        try
+        {
+            Console.WriteLine($"\nProcessing your request: \"{query}\"");
+            Console.WriteLine("=" + new string('=', 50));
+            
+            var response = await _aiAssistantService.ProcessUserRequestAsync(query);
+            
+            Console.WriteLine("\n" + new string('=', 50));
+            Console.WriteLine("AI Assistant Response:");
+            Console.WriteLine(new string('=', 50));
+            Console.WriteLine(response);
+            Console.WriteLine(new string('=', 50));
+            
+            // After showing the response, enter chat mode for follow-up questions
+            Console.WriteLine("\nYou can ask follow-up questions or type 'exit' to return to main menu:");
+            
+            while (true)
+            {
+                Console.Write("\nchat> ");
+                var followUp = Console.ReadLine()?.Trim();
+                
+                if (string.IsNullOrEmpty(followUp))
+                    continue;
+                    
+                if (followUp.ToLower() == "exit" || followUp.ToLower() == "quit")
+                {
+                    Console.WriteLine("Exiting chat mode...");
+                    break;
+                }
+                
+                try
+                {
+                    var followUpResponse = await _aiAssistantService.ProcessUserRequestAsync(followUp);
+                    Console.WriteLine("\n" + followUpResponse);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"\nError processing follow-up: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"\n❌ Error in AI Assistant: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+            }
+        }
+    }
+
+    private async Task DeepSeekChatCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Error: Please provide a query for DeepSeek R1 analysis.");
+            Console.WriteLine("Usage: deepseek-chat [your strategy/math question]");
+            Console.WriteLine("Example: deepseek-chat Calculate the optimal portfolio allocation using Markowitz theory");
+            return;
+        }
+
+        var query = string.Join(" ", parts.Skip(1));
+        
+        try
+        {
+            Console.WriteLine($"\nDeepSeek R1 Analysis: \"{query}\"");
+            Console.WriteLine("=" + new string('=', 60));
+            Console.WriteLine("Engaging advanced mathematical and strategic reasoning...");
+            Console.WriteLine();
+            
+            // Cast to LLMRouterService to access provider-specific method
+            if (_llmService is LLMRouterService routerService)
+            {
+                var response = await routerService.GetChatCompletionAsync(query, "deepseek");
+                
+                Console.WriteLine("DeepSeek R1 Strategic Analysis:");
+                Console.WriteLine(new string('=', 60));
+                Console.WriteLine(response);
+                Console.WriteLine(new string('=', 60));
+                
+                // Enter chat mode for follow-up strategic discussions
+                Console.WriteLine("\nContinue strategic discussion or type 'exit' to return to main menu:");
+                
+                while (true)
+                {
+                    Console.Write("\ndeepseek> ");
+                    var followUp = Console.ReadLine()?.Trim();
+                    
+                    if (string.IsNullOrEmpty(followUp))
+                        continue;
+                        
+                    if (followUp.ToLower() == "exit" || followUp.ToLower() == "quit")
+                    {
+                        Console.WriteLine("Exiting DeepSeek strategy session...");
+                        break;
+                    }
+                    
+                    try
+                    {
+                        var followUpResponse = await routerService.GetChatCompletionAsync(followUp, "deepseek");
+                        Console.WriteLine("\n" + followUpResponse);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"\nError in DeepSeek analysis: {ex.Message}");
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine("Error: LLM Router Service not available for DeepSeek analysis.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"\nError in DeepSeek Chat: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+            }
+        }
     }
 }

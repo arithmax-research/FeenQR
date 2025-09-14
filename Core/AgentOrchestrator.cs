@@ -30,6 +30,7 @@ public class AgentOrchestrator
     private readonly TradingStrategyLibraryService _strategyLibraryService;
     private readonly AlpacaService _alpacaService;
     private readonly TechnicalAnalysisService _technicalAnalysisService;
+    private readonly RedditScrapingService _redditScrapingService;
     
     private readonly ConcurrentQueue<AgentJob> _jobQueue = new();
     private readonly ConcurrentDictionary<string, AgentJob> _runningJobs = new();
@@ -52,6 +53,7 @@ public class AgentOrchestrator
         TradingStrategyLibraryService strategyLibraryService,
         AlpacaService alpacaService,
         TechnicalAnalysisService technicalAnalysisService,
+        RedditScrapingService redditScrapingService,
         IConfiguration? configuration = null,
         ILogger<AgentOrchestrator>? logger = null)
     {
@@ -68,6 +70,7 @@ public class AgentOrchestrator
         _strategyLibraryService = strategyLibraryService;
         _alpacaService = alpacaService;
         _technicalAnalysisService = technicalAnalysisService;
+        _redditScrapingService = redditScrapingService;
         _configuration = configuration;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentOrchestrator>.Instance;
 
@@ -94,6 +97,10 @@ public class AgentOrchestrator
         kernel.Plugins.AddFromObject(new CompanyValuationPlugin(_companyValuationService));
         kernel.Plugins.AddFromObject(new HighFrequencyDataPlugin(_hfDataService));
         kernel.Plugins.AddFromObject(new TradingStrategyLibraryPlugin(_strategyLibraryService));
+        
+        // Register Reddit Finance Plugin for monitoring financial subreddits
+        var redditPluginLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<RedditFinancePlugin>.Instance;
+        kernel.Plugins.AddFromObject(new RedditFinancePlugin(_redditScrapingService, redditPluginLogger), "RedditFinancePlugin");
         
         // Register General AI Plugin for analysis
         kernel.Plugins.AddFromObject(new GeneralAIPlugin(_kernel));
@@ -134,7 +141,6 @@ public class AgentOrchestrator
         // Schedule initial jobs
         await ScheduleInitialJobsAsync();
         
-        _logger.LogInformation("Agent Orchestrator started successfully");
     }
 
     public async Task StopAsync()
@@ -165,7 +171,7 @@ public class AgentOrchestrator
     public async Task<string> QueueJobAsync(AgentJob job)
     {
         _jobQueue.Enqueue(job);
-        _logger.LogInformation("Queued job {JobId} of type {JobType}", job.Id, job.Type);
+        
         return await Task.FromResult(job.Id);
     }
 
@@ -213,8 +219,6 @@ public class AgentOrchestrator
         job.Status = JobStatus.Running;
         job.StartedAt = DateTime.UtcNow;
         
-        _logger.LogInformation("Processing job {JobId} of type {JobType}", job.Id, job.Type);
-        
         try
         {
             string result = job.Type switch
@@ -231,7 +235,6 @@ public class AgentOrchestrator
             job.Status = JobStatus.Completed;
             job.CompletedAt = DateTime.UtcNow;
             
-            _logger.LogInformation("Completed job {JobId} successfully", job.Id);
         }
         catch (Exception ex)
         {

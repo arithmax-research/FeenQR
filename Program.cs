@@ -149,12 +149,20 @@ namespace QuantResearchAgent
                 Directory.CreateDirectory(logDir);
             }
 
-            // Suppress all logging output
+            // Configure logging
             services.AddLogging(builder =>
             {
                 builder.ClearProviders();
-                builder.SetMinimumLevel(LogLevel.Critical);
+                // Remove console logging to suppress all output
+                // builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.None);
+                builder.AddFilter("Microsoft", LogLevel.None);
+                builder.AddFilter("System", LogLevel.None);
+                builder.AddFilter("QuantResearchAgent", LogLevel.None);
             });
+
+            // Add IntelligentAIAssistantService (must be registered before InteractiveCLI)
+            services.AddSingleton<IntelligentAIAssistantService>();
 
             // Add InteractiveCLI
             // (Removed default registration; using factory registration below)
@@ -180,7 +188,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<ReportGenerationService>(),
                     sp.GetRequiredService<SatelliteImageryAnalysisService>(),
                     sp.GetRequiredService<ILLMService>(),
-                    sp.GetRequiredService<TechnicalAnalysisService>()
+                    sp.GetRequiredService<TechnicalAnalysisService>(),
+                    sp.GetRequiredService<IntelligentAIAssistantService>()
                 )
             );
 
