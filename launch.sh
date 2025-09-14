@@ -13,17 +13,17 @@ if [ ! -f "QuantResearchAgent.csproj" ]; then
     exit 1
 fi
 
-echo "📦 Building backend..."
+echo " Building backend..."
 dotnet build QuantResearchAgent.csproj
 
 if [ $? -ne 0 ]; then
-    echo "❌ Backend build failed. Please check for errors."
+    echo " Backend build failed. Please check for errors."
     exit 1
 fi
 
-echo "✅ Backend built successfully"
+echo " Backend built successfully"
 echo ""
-echo "🚀 Starting CLI interface..."
+echo " Starting CLI interface..."
 echo ""
 
 # Run in CLI mode (no --web flag)

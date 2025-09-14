@@ -1211,13 +1211,19 @@ public class InteractiveCLI
         Console.WriteLine("\nTesting DataBento API...");
         try
         {
-            var start = DateTime.Now.AddDays(-7);
-            var end = DateTime.Now;
+            // DataBento has delayed data - use yesterday as end date to avoid "data not available" errors
+            // Use shorter date range (3 days) to avoid timeouts
+            var start = DateTime.Now.AddDays(-3);
+            var end = DateTime.Now.AddDays(-1); // Use yesterday instead of today
             var dataBentoData = await _dataBentoService.GetOHLCVAsync(symbol, start, end);
             if (dataBentoData != null && dataBentoData.Any())
             {
                 Console.WriteLine("SUCCESS: DataBento: Connected");
                 Console.WriteLine($"  Retrieved {dataBentoData.Count} data points");
+                foreach (var dataPoint in dataBentoData.Take(3)) // Show up to 3 data points
+                {
+                    Console.WriteLine($"    {dataPoint.EventTime:yyyy-MM-dd}: O=${dataPoint.Open:F2}, H=${dataPoint.High:F2}, L=${dataPoint.Low:F2}, C=${dataPoint.Close:F2}, Vol={dataPoint.Volume:N0}");
+                }
             }
             else
             {

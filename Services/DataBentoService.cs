@@ -56,7 +56,8 @@ namespace QuantResearchAgent.Services
                          $"schema=trades&" +
                          $"start={startStr}&" +
                          $"end={endStr}&" +
-                         $"limit={limit}";
+                         $"limit={limit}&" +
+                         $"encoding=json"; // Request JSON format instead of default CSV
 
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Authorization = GetAuthHeader();
@@ -99,7 +100,8 @@ namespace QuantResearchAgent.Services
                          $"symbols={symbol}&" +
                          $"schema={schema}&" +
                          $"start={startStr}&" +
-                         $"end={endStr}";
+                         $"end={endStr}&" +
+                         $"encoding=json"; // Request JSON format instead of default CSV
                 
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Authorization = GetAuthHeader();
@@ -113,8 +115,22 @@ namespace QuantResearchAgent.Services
                     Console.WriteLine(errorMsg);
                     return new List<DataBentoOHLCV>();
                 }
-                var bars = JsonSerializer.Deserialize<List<DataBentoOHLCV>>(responseBody);
-                return bars ?? new List<DataBentoOHLCV>();
+                
+                // Parse NDJSON (Newline Delimited JSON) - each line is a separate JSON object
+                var bars = new List<DataBentoOHLCV>();
+                var lines = responseBody.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in lines)
+                {
+                    if (!string.IsNullOrWhiteSpace(line))
+                    {
+                        var bar = JsonSerializer.Deserialize<DataBentoOHLCV>(line);
+                        if (bar != null)
+                        {
+                            bars.Add(bar);
+                        }
+                    }
+                }
+                return bars;
             }
             catch (Exception ex)
             {
@@ -292,28 +308,46 @@ namespace QuantResearchAgent.Services
 
     public class DataBentoOHLCV
     {
-        [JsonPropertyName("ts_event")]
-        public long TsEvent { get; set; }
-        
-        [JsonPropertyName("symbol")]
-        public string Symbol { get; set; } = string.Empty;
+        [JsonPropertyName("hd")]
+        public DataBentoHeader Hd { get; set; } = new();
         
         [JsonPropertyName("open")]
-        public decimal Open { get; set; }
+        public string OpenStr { get; set; } = string.Empty;
         
         [JsonPropertyName("high")]
-        public decimal High { get; set; }
+        public string HighStr { get; set; } = string.Empty;
         
         [JsonPropertyName("low")]
-        public decimal Low { get; set; }
+        public string LowStr { get; set; } = string.Empty;
         
         [JsonPropertyName("close")]
-        public decimal Close { get; set; }
+        public string CloseStr { get; set; } = string.Empty;
         
         [JsonPropertyName("volume")]
-        public long Volume { get; set; }
+        public string VolumeStr { get; set; } = string.Empty;
         
-        public DateTime EventTime => DateTimeOffset.FromUnixTimeMilliseconds(TsEvent / 1_000_000).DateTime;
+        // Calculated properties
+        public DateTime EventTime => DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(Hd.TsEvent) / 1_000_000).DateTime; // Convert nanoseconds to milliseconds
+        public decimal Open => decimal.Parse(OpenStr) / 1_000_000_000m; // Convert from nanos to dollars
+        public decimal High => decimal.Parse(HighStr) / 1_000_000_000m;
+        public decimal Low => decimal.Parse(LowStr) / 1_000_000_000m;
+        public decimal Close => decimal.Parse(CloseStr) / 1_000_000_000m;
+        public long Volume => long.Parse(VolumeStr);
+    }
+
+    public class DataBentoHeader
+    {
+        [JsonPropertyName("ts_event")]
+        public string TsEvent { get; set; } = string.Empty;
+        
+        [JsonPropertyName("rtype")]
+        public int Rtype { get; set; }
+        
+        [JsonPropertyName("publisher_id")]
+        public int PublisherId { get; set; }
+        
+        [JsonPropertyName("instrument_id")]
+        public int InstrumentId { get; set; }
     }
 
     public class DataBentoSymbol
