@@ -6,6 +6,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Net.Http;
+using Google.Apis.YouTube.v3;
+using Google.Apis.Services;
+using System.Text;
+using System.IO;
+using System.Web;
 
 namespace QuantResearchAgent.Services;
 
@@ -66,8 +71,19 @@ public class YouTubeAnalysisService
             // Fetch video metadata from YouTube API
             var episode = await FetchVideoDataAsync(videoId);
             
-            // Use description and title as content for analysis
-            episode.Transcript = $"{episode.Name}\n\n{episode.Description}";
+            // Try to fetch actual transcript from captions
+            var transcript = await FetchVideoTranscriptAsync(videoId);
+            if (!string.IsNullOrEmpty(transcript))
+            {
+                episode.Transcript = transcript;
+                _logger.LogInformation("Using actual transcript for video: {VideoTitle}", episode.Name);
+            }
+            else
+            {
+                // Fallback to description and title as content for analysis
+                episode.Transcript = $"{episode.Name}\n\n{episode.Description}";
+                _logger.LogInformation("Using metadata fallback for video: {VideoTitle}", episode.Name);
+            }
             
             // Analyze the content for technical insights
             try
@@ -315,6 +331,259 @@ public class YouTubeAnalysisService
         {
             _logger.LogError(ex, "Failed to fetch video data from YouTube for video ID: {VideoId}", videoId);
             throw;
+        }
+    }
+
+    private async Task<string> FetchVideoTranscriptAsync(string videoId)
+    {
+        try
+        {
+            // Initialize YouTube service
+            var youtubeService = new YouTubeService(new BaseClientService.Initializer()
+            {
+                ApiKey = _youTubeApiKey,
+                ApplicationName = "QuantResearchAgent"
+            });
+
+            // List caption tracks for the video
+            var captionListRequest = youtubeService.Captions.List("snippet", videoId);
+            var captionListResponse = await captionListRequest.ExecuteAsync();
+
+            if (captionListResponse.Items == null || captionListResponse.Items.Count == 0)
+            {
+                _logger.LogWarning("No captions available for video {VideoId}", videoId);
+                return await FetchTranscriptFromWebAsync(videoId);
+            }
+
+            // Get the first available caption track (preferably English)
+            var captionTrack = captionListResponse.Items
+                .FirstOrDefault(c => c.Snippet.Language == "en") ?? captionListResponse.Items.First();
+
+            _logger.LogInformation("Found caption track for video {VideoId}: {Language} ({TrackKind})",
+                videoId, captionTrack.Snippet.Language, captionTrack.Snippet.TrackKind);
+
+            // Try OAuth2 download first (if configured)
+            var transcript = await TryDownloadWithOAuthAsync(captionTrack.Id);
+            if (!string.IsNullOrEmpty(transcript))
+            {
+                return ParseCaptionToText(transcript);
+            }
+
+            // Fallback to web scraping
+            _logger.LogWarning("OAuth2 download failed for video {VideoId}, trying web scraping fallback", videoId);
+            return await FetchTranscriptFromWebAsync(videoId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch transcript for video {VideoId}, trying web fallback", videoId);
+            return await FetchTranscriptFromWebAsync(videoId);
+        }
+    }
+
+    private async Task<string> TryDownloadWithOAuthAsync(string captionId)
+    {
+        try
+        {
+            // Check if OAuth2 credentials are configured
+            var clientId = _configuration["YouTube:OAuth2ClientId"];
+            var clientSecret = _configuration["YouTube:OAuth2ClientSecret"];
+
+            if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+            {
+                return string.Empty;
+            }
+
+            // TODO: Implement OAuth2 flow for caption download
+            // This would require user authentication and token management
+            // For now, return empty to use fallback
+            return string.Empty;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "OAuth2 download failed");
+            return string.Empty;
+        }
+    }
+
+    private async Task<string> FetchTranscriptFromWebAsync(string videoId)
+    {
+        try
+        {
+            // Use web scraping as fallback for getting captions
+            var videoUrl = $"https://www.youtube.com/watch?v={videoId}";
+
+            // Try to get captions from YouTube's transcript endpoint
+            var transcriptUrl = $"https://www.youtube.com/api/timedtext?lang=en&v={videoId}&fmt=json3";
+            var response = await _httpClient.GetStringAsync(transcriptUrl);
+
+            if (!string.IsNullOrEmpty(response) && response != "[]")
+            {
+                return ParseJsonTranscript(response);
+            }
+
+            // If JSON fails, try XML format
+            var xmlTranscriptUrl = $"https://www.youtube.com/api/timedtext?lang=en&v={videoId}&fmt=xml";
+            var xmlResponse = await _httpClient.GetStringAsync(xmlTranscriptUrl);
+
+            if (!string.IsNullOrEmpty(xmlResponse))
+            {
+                return ParseXmlTranscript(xmlResponse);
+            }
+
+            return "No captions/transcript available for this video.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Web scraping fallback failed for video {VideoId}", videoId);
+            return "No captions/transcript available for this video.";
+        }
+    }
+
+    private string ParseJsonTranscript(string jsonResponse)
+    {
+        try
+        {
+            // Parse YouTube's JSON3 format
+            var transcript = new StringBuilder();
+
+            // Simple JSON parsing for events
+            var events = jsonResponse.Split(new[] { "{\"start\":" }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var eventData in events.Skip(1))
+            {
+                var textStart = eventData.IndexOf("\"text\":\"");
+                if (textStart >= 0)
+                {
+                    textStart += 8; // Length of "\"text\":\""
+                    var textEnd = eventData.IndexOf("\"", textStart);
+                    if (textEnd > textStart)
+                    {
+                        var text = eventData.Substring(textStart, textEnd - textStart);
+                        text = System.Web.HttpUtility.HtmlDecode(text); // Decode HTML entities
+                        transcript.AppendLine(text);
+                    }
+                }
+            }
+
+            return transcript.ToString().Trim();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse JSON transcript");
+            return string.Empty;
+        }
+    }
+
+    private string ParseXmlTranscript(string xmlResponse)
+    {
+        try
+        {
+            // Parse YouTube's XML format
+            var transcript = new StringBuilder();
+
+            // Simple XML parsing for text elements
+            var textPattern = @"<text[^>]*>(.*?)</text>";
+            var matches = System.Text.RegularExpressions.Regex.Matches(xmlResponse, textPattern);
+
+            foreach (System.Text.RegularExpressions.Match match in matches)
+            {
+                var text = System.Web.HttpUtility.HtmlDecode(match.Groups[1].Value);
+                transcript.AppendLine(text);
+            }
+
+            return transcript.ToString().Trim();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse XML transcript");
+            return string.Empty;
+        }
+    }
+
+    private string ParseCaptionToText(string captionContent)
+    {
+        // Parse SubRip (.sbv) format to plain text
+        var lines = captionContent.Split('\n');
+        var transcript = new StringBuilder();
+
+        foreach (var line in lines)
+        {
+            // Skip timestamp lines (format: 0:00:00.000,0:00:05.000)
+            if (!Regex.IsMatch(line.Trim(), @"^\d+:\d+:\d+\.\d+,\d+:\d+:\d+\.\d+$"))
+            {
+                // Remove HTML tags if any and add to transcript
+                var cleanLine = Regex.Replace(line, @"<[^>]+>", "").Trim();
+                if (!string.IsNullOrEmpty(cleanLine))
+                {
+                    transcript.AppendLine(cleanLine);
+                }
+            }
+        }
+
+        return transcript.ToString().Trim();
+    }
+
+    /// <summary>
+    /// Get the raw transcript text for a YouTube video
+    /// </summary>
+    public async Task<string> GetVideoTranscriptAsync(string videoUrl)
+    {
+        try
+        {
+            var videoId = ExtractVideoId(videoUrl);
+            if (string.IsNullOrEmpty(videoId))
+            {
+                throw new ArgumentException("Invalid YouTube URL format");
+            }
+
+            var transcript = await FetchVideoTranscriptAsync(videoId);
+
+            if (string.IsNullOrEmpty(transcript) || transcript == "No captions/transcript available for this video.")
+            {
+                _logger.LogWarning("No transcript available for video: {VideoUrl}", videoUrl);
+                return "No captions/transcript available for this video.";
+            }
+
+            return transcript;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get transcript for video: {VideoUrl}", videoUrl);
+            return $"Error fetching transcript: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Save the video transcript to a file
+    /// </summary>
+    public async Task<string> SaveVideoTranscriptAsync(string videoUrl, string? outputPath = null)
+    {
+        try
+        {
+            var transcript = await GetVideoTranscriptAsync(videoUrl);
+            
+            if (transcript.StartsWith("No captions") || transcript.StartsWith("Error"))
+            {
+                return transcript; // Return the error/status message
+            }
+
+            // Generate filename if not provided
+            if (string.IsNullOrEmpty(outputPath))
+            {
+                var videoId = ExtractVideoId(videoUrl);
+                outputPath = Path.Combine("transcripts", $"{videoId}_transcript.txt");
+                Directory.CreateDirectory("transcripts");
+            }
+
+            await File.WriteAllTextAsync(outputPath, transcript);
+            _logger.LogInformation("Transcript saved to: {OutputPath}", outputPath);
+            
+            return $"Transcript saved successfully to: {outputPath}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save transcript for video: {VideoUrl}", videoUrl);
+            return $"Error saving transcript: {ex.Message}";
         }
     }
 
