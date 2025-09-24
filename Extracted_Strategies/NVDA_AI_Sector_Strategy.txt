@@ -1,0 +1,90 @@
+// Strategy Parameters
+private decimal _supportLevel = 400.00m; // 2025 psychological support
+private decimal _resistanceLevel = 550.00m; // All-time high cluster zone
+private int _macdFast = 12;
+private int _macdSlow = 26;
+private decimal _volatilityMultiplier = 1.8m; 
+private decimal _sectorBetaThreshold = 0.65m; // vs. SOXX ETF
+
+// Entry Conditions (Momentum + AI Sector Correlation)
+1. Breakout Entry:
+   - Close > Upper Bollinger Band(20,2)
+   - MACD(12,26,9) > Signal Line
+   - Semiconductor Sector ETF (SOXX) 5-day return > 2%
+   - Volume surge > 2 * 21-day median
+
+2. Dip-Buying Entry:
+   - Price retraces 15%+ from 52w high
+   - Put/Call Ratio > 1.3 (derivatives fear)
+   - Positive divergence: Price makes lower low while RSI(14) higher low
+   - Institutional accumulation detected (Volume*Price slope > 0.7)
+
+// Exit Framework
+- Profit Pyramid:
+  1. First Target: 8% gain (trim 40%)
+  2. Second Target: 15% gain (trim 30%)
+  3. Let remaining ride with trailing stop
+
+- Adaptive Stop System:
+  Initial: 7% below entry
+  Tightens to 3% below recent peak after 5 green days
+  Emergency stop: 12% daily drop triggers market order
+
+// AI Conference Strategy (Event-Driven)
+- Activation: 72 hours before major AI events (GTC, CES)
+- Vertical Spread Parameters:
+  * 45-60 DTE
+  * Buy 1.5 delta call / Sell 3 delta call
+  * IV Percentile > 55%
+  * Close at 50% max profit or 24h post-event
+
+// Risk Controls
+- Exposure Management:
+  Max sector allocation: 25% portfolio
+  VAR-based sizing: 
+  PositionSize = (95% CVaR * PortfolioValue) / (ATR(14) * √DaysHeld)
+
+- Circuit Filters:
+  1. SOXX 5-day drop > 8%: Suspend new entries
+  2. VIX spike > 35: Reduce exposure by 70%
+  3. Fed Meeting Days: 50% position cap
+
+// Advanced Indicators
+- AI Sentiment Score:
+  0.6*(News Sentiment NLP) + 0.25*(Insider Trading Score) + 0.15*(Patent Filing Momentum)
+
+// Data Pipeline
+1. Core Feed:
+   - NVDA 15-min bars w/ Level 2 depth
+   - Earnings whisper numbers
+   - TSMC production reports (supply chain proxy)
+
+2. Augmented Data:
+   - SOXX 5-min correlation data
+   - AI Research Paper Publication Frequency Index
+   - GPU Market Share Weekly Estimates
+
+// Backtest Setup
+- Benchmark: SOXX
+- Fees: Fidelity Institutional Pricing
+- Slippage: SpreadImpactModel(0.01)
+- Warmup: 300 bars (for Bollinger/MACD convergence)
+- Optimization:
+  Bayesian Hyperparameter Tuning:
+  - 50 iterations
+  - Acquisition Function: Expected Improvement
+  - Noise Level: 0.05
+
+// Known Constraints
+1. Assumes stable chip export policies
+2. Limited modeling of fab facility black swans
+3. AI regulation changes simulated via sentiment shocks
+4. Competitor breakthroughs modeled as sector beta shocks
+
+// Implementation Requirements
+- Custom NLP module for earnings call analysis
+- Real-time supply chain disruption alerts
+- Requires GPU utilization rate data stream
+- Critical: Implement dark pool print detection
+
+**DISCLAIMER:** This strategy contains forward-looking assumptions about AI sector growth. NVDA's extreme volatility requires constant monitoring. Always maintain event risk hedges.

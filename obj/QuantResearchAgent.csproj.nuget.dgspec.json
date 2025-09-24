@@ -1,30 +1,31 @@
 {
   "format": 1,
   "restore": {
-    "/Users/misango/codechest/ArithmaxResearchChest/QuantResearchAgent.csproj": {}
+    "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj": {}
   },
   "projects": {
-    "/Users/misango/codechest/ArithmaxResearchChest/QuantResearchAgent.csproj": {
+    "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/misango/codechest/ArithmaxResearchChest/QuantResearchAgent.csproj",
+        "projectUniqueName": "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj",
         "projectName": "QuantResearchAgent",
-        "projectPath": "/Users/misango/codechest/ArithmaxResearchChest/QuantResearchAgent.csproj",
-        "packagesPath": "/Users/misango/.nuget/packages/",
-        "outputPath": "/Users/misango/codechest/ArithmaxResearchChest/obj/",
+        "projectPath": "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj",
+        "packagesPath": "/home/misango/.nuget/packages/",
+        "outputPath": "/home/misango/codechest/FeenQR/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/misango/.nuget/NuGet/NuGet.Config"
+          "/home/misango/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
-          "net8.0"
+          "net9.0"
         ],
         "sources": {
+          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net8.0": {
-            "targetAlias": "net8.0",
+          "net9.0": {
+            "targetAlias": "net9.0",
             "projectReferences": {}
           }
         },
@@ -38,11 +39,11 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.300"
+        "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
-        "net8.0": {
-          "targetAlias": "net8.0",
+        "net9.0": {
+          "targetAlias": "net9.0",
           "dependencies": {
             "Alpaca.Markets": {
               "target": "Package",
@@ -55,6 +56,10 @@
             "Google.Apis.YouTube.v3": {
               "target": "Package",
               "version": "[1.68.0.3617, )"
+            },
+            "HtmlAgilityPack": {
+              "target": "Package",
+              "version": "[1.11.65, )"
             },
             "MathNet.Numerics": {
               "target": "Package",
@@ -104,6 +109,14 @@
               "target": "Package",
               "version": "[8.6.1, )"
             },
+            "PdfPig": {
+              "target": "Package",
+              "version": "[0.1.11, )"
+            },
+            "Reddit": {
+              "target": "Package",
+              "version": "[1.5.2, )"
+            },
             "RestSharp": {
               "target": "Package",
               "version": "[112.0.0, )"
@@ -115,6 +128,10 @@
             "System.Text.Json": {
               "target": "Package",
               "version": "[8.0.5, )"
+            },
+            "Terminal.Gui": {
+              "target": "Package",
+              "version": "[1.19.0, )"
             },
             "YahooFinanceApi": {
               "target": "Package",
@@ -132,26 +149,15 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[8.0.18, 8.0.18]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Host.osx-x64",
-              "version": "[8.0.18, 8.0.18]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[8.0.18, 8.0.18]"
-            }
-          ],
           "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.302/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/9.0.110/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
