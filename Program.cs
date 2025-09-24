@@ -140,7 +140,9 @@ namespace QuantResearchAgent
             // Register LLM services
             services.AddSingleton<OpenAIService>();
             services.AddSingleton<DeepSeekService>();
+            services.AddSingleton<LLMRouterService>();
             services.AddSingleton<ILLMService, LLMRouterService>();
+            services.AddSingleton<StrategyGeneratorService>();
 
             // Ensure logs directory exists for file logging
             var logDir = Path.Combine(Directory.GetCurrentDirectory(), "logs");

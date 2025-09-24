@@ -124,7 +124,7 @@ public class InteractiveCLI
         Console.WriteLine(" 32. live-news [symbol/keyword] - Get live financial news");
         Console.WriteLine(" 33. sentiment-analysis [symbol] - AI-powered sentiment analysis for specific stock");
         Console.WriteLine(" 34. market-sentiment - AI-powered overall market sentiment analysis");
-        Console.WriteLine(" 35. reddit-sentiment [subreddit] [symbol] - Reddit sentiment analysis for symbol");
+        Console.WriteLine(" 35. reddit-sentiment [subreddit] [limit] - Reddit discussion overview (top posts)");
         Console.WriteLine(" 36. reddit-scrape [subreddit] - Scrape Reddit posts from subreddit");
         Console.WriteLine(" 37. optimize-portfolio [tickers] - Portfolio optimization (equal weight)");
         Console.WriteLine(" 38. extract-web-data [url] - Extract structured data from web pages");
@@ -457,6 +457,62 @@ public class InteractiveCLI
             }
             Console.WriteLine();
         }
+
+        await Task.CompletedTask;
+    }
+
+    private async Task ClearCommand()
+    {
+        Console.Clear();
+        Console.WriteLine("FeenQR : Quantitative Research Agent");
+        Console.WriteLine("=========================================");
+        Console.WriteLine();
+        Console.WriteLine("Available commands:");
+        Console.WriteLine("  1. ai-assistant [query] - Intelligent AI Assistant (data analysis & tools)");
+        Console.WriteLine("  2. deepseek-chat [query] - DeepSeek R1 Chat (strategy & math analysis)");
+        Console.WriteLine("  3. analyze-video [url] - Analyze a YouTube video");
+        Console.WriteLine("  4. get-quantopian-videos - Get latest Quantopian videos");
+        Console.WriteLine("  5. search-finance-videos [query] - Search finance videos");
+        Console.WriteLine("  6. technical-analysis [symbol] - Short-term (100d) technical analysis");
+        Console.WriteLine("  7. technical-analysis-long [symbol] - Long-term (7y) technical analysis");
+        Console.WriteLine("  8. fundamental-analysis [symbol] - Fundamental & sentiment analysis");
+        Console.WriteLine("  9. market-data [symbol] - Get market data");
+        Console.WriteLine(" 10. yahoo-data [symbol] - Get Yahoo Finance market data");
+        Console.WriteLine(" 11. portfolio - View portfolio summary");
+        Console.WriteLine(" 12. risk-assessment - Assess portfolio risk");
+        Console.WriteLine(" 13. alpaca-data [symbol] - Get Alpaca market data");
+        Console.WriteLine(" 14. alpaca-historical [symbol] [days] - Get historical data");
+        Console.WriteLine(" 15. alpaca-account - View Alpaca account info");
+        Console.WriteLine(" 16. alpaca-positions - View current positions");
+        Console.WriteLine(" 17. alpaca-quotes [symbols] - Get multiple quotes");
+        Console.WriteLine(" 18. ta-indicators [symbol] [category] - Detailed indicators");
+        Console.WriteLine(" 19. ta-compare [symbols] - Compare TA of multiple symbols");
+        Console.WriteLine(" 20. ta-patterns [symbol] - Pattern recognition analysis");
+        Console.WriteLine(" 21. comprehensive-analysis [symbol] [asset_type] - Full analysis & recommendation");
+        Console.WriteLine(" 22. research-papers [topic] - Search academic finance papers");
+        Console.WriteLine(" 23. analyze-paper [url] [focus_area] - Analyze paper & generate blueprint");
+        Console.WriteLine(" 24. research-synthesis [topic] [max_papers] - Research & synthesize topic");
+        Console.WriteLine(" 25. quick-research [topic] [max_papers] - Quick research overview (faster)");
+        Console.WriteLine(" 26. test-apis [symbol] - Test API connectivity and configuration");
+        Console.WriteLine(" 27. polygon-data [symbol] - Get Polygon.io market data");
+        Console.WriteLine(" 28. polygon-news [symbol] - Get Polygon.io news for symbol");
+        Console.WriteLine(" 29. polygon-financials [symbol] - Get Polygon.io financial data");
+        Console.WriteLine(" 30. databento-ohlcv [symbol] [days] - Get DataBento OHLCV data");
+        Console.WriteLine(" 31. databento-futures [symbol] - Get DataBento futures contracts");
+        Console.WriteLine(" 32. live-news [symbol/keyword] - Get live financial news");
+        Console.WriteLine(" 33. sentiment-analysis [symbol] - AI-powered sentiment analysis for specific stock");
+        Console.WriteLine(" 34. market-sentiment - AI-powered overall market sentiment analysis");
+        Console.WriteLine(" 35. reddit-sentiment [subreddit] [symbol] - Reddit sentiment analysis for symbol");
+        Console.WriteLine(" 36. reddit-scrape [subreddit] - Scrape Reddit posts from subreddit");
+        Console.WriteLine(" 37. optimize-portfolio [tickers] - Portfolio optimization (equal weight)");
+        Console.WriteLine(" 38. extract-web-data [url] - Extract structured data from web pages");
+        Console.WriteLine(" 39. generate-report [symbol/portfolio] [report_type] - Generate comprehensive reports");
+        Console.WriteLine(" 40. analyze-satellite-imagery [symbol] - Analyze satellite imagery for company operations");
+        Console.WriteLine(" 41. scrape-social-media [symbol] - Social media sentiment analysis");
+        Console.WriteLine(" 42. clear - Clear terminal and show menu");
+        Console.WriteLine(" 43. help - Show available functions");
+        Console.WriteLine(" 44. quit - Exit the application");
+        Console.WriteLine();
 
         await Task.CompletedTask;
     }
@@ -1105,15 +1161,6 @@ public class InteractiveCLI
             Console.WriteLine($"Error performing quick research: {ex.Message}");
         }
         PrintSectionFooter();
-    }
-
-    private async Task ClearCommand()
-    {
-        // Clear the console
-        Console.Clear();
-        
-        // Show the welcome message and current menu
-        await ShowAvailableFunctions();
     }
 
     private async Task TestApisCommand(string[] parts)
@@ -1778,40 +1825,69 @@ public class InteractiveCLI
     private async Task RedditSentimentCommand(string[] parts)
     {
         var subreddit = parts.Length > 1 ? parts[1] : "wallstreetbets";
-        var symbol = parts.Length > 2 ? parts[2] : "";
+        var limit = parts.Length > 2 && int.TryParse(parts[2], out var l) ? Math.Min(l, 25) : 15;
         
-        PrintSectionHeader($"Reddit Sentiment Analysis - r/{subreddit}" + (string.IsNullOrEmpty(symbol) ? "" : $" for {symbol}"));
+        PrintSectionHeader($"Reddit Discussion Overview - r/{subreddit} (Top {limit} Posts)");
 
         try
         {
-            var sentiment = await _redditScrapingService.AnalyzeSubredditSentimentAsync(subreddit, symbol);
+            var posts = await _redditScrapingService.ScrapeSubredditAsync(subreddit, limit);
             
-            if (sentiment != null)
+            if (posts.Any())
             {
-                var sentimentEmoji = sentiment.OverallSentiment switch
-                {
-                    "BULLISH" => "[📈]",
-                    "BEARISH" => "[📉]", 
-                    "NEUTRAL" => "[➡️]",
-                    _ => "[❓]"
-                };
+                Console.WriteLine($"Found {posts.Count} posts from r/{subreddit}");
+                Console.WriteLine($"Analysis Time: {DateTime.UtcNow:MMM dd, yyyy HH:mm} UTC");
+                Console.WriteLine();
                 
-                Console.WriteLine($"Overall Sentiment: {sentimentEmoji} {sentiment.OverallSentiment}");
-                Console.WriteLine($"Sentiment Score: {sentiment.SentimentScore:F2}");
-                Console.WriteLine($"Posts Analyzed: {sentiment.TotalPosts}");
-                Console.WriteLine($"Analysis Time: {sentiment.AnalysisDate:MMM dd, yyyy HH:mm} UTC");
-                Console.WriteLine($"Average Score: {sentiment.AverageScore:F1}");
-                Console.WriteLine($"Total Upvotes: {sentiment.TotalUpvotes:N0}");
-                Console.WriteLine($"Total Comments: {sentiment.TotalComments:N0}");
+                for (int i = 0; i < posts.Count; i++)
+                {
+                    var post = posts[i];
+                    Console.WriteLine($"#{i + 1} {post.Title}");
+                    Console.WriteLine($"   Author: u/{post.Author} | Score: {post.Score} | Comments: {post.Comments}");
+                    Console.WriteLine($"   Posted: {post.CreatedUtc:MMM dd, yyyy HH:mm} UTC");
+                    
+                    if (!string.IsNullOrEmpty(post.Flair))
+                        Console.WriteLine($"   Flair: {post.Flair}");
+                    
+                    if (!string.IsNullOrEmpty(post.Content) && post.Content.Length > 0)
+                    {
+                        var preview = post.Content.Length > 150 
+                            ? post.Content.Substring(0, 150) + "..." 
+                            : post.Content;
+                        Console.WriteLine($"   Content: {preview}");
+                    }
+                    
+                    Console.WriteLine($"   Link: {post.Url}");
+                    Console.WriteLine();
+                }
+                
+                // Summary stats
+                var totalUpvotes = posts.Sum(p => p.Score);
+                var totalComments = posts.Sum(p => p.Comments);
+                var avgUpvotes = posts.Average(p => p.Score);
+                
+                Console.WriteLine("Summary Statistics:");
+                Console.WriteLine($"   Total Upvotes: {totalUpvotes:N0}");
+                Console.WriteLine($"   Total Comments: {totalComments:N0}");
+                Console.WriteLine($"   Average Upvotes per Post: {avgUpvotes:F1}");
+                Console.WriteLine($"   Most Active Post: {posts.MaxBy(p => p.Score)?.Title ?? "N/A"} ({posts.Max(p => p.Score)} upvotes)");
             }
             else
             {
-                Console.WriteLine("❌ Unable to analyze Reddit sentiment. No data available.");
+                Console.WriteLine("No posts found or unable to access r/{subreddit}.");
+                Console.WriteLine("   Possible reasons:");
+                Console.WriteLine("   - Subreddit doesn't exist or is private");
+                Console.WriteLine("   - Reddit API rate limiting");
+                Console.WriteLine("   - Network connectivity issues");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error analyzing Reddit sentiment: {ex.Message}");
+            Console.WriteLine($"Error fetching Reddit posts: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"   Inner Exception: {ex.InnerException.Message}");
+            }
         }
         
         PrintSectionFooter();
