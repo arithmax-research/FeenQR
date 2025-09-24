@@ -31,6 +31,7 @@ public class AgentOrchestrator
     private readonly AlpacaService _alpacaService;
     private readonly TechnicalAnalysisService _technicalAnalysisService;
     private readonly RedditScrapingService _redditScrapingService;
+    private readonly StrategyGeneratorService _strategyGeneratorService;
     
     private readonly ConcurrentQueue<AgentJob> _jobQueue = new();
     private readonly ConcurrentDictionary<string, AgentJob> _runningJobs = new();
@@ -54,6 +55,7 @@ public class AgentOrchestrator
         AlpacaService alpacaService,
         TechnicalAnalysisService technicalAnalysisService,
         RedditScrapingService redditScrapingService,
+        StrategyGeneratorService strategyGeneratorService,
         IConfiguration? configuration = null,
         ILogger<AgentOrchestrator>? logger = null)
     {
@@ -71,6 +73,7 @@ public class AgentOrchestrator
         _alpacaService = alpacaService;
         _technicalAnalysisService = technicalAnalysisService;
         _redditScrapingService = redditScrapingService;
+        _strategyGeneratorService = strategyGeneratorService;
         _configuration = configuration;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentOrchestrator>.Instance;
 
@@ -100,7 +103,7 @@ public class AgentOrchestrator
         
         // Register Reddit Finance Plugin for monitoring financial subreddits
         var redditPluginLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<RedditFinancePlugin>.Instance;
-        kernel.Plugins.AddFromObject(new RedditFinancePlugin(_redditScrapingService, redditPluginLogger), "RedditFinancePlugin");
+        kernel.Plugins.AddFromObject(new RedditFinancePlugin(_redditScrapingService, _strategyGeneratorService, redditPluginLogger), "RedditFinancePlugin");
         
         // Register General AI Plugin for analysis
         kernel.Plugins.AddFromObject(new GeneralAIPlugin(_kernel));
