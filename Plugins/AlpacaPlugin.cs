@@ -27,7 +27,15 @@ public class AlpacaPlugin
             
             if (marketData == null)
             {
-                return $"ERROR: No market data available for {symbol}. Please check the symbol or try again later.";
+                // Provide an actionable diagnostic message so the CLI user can quickly see why data is missing
+                var diag = string.Empty;
+                try
+                {
+                    diag = _alpacaService.GetDiagnostics();
+                }
+                catch { /* ignore diagnostics failures */ }
+
+                return $"ERROR: No market data available for {symbol}. Please check the symbol or try again later.\nDIAGNOSTICS: {diag}";
             }
 
             return $"ANALYSIS: Market Data for {symbol}\n" +
