@@ -11,14 +11,16 @@ namespace QuantResearchAgent.Plugins;
 public class RedditFinancePlugin
 {
     private readonly RedditScrapingService _redditService;
+    private readonly StrategyGeneratorService _strategyGenerator;
     private readonly ILogger<RedditFinancePlugin> _logger;
     
     // Target subreddits for financial analysis
     private readonly string[] _targetSubreddits = { "wallstreetbets", "quant", "quantfinance", "crypto" };
 
-    public RedditFinancePlugin(RedditScrapingService redditService, ILogger<RedditFinancePlugin> logger)
+    public RedditFinancePlugin(RedditScrapingService redditService, StrategyGeneratorService strategyGenerator, ILogger<RedditFinancePlugin> logger)
     {
         _redditService = redditService;
+        _strategyGenerator = strategyGenerator;
         _logger = logger;
     }
 
@@ -99,7 +101,9 @@ public class RedditFinancePlugin
 
             foreach (var subreddit in _targetSubreddits)
             {
+                _logger.LogInformation("Searching r/{Subreddit} for symbol {Symbol}", subreddit, symbol);
                 var posts = await _redditService.SearchSubredditAsync(subreddit, symbol, resultsPerSubreddit);
+                _logger.LogInformation("Found {Count} posts for {Symbol} in r/{Subreddit}", posts.Count, symbol, subreddit);
                 
                 if (posts.Any())
                 {
@@ -268,6 +272,29 @@ public class RedditFinancePlugin
         {
             _logger.LogError(ex, "Failed to get market pulse");
             return "Error generating market pulse. Please try again later.";
+        }
+    }
+
+    [KernelFunction]
+    [Description("Generate trading strategy based on Reddit sentiment and discussions using DeepSeek AI")]
+    public async Task<string> GenerateStrategyFromRedditAsync(
+        [Description("Specific subreddit to analyze (optional): wallstreetbets, quant, quantfinance, or crypto")] string? targetSubreddit = null,
+        [Description("Number of posts to analyze (default: 20)")] int postsToAnalyze = 20)
+    {
+        try
+        {
+            // Get trending posts data
+            string redditData = await GetTrendingFinancialPostsAsync(postsToAnalyze, targetSubreddit);
+            
+            // Generate strategy using DeepSeek
+            string strategy = await _strategyGenerator.GenerateStrategyAsync(redditData, "Reddit");
+            
+            return $"Strategy generated from Reddit analysis:\n\n{strategy}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate strategy from Reddit");
+            return "Error generating strategy from Reddit data. Please try again later.";
         }
     }
 

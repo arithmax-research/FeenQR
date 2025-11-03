@@ -21,8 +21,8 @@ public class RedditScrapingService
         _configuration = configuration;
         
         // Initialize Reddit API client if credentials are available
-        var clientId = _configuration["Reddit:clientId"];
-        var clientSecret = _configuration["Reddit:clientSecret"];
+        var clientId = _configuration["Reddit:ClientId"];
+        var clientSecret = _configuration["Reddit:ClientSecret"];
         var userAgent = _configuration["Reddit:UserAgent"] ?? "QuantResearchAgent/1.0";
 
         if (!string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(clientSecret))
