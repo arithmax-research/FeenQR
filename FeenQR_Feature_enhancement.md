@@ -414,13 +414,13 @@ This comprehensive workplan outlines the implementation of missing features to t
 
 ```
 Phase 1 (Statistical Framework)
-├── Phase 2 (ML & Prediction) [depends on Phase 1]
-├── Phase 3 (Portfolio Theory) [depends on Phase 1]
-│   ├── Phase 4 (Alternative Data) [depends on Phase 1]
-│   └── Phase 5 (Market Microstructure) [depends on Phase 1]
-└── Phase 6 (Research Tools) [depends on Phase 1-2]
-    ├── Phase 7 (Data Quality) [depends on Data Pipeline]
-    └── Phase 8 (Professional Integration) [depends on all previous]
+ Phase 2 (ML & Prediction) [depends on Phase 1]
+ Phase 3 (Portfolio Theory) [depends on Phase 1]
+    Phase 4 (Alternative Data) [depends on Phase 1]
+    Phase 5 (Market Microstructure) [depends on Phase 1]
+ Phase 6 (Research Tools) [depends on Phase 1-2]
+     Phase 7 (Data Quality) [depends on Data Pipeline]
+     Phase 8 (Professional Integration) [depends on all previous]
 ```
 
 ## Monitoring and Quality Assurance
