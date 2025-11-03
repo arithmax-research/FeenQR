@@ -14,10 +14,10 @@ namespace QuantResearchAgent.Services
         private readonly string _apiKey;
         private readonly string _modelId;
         private readonly string _baseUrl;
-    private readonly bool _useAzure;
-    private readonly string? _azureEndpoint;
-    private readonly string? _deployment;
-    private readonly string? _apiVersion;
+        private readonly bool _useAzure;
+        private readonly string? _azureEndpoint;
+        private readonly string? _deployment;
+        private readonly string? _apiVersion;
         private readonly HttpClient _httpClient;
         private readonly ILogger<OpenAIService> _logger;
 
