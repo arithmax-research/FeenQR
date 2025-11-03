@@ -71,7 +71,7 @@ public class CompanyValuationService
             var instrumentType = isETF ? "ETF" : "STOCK";
             var result = $@"
 ANALYSIS: FUNDAMENTAL ANALYSIS: {ticker.ToUpper()} ({instrumentType})
-═══════════════════════════════════════════════════════════
+
 
 MONEY: CURRENT VALUATION
 Current Price: ${stockData.CurrentPrice:F2}
@@ -399,7 +399,7 @@ Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC
             
             var result = $@"
 ANALYSIS: LEVERAGED ETF ANALYSIS: {ticker.ToUpper()}
-═══════════════════════════════════════════════════════════
+
 
 ETF DETAILS
 Current Price: ${stockData.CurrentPrice:F2}
