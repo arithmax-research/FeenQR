@@ -32,6 +32,7 @@ public class AgentOrchestrator
     private readonly TechnicalAnalysisService _technicalAnalysisService;
     private readonly RedditScrapingService _redditScrapingService;
     private readonly StrategyGeneratorService _strategyGeneratorService;
+    private readonly TradingTemplateGeneratorAgent _tradingTemplateGeneratorAgent;
     
     private readonly ConcurrentQueue<AgentJob> _jobQueue = new();
     private readonly ConcurrentDictionary<string, AgentJob> _runningJobs = new();
@@ -56,6 +57,7 @@ public class AgentOrchestrator
         TechnicalAnalysisService technicalAnalysisService,
         RedditScrapingService redditScrapingService,
         StrategyGeneratorService strategyGeneratorService,
+        TradingTemplateGeneratorAgent tradingTemplateGeneratorAgent,
         IConfiguration? configuration = null,
         ILogger<AgentOrchestrator>? logger = null)
     {
@@ -74,6 +76,7 @@ public class AgentOrchestrator
         _technicalAnalysisService = technicalAnalysisService;
         _redditScrapingService = redditScrapingService;
         _strategyGeneratorService = strategyGeneratorService;
+        _tradingTemplateGeneratorAgent = tradingTemplateGeneratorAgent;
         _configuration = configuration;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentOrchestrator>.Instance;
 
@@ -95,6 +98,7 @@ public class AgentOrchestrator
         // Register research agent plugins
         kernel.Plugins.AddFromObject(new MarketSentimentPlugin(_marketSentimentAgent));
         kernel.Plugins.AddFromObject(new StatisticalPatternPlugin(_statisticalPatternAgent));
+        kernel.Plugins.AddFromObject(new TradingTemplateGeneratorPlugin(_tradingTemplateGeneratorAgent));
         
         // Register consolidated plugins from redundant projects
         kernel.Plugins.AddFromObject(new CompanyValuationPlugin(_companyValuationService));

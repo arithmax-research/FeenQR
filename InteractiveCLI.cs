@@ -37,6 +37,7 @@ public class InteractiveCLI
     private readonly ILLMService _llmService;
     private readonly TechnicalAnalysisService _technicalAnalysisService;
     private readonly IntelligentAIAssistantService _aiAssistantService;
+    private readonly TradingTemplateGeneratorAgent _tradingTemplateGeneratorAgent;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -59,7 +60,8 @@ public class InteractiveCLI
         SatelliteImageryAnalysisService satelliteImageryAnalysisService,
         ILLMService llmService,
         TechnicalAnalysisService technicalAnalysisService,
-        IntelligentAIAssistantService aiAssistantService)
+        IntelligentAIAssistantService aiAssistantService,
+        TradingTemplateGeneratorAgent tradingTemplateGeneratorAgent)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -82,6 +84,7 @@ public class InteractiveCLI
         _llmService = llmService;
         _technicalAnalysisService = technicalAnalysisService;
         _aiAssistantService = aiAssistantService;
+        _tradingTemplateGeneratorAgent = tradingTemplateGeneratorAgent;
     }
 
     public async Task RunAsync()
@@ -131,9 +134,10 @@ public class InteractiveCLI
         Console.WriteLine(" 39. generate-report [symbol/portfolio] [report_type] - Generate comprehensive reports");
         Console.WriteLine(" 40. analyze-satellite-imagery [symbol] - Analyze satellite imagery for company operations");
         Console.WriteLine(" 41. scrape-social-media [symbol] - Social media sentiment analysis");
-        Console.WriteLine(" 42. clear - Clear terminal and show menu");
-        Console.WriteLine(" 43. help - Show available functions");
-        Console.WriteLine(" 44. quit - Exit the application");
+        Console.WriteLine(" 42. generate-trading-template [symbol] - Generate comprehensive trading strategy template");
+        Console.WriteLine(" 43. clear - Clear terminal and show menu");
+        Console.WriteLine(" 44. help - Show available functions");
+        Console.WriteLine(" 45. quit - Exit the application");
         Console.WriteLine();
 
         while (true)
@@ -357,6 +361,9 @@ public class InteractiveCLI
                 case "esg-footprint":
                     await EsgFootprintCommand(parts);
                     break;
+                case "generate-trading-template":
+                    await GenerateTradingTemplateCommand(parts);
+                    break;
                 case "clear":
                     await ClearCommand();
                     break;
@@ -509,9 +516,10 @@ public class InteractiveCLI
         Console.WriteLine(" 39. generate-report [symbol/portfolio] [report_type] - Generate comprehensive reports");
         Console.WriteLine(" 40. analyze-satellite-imagery [symbol] - Analyze satellite imagery for company operations");
         Console.WriteLine(" 41. scrape-social-media [symbol] - Social media sentiment analysis");
-        Console.WriteLine(" 42. clear - Clear terminal and show menu");
-        Console.WriteLine(" 43. help - Show available functions");
-        Console.WriteLine(" 44. quit - Exit the application");
+        Console.WriteLine(" 42. generate-trading-template [symbol] - Generate comprehensive trading strategy template");
+        Console.WriteLine(" 43. clear - Clear terminal and show menu");
+        Console.WriteLine(" 44. help - Show available functions");
+        Console.WriteLine(" 45. quit - Exit the application");
         Console.WriteLine();
 
         await Task.CompletedTask;
@@ -624,7 +632,8 @@ public class InteractiveCLI
         var llmService = serviceProvider.GetRequiredService<ILLMService>();
         var technicalAnalysisService = serviceProvider.GetRequiredService<TechnicalAnalysisService>();
         var aiAssistantService = serviceProvider.GetRequiredService<IntelligentAIAssistantService>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService));
+        var tradingTemplateGeneratorAgent = serviceProvider.GetRequiredService<TradingTemplateGeneratorAgent>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent));
     }
 
     // Alpaca Commands
@@ -3060,5 +3069,91 @@ public class InteractiveCLI
                 Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
             }
         }
+    }
+
+    private async Task GenerateTradingTemplateCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: generate-trading-template [symbol]");
+            Console.WriteLine("Example: generate-trading-template AAPL");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        PrintSectionHeader($"Generating Trading Strategy Template - {symbol}");
+
+        try
+        {
+            Console.WriteLine($"Researching {symbol} and generating comprehensive trading strategy template...");
+            Console.WriteLine("This may take a few minutes as it gathers market data, analyzes fundamentals,");
+            Console.WriteLine("performs technical analysis, and uses AI to create strategy parameters.");
+            Console.WriteLine();
+
+            var template = await _tradingTemplateGeneratorAgent.GenerateTradingTemplateAsync(symbol);
+
+            if (template != null)
+            {
+                Console.WriteLine($"Template Generated for: {template.Symbol}");
+                Console.WriteLine($"Strategy Type: {template.StrategyType}");
+                Console.WriteLine($"Generated At: {template.GeneratedAt:MMM dd, yyyy HH:mm} UTC");
+                Console.WriteLine();
+
+                Console.WriteLine("STRATEGY PARAMETERS:");
+                Console.WriteLine(template.StrategyParameters);
+                Console.WriteLine();
+
+                Console.WriteLine("ENTRY CONDITIONS:");
+                Console.WriteLine(template.EntryConditions);
+                Console.WriteLine();
+
+                Console.WriteLine("EXIT FRAMEWORK:");
+                Console.WriteLine(template.ExitFramework);
+                Console.WriteLine();
+
+                Console.WriteLine("RISK MANAGEMENT:");
+                Console.WriteLine(template.RiskManagement);
+                Console.WriteLine();
+
+                Console.WriteLine("TECHNICAL INDICATORS:");
+                Console.WriteLine(template.TechnicalIndicators);
+                Console.WriteLine();
+
+                Console.WriteLine("DATA REQUIREMENTS:");
+                Console.WriteLine(template.DataRequirements);
+                Console.WriteLine();
+
+                Console.WriteLine("BACKTEST CONFIGURATION:");
+                Console.WriteLine(template.BacktestConfiguration);
+                Console.WriteLine();
+
+                if (!string.IsNullOrEmpty(template.KnownLimitations))
+                {
+                    Console.WriteLine("KNOWN LIMITATIONS:");
+                    Console.WriteLine(template.KnownLimitations);
+                    Console.WriteLine();
+                }
+
+                if (!string.IsNullOrEmpty(template.ImplementationNotes))
+                {
+                    Console.WriteLine("IMPLEMENTATION NOTES:");
+                    Console.WriteLine(template.ImplementationNotes);
+                    Console.WriteLine();
+                }
+
+                Console.WriteLine("Template saved to Extracted_Strategies/ directory");
+                Console.WriteLine("The template is ready for use in QuantConnect/LEAN or other trading platforms.");
+            }
+            else
+            {
+                Console.WriteLine("Failed to generate trading template. Please check API keys and try again.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating trading template: {ex.Message}");
+        }
+
+        PrintSectionFooter();
     }
 }

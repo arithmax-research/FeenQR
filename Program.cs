@@ -191,13 +191,35 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<SatelliteImageryAnalysisService>(),
                     sp.GetRequiredService<ILLMService>(),
                     sp.GetRequiredService<TechnicalAnalysisService>(),
-                    sp.GetRequiredService<IntelligentAIAssistantService>()
+                    sp.GetRequiredService<IntelligentAIAssistantService>(),
+                    sp.GetRequiredService<TradingTemplateGeneratorAgent>()
                 )
             );
 
             // Add core services
             services.AddSingleton<LeanDataService>();
-            services.AddSingleton<AgentOrchestrator>();
+            services.AddSingleton<AgentOrchestrator>(sp =>
+                new AgentOrchestrator(
+                    sp.GetRequiredService<Kernel>(),
+                    sp.GetRequiredService<YouTubeAnalysisService>(),
+                    sp.GetRequiredService<TradingSignalService>(),
+                    sp.GetRequiredService<MarketDataService>(),
+                    sp.GetRequiredService<RiskManagementService>(),
+                    sp.GetRequiredService<PortfolioService>(),
+                    sp.GetRequiredService<MarketSentimentAgentService>(),
+                    sp.GetRequiredService<StatisticalPatternAgentService>(),
+                    sp.GetRequiredService<CompanyValuationService>(),
+                    sp.GetRequiredService<HighFrequencyDataService>(),
+                    sp.GetRequiredService<TradingStrategyLibraryService>(),
+                    sp.GetRequiredService<AlpacaService>(),
+                    sp.GetRequiredService<TechnicalAnalysisService>(),
+                    sp.GetRequiredService<RedditScrapingService>(),
+                    sp.GetRequiredService<StrategyGeneratorService>(),
+                    sp.GetRequiredService<TradingTemplateGeneratorAgent>(),
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetRequiredService<ILogger<AgentOrchestrator>>()
+                )
+            );
             services.AddSingleton<YouTubeAnalysisService>();
             services.AddSingleton<MarketDataService>(sp =>
                 new MarketDataService(
@@ -243,6 +265,22 @@ namespace QuantResearchAgent
             services.AddSingleton<StatisticalPatternAgentService>();
             services.AddSingleton<ComprehensiveStockAnalysisAgent>();
             services.AddSingleton<AcademicResearchPaperAgent>();
+            services.AddSingleton<TradingTemplateGeneratorAgent>(sp =>
+                new TradingTemplateGeneratorAgent(
+                    sp.GetRequiredService<Kernel>(),
+                    sp.GetRequiredService<ILogger<TradingTemplateGeneratorAgent>>(),
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetRequiredService<MarketDataService>(),
+                    sp.GetRequiredService<CompanyValuationService>(),
+                    sp.GetRequiredService<TechnicalAnalysisService>(),
+                    sp.GetRequiredService<NewsSentimentAnalysisService>(),
+                    sp.GetRequiredService<QuantResearchAgent.Plugins.IWebSearchPlugin>(),
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILLMService>(),
+                    sp.GetRequiredService<WebDataExtractionService>(),
+                    sp.GetRequiredService<DeepSeekService>()
+                )
+            );
         }
     }
 }

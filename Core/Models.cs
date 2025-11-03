@@ -142,3 +142,88 @@ public class RiskManagementConfig
     public double StopLossPercent { get; set; } = 0.05;
     public double TakeProfitPercent { get; set; } = 0.10;
 }
+
+/// <summary>
+/// Represents a comprehensive trading strategy template
+/// </summary>
+public class TradingTemplate
+{
+    public string Symbol { get; set; } = string.Empty;
+    public string StrategyType { get; set; } = string.Empty;
+    public DateTime GeneratedAt { get; set; }
+    public string StrategyParameters { get; set; } = string.Empty;
+    public string EntryConditions { get; set; } = string.Empty;
+    public string ExitFramework { get; set; } = string.Empty;
+    public string RiskManagement { get; set; } = string.Empty;
+    public string TechnicalIndicators { get; set; } = string.Empty;
+    public string DataRequirements { get; set; } = string.Empty;
+    public string BacktestConfiguration { get; set; } = string.Empty;
+    public string KnownLimitations { get; set; } = string.Empty;
+    public string ImplementationNotes { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Research data collected for strategy generation
+/// </summary>
+public class ResearchData
+{
+    public MarketData? MarketData { get; set; }
+    public CompanyInfo? CompanyInfo { get; set; }
+    public TechnicalAnalysis? TechnicalAnalysis { get; set; }
+    public SentimentAnalysis? SentimentAnalysis { get; set; }
+    public string WebResearch { get; set; } = string.Empty;
+    public decimal VolatilityData { get; set; }
+    public KeyLevels? KeyLevels { get; set; }
+    public Dictionary<string, object> StructuredWebData { get; set; } = new();
+}
+
+/// <summary>
+/// Key price levels for technical analysis
+/// </summary>
+public class KeyLevels
+{
+    public decimal Support { get; set; }
+    public decimal Resistance { get; set; }
+}
+
+/// <summary>
+/// Company fundamental information
+/// </summary>
+public class CompanyInfo
+{
+    public string Symbol { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Sector { get; set; } = string.Empty;
+    public string Industry { get; set; } = string.Empty;
+    public long MarketCap { get; set; }
+    public decimal PERatio { get; set; }
+    public decimal DividendYield { get; set; }
+    public decimal Beta { get; set; }
+    public string Description { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Technical analysis results
+/// </summary>
+public class TechnicalAnalysis
+{
+    public string Symbol { get; set; } = string.Empty;
+    public Dictionary<string, decimal> Indicators { get; set; } = new();
+    public List<decimal> SupportLevels { get; set; } = new();
+    public List<decimal> ResistanceLevels { get; set; } = new();
+    public string Trend { get; set; } = string.Empty;
+    public decimal Momentum { get; set; }
+}
+
+/// <summary>
+/// Sentiment analysis results
+/// </summary>
+public class SentimentAnalysis
+{
+    public string Symbol { get; set; } = string.Empty;
+    public decimal OverallSentiment { get; set; } // -1 to 1
+    public decimal NewsSentiment { get; set; }
+    public decimal SocialSentiment { get; set; }
+    public int NewsArticleCount { get; set; }
+    public DateTime AnalyzedAt { get; set; }
+}
