@@ -14,6 +14,10 @@ namespace QuantResearchAgent.Services
         private readonly string _apiKey;
         private readonly string _modelId;
         private readonly string _baseUrl;
+    private readonly bool _useAzure;
+    private readonly string? _azureEndpoint;
+    private readonly string? _deployment;
+    private readonly string? _apiVersion;
         private readonly HttpClient _httpClient;
         private readonly ILogger<OpenAIService> _logger;
 
@@ -22,6 +26,12 @@ namespace QuantResearchAgent.Services
             _apiKey = configuration["OpenAI:ApiKey"] ?? throw new ArgumentException("OpenAI API key not configured");
             _modelId = configuration["OpenAI:ModelId"] ?? "gpt-4o";
             _baseUrl = configuration["OpenAI:BaseUrl"] ?? "https://api.openai.com/v1/chat/completions";
+
+            // Azure OpenAI settings (optional)
+            _azureEndpoint = configuration["OpenAI:Azure:Endpoint"]; // e.g. https://your-resource.cognitiveservices.azure.com/
+            _deployment = configuration["OpenAI:Azure:Deployment"]; // deployment name
+            _apiVersion = configuration["OpenAI:Azure:ApiVersion"]; // e.g. 2025-01-01-preview
+            _useAzure = !string.IsNullOrEmpty(_azureEndpoint) && !string.IsNullOrEmpty(_deployment);
             _httpClient = httpClient;
             _logger = logger;
         }
@@ -30,18 +40,46 @@ namespace QuantResearchAgent.Services
         {
             try
             {
-                var requestBody = new
+                object requestBody;
+                string requestUrl = _baseUrl;
+
+                if (_useAzure)
                 {
-                    model = _modelId,
-                    messages = new[]
+                    // For Azure OpenAI, the deployment is encoded in the URL; model param is optional.
+                    var apiVer = _apiVersion ?? "2025-01-01-preview";
+                    requestUrl = $"{_azureEndpoint!.TrimEnd('/')}/openai/deployments/{_deployment!}/chat/completions?api-version={apiVer}";
+                    requestBody = new
                     {
-                        new { role = "user", content = prompt }
-                    }
-                };
+                        messages = new[]
+                        {
+                            new { role = "user", content = prompt }
+                        }
+                    };
+                }
+                else
+                {
+                    requestUrl = _baseUrl;
+                    requestBody = new
+                    {
+                        model = _modelId,
+                        messages = new[]
+                        {
+                            new { role = "user", content = prompt }
+                        }
+                    };
+                }
 
                 var requestJson = JsonSerializer.Serialize(requestBody);
-                var request = new HttpRequestMessage(HttpMethod.Post, _baseUrl);
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+                var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+                if (_useAzure)
+                {
+                    // Azure uses api-key header
+                    request.Headers.Add("api-key", _apiKey);
+                }
+                else
+                {
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+                }
                 request.Content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
                 var response = await _httpClient.SendAsync(request);
