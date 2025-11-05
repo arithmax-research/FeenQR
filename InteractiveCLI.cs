@@ -3182,9 +3182,11 @@ public class InteractiveCLI
         {
             Console.WriteLine("Usage: statistical-test [test_type] [data]");
             Console.WriteLine("Test types: t-test, anova, chi-square, mann-whitney");
-            Console.WriteLine("Data format: For t-test/mann-whitney: sample1,sample2,sample3|sample4,sample5,sample6");
-            Console.WriteLine("            For anova: [group1],[group2],[group3]");
-            Console.WriteLine("            For chi-square: [[10,5],[8,12]]");
+            Console.WriteLine("Data formats:");
+            Console.WriteLine("  Manual: For t-test/mann-whitney: sample1,sample2,sample3|sample4,sample5,sample6");
+            Console.WriteLine("          For anova: [group1],[group2],[group3]");
+            Console.WriteLine("          For chi-square: [[10,5],[8,12]]");
+            Console.WriteLine("  Data Source: alpaca-historical [symbol] [days] or yahoo-historical [symbol] [days]");
             return;
         }
 
@@ -3195,59 +3197,126 @@ public class InteractiveCLI
 
         try
         {
-            QuantResearchAgent.Core.StatisticalTest? result = null;
-
-            switch (testType)
+            // Check if this is a data source command
+            if (data.StartsWith("alpaca-historical") || data.StartsWith("yahoo-historical"))
             {
-                case "t-test":
-                    var samples = data.Split('|');
-                    if (samples.Length != 2)
-                        throw new ArgumentException("T-test requires two samples separated by |");
-                    var sample1 = samples[0].Split(',').Select(double.Parse).ToArray();
-                    var sample2 = samples[1].Split(',').Select(double.Parse).ToArray();
-                    result = _statisticalTestingService.PerformTTest(sample1, sample2);
-                    break;
-
-                case "anova":
-                    var groups = System.Text.Json.JsonSerializer.Deserialize<double[][]>(data);
-                    if (groups == null)
-                        throw new ArgumentException("Invalid ANOVA data format");
-                    result = _statisticalTestingService.PerformANOVA(groups);
-                    break;
-
-                case "chi-square":
-                    var table = System.Text.Json.JsonSerializer.Deserialize<double[][]>(data);
-                    if (table == null || table.Length == 0)
-                        throw new ArgumentException("Invalid contingency table format");
-                    double[,] contingencyTable = new double[table.Length, table[0].Length];
-                    for (int i = 0; i < table.Length; i++)
-                        for (int j = 0; j < table[0].Length; j++)
-                            contingencyTable[i, j] = table[i][j];
-                    result = _statisticalTestingService.PerformChiSquareTest(contingencyTable);
-                    break;
-
-                case "mann-whitney":
-                    var mwSamples = data.Split('|');
-                    if (mwSamples.Length != 2)
-                        throw new ArgumentException("Mann-Whitney test requires two samples separated by |");
-                    var mwSample1 = mwSamples[0].Split(',').Select(double.Parse).ToArray();
-                    var mwSample2 = mwSamples[1].Split(',').Select(double.Parse).ToArray();
-                    result = _statisticalTestingService.PerformMannWhitneyTest(mwSample1, mwSample2);
-                    break;
-
-                default:
-                    Console.WriteLine($"Unsupported test type: {testType}");
+                var dataSourceParts = data.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (dataSourceParts.Length < 3)
+                {
+                    Console.WriteLine("Usage: statistical-test [test_type] [data-source] [symbol] [days]");
+                    Console.WriteLine("Example: statistical-test t-test alpaca-historical PLTR 30");
                     return;
-            }
+                }
 
-            if (result != null)
+                var dataSource = dataSourceParts[0];
+                var symbol = dataSourceParts[1];
+                if (!int.TryParse(dataSourceParts[2], out var days))
+                {
+                    Console.WriteLine("Error: Days must be a valid integer");
+                    return;
+                }
+
+                var result = await _statisticalTestingService.PerformTestFromDataSourceAsync(testType, dataSource, symbol, days);
+
+                if (result != null)
+                {
+                    Console.WriteLine($"Test: {result.Test.TestType}");
+                    Console.WriteLine($"Data Source: {dataSource}");
+                    Console.WriteLine($"Symbol: {symbol}");
+                    Console.WriteLine($"Days: {days}");
+                    Console.WriteLine($"Data Points: {result.DataPoints}");
+
+                    // Display data summary
+                    if (result.Data != null && result.Data.Any())
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Data Summary:");
+                        Console.WriteLine($"  Count: {result.Data.Count}");
+                        Console.WriteLine($"  Range: {result.Data.Min():F2} - {result.Data.Max():F2}");
+                        Console.WriteLine($"  Mean: {result.Data.Average():F2}");
+                        Console.WriteLine($"  Std Dev: {Math.Sqrt(result.Data.Sum(x => Math.Pow(x - result.Data.Average(), 2)) / (result.Data.Count - 1)):F2}");
+
+                        // Display first and last few data points
+                        Console.WriteLine("  Sample Data Points:");
+                        var firstPoints = result.Data.Take(5).Select((x, i) => $"{i + 1}: {x:F2}");
+                        var lastPoints = result.Data.Skip(Math.Max(0, result.Data.Count - 5)).Take(5)
+                            .Select((x, i) => $"{result.Data.Count - 4 + i}: {x:F2}");
+                        Console.WriteLine($"    First: {string.Join(", ", firstPoints)}");
+                        Console.WriteLine($"    Last:  {string.Join(", ", lastPoints)}");
+                    }
+
+                    Console.WriteLine();
+                    Console.WriteLine("Test Results:");
+                    Console.WriteLine($"Test Statistic: {result.Test.TestStatistic:F4}");
+                    Console.WriteLine($"P-Value: {result.Test.PValue:F4}");
+                    Console.WriteLine($"Significant: {result.Test.IsSignificant}");
+                    Console.WriteLine($"Conclusion: {result.Test.Interpretation}");
+
+                    if (!string.IsNullOrEmpty(result.AIInterpretation))
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("AI Interpretation:");
+                        Console.WriteLine(result.AIInterpretation);
+                    }
+                }
+            }
+            else
             {
-                Console.WriteLine($"Test: {result.TestName}");
-                Console.WriteLine($"Type: {result.TestType}");
-                Console.WriteLine($"Statistic: {result.TestStatistic:F4}");
-                Console.WriteLine($"P-Value: {result.PValue:F4}");
-                Console.WriteLine($"Significant: {result.IsSignificant}");
-                Console.WriteLine($"Interpretation: {result.Interpretation}");
+                // Original manual data format
+                QuantResearchAgent.Core.StatisticalTest? result = null;
+
+                switch (testType)
+                {
+                    case "t-test":
+                        var samples = data.Split('|');
+                        if (samples.Length != 2)
+                            throw new ArgumentException("T-test requires two samples separated by |");
+                        var sample1 = samples[0].Split(',').Select(double.Parse).ToArray();
+                        var sample2 = samples[1].Split(',').Select(double.Parse).ToArray();
+                        result = _statisticalTestingService.PerformTTest(sample1, sample2);
+                        break;
+
+                    case "anova":
+                        var groups = System.Text.Json.JsonSerializer.Deserialize<double[][]>(data);
+                        if (groups == null)
+                            throw new ArgumentException("Invalid ANOVA data format");
+                        result = _statisticalTestingService.PerformANOVA(groups);
+                        break;
+
+                    case "chi-square":
+                        var table = System.Text.Json.JsonSerializer.Deserialize<double[][]>(data);
+                        if (table == null || table.Length == 0)
+                            throw new ArgumentException("Invalid contingency table format");
+                        double[,] contingencyTable = new double[table.Length, table[0].Length];
+                        for (int i = 0; i < table.Length; i++)
+                            for (int j = 0; j < table[0].Length; j++)
+                                contingencyTable[i, j] = table[i][j];
+                        result = _statisticalTestingService.PerformChiSquareTest(contingencyTable);
+                        break;
+
+                    case "mann-whitney":
+                        var mwSamples = data.Split('|');
+                        if (mwSamples.Length != 2)
+                            throw new ArgumentException("Mann-Whitney test requires two samples separated by |");
+                        var mwSample1 = mwSamples[0].Split(',').Select(double.Parse).ToArray();
+                        var mwSample2 = mwSamples[1].Split(',').Select(double.Parse).ToArray();
+                        result = _statisticalTestingService.PerformMannWhitneyTest(mwSample1, mwSample2);
+                        break;
+
+                    default:
+                        Console.WriteLine($"Unsupported test type: {testType}");
+                        return;
+                }
+
+                if (result != null)
+                {
+                    Console.WriteLine($"Test: {result.TestName}");
+                    Console.WriteLine($"Type: {result.TestType}");
+                    Console.WriteLine($"Statistic: {result.TestStatistic:F4}");
+                    Console.WriteLine($"P-Value: {result.PValue:F4}");
+                    Console.WriteLine($"Significant: {result.IsSignificant}");
+                    Console.WriteLine($"Interpretation: {result.Interpretation}");
+                }
             }
         }
         catch (Exception ex)

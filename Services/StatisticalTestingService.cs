@@ -3,6 +3,7 @@ using QuantResearchAgent.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using MathNet.Numerics.Statistics;
 using MathNet.Numerics.Distributions;
 
@@ -11,10 +12,20 @@ namespace QuantResearchAgent.Services;
 public class StatisticalTestingService
 {
     private readonly ILogger<StatisticalTestingService> _logger;
+    private readonly AlpacaService _alpacaService;
+    private readonly YahooFinanceService _yahooFinanceService;
+    private readonly ILLMService _llmService;
 
-    public StatisticalTestingService(ILogger<StatisticalTestingService> logger)
+    public StatisticalTestingService(
+        ILogger<StatisticalTestingService> logger,
+        AlpacaService alpacaService,
+        YahooFinanceService yahooFinanceService,
+        ILLMService llmService)
     {
         _logger = logger;
+        _alpacaService = alpacaService;
+        _yahooFinanceService = yahooFinanceService;
+        _llmService = llmService;
     }
 
     /// <summary>
@@ -305,35 +316,245 @@ public class StatisticalTestingService
     }
 
     /// <summary>
-    /// Performs power analysis for t-test
+    /// Performs a statistical test using data from a specified source
     /// </summary>
-    public PowerAnalysis PerformPowerAnalysis(double effectSize, int sampleSize,
-        double significanceLevel = 0.05, string testType = "two-sample")
+    public async Task<StatisticalTestResult> PerformTestFromDataSourceAsync(
+        string testType,
+        string dataSource,
+        string symbol,
+        int days = 30,
+        double significanceLevel = 0.05,
+        string? additionalParams = null)
     {
-        // Simplified power analysis using approximation
-        // Power = 1 - β, where β is the probability of Type II error
+        var data = await FetchDataFromSourceAsync(dataSource, symbol, days);
+        if (data == null || !data.Any())
+            throw new ArgumentException($"No data available for {symbol} from {dataSource}");
 
-        // For two-sample t-test, approximate power using normal distribution
-        double criticalValue = StudentT.InvCDF(0, 1, 2 * (sampleSize - 1), 1 - significanceLevel / 2);
-        double nonCentralityParameter = effectSize * Math.Sqrt(sampleSize / 2.0);
-
-        // Approximate power using normal distribution
-        double beta = 1 - Normal.CDF(criticalValue - nonCentralityParameter, 0, 1);
-        double power = 1 - beta;
-
-        return new PowerAnalysis
+        return testType.ToLower() switch
         {
-            EffectSize = effectSize,
-            SampleSize = sampleSize,
-            Power = Math.Max(0, Math.Min(1, power)), // Clamp between 0 and 1
-            SignificanceLevel = significanceLevel,
-            TestType = testType,
-            Parameters = new Dictionary<string, double>
-            {
-                ["CriticalValue"] = criticalValue,
-                ["NonCentralityParameter"] = nonCentralityParameter,
-                ["Beta"] = beta
-            }
+            "t-test" => await PerformTTestFromDataAsync(data, significanceLevel),
+            "anova" => await PerformANOVAFromDataAsync(data, significanceLevel),
+            "mann-whitney" => await PerformMannWhitneyFromDataAsync(data, significanceLevel),
+            _ => throw new ArgumentException($"Unsupported test type: {testType}")
         };
+    }
+
+    /// <summary>
+    /// Fetches data from specified source
+    /// </summary>
+    private async Task<List<double>> FetchDataFromSourceAsync(string dataSource, string symbol, int days)
+    {
+        return dataSource.ToLower() switch
+        {
+            "alpaca" or "alpaca-historical" => await FetchAlpacaDataAsync(symbol, days),
+            "yahoo" or "yahoo-historical" => await FetchYahooDataAsync(symbol, days),
+            _ => throw new ArgumentException($"Unsupported data source: {dataSource}")
+        };
+    }
+
+    /// <summary>
+    /// Fetches historical data from Alpaca
+    /// </summary>
+    private async Task<List<double>> FetchAlpacaDataAsync(string symbol, int days)
+    {
+        try
+        {
+            var historicalData = await _alpacaService.GetHistoricalBarsAsync(symbol, days);
+            return historicalData.Select(d => (double)d.Close).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch Alpaca data for {Symbol}", symbol);
+            throw new Exception($"Failed to fetch Alpaca data: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Fetches historical data from Yahoo Finance
+    /// </summary>
+    private async Task<List<double>> FetchYahooDataAsync(string symbol, int days)
+    {
+        try
+        {
+            // YahooFinanceService doesn't have historical data, use current data as fallback
+            var currentData = await _yahooFinanceService.GetMarketDataAsync(symbol);
+            if (currentData != null)
+            {
+                return new List<double> { (double)currentData.CurrentPrice };
+            }
+            throw new Exception("Yahoo Finance historical data not available");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch Yahoo data for {Symbol}", symbol);
+            throw new Exception($"Failed to fetch Yahoo data: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Performs t-test on data split into two halves
+    /// </summary>
+    private async Task<StatisticalTestResult> PerformTTestFromDataAsync(List<double> data, double significanceLevel)
+    {
+        if (data.Count < 4)
+            throw new ArgumentException("Need at least 4 data points for t-test");
+
+        var midPoint = data.Count / 2;
+        var firstHalf = data.Take(midPoint).ToArray();
+        var secondHalf = data.Skip(midPoint).ToArray();
+
+        var test = PerformTTest(firstHalf, secondHalf, true, significanceLevel);
+        var interpretation = await InterpretStatisticalResultAsync(test, data, "t-test");
+
+        return new StatisticalTestResult
+        {
+            Test = test,
+            DataSource = "Historical Price Data",
+            DataPoints = data.Count,
+            TimeRange = $"{data.Count} days",
+            Data = data,
+            AIInterpretation = interpretation
+        };
+    }
+
+    /// <summary>
+    /// Performs ANOVA on data divided into quartiles
+    /// </summary>
+    private async Task<StatisticalTestResult> PerformANOVAFromDataAsync(List<double> data, double significanceLevel)
+    {
+        if (data.Count < 12)
+            throw new ArgumentException("Need at least 12 data points for ANOVA");
+
+        var sortedData = data.OrderBy(x => x).ToList();
+        var groupSize = sortedData.Count / 4;
+        var groups = new List<IEnumerable<double>>
+        {
+            sortedData.Take(groupSize),
+            sortedData.Skip(groupSize).Take(groupSize),
+            sortedData.Skip(2 * groupSize).Take(groupSize),
+            sortedData.Skip(3 * groupSize)
+        };
+
+        var test = PerformANOVA(groups, significanceLevel);
+        var interpretation = await InterpretStatisticalResultAsync(test, data, "anova");
+
+        return new StatisticalTestResult
+        {
+            Test = test,
+            DataSource = "Historical Price Data",
+            DataPoints = data.Count,
+            TimeRange = $"{data.Count} days",
+            AIInterpretation = interpretation
+        };
+    }
+
+    /// <summary>
+    /// Performs Mann-Whitney test on data split into two halves
+    /// </summary>
+    private async Task<StatisticalTestResult> PerformMannWhitneyFromDataAsync(List<double> data, double significanceLevel)
+    {
+        if (data.Count < 4)
+            throw new ArgumentException("Need at least 4 data points for Mann-Whitney test");
+
+        var midPoint = data.Count / 2;
+        var firstHalf = data.Take(midPoint).ToArray();
+        var secondHalf = data.Skip(midPoint).ToArray();
+
+        var test = PerformMannWhitneyTest(firstHalf, secondHalf, significanceLevel);
+        var interpretation = await InterpretStatisticalResultAsync(test, data, "mann-whitney");
+
+        return new StatisticalTestResult
+        {
+            Test = test,
+            DataSource = "Historical Price Data",
+            DataPoints = data.Count,
+            TimeRange = $"{data.Count} days",
+            AIInterpretation = interpretation
+        };
+    }
+
+    /// <summary>
+    /// Uses AI to interpret statistical test results for investment insights
+    /// </summary>
+    private async Task<string> InterpretStatisticalResultAsync(StatisticalTest test, List<double> data, string testType)
+    {
+        try
+        {
+            var dataSummary = $"Data points: {data.Count}, Range: {data.Min():F2} - {data.Max():F2}, Mean: {data.Average():F2}";
+            var testSummary = $"{test.TestName}: statistic={test.TestStatistic:F4}, p-value={test.PValue:F4}, significant={test.IsSignificant}";
+
+            var prompt = $@"
+Analyze this statistical test result for investment decision making:
+
+Test Type: {testType}
+Data Summary: {dataSummary}
+Test Results: {testSummary}
+Interpretation: {test.Interpretation}
+
+Please provide:
+1. What this statistical result means for investors
+2. Potential implications for the stock price movement
+3. Whether this suggests any trading opportunities
+4. Risk considerations based on the statistical findings
+
+Keep the analysis concise but insightful for investment decisions.
+";
+
+            var response = await _llmService.GetChatCompletionAsync(prompt);
+            return response.Trim();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate AI interpretation");
+            return "AI interpretation unavailable due to technical issues.";
+        }
+    }
+
+    /// <summary>
+    /// Performs power analysis for statistical tests
+    /// </summary>
+    public PowerAnalysis PerformPowerAnalysis(double effectSize, int sampleSize)
+    {
+        return PerformPowerAnalysis(effectSize, sampleSize, 0.05, "two-sample");
+    }
+
+    /// <summary>
+    /// Performs power analysis for statistical tests with custom parameters
+    /// </summary>
+    public PowerAnalysis PerformPowerAnalysis(double effectSize, int sampleSize, double significanceLevel, string testType)
+    {
+        try
+        {
+            // Calculate statistical power using normal distribution approximation
+            // For two-sample t-test: power = 1 - β where β is Type II error
+            // Using the formula: power = Φ(δ√(n/2) - z_α/2) where δ is effect size
+
+            double zAlpha = MathNet.Numerics.Distributions.Normal.InvCDF(0, 1, 1 - significanceLevel / 2);
+            double delta = effectSize * Math.Sqrt(sampleSize / 2.0);
+            double power = MathNet.Numerics.Distributions.Normal.CDF(0, 1, delta - zAlpha);
+
+            // Ensure power is between 0 and 1
+            power = Math.Max(0, Math.Min(1, power));
+
+            return new PowerAnalysis
+            {
+                EffectSize = effectSize,
+                SampleSize = sampleSize,
+                Power = power,
+                SignificanceLevel = significanceLevel,
+                TestType = testType,
+                Parameters = new Dictionary<string, double>
+                {
+                    ["z_alpha"] = zAlpha,
+                    ["delta"] = delta,
+                    ["critical_value"] = zAlpha
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing power analysis");
+            throw new Exception($"Power analysis failed: {ex.Message}");
+        }
     }
 }

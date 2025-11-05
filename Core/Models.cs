@@ -292,3 +292,17 @@ public class CointegrationTest
     public List<double> CointegrationVector { get; set; } = new();
     public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
 }
+
+/// <summary>
+/// Statistical test result with data source and AI interpretation
+/// </summary>
+public class StatisticalTestResult
+{
+    public StatisticalTest Test { get; set; } = new();
+    public string DataSource { get; set; } = string.Empty;
+    public int DataPoints { get; set; }
+    public string TimeRange { get; set; } = string.Empty;
+    public List<double> Data { get; set; } = new();
+    public string AIInterpretation { get; set; } = string.Empty;
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
