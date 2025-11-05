@@ -179,6 +179,7 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<YahooFinanceService>(),
                     sp.GetRequiredService<AlpacaService>(),
                     sp.GetRequiredService<PolygonService>(),
+                    sp.GetRequiredService<MarketDataService>(),
                     sp.GetRequiredService<DataBentoService>(),
                     sp.GetRequiredService<YFinanceNewsService>(),
                     sp.GetRequiredService<FinvizNewsService>(),
@@ -193,7 +194,9 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<TechnicalAnalysisService>(),
                     sp.GetRequiredService<IntelligentAIAssistantService>(),
                     sp.GetRequiredService<TradingTemplateGeneratorAgent>(),
-                    sp.GetRequiredService<StatisticalTestingService>()
+                    sp.GetRequiredService<StatisticalTestingService>(),
+                    sp.GetRequiredService<TimeSeriesAnalysisService>(),
+                    sp.GetRequiredService<CointegrationAnalysisService>()
                 )
             );
 
@@ -263,6 +266,12 @@ namespace QuantResearchAgent
 
             // Add statistical testing service
             services.AddSingleton<StatisticalTestingService>();
+
+            // Add time series analysis service
+            services.AddSingleton<TimeSeriesAnalysisService>();
+
+            // Add cointegration analysis service
+            services.AddSingleton<CointegrationAnalysisService>();
 
             // Add research agents
             services.AddSingleton<NewsScrapingService>();

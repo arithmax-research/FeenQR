@@ -306,3 +306,101 @@ public class StatisticalTestResult
     public string AIInterpretation { get; set; } = string.Empty;
     public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
 }
+
+/// <summary>
+/// Stationarity test result (ADF, KPSS, Phillips-Perron)
+/// </summary>
+public class StationarityTestResult
+{
+    public string TestType { get; set; } = string.Empty; // "ADF", "KPSS", "Phillips-Perron"
+    public double TestStatistic { get; set; }
+    public Dictionary<double, double> CriticalValues { get; set; } = new();
+    public bool IsStationary { get; set; }
+    public int LagOrder { get; set; }
+    public double SignificanceLevel { get; set; } = 0.05;
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Autocorrelation analysis result
+/// </summary>
+public class AutocorrelationResult
+{
+    public List<double> Autocorrelations { get; set; } = new();
+    public List<double> PartialAutocorrelations { get; set; } = new();
+    public int MaxLags { get; set; }
+    public double LjungBoxStatistic { get; set; }
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Seasonal decomposition result
+/// </summary>
+public class SeasonalDecompositionResult
+{
+    public double[] OriginalData { get; set; } = Array.Empty<double>();
+    public double[] Trend { get; set; } = Array.Empty<double>();
+    public double[] Seasonal { get; set; } = Array.Empty<double>();
+    public double[] Residual { get; set; } = Array.Empty<double>();
+    public int SeasonalPeriod { get; set; }
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Engle-Granger cointegration test result
+/// </summary>
+public class EngleGrangerResult
+{
+    public List<string> Symbols { get; set; } = new();
+    public double TestStatistic { get; set; }
+    public Dictionary<double, double> CriticalValues { get; set; } = new();
+    public bool IsCointegrated { get; set; }
+    public double[] CointegrationVector { get; set; } = Array.Empty<double>();
+    public double ResidualVariance { get; set; }
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Johansen cointegration test result
+/// </summary>
+public class JohansenResult
+{
+    public List<string> Symbols { get; set; } = new();
+    public int Rank { get; set; } // Number of cointegrating relationships
+    public double[] Eigenvalues { get; set; } = Array.Empty<double>();
+    public double[] TraceStatistics { get; set; } = Array.Empty<double>();
+    public double[] MaxEigenvalueStatistics { get; set; } = Array.Empty<double>();
+    public Dictionary<double, double[]> CriticalValues { get; set; } = new();
+    public double[][] CointegrationVectors { get; set; } = Array.Empty<double[]>();
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Granger causality test result
+/// </summary>
+public class GrangerCausalityResult
+{
+    public string CauseSymbol { get; set; } = string.Empty;
+    public string EffectSymbol { get; set; } = string.Empty;
+    public int LagOrder { get; set; }
+    public double FStatistic { get; set; }
+    public double PValue { get; set; }
+    public bool GrangerCauses { get; set; }
+    public double SignificanceLevel { get; set; } = 0.05;
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Lead-lag relationship analysis result
+/// </summary>
+public class LeadLagResult
+{
+    public string Symbol1 { get; set; } = string.Empty;
+    public string Symbol2 { get; set; } = string.Empty;
+    public int OptimalLag { get; set; }
+    public double CrossCorrelation { get; set; }
+    public bool Symbol1Leads { get; set; }
+    public int LagPeriods { get; set; }
+    public double[] CrossCorrelations { get; set; } = Array.Empty<double>();
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
