@@ -38,6 +38,7 @@ public class InteractiveCLI
     private readonly TechnicalAnalysisService _technicalAnalysisService;
     private readonly IntelligentAIAssistantService _aiAssistantService;
     private readonly TradingTemplateGeneratorAgent _tradingTemplateGeneratorAgent;
+    private readonly StatisticalTestingService _statisticalTestingService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -61,7 +62,8 @@ public class InteractiveCLI
         ILLMService llmService,
         TechnicalAnalysisService technicalAnalysisService,
         IntelligentAIAssistantService aiAssistantService,
-        TradingTemplateGeneratorAgent tradingTemplateGeneratorAgent)
+        TradingTemplateGeneratorAgent tradingTemplateGeneratorAgent,
+        StatisticalTestingService statisticalTestingService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -85,6 +87,7 @@ public class InteractiveCLI
         _technicalAnalysisService = technicalAnalysisService;
         _aiAssistantService = aiAssistantService;
         _tradingTemplateGeneratorAgent = tradingTemplateGeneratorAgent;
+        _statisticalTestingService = statisticalTestingService;
     }
 
     public async Task RunAsync()
@@ -135,9 +138,12 @@ public class InteractiveCLI
         Console.WriteLine(" 40. analyze-satellite-imagery [symbol] - Analyze satellite imagery for company operations");
         Console.WriteLine(" 41. scrape-social-media [symbol] - Social media sentiment analysis");
         Console.WriteLine(" 42. generate-trading-template [symbol] - Generate comprehensive trading strategy template");
-        Console.WriteLine(" 43. clear - Clear terminal and show menu");
-        Console.WriteLine(" 44. help - Show available functions");
-        Console.WriteLine(" 45. quit - Exit the application");
+        Console.WriteLine(" 43. statistical-test [test_type] [data] - Perform statistical hypothesis testing");
+        Console.WriteLine(" 44. hypothesis-test [null_hypothesis] [alternative] - Run hypothesis test with custom hypotheses");
+        Console.WriteLine(" 45. power-analysis [effect_size] [sample_size] - Calculate statistical power and sample size");
+        Console.WriteLine(" 46. clear - Clear terminal and show menu");
+        Console.WriteLine(" 47. help - Show available functions");
+        Console.WriteLine(" 48. quit - Exit the application");
         Console.WriteLine();
 
         while (true)
@@ -364,6 +370,15 @@ public class InteractiveCLI
                 case "generate-trading-template":
                     await GenerateTradingTemplateCommand(parts);
                     break;
+                case "statistical-test":
+                    await StatisticalTestCommand(parts);
+                    break;
+                case "hypothesis-test":
+                    await HypothesisTestCommand(parts);
+                    break;
+                case "power-analysis":
+                    await PowerAnalysisCommand(parts);
+                    break;
                 case "clear":
                     await ClearCommand();
                     break;
@@ -517,9 +532,12 @@ public class InteractiveCLI
         Console.WriteLine(" 40. analyze-satellite-imagery [symbol] - Analyze satellite imagery for company operations");
         Console.WriteLine(" 41. scrape-social-media [symbol] - Social media sentiment analysis");
         Console.WriteLine(" 42. generate-trading-template [symbol] - Generate comprehensive trading strategy template");
-        Console.WriteLine(" 43. clear - Clear terminal and show menu");
-        Console.WriteLine(" 44. help - Show available functions");
-        Console.WriteLine(" 45. quit - Exit the application");
+        Console.WriteLine(" 43. statistical-test [test_type] [data] - Perform statistical hypothesis testing");
+        Console.WriteLine(" 44. hypothesis-test [null_hypothesis] [alternative] - Run hypothesis test with custom hypotheses");
+        Console.WriteLine(" 45. power-analysis [effect_size] [sample_size] - Calculate statistical power and sample size");
+        Console.WriteLine(" 46. clear - Clear terminal and show menu");
+        Console.WriteLine(" 47. help - Show available functions");
+        Console.WriteLine(" 48. quit - Exit the application");
         Console.WriteLine();
 
         await Task.CompletedTask;
@@ -633,7 +651,8 @@ public class InteractiveCLI
         var technicalAnalysisService = serviceProvider.GetRequiredService<TechnicalAnalysisService>();
         var aiAssistantService = serviceProvider.GetRequiredService<IntelligentAIAssistantService>();
         var tradingTemplateGeneratorAgent = serviceProvider.GetRequiredService<TradingTemplateGeneratorAgent>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent));
+        var statisticalTestingService = serviceProvider.GetRequiredService<StatisticalTestingService>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService));
     }
 
     // Alpaca Commands
@@ -3152,6 +3171,202 @@ public class InteractiveCLI
         catch (Exception ex)
         {
             Console.WriteLine($"Error generating trading template: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task StatisticalTestCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: statistical-test [test_type] [data]");
+            Console.WriteLine("Test types: t-test, anova, chi-square, mann-whitney");
+            Console.WriteLine("Data format: For t-test/mann-whitney: sample1,sample2,sample3|sample4,sample5,sample6");
+            Console.WriteLine("            For anova: [group1],[group2],[group3]");
+            Console.WriteLine("            For chi-square: [[10,5],[8,12]]");
+            return;
+        }
+
+        var testType = parts[1].ToLower();
+        var data = string.Join(" ", parts.Skip(2));
+
+        PrintSectionHeader($"Statistical Test - {testType.ToUpper()}");
+
+        try
+        {
+            QuantResearchAgent.Core.StatisticalTest? result = null;
+
+            switch (testType)
+            {
+                case "t-test":
+                    var samples = data.Split('|');
+                    if (samples.Length != 2)
+                        throw new ArgumentException("T-test requires two samples separated by |");
+                    var sample1 = samples[0].Split(',').Select(double.Parse).ToArray();
+                    var sample2 = samples[1].Split(',').Select(double.Parse).ToArray();
+                    result = _statisticalTestingService.PerformTTest(sample1, sample2);
+                    break;
+
+                case "anova":
+                    var groups = System.Text.Json.JsonSerializer.Deserialize<double[][]>(data);
+                    if (groups == null)
+                        throw new ArgumentException("Invalid ANOVA data format");
+                    result = _statisticalTestingService.PerformANOVA(groups);
+                    break;
+
+                case "chi-square":
+                    var table = System.Text.Json.JsonSerializer.Deserialize<double[][]>(data);
+                    if (table == null || table.Length == 0)
+                        throw new ArgumentException("Invalid contingency table format");
+                    double[,] contingencyTable = new double[table.Length, table[0].Length];
+                    for (int i = 0; i < table.Length; i++)
+                        for (int j = 0; j < table[0].Length; j++)
+                            contingencyTable[i, j] = table[i][j];
+                    result = _statisticalTestingService.PerformChiSquareTest(contingencyTable);
+                    break;
+
+                case "mann-whitney":
+                    var mwSamples = data.Split('|');
+                    if (mwSamples.Length != 2)
+                        throw new ArgumentException("Mann-Whitney test requires two samples separated by |");
+                    var mwSample1 = mwSamples[0].Split(',').Select(double.Parse).ToArray();
+                    var mwSample2 = mwSamples[1].Split(',').Select(double.Parse).ToArray();
+                    result = _statisticalTestingService.PerformMannWhitneyTest(mwSample1, mwSample2);
+                    break;
+
+                default:
+                    Console.WriteLine($"Unsupported test type: {testType}");
+                    return;
+            }
+
+            if (result != null)
+            {
+                Console.WriteLine($"Test: {result.TestName}");
+                Console.WriteLine($"Type: {result.TestType}");
+                Console.WriteLine($"Statistic: {result.TestStatistic:F4}");
+                Console.WriteLine($"P-Value: {result.PValue:F4}");
+                Console.WriteLine($"Significant: {result.IsSignificant}");
+                Console.WriteLine($"Interpretation: {result.Interpretation}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error performing statistical test: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task HypothesisTestCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: hypothesis-test [test_type] [data] [null_hypothesis] [alternative_hypothesis]");
+            Console.WriteLine("Test types: t-test, anova, chi-square, mann-whitney");
+            return;
+        }
+
+        var testType = parts[1].ToLower();
+        var data = parts[2];
+        var nullHypothesis = parts[3];
+        var alternativeHypothesis = string.Join(" ", parts.Skip(4));
+
+        PrintSectionHeader("Hypothesis Test");
+
+        try
+        {
+            QuantResearchAgent.Core.StatisticalTest? result = null;
+
+            switch (testType)
+            {
+                case "t-test":
+                    var samples = data.Split('|');
+                    var sample1 = samples[0].Split(',').Select(double.Parse).ToArray();
+                    var sample2 = samples[1].Split(',').Select(double.Parse).ToArray();
+                    result = _statisticalTestingService.PerformTTest(sample1, sample2);
+                    break;
+
+                case "anova":
+                    var groups = System.Text.Json.JsonSerializer.Deserialize<double[][]>(data);
+                    if (groups == null)
+                        throw new ArgumentException("Invalid ANOVA data format");
+                    result = _statisticalTestingService.PerformANOVA(groups);
+                    break;
+
+                case "mann-whitney":
+                    var mwSamples = data.Split('|');
+                    var mwSample1 = mwSamples[0].Split(',').Select(double.Parse).ToArray();
+                    var mwSample2 = mwSamples[1].Split(',').Select(double.Parse).ToArray();
+                    result = _statisticalTestingService.PerformMannWhitneyTest(mwSample1, mwSample2);
+                    break;
+
+                default:
+                    Console.WriteLine($"Unsupported test type for hypothesis testing: {testType}");
+                    return;
+            }
+
+            if (result != null)
+            {
+                result.NullHypothesis = nullHypothesis;
+                result.AlternativeHypothesis = alternativeHypothesis;
+
+                Console.WriteLine($"Test: {result.TestName}");
+                Console.WriteLine($"Null Hypothesis: {result.NullHypothesis}");
+                Console.WriteLine($"Alternative Hypothesis: {result.AlternativeHypothesis}");
+                Console.WriteLine($"Statistic: {result.TestStatistic:F4}");
+                Console.WriteLine($"P-Value: {result.PValue:F4}");
+                Console.WriteLine($"Significant: {result.IsSignificant}");
+                Console.WriteLine($"Conclusion: {(result.IsSignificant ? result.AlternativeHypothesis : result.NullHypothesis)}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error performing hypothesis test: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task PowerAnalysisCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: power-analysis [effect_size] [sample_size]");
+            Console.WriteLine("Example: power-analysis 0.5 30");
+            return;
+        }
+
+        if (!double.TryParse(parts[1], out double effectSize) || !int.TryParse(parts[2], out int sampleSize))
+        {
+            Console.WriteLine("Invalid parameters. Effect size must be a number, sample size must be an integer.");
+            return;
+        }
+
+        PrintSectionHeader("Power Analysis");
+
+        try
+        {
+            var result = _statisticalTestingService.PerformPowerAnalysis(effectSize, sampleSize);
+
+            Console.WriteLine($"Effect Size: {result.EffectSize:F2}");
+            Console.WriteLine($"Sample Size (per group): {result.SampleSize}");
+            Console.WriteLine($"Statistical Power: {result.Power:F3}");
+            Console.WriteLine($"Significance Level: {result.SignificanceLevel:F2}");
+
+            if (result.Power < 0.8)
+            {
+                Console.WriteLine("⚠️  Warning: Power is below the conventional threshold of 0.80");
+                Console.WriteLine($"   Consider increasing sample size to achieve adequate power.");
+            }
+            else
+            {
+                Console.WriteLine("✅ Adequate statistical power achieved.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error performing power analysis: {ex.Message}");
         }
 
         PrintSectionFooter();

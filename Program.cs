@@ -192,7 +192,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<ILLMService>(),
                     sp.GetRequiredService<TechnicalAnalysisService>(),
                     sp.GetRequiredService<IntelligentAIAssistantService>(),
-                    sp.GetRequiredService<TradingTemplateGeneratorAgent>()
+                    sp.GetRequiredService<TradingTemplateGeneratorAgent>(),
+                    sp.GetRequiredService<StatisticalTestingService>()
                 )
             );
 
@@ -217,7 +218,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<StrategyGeneratorService>(),
                     sp.GetRequiredService<TradingTemplateGeneratorAgent>(),
                     sp.GetRequiredService<IConfiguration>(),
-                    sp.GetRequiredService<ILogger<AgentOrchestrator>>()
+                    sp.GetRequiredService<ILogger<AgentOrchestrator>>(),
+                    sp.GetRequiredService<StatisticalTestingService>()
                 )
             );
             services.AddSingleton<YouTubeAnalysisService>();
@@ -258,6 +260,9 @@ namespace QuantResearchAgent
             services.AddSingleton<WebDataExtractionService>();
             services.AddSingleton<ReportGenerationService>();
             services.AddSingleton<SatelliteImageryAnalysisService>();
+
+            // Add statistical testing service
+            services.AddSingleton<StatisticalTestingService>();
 
             // Add research agents
             services.AddSingleton<NewsScrapingService>();

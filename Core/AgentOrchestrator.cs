@@ -1,3 +1,4 @@
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
@@ -33,6 +34,7 @@ public class AgentOrchestrator
     private readonly RedditScrapingService _redditScrapingService;
     private readonly StrategyGeneratorService _strategyGeneratorService;
     private readonly TradingTemplateGeneratorAgent _tradingTemplateGeneratorAgent;
+    private readonly StatisticalTestingService _statisticalTestingService;
     
     private readonly ConcurrentQueue<AgentJob> _jobQueue = new();
     private readonly ConcurrentDictionary<string, AgentJob> _runningJobs = new();
@@ -59,7 +61,8 @@ public class AgentOrchestrator
         StrategyGeneratorService strategyGeneratorService,
         TradingTemplateGeneratorAgent tradingTemplateGeneratorAgent,
         IConfiguration? configuration = null,
-        ILogger<AgentOrchestrator>? logger = null)
+        ILogger<AgentOrchestrator>? logger = null,
+        StatisticalTestingService? statisticalTestingService = null)
     {
         _kernel = kernel;
         _youtubeService = youtubeService;
@@ -77,6 +80,7 @@ public class AgentOrchestrator
         _redditScrapingService = redditScrapingService;
         _strategyGeneratorService = strategyGeneratorService;
         _tradingTemplateGeneratorAgent = tradingTemplateGeneratorAgent;
+        _statisticalTestingService = statisticalTestingService ?? throw new ArgumentNullException(nameof(statisticalTestingService));
         _configuration = configuration;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentOrchestrator>.Instance;
 
@@ -94,6 +98,9 @@ public class AgentOrchestrator
         kernel.Plugins.AddFromObject(new RiskManagementPlugin(_riskService, _portfolioService));
         kernel.Plugins.AddFromObject(new AlpacaPlugin(_alpacaService));
         kernel.Plugins.AddFromObject(new TechnicalAnalysisPlugin(_technicalAnalysisService));
+        
+        // Register statistical testing plugin
+        kernel.Plugins.AddFromObject(new StatisticalTestingPlugin(_statisticalTestingService));
         
         // Register research agent plugins
         kernel.Plugins.AddFromObject(new MarketSentimentPlugin(_marketSentimentAgent));
