@@ -227,3 +227,68 @@ public class SentimentAnalysis
     public int NewsArticleCount { get; set; }
     public DateTime AnalyzedAt { get; set; }
 }
+
+/// <summary>
+/// Statistical test result
+/// </summary>
+public class StatisticalTest
+{
+    public string TestName { get; set; } = string.Empty;
+    public string TestType { get; set; } = string.Empty; // t-test, anova, chi-square, etc.
+    public double TestStatistic { get; set; }
+    public double PValue { get; set; }
+    public double SignificanceLevel { get; set; } = 0.05;
+    public bool IsSignificant { get; set; }
+    public string NullHypothesis { get; set; } = string.Empty;
+    public string AlternativeHypothesis { get; set; } = string.Empty;
+    public Dictionary<string, double> Parameters { get; set; } = new();
+    public string Interpretation { get; set; } = string.Empty;
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Power analysis result
+/// </summary>
+public class PowerAnalysis
+{
+    public double EffectSize { get; set; }
+    public int SampleSize { get; set; }
+    public double Power { get; set; }
+    public double SignificanceLevel { get; set; } = 0.05;
+    public string TestType { get; set; } = string.Empty;
+    public Dictionary<string, double> Parameters { get; set; } = new();
+    public DateTime CalculatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Time series analysis result
+/// </summary>
+public class TimeSeriesAnalysis
+{
+    public string Symbol { get; set; } = string.Empty;
+    public bool IsStationary { get; set; }
+    public double ADFStatistic { get; set; }
+    public double ADFPValue { get; set; }
+    public double KPSSStatistic { get; set; }
+    public double KPSSPValue { get; set; }
+    public List<double> Autocorrelation { get; set; } = new();
+    public List<double> PartialAutocorrelation { get; set; } = new();
+    public string Trend { get; set; } = string.Empty;
+    public string Seasonality { get; set; } = string.Empty;
+    public DateTime AnalyzedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Cointegration test result
+/// </summary>
+public class CointegrationTest
+{
+    public string TestType { get; set; } = string.Empty; // Engle-Granger, Johansen
+    public List<string> Symbols { get; set; } = new();
+    public double TestStatistic { get; set; }
+    public double CriticalValue { get; set; }
+    public double PValue { get; set; }
+    public bool IsCointegrated { get; set; }
+    public List<double> CointegrationVector { get; set; } = new();
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
