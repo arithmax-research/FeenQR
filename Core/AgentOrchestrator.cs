@@ -35,6 +35,9 @@ public class AgentOrchestrator
     private readonly StrategyGeneratorService _strategyGeneratorService;
     private readonly TradingTemplateGeneratorAgent _tradingTemplateGeneratorAgent;
     private readonly StatisticalTestingService _statisticalTestingService;
+    private readonly TimeSeriesForecastingService _forecastingService;
+    private readonly FeatureEngineeringService _featureEngineeringService;
+    private readonly ModelValidationService _modelValidationService;
     
     private readonly ConcurrentQueue<AgentJob> _jobQueue = new();
     private readonly ConcurrentDictionary<string, AgentJob> _runningJobs = new();
@@ -62,7 +65,10 @@ public class AgentOrchestrator
         TradingTemplateGeneratorAgent tradingTemplateGeneratorAgent,
         IConfiguration? configuration = null,
         ILogger<AgentOrchestrator>? logger = null,
-        StatisticalTestingService? statisticalTestingService = null)
+        StatisticalTestingService? statisticalTestingService = null,
+        TimeSeriesForecastingService? forecastingService = null,
+        FeatureEngineeringService? featureEngineeringService = null,
+        ModelValidationService? modelValidationService = null)
     {
         _kernel = kernel;
         _youtubeService = youtubeService;
@@ -81,6 +87,9 @@ public class AgentOrchestrator
         _strategyGeneratorService = strategyGeneratorService;
         _tradingTemplateGeneratorAgent = tradingTemplateGeneratorAgent;
         _statisticalTestingService = statisticalTestingService ?? throw new ArgumentNullException(nameof(statisticalTestingService));
+        _forecastingService = forecastingService ?? throw new ArgumentNullException(nameof(forecastingService));
+        _featureEngineeringService = featureEngineeringService ?? throw new ArgumentNullException(nameof(featureEngineeringService));
+        _modelValidationService = modelValidationService ?? throw new ArgumentNullException(nameof(modelValidationService));
         _configuration = configuration;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentOrchestrator>.Instance;
 
@@ -101,6 +110,11 @@ public class AgentOrchestrator
         
         // Register statistical testing plugin
         kernel.Plugins.AddFromObject(new StatisticalTestingPlugin(_statisticalTestingService));
+        
+        // Register Phase 2 ML plugins
+        kernel.Plugins.AddFromObject(new ForecastingPlugin(_forecastingService));
+        kernel.Plugins.AddFromObject(new FeatureEngineeringPlugin(_featureEngineeringService));
+        kernel.Plugins.AddFromObject(new ModelValidationPlugin(_modelValidationService));
         
         // Register research agent plugins
         kernel.Plugins.AddFromObject(new MarketSentimentPlugin(_marketSentimentAgent));
