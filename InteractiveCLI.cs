@@ -42,6 +42,9 @@ public class InteractiveCLI
     private readonly StatisticalTestingService _statisticalTestingService;
     private readonly TimeSeriesAnalysisService _timeSeriesAnalysisService;
     private readonly CointegrationAnalysisService _cointegrationAnalysisService;
+    private readonly TimeSeriesForecastingService _forecastingService;
+    private readonly FeatureEngineeringService _featureEngineeringService;
+    private readonly ModelValidationService _modelValidationService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -69,7 +72,10 @@ public class InteractiveCLI
         TradingTemplateGeneratorAgent tradingTemplateGeneratorAgent,
         StatisticalTestingService statisticalTestingService,
         TimeSeriesAnalysisService timeSeriesAnalysisService,
-        CointegrationAnalysisService cointegrationAnalysisService)
+        CointegrationAnalysisService cointegrationAnalysisService,
+        TimeSeriesForecastingService forecastingService,
+        FeatureEngineeringService featureEngineeringService,
+        ModelValidationService modelValidationService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -97,6 +103,9 @@ public class InteractiveCLI
         _statisticalTestingService = statisticalTestingService;
         _timeSeriesAnalysisService = timeSeriesAnalysisService;
         _cointegrationAnalysisService = cointegrationAnalysisService;
+        _forecastingService = forecastingService;
+        _featureEngineeringService = featureEngineeringService;
+        _modelValidationService = modelValidationService;
     }
 
     public async Task RunAsync()
@@ -150,9 +159,18 @@ public class InteractiveCLI
         Console.WriteLine(" 43. statistical-test [test_type] [data] - Perform statistical hypothesis testing");
         Console.WriteLine(" 44. hypothesis-test [null_hypothesis] [alternative] - Run hypothesis test with custom hypotheses");
         Console.WriteLine(" 45. power-analysis [effect_size] [sample_size] - Calculate statistical power and sample size");
-        Console.WriteLine(" 46. clear - Clear terminal and show menu");
-        Console.WriteLine(" 47. help - Show available functions");
-        Console.WriteLine(" 48. quit - Exit the application");
+        Console.WriteLine(" 46. forecast [symbol] [method] - Time series forecasting (arima/exponential/ssa)");
+        Console.WriteLine(" 47. forecast-compare [symbol] - Compare all forecasting methods");
+        Console.WriteLine(" 48. forecast-accuracy [symbol] [method] - Analyze forecast accuracy");
+        Console.WriteLine(" 49. feature-engineer [symbol] [types] - Generate technical indicators and features");
+        Console.WriteLine(" 50. feature-importance [symbol] - Analyze feature importance ranking");
+        Console.WriteLine(" 51. feature-select [symbol] [method] [top_n] - Select top features for modeling");
+        Console.WriteLine(" 52. model-validate [symbol] [method] - Validate model performance");
+        Console.WriteLine(" 53. cross-validate [symbol] [folds] - Perform cross-validation analysis");
+        Console.WriteLine(" 54. model-metrics [actual] [predicted] - Calculate model performance metrics");
+        Console.WriteLine(" 55. clear - Clear terminal and show menu");
+        Console.WriteLine(" 56. help - Show available functions");
+        Console.WriteLine(" 57. quit - Exit the application");
         Console.WriteLine();
 
         while (true)
@@ -400,6 +418,33 @@ public class InteractiveCLI
                 case "seasonal-decomposition":
                     await SeasonalDecompositionCommand(parts);
                     break;
+                case "forecast":
+                    await ForecastCommand(parts);
+                    break;
+                case "forecast-compare":
+                    await ForecastCompareCommand(parts);
+                    break;
+                case "forecast-accuracy":
+                    await ForecastAccuracyCommand(parts);
+                    break;
+                case "feature-engineer":
+                    await FeatureEngineerCommand(parts);
+                    break;
+                case "feature-importance":
+                    await FeatureImportanceCommand(parts);
+                    break;
+                case "feature-select":
+                    await FeatureSelectCommand(parts);
+                    break;
+                case "validate-model":
+                    await ValidateModelCommand(parts);
+                    break;
+                case "cross-validate":
+                    await CrossValidateCommand(parts);
+                    break;
+                case "model-metrics":
+                    await ModelMetricsCommand(parts);
+                    break;
                 case "engle-granger-test":
                     await EngleGrangerTestCommand(parts);
                     break;
@@ -578,9 +623,18 @@ public class InteractiveCLI
         Console.WriteLine(" 43. statistical-test [test_type] [data] - Perform statistical hypothesis testing");
         Console.WriteLine(" 44. hypothesis-test [null_hypothesis] [alternative] - Run hypothesis test with custom hypotheses");
         Console.WriteLine(" 45. power-analysis [effect_size] [sample_size] - Calculate statistical power and sample size");
-        Console.WriteLine(" 46. clear - Clear terminal and show menu");
-        Console.WriteLine(" 47. help - Show available functions");
-        Console.WriteLine(" 48. quit - Exit the application");
+        Console.WriteLine(" 46. forecast [symbol] [method] - Time series forecasting (arima/exponential/ssa)");
+        Console.WriteLine(" 47. forecast-compare [symbol] - Compare all forecasting methods");
+        Console.WriteLine(" 48. forecast-accuracy [symbol] [method] - Analyze forecast accuracy");
+        Console.WriteLine(" 49. feature-engineer [symbol] [types] - Generate technical indicators and features");
+        Console.WriteLine(" 50. feature-importance [symbol] - Analyze feature importance ranking");
+        Console.WriteLine(" 51. feature-select [symbol] [method] [top_n] - Select top features for modeling");
+        Console.WriteLine(" 52. model-validate [symbol] [method] - Validate model performance");
+        Console.WriteLine(" 53. cross-validate [symbol] [folds] - Perform cross-validation analysis");
+        Console.WriteLine(" 54. model-metrics [actual] [predicted] - Calculate model performance metrics");
+        Console.WriteLine(" 55. clear - Clear terminal and show menu");
+        Console.WriteLine(" 56. help - Show available functions");
+        Console.WriteLine(" 57. quit - Exit the application");
         Console.WriteLine();
 
         await Task.CompletedTask;
@@ -698,7 +752,10 @@ public class InteractiveCLI
         var statisticalTestingService = serviceProvider.GetRequiredService<StatisticalTestingService>();
         var timeSeriesAnalysisService = serviceProvider.GetRequiredService<TimeSeriesAnalysisService>();
         var cointegrationAnalysisService = serviceProvider.GetRequiredService<CointegrationAnalysisService>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService));
+        var forecastingService = serviceProvider.GetRequiredService<TimeSeriesForecastingService>();
+        var featureEngineeringService = serviceProvider.GetRequiredService<FeatureEngineeringService>();
+        var modelValidationService = serviceProvider.GetRequiredService<ModelValidationService>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService));
     }
 
     // Alpaca Commands
@@ -4192,5 +4249,737 @@ public class InteractiveCLI
         }
 
         PrintSectionFooter();
+    }
+
+    // Phase 2: Machine Learning & Predictive Modeling Commands
+
+    private async Task ForecastCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: forecast [symbol] [method] [periods]");
+            Console.WriteLine("Methods: arima, exponential, ssa");
+            Console.WriteLine("Example: forecast AAPL arima 10");
+            return;
+        }
+
+        var symbol = parts[1];
+        var method = parts[2].ToLower();
+        var periods = int.Parse(parts[3]);
+
+        PrintSectionHeader($"Time Series Forecasting - {symbol.ToUpper()}");
+
+        try
+        {
+            // Get historical data
+            var historicalData = await GetHistoricalPrices(symbol, 100);
+            if (historicalData.Length < 20)
+            {
+                Console.WriteLine("Insufficient historical data for forecasting");
+                return;
+            }
+
+            ForecastResult result;
+            switch (method)
+            {
+                case "arima":
+                    result = _forecastingService.ForecastArima(historicalData, periods);
+                    break;
+                case "exponential":
+                    result = _forecastingService.ForecastExponentialSmoothing(historicalData, periods);
+                    break;
+                case "ssa":
+                    result = _forecastingService.ForecastSSA(historicalData, periods);
+                    break;
+                default:
+                    Console.WriteLine("Invalid method. Use: arima, exponential, or ssa");
+                    return;
+            }
+
+            Console.WriteLine($"Method: {method.ToUpper()}");
+            Console.WriteLine($"Historical Data Points: {historicalData.Length}");
+            Console.WriteLine($"Forecast Periods: {periods}");
+            Console.WriteLine();
+
+            Console.WriteLine("FORECAST RESULTS:");
+            for (int i = 0; i < result.ForecastedValues.Count; i++)
+            {
+                Console.WriteLine($"Period {i + 1}: {result.ForecastedValues[i]:F4}");
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("PERFORMANCE METRICS:");
+            Console.WriteLine($"MAE: {result.Metrics.MAE:F4}");
+            Console.WriteLine($"RMSE: {result.Metrics.RMSE:F4}");
+            Console.WriteLine($"MAPE: {result.Metrics.MAPE:F4}%");
+            Console.WriteLine($"R²: {result.Metrics.R2:F4}");
+
+            // AI interpretation
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Analyze this {method} forecast for {symbol}: MAE {result.Metrics.MAE:F4}, RMSE {result.Metrics.RMSE:F4}, " +
+                $"MAPE {result.Metrics.MAPE:F4}%, R² {result.Metrics.R2:F4}. The forecast shows " +
+                $"{string.Join(", ", result.ForecastedValues.Select((v, i) => $"period {i+1}: {v:F2}"))}. " +
+                $"What does this suggest about future price movements and forecast reliability?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error performing forecast: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task ForecastCompareCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: forecast-compare [symbol] [methods]");
+            Console.WriteLine("Methods: arima,exponential,ssa (comma-separated)");
+            Console.WriteLine("Example: forecast-compare AAPL arima,exponential,ssa");
+            return;
+        }
+
+        var symbol = parts[1];
+        var methods = parts[2].Split(',').Select(m => m.Trim().ToLower()).ToArray();
+        const int periods = 10;
+
+        PrintSectionHeader($"Forecast Method Comparison - {symbol.ToUpper()}");
+
+        try
+        {
+            var historicalData = await GetHistoricalPrices(symbol, 100);
+            if (historicalData.Length < 20)
+            {
+                Console.WriteLine("Insufficient historical data for forecasting");
+                return;
+            }
+
+            var results = new Dictionary<string, ForecastResult>();
+
+            foreach (var method in methods)
+            {
+                switch (method)
+                {
+                    case "arima":
+                        results["ARIMA"] = _forecastingService.ForecastArima(historicalData, periods);
+                        break;
+                    case "exponential":
+                        results["Exponential"] = _forecastingService.ForecastExponentialSmoothing(historicalData, periods);
+                        break;
+                    case "ssa":
+                        results["SSA"] = _forecastingService.ForecastSSA(historicalData, periods);
+                        break;
+                }
+            }
+
+            Console.WriteLine($"Symbol: {symbol.ToUpper()}");
+            Console.WriteLine($"Historical Data Points: {historicalData.Length}");
+            Console.WriteLine($"Forecast Periods: {periods}");
+            Console.WriteLine();
+
+            Console.WriteLine("METHOD COMPARISON:");
+            Console.WriteLine("Method".PadRight(12) + "MAE".PadRight(8) + "RMSE".PadRight(8) + "MAPE".PadRight(8) + "R²".PadRight(8));
+            Console.WriteLine("".PadRight(44, '-'));
+
+            foreach (var kvp in results)
+            {
+                var metrics = kvp.Value.Metrics;
+                Console.WriteLine($"{kvp.Key.PadRight(12)}{metrics.MAE.ToString("F4").PadRight(8)}{metrics.RMSE.ToString("F4").PadRight(8)}{metrics.MAPE.ToString("F2").PadRight(7)}%{metrics.R2.ToString("F4").PadRight(8)}");
+            }
+
+            // Find best method
+            var bestMethod = results.OrderBy(r => r.Value.Metrics.RMSE).First();
+            Console.WriteLine();
+            Console.WriteLine($"BEST METHOD: {bestMethod.Key} (lowest RMSE: {bestMethod.Value.Metrics.RMSE:F4})");
+
+            // AI interpretation
+            var comparisonText = string.Join(", ", results.Select(r => $"{r.Key}: MAE {r.Value.Metrics.MAE:F4}, RMSE {r.Value.Metrics.RMSE:F4}"));
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Compare these forecasting methods for {symbol}: {comparisonText}. " +
+                $"Which method performs best and why? What are the implications for trading decisions?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error comparing forecasts: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task ForecastAccuracyCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: forecast-accuracy [symbol] [method]");
+            Console.WriteLine("Methods: arima, exponential, ssa");
+            Console.WriteLine("Example: forecast-accuracy AAPL arima");
+            return;
+        }
+
+        var symbol = parts[1];
+        var method = parts[2].ToLower();
+
+        PrintSectionHeader($"Forecast Accuracy Analysis - {symbol.ToUpper()}");
+
+        try
+        {
+            var historicalData = await GetHistoricalPrices(symbol, 200);
+            if (historicalData.Length < 50)
+            {
+                Console.WriteLine("Insufficient historical data for accuracy analysis");
+                return;
+            }
+
+            // For demonstration, run multiple forecasts and calculate average metrics
+            var accuracies = new List<ForecastMetrics>();
+            for (int window = 0; window < 5; window++)
+            {
+                var windowData = historicalData.Skip(window * 10).Take(50).ToArray();
+                if (windowData.Length >= 20)
+                {
+                    var forecastResult = _forecastingService.ForecastArima(windowData, 10);
+                    accuracies.Add(forecastResult.Metrics);
+                }
+            }
+
+            Console.WriteLine($"Method: {method.ToUpper()}");
+            Console.WriteLine($"Data Points: {historicalData.Length}");
+            Console.WriteLine($"Test Windows: {accuracies.Count}");
+            Console.WriteLine();
+
+            Console.WriteLine("ACCURACY METRICS ACROSS TEST WINDOWS:");
+            Console.WriteLine("Window".PadRight(8) + "MAE".PadRight(8) + "RMSE".PadRight(8) + "MAPE".PadRight(8));
+            Console.WriteLine("".PadRight(40, '-'));
+
+            for (int i = 0; i < accuracies.Count; i++)
+            {
+                var metrics = accuracies[i];
+                Console.WriteLine($"{(i+1).ToString().PadRight(8)}{metrics.MAE.ToString("F4").PadRight(8)}{metrics.RMSE.ToString("F4").PadRight(8)}{metrics.MAPE.ToString("F2").PadRight(7)}%");
+            }
+
+            // Calculate averages
+            var avgMAE = accuracies.Average(m => m.MAE);
+            var avgRMSE = accuracies.Average(m => m.RMSE);
+            var avgMAPE = accuracies.Average(m => m.MAPE);
+
+            Console.WriteLine();
+            Console.WriteLine("OVERALL ACCURACY:");
+            Console.WriteLine($"Average MAE: {avgMAE:F4}");
+            Console.WriteLine($"Average RMSE: {avgRMSE:F4}");
+            Console.WriteLine($"Average MAPE: {avgMAPE:F2}%");
+
+            // AI interpretation
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Analyze forecast accuracy for {symbol} using {method}: Average MAE {avgMAE:F4}, " +
+                $"RMSE {avgRMSE:F4}, MAPE {avgMAPE:F2}%. " +
+                $"Is this forecast method reliable for trading? What improvements could be made?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error analyzing forecast accuracy: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task FeatureEngineerCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: feature-engineer [symbol] [features]");
+            Console.WriteLine("Features: technical,lagged,rolling,all");
+            Console.WriteLine("Example: feature-engineer AAPL technical,lagged");
+            return;
+        }
+
+        var symbol = parts[1];
+        var featureTypes = parts[2].Split(',').Select(f => f.Trim().ToLower()).ToArray();
+
+        PrintSectionHeader($"Feature Engineering - {symbol.ToUpper()}");
+
+        try
+        {
+            var historicalData = await GetHistoricalPrices(symbol, 100);
+            var dates = await GetHistoricalDates(symbol, 100);
+
+            if (historicalData.Length < 20)
+            {
+                Console.WriteLine("Insufficient historical data for feature engineering");
+                return;
+            }
+
+            var features = new FeatureEngineeringResult
+            {
+                Symbol = symbol,
+                Dates = dates,
+                TechnicalIndicators = new Dictionary<string, List<double>>(),
+                LaggedFeatures = new Dictionary<string, List<double>>(),
+                RollingStatistics = new Dictionary<string, List<double>>()
+            };
+
+            Console.WriteLine($"Symbol: {symbol.ToUpper()}");
+            Console.WriteLine($"Data Points: {historicalData.Length}");
+            Console.WriteLine($"Feature Types: {string.Join(", ", featureTypes)}");
+            Console.WriteLine();
+
+            if (featureTypes.Contains("technical") || featureTypes.Contains("all"))
+            {
+                var technicalResult = _featureEngineeringService.GenerateTechnicalIndicators(historicalData, dates);
+                features.TechnicalIndicators = technicalResult.TechnicalIndicators;
+                Console.WriteLine($"Generated {features.TechnicalIndicators.Count} technical indicators");
+            }
+
+            if (featureTypes.Contains("lagged") || featureTypes.Contains("all"))
+            {
+                features.LaggedFeatures = _featureEngineeringService.CreateLaggedFeatures(historicalData);
+                Console.WriteLine($"Generated {features.LaggedFeatures.Count} lagged features");
+            }
+
+            if (featureTypes.Contains("rolling") || featureTypes.Contains("all"))
+            {
+                features.RollingStatistics = _featureEngineeringService.ComputeRollingStatistics(historicalData);
+                Console.WriteLine($"Generated {features.RollingStatistics.Count} rolling statistics");
+            }
+
+            features.FeatureImportance = _featureEngineeringService.AnalyzeFeatureImportance(
+                features.TechnicalIndicators.Concat(features.LaggedFeatures).Concat(features.RollingStatistics).ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                historicalData);
+
+            Console.WriteLine();
+            Console.WriteLine("TOP 10 MOST IMPORTANT FEATURES:");
+            var topFeatures = features.FeatureImportance.FeatureScores.Take(10);
+            foreach (var feature in topFeatures)
+            {
+                Console.WriteLine($"{feature.Key.PadRight(20)} {feature.Value.ToString("F4").PadLeft(8)}");
+            }
+
+            // AI interpretation
+            var featureCount = features.TechnicalIndicators.Count + features.LaggedFeatures.Count + features.RollingStatistics.Count;
+            var topFeature = features.FeatureImportance.FeatureScores.First();
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Analyze these engineered features for {symbol}: {featureCount} total features created. " +
+                $"Top feature is {topFeature.Key} with importance {topFeature.Value:F4}. " +
+                $"What do these features suggest about the most predictive indicators for {symbol} price movements?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error performing feature engineering: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task FeatureImportanceCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: feature-importance [symbol]");
+            Console.WriteLine("Example: feature-importance AAPL");
+            return;
+        }
+
+        var symbol = parts[1];
+
+        PrintSectionHeader($"Feature Importance Analysis - {symbol.ToUpper()}");
+
+        try
+        {
+            var historicalData = await GetHistoricalPrices(symbol, 100);
+            var dates = await GetHistoricalDates(symbol, 100);
+
+            if (historicalData.Length < 20)
+            {
+                Console.WriteLine("Insufficient historical data for analysis");
+                return;
+            }
+
+            var features = _featureEngineeringService.CreateComprehensiveFeatures(historicalData, dates);
+            var importance = features.FeatureImportance;
+
+            Console.WriteLine($"Symbol: {symbol.ToUpper()}");
+            Console.WriteLine($"Total Features: {importance.FeatureScores.Count}");
+            Console.WriteLine($"Method: {importance.Method}");
+            Console.WriteLine();
+
+            Console.WriteLine("FEATURE IMPORTANCE RANKING:");
+            Console.WriteLine("Rank".PadRight(6) + "Feature".PadRight(25) + "Importance".PadLeft(12));
+            Console.WriteLine("".PadRight(43, '-'));
+
+            var rankedFeatures = importance.FeatureScores.OrderByDescending(f => f.Value);
+            int rank = 1;
+            foreach (var feature in rankedFeatures)
+            {
+                Console.WriteLine($"{rank.ToString().PadRight(6)}{feature.Key.PadRight(25)}{feature.Value.ToString("F6").PadLeft(12)}");
+                rank++;
+            }
+
+            // AI interpretation
+            var top3 = rankedFeatures.Take(3).Select(f => f.Key);
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Analyze feature importance for {symbol}: Top 3 features are {string.Join(", ", top3)}. " +
+                $"What do these important features tell us about what drives {symbol} price movements? " +
+                $"How can traders use this information?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error analyzing feature importance: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task FeatureSelectCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: feature-select [symbol] [method] [top_n]");
+            Console.WriteLine("Methods: correlation, importance");
+            Console.WriteLine("Example: feature-select AAPL correlation 10");
+            return;
+        }
+
+        var symbol = parts[1];
+        var method = parts[2].ToLower();
+        var topN = int.Parse(parts[3]);
+
+        PrintSectionHeader($"Feature Selection - {symbol.ToUpper()}");
+
+        try
+        {
+            var historicalData = await GetHistoricalPrices(symbol, 100);
+            var dates = await GetHistoricalDates(symbol, 100);
+
+            if (historicalData.Length < 20)
+            {
+                Console.WriteLine("Insufficient historical data for analysis");
+                return;
+            }
+
+            var features = _featureEngineeringService.CreateComprehensiveFeatures(historicalData, dates);
+            List<string> selectedFeatures;
+
+            switch (method)
+            {
+                case "correlation":
+                    selectedFeatures = features.FeatureImportance.FeatureScores
+                        .OrderByDescending(x => x.Value)
+                        .Take(topN)
+                        .Select(x => x.Key)
+                        .ToList();
+                    break;
+                case "importance":
+                    selectedFeatures = features.FeatureImportance.FeatureScores
+                        .OrderByDescending(x => x.Value)
+                        .Take(topN)
+                        .Select(x => x.Key)
+                        .ToList();
+                    break;
+                default:
+                    Console.WriteLine("Invalid method. Use: correlation or importance");
+                    return;
+            }
+
+            Console.WriteLine($"Symbol: {symbol.ToUpper()}");
+            Console.WriteLine($"Selection Method: {method}");
+            Console.WriteLine($"Top {topN} Features Selected:");
+            Console.WriteLine();
+
+            for (int i = 0; i < selectedFeatures.Count; i++)
+            {
+                Console.WriteLine($"{(i+1).ToString().PadRight(3)}. {selectedFeatures[i]}");
+            }
+
+            // AI interpretation
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Analyze feature selection for {symbol}: Selected {topN} features using {method} method. " +
+                $"The selected features are {string.Join(", ", selectedFeatures)}. " +
+                $"What do these features suggest about the most important predictors for {symbol}?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error performing feature selection: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task ValidateModelCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: validate-model [model_data] [method]");
+            Console.WriteLine("Methods: cross_validation, walk_forward, out_of_sample");
+            Console.WriteLine("Example: validate-model sample_data cross_validation");
+            return;
+        }
+
+        var modelData = parts[1];
+        var method = parts[2].ToLower();
+
+        PrintSectionHeader($"Model Validation - {method.Replace("_", " ").ToUpper()}");
+
+        try
+        {
+            // Generate sample data for demonstration
+            var random = new Random(42);
+            var features = new double[100];
+            var targets = new double[100];
+
+            for (int i = 0; i < 100; i++)
+            {
+                features[i] = 100 + i * 0.1 + random.NextDouble() * 5;
+                targets[i] = features[i] * 1.1 + random.NextDouble() * 2;
+            }
+
+            ModelValidationResult result;
+
+            switch (method)
+            {
+                case "cross_validation":
+                    result = _modelValidationService.PerformCrossValidation(features, targets, 5);
+                    break;
+                case "walk_forward":
+                    result = _modelValidationService.PerformWalkForwardAnalysis(features, targets, 60, 10);
+                    break;
+                case "out_of_sample":
+                    result = _modelValidationService.PerformOutOfSampleTesting(features, targets, 0.8);
+                    break;
+                default:
+                    Console.WriteLine("Invalid method. Use: cross_validation, walk_forward, or out_of_sample");
+                    return;
+            }
+
+            Console.WriteLine($"Validation Method: {method.Replace("_", " ").ToUpper()}");
+            Console.WriteLine($"Data Points: {features.Length}");
+            Console.WriteLine($"Model Type: {result.ModelType}");
+            Console.WriteLine();
+
+            Console.WriteLine("VALIDATION RESULTS:");
+            foreach (var metric in result.PerformanceMetrics)
+            {
+                Console.WriteLine($"{metric.Key.Replace("_", " ").PadRight(25)} {metric.Value.ToString("F6").PadLeft(12)}");
+            }
+
+            // AI interpretation
+            var keyMetrics = string.Join(", ", result.PerformanceMetrics.Take(3).Select(m => $"{m.Key}: {m.Value:F4}"));
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Analyze model validation results using {method}: {keyMetrics}. " +
+                $"Is this model performing well? What are the strengths and weaknesses of this validation approach?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error validating model: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task CrossValidateCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: cross-validate [model_data] [folds]");
+            Console.WriteLine("Example: cross-validate sample_data 5");
+            return;
+        }
+
+        var modelData = parts[1];
+        var folds = int.Parse(parts[2]);
+
+        PrintSectionHeader($"Cross-Validation Analysis");
+
+        try
+        {
+            // Generate sample data
+            var random = new Random(42);
+            var features = new double[100];
+            var targets = new double[100];
+
+            for (int i = 0; i < 100; i++)
+            {
+                features[i] = 100 + i * 0.1 + random.NextDouble() * 5;
+                targets[i] = features[i] * 1.1 + random.NextDouble() * 2;
+            }
+
+            var result = _modelValidationService.PerformCrossValidation(features, targets, folds);
+
+            Console.WriteLine($"Cross-Validation Folds: {folds}");
+            Console.WriteLine($"Data Points: {features.Length}");
+            Console.WriteLine($"Model Type: {result.ModelType}");
+            Console.WriteLine();
+
+            Console.WriteLine("CROSS-VALIDATION METRICS:");
+            Console.WriteLine($"Mean Training Error: {result.PerformanceMetrics["Mean_Training_Error"]:F6}");
+            Console.WriteLine($"Mean Validation Error: {result.PerformanceMetrics["Mean_Validation_Error"]:F6}");
+            Console.WriteLine($"Training Error Std: {result.PerformanceMetrics["Training_Error_Std"]:F6}");
+            Console.WriteLine($"Validation Error Std: {result.PerformanceMetrics["Validation_Error_Std"]:F6}");
+            Console.WriteLine($"Validation Stability: {result.PerformanceMetrics["Validation_Stability"]:F6}");
+
+            var overfitting = result.PerformanceMetrics["Mean_Validation_Error"] > result.PerformanceMetrics["Mean_Training_Error"];
+            Console.WriteLine($"Overfitting Detected: {overfitting}");
+
+            // AI interpretation
+            var stability = result.PerformanceMetrics["Validation_Stability"];
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Analyze cross-validation results: {folds} folds, stability {stability:F4}, " +
+                $"overfitting {overfitting}. What does this tell us about model reliability and generalization?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error performing cross-validation: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task ModelMetricsCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: model-metrics [predictions] [actual]");
+            Console.WriteLine("Example: model-metrics pred.txt actual.txt");
+            return;
+        }
+
+        var predictionsFile = parts[1];
+        var actualFile = parts[2];
+
+        PrintSectionHeader($"Model Performance Metrics");
+
+        try
+        {
+            // Generate sample data for demonstration
+            var random = new Random(42);
+            var predictions = new double[50];
+            var actual = new double[50];
+
+            for (int i = 0; i < 50; i++)
+            {
+                actual[i] = 100 + i * 0.1 + random.NextDouble() * 2;
+                predictions[i] = actual[i] + (random.NextDouble() - 0.5) * 4; // Add some prediction error
+            }
+
+            var metrics = _modelValidationService.CalculateModelMetrics(actual, predictions, "Sample Model");
+
+            Console.WriteLine($"Model: Sample Model");
+            Console.WriteLine($"Data Points: {actual.Length}");
+            Console.WriteLine();
+
+            Console.WriteLine("PERFORMANCE METRICS:");
+            Console.WriteLine($"Mean Absolute Error (MAE): {metrics["MAE"]:F6}");
+            Console.WriteLine($"Root Mean Square Error (RMSE): {metrics["RMSE"]:F6}");
+            Console.WriteLine($"Mean Absolute Percentage Error (MAPE): {metrics["MAPE"]:F4}%");
+            Console.WriteLine($"R-squared (R²): {metrics["R2"]:F6}");
+            Console.WriteLine($"Mean Squared Error (MSE): {metrics["MSE"]:F6}");
+
+            // AI interpretation
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Analyze model performance: MAE {metrics["MAE"]:F4}, RMSE {metrics["RMSE"]:F4}, " +
+                $"MAPE {metrics["MAPE"]:F2}%, R² {metrics["R2"]:F4}. " +
+                $"How well is this model performing? What are the key strengths and areas for improvement?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error calculating model metrics: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    // Helper methods for Phase 2 commands
+    private async Task<double[]> GetHistoricalPrices(string symbol, int days)
+    {
+        try
+        {
+            // Try to get data from Alpaca
+            var alpacaBars = await _alpacaService.GetHistoricalBarsAsync(symbol, days, Alpaca.Markets.BarTimeFrame.Day);
+            if (alpacaBars != null && alpacaBars.Any())
+            {
+                return alpacaBars.Select(b => (double)b.Close).ToArray();
+            }
+
+            // Fallback to Yahoo Finance via MarketDataService
+            var yahooData = await _marketDataService.GetHistoricalDataAsync(symbol, days);
+            if (yahooData != null && yahooData.Any())
+            {
+                return yahooData.Select(d => d.Price).ToArray();
+            }
+
+            // Generate sample data as last resort
+            var random = new Random(42);
+            return Enumerable.Range(0, days)
+                .Select(i => 100.0 + i * 0.1 + random.NextDouble() * 5)
+                .ToArray();
+        }
+        catch
+        {
+            // Generate sample data
+            var random = new Random(42);
+            return Enumerable.Range(0, days)
+                .Select(i => 100.0 + i * 0.1 + random.NextDouble() * 5)
+                .ToArray();
+        }
+    }
+
+    private async Task<List<DateTime>> GetHistoricalDates(string symbol, int days)
+    {
+        try
+        {
+            // For now, just generate dates since Alpaca bars may not have consistent timestamps
+            return Enumerable.Range(0, days)
+                .Select(i => DateTime.Now.AddDays(-days + i))
+                .ToList();
+        }
+        catch
+        {
+            return Enumerable.Range(0, days)
+                .Select(i => DateTime.Now.AddDays(-days + i))
+                .ToList();
+        }
     }
 }

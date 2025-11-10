@@ -196,7 +196,10 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<TradingTemplateGeneratorAgent>(),
                     sp.GetRequiredService<StatisticalTestingService>(),
                     sp.GetRequiredService<TimeSeriesAnalysisService>(),
-                    sp.GetRequiredService<CointegrationAnalysisService>()
+                    sp.GetRequiredService<CointegrationAnalysisService>(),
+                    sp.GetRequiredService<TimeSeriesForecastingService>(),
+                    sp.GetRequiredService<FeatureEngineeringService>(),
+                    sp.GetRequiredService<ModelValidationService>()
                 )
             );
 
@@ -222,7 +225,10 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<TradingTemplateGeneratorAgent>(),
                     sp.GetRequiredService<IConfiguration>(),
                     sp.GetRequiredService<ILogger<AgentOrchestrator>>(),
-                    sp.GetRequiredService<StatisticalTestingService>()
+                    sp.GetRequiredService<StatisticalTestingService>(),
+                    sp.GetRequiredService<TimeSeriesForecastingService>(),
+                    sp.GetRequiredService<FeatureEngineeringService>(),
+                    sp.GetRequiredService<ModelValidationService>()
                 )
             );
             services.AddSingleton<YouTubeAnalysisService>();
@@ -272,6 +278,11 @@ namespace QuantResearchAgent
 
             // Add cointegration analysis service
             services.AddSingleton<CointegrationAnalysisService>();
+
+            // Add Phase 2 ML services
+            services.AddSingleton<TimeSeriesForecastingService>();
+            services.AddSingleton<FeatureEngineeringService>();
+            services.AddSingleton<ModelValidationService>();
 
             // Add research agents
             services.AddSingleton<NewsScrapingService>();
