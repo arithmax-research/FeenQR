@@ -85,6 +85,14 @@
               "target": "Package",
               "version": "[8.0.0, )"
             },
+            "Microsoft.ML": {
+              "target": "Package",
+              "version": "[3.0.1, )"
+            },
+            "Microsoft.ML.TimeSeries": {
+              "target": "Package",
+              "version": "[3.0.1, )"
+            },
             "Microsoft.SemanticKernel": {
               "target": "Package",
               "version": "[1.25.0, )"
