@@ -32,6 +32,8 @@
     <PackageReference Include="Terminal.Gui" Version="1.19.0" />
     <PackageReference Include="YahooFinanceApi" Version="2.3.3" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.65" />
+    <PackageReference Include="Microsoft.ML" Version="3.0.1" />
+    <PackageReference Include="Microsoft.ML.TimeSeries" Version="3.0.1" />
   </ItemGroup>
 
 </Project>
