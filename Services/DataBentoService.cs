@@ -147,52 +147,170 @@ namespace QuantResearchAgent.Services
         {
             try
             {
-                // For now, return a predefined list of common futures symbols
-                // The DataBento API for listing symbols may require different parameters or authentication
-                var commonFutures = new List<DataBentoSymbol>
+                // Try to get symbols dynamically from DataBento Symbology API
+                var symbols = await GetFuturesSymbolsFromAPIAsync();
+                if (symbols.Any())
                 {
-                    new DataBentoSymbol { RawSymbol = "ES", Description = "E-mini S&P 500 Futures" },
-                    new DataBentoSymbol { RawSymbol = "NQ", Description = "E-mini NASDAQ-100 Futures" },
-                    new DataBentoSymbol { RawSymbol = "YM", Description = "E-mini Dow Jones Futures" },
-                    new DataBentoSymbol { RawSymbol = "RTY", Description = "E-mini Russell 2000 Futures" },
-                    new DataBentoSymbol { RawSymbol = "CL", Description = "Crude Oil Futures" },
-                    new DataBentoSymbol { RawSymbol = "NG", Description = "Natural Gas Futures" },
-                    new DataBentoSymbol { RawSymbol = "GC", Description = "Gold Futures" },
-                    new DataBentoSymbol { RawSymbol = "SI", Description = "Silver Futures" },
-                    new DataBentoSymbol { RawSymbol = "ZB", Description = "Treasury Bond Futures" },
-                    new DataBentoSymbol { RawSymbol = "ZN", Description = "Treasury Note Futures" },
-                    new DataBentoSymbol { RawSymbol = "ZS", Description = "Soybean Futures" },
-                    new DataBentoSymbol { RawSymbol = "ZC", Description = "Corn Futures" },
-                    new DataBentoSymbol { RawSymbol = "ZW", Description = "Wheat Futures" }
-                };
-
-                return commonFutures;
-                
-                // Original API call (commented out due to API issues)
-                /*
-                var url = $"{BaseUrl}/v0/metadata.list_symbols?dataset={dataset}";
-                
-                var request = new HttpRequestMessage(HttpMethod.Get, url);
-                request.Headers.Authorization = GetAuthHeader();
-                
-                var httpResponse = await _httpClient.SendAsync(request);
-                var responseBody = await httpResponse.Content.ReadAsStringAsync();
-                if (!httpResponse.IsSuccessStatusCode)
-                {
-                    var errorMsg = $"DataBento API error: StatusCode={httpResponse.StatusCode}, Body={responseBody}";
-                    _logger.LogError(errorMsg);
-                    Console.WriteLine(errorMsg);
-                    return new List<DataBentoSymbol>();
+                    return symbols;
                 }
-                var symbols = JsonSerializer.Deserialize<DataBentoSymbolsResponse>(responseBody);
-                return symbols?.Symbols ?? new List<DataBentoSymbol>();
-                */
+
+                // Fallback to predefined list if API fails
+                _logger.LogWarning("Failed to fetch symbols from DataBento API, using fallback list");
+                return GetFallbackFuturesSymbols();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting futures symbols. Check subscription for CME data access.");
+                _logger.LogError(ex, "Error getting futures symbols, using fallback list");
+                return GetFallbackFuturesSymbols();
+            }
+        }
+
+        /// <summary>
+        /// Get futures symbols from DataBento Symbology API
+        /// </summary>
+        private async Task<List<DataBentoSymbol>> GetFuturesSymbolsFromAPIAsync()
+        {
+            try
+            {
+                // Use DataBento's symbology resolve API to get all futures root symbols
+                var url = $"{BaseUrl}/v0/symbology.resolve?" +
+                         $"stype_in=parent&" +
+                         $"instrument_class=future";
+
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Authorization = GetAuthHeader();
+
+                var httpResponse = await _httpClient.SendAsync(request);
+                var responseBody = await httpResponse.Content.ReadAsStringAsync();
+
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("DataBento symbology API returned {StatusCode}: {ResponseBody}",
+                        httpResponse.StatusCode, responseBody);
+                    return new List<DataBentoSymbol>();
+                }
+
+                // Parse the response - DataBento returns NDJSON format
+                var symbols = new List<DataBentoSymbol>();
+                var lines = responseBody.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+                foreach (var line in lines)
+                {
+                    if (!string.IsNullOrWhiteSpace(line))
+                    {
+                        try
+                        {
+                            var symbolData = JsonSerializer.Deserialize<DataBentoSymbologyResult>(line);
+                            if (symbolData != null && !string.IsNullOrEmpty(symbolData.Symbol))
+                            {
+                                // Extract root symbol (e.g., "ES" from "ES.FUT")
+                                var rootSymbol = symbolData.Symbol;
+                                if (rootSymbol.EndsWith(".FUT", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    rootSymbol = rootSymbol.Substring(0, rootSymbol.Length - 4);
+                                }
+
+                                symbols.Add(new DataBentoSymbol
+                                {
+                                    RawSymbol = rootSymbol,
+                                    Description = symbolData.Description ?? $"{rootSymbol} Futures",
+                                    StartDate = DateTime.MinValue, // Not available in this API
+                                    EndDate = DateTime.MaxValue     // Not available in this API
+                                });
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Error parsing symbology line: {Line}", line);
+                        }
+                    }
+                }
+
+                _logger.LogInformation("Fetched {Count} futures symbols from DataBento API", symbols.Count);
+                return symbols;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching futures symbols from DataBento API");
                 return new List<DataBentoSymbol>();
             }
+        }
+
+        /// <summary>
+        /// Get fallback list of common futures symbols
+        /// </summary>
+        private List<DataBentoSymbol> GetFallbackFuturesSymbols()
+        {
+            return new List<DataBentoSymbol>
+            {
+                // Equity Index Futures
+                new DataBentoSymbol { RawSymbol = "ES", Description = "E-mini S&P 500 Futures" },
+                new DataBentoSymbol { RawSymbol = "NQ", Description = "E-mini NASDAQ-100 Futures" },
+                new DataBentoSymbol { RawSymbol = "YM", Description = "E-mini Dow Jones Futures" },
+                new DataBentoSymbol { RawSymbol = "RTY", Description = "E-mini Russell 2000 Futures" },
+                new DataBentoSymbol { RawSymbol = "EMD", Description = "E-mini S&P MidCap 400 Futures" },
+                new DataBentoSymbol { RawSymbol = "NKD", Description = "Nikkei 225 Futures" },
+                new DataBentoSymbol { RawSymbol = "DAX", Description = "DAX Futures" },
+                new DataBentoSymbol { RawSymbol = "STOXX50E", Description = "Euro STOXX 50 Futures" },
+
+                // Energy Futures
+                new DataBentoSymbol { RawSymbol = "CL", Description = "Crude Oil Futures" },
+                new DataBentoSymbol { RawSymbol = "NG", Description = "Natural Gas Futures" },
+                new DataBentoSymbol { RawSymbol = "HO", Description = "Heating Oil Futures" },
+                new DataBentoSymbol { RawSymbol = "RB", Description = "RBOB Gasoline Futures" },
+                new DataBentoSymbol { RawSymbol = "BZ", Description = "Brent Crude Oil Futures" },
+                new DataBentoSymbol { RawSymbol = "QG", Description = "E-mini Natural Gas Futures" },
+                new DataBentoSymbol { RawSymbol = "QCL", Description = "E-mini Crude Oil Futures" },
+
+                // Metals Futures
+                new DataBentoSymbol { RawSymbol = "GC", Description = "Gold Futures" },
+                new DataBentoSymbol { RawSymbol = "SI", Description = "Silver Futures" },
+                new DataBentoSymbol { RawSymbol = "HG", Description = "Copper Futures" },
+                new DataBentoSymbol { RawSymbol = "PL", Description = "Platinum Futures" },
+                new DataBentoSymbol { RawSymbol = "PA", Description = "Palladium Futures" },
+
+                // Treasury Futures
+                new DataBentoSymbol { RawSymbol = "ZB", Description = "Treasury Bond Futures" },
+                new DataBentoSymbol { RawSymbol = "ZN", Description = "Treasury Note Futures" },
+                new DataBentoSymbol { RawSymbol = "ZF", Description = "5-Year Treasury Note Futures" },
+                new DataBentoSymbol { RawSymbol = "ZT", Description = "2-Year Treasury Note Futures" },
+                new DataBentoSymbol { RawSymbol = "GE", Description = "Eurodollar Futures" },
+                new DataBentoSymbol { RawSymbol = "ED", Description = "Eurodollar Futures" },
+                new DataBentoSymbol { RawSymbol = "2YY", Description = "2-Year Treasury Futures" },
+                new DataBentoSymbol { RawSymbol = "5YY", Description = "5-Year Treasury Futures" },
+                new DataBentoSymbol { RawSymbol = "10Y", Description = "10-Year Treasury Futures" },
+                new DataBentoSymbol { RawSymbol = "30Y", Description = "30-Year Treasury Futures" },
+
+                // Agricultural Futures
+                new DataBentoSymbol { RawSymbol = "ZS", Description = "Soybean Futures" },
+                new DataBentoSymbol { RawSymbol = "ZC", Description = "Corn Futures" },
+                new DataBentoSymbol { RawSymbol = "ZW", Description = "Wheat Futures" },
+                new DataBentoSymbol { RawSymbol = "ZM", Description = "Soybean Meal Futures" },
+                new DataBentoSymbol { RawSymbol = "ZL", Description = "Soybean Oil Futures" },
+                new DataBentoSymbol { RawSymbol = "ZO", Description = "Oat Futures" },
+                new DataBentoSymbol { RawSymbol = "ZK", Description = "Soybean Futures" },
+                new DataBentoSymbol { RawSymbol = "LE", Description = "Live Cattle Futures" },
+                new DataBentoSymbol { RawSymbol = "HE", Description = "Lean Hog Futures" },
+                new DataBentoSymbol { RawSymbol = "GF", Description = "Feeder Cattle Futures" },
+                new DataBentoSymbol { RawSymbol = "KC", Description = "Coffee Futures" },
+                new DataBentoSymbol { RawSymbol = "SB", Description = "Sugar Futures" },
+                new DataBentoSymbol { RawSymbol = "CT", Description = "Cotton Futures" },
+                new DataBentoSymbol { RawSymbol = "CC", Description = "Cocoa Futures" },
+
+                // Currency Futures
+                new DataBentoSymbol { RawSymbol = "EUR", Description = "Euro Futures" },
+                new DataBentoSymbol { RawSymbol = "GBP", Description = "British Pound Futures" },
+                new DataBentoSymbol { RawSymbol = "JPY", Description = "Japanese Yen Futures" },
+                new DataBentoSymbol { RawSymbol = "CHF", Description = "Swiss Franc Futures" },
+                new DataBentoSymbol { RawSymbol = "CAD", Description = "Canadian Dollar Futures" },
+                new DataBentoSymbol { RawSymbol = "AUD", Description = "Australian Dollar Futures" },
+
+                // Crypto Futures
+                new DataBentoSymbol { RawSymbol = "BTC", Description = "Bitcoin Futures" },
+                new DataBentoSymbol { RawSymbol = "ETH", Description = "Ethereum Futures" },
+                new DataBentoSymbol { RawSymbol = "LTC", Description = "Litecoin Futures" },
+                new DataBentoSymbol { RawSymbol = "BCH", Description = "Bitcoin Cash Futures" }
+            };
         }
 
         /// <summary>
@@ -235,35 +353,30 @@ namespace QuantResearchAgent.Services
         {
             try
             {
-                // Check if this is a valid futures root symbol
-                var validFuturesRoots = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "ES", "NQ", "YM", "RTY",  // Equity Index Futures
-                    "CL", "NG", "HO", "RB",   // Energy Futures
-                    "GC", "SI", "HG",         // Metals Futures
-                    "ZB", "ZN", "ZF", "ZT",   // Treasury Futures
-                    "ZS", "ZC", "ZW", "ZM", "ZL", "ZO", "ZK", // Agricultural Futures
-                    "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", // Currency Futures
-                    "BTC", "ETH"              // Crypto Futures
-                };
-
-                if (!validFuturesRoots.Contains(rootSymbol.ToUpper()))
+                var symbols = await GetFuturesSymbolsAsync();
+                
+                // Check if this is a valid futures root symbol by looking it up in the fetched symbols
+                var validSymbol = symbols.FirstOrDefault(s => 
+                    s.RawSymbol.Equals(rootSymbol, StringComparison.OrdinalIgnoreCase));
+                
+                if (validSymbol == null)
                 {
                     _logger.LogWarning("Symbol {RootSymbol} is not a valid futures contract root. Futures contracts are available for commodities, indices, currencies, etc., not individual stocks.", rootSymbol);
                     return new List<DataBentoFuturesContract>();
                 }
 
-                var symbols = await GetFuturesSymbolsAsync();
-                var contracts = symbols
-                    .Where(s => s.RawSymbol.StartsWith(rootSymbol, StringComparison.OrdinalIgnoreCase))
-                    .Select(s => new DataBentoFuturesContract
+                // For now, return the root symbol as a contract with placeholder dates
+                // In a full implementation, you would fetch actual contract details
+                var contracts = new List<DataBentoFuturesContract>
+                {
+                    new DataBentoFuturesContract
                     {
-                        Symbol = s.RawSymbol,
-                        Description = s.Description,
+                        Symbol = validSymbol.RawSymbol,
+                        Description = validSymbol.Description,
                         StartDate = DateTime.Today.AddMonths(-1), // Placeholder
                         EndDate = DateTime.Today.AddMonths(6)     // Placeholder
-                    })
-                    .ToList();
+                    }
+                };
 
                 if (expiration.HasValue)
                 {
@@ -465,5 +578,26 @@ namespace QuantResearchAgent.Services
         public long Volume { get; set; }
         
         public DateTime EventTime => DateTimeOffset.FromUnixTimeMilliseconds(TsEvent / 1_000_000).DateTime;
+    }
+
+    public class DataBentoSymbologyResult
+    {
+        [JsonPropertyName("symbol")]
+        public string Symbol { get; set; } = string.Empty;
+        
+        [JsonPropertyName("description")]
+        public string? Description { get; set; }
+        
+        [JsonPropertyName("instrument_class")]
+        public string? InstrumentClass { get; set; }
+        
+        [JsonPropertyName("exchange")]
+        public string? Exchange { get; set; }
+        
+        [JsonPropertyName("start_date")]
+        public DateTime? StartDate { get; set; }
+        
+        [JsonPropertyName("end_date")]
+        public DateTime? EndDate { get; set; }
     }
 }

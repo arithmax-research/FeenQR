@@ -1653,17 +1653,19 @@ public class InteractiveCLI
             }
             else
             {
-                // Check if it's a known invalid symbol
-                var validFutures = new[] { "ES", "NQ", "YM", "RTY", "CL", "NG", "GC", "SI", "ZB", "ZN", "ZS", "ZC", "ZW", "EUR", "GBP", "JPY", "BTC", "ETH" };
-                if (!validFutures.Contains(symbol.ToUpper()))
+                // Check if it's a known invalid symbol (like individual stocks)
+                var commonInvalidSymbols = new[] { "AAPL", "GOOGL", "MSFT", "TSLA", "AMZN", "NVDA", "META" };
+                if (commonInvalidSymbols.Contains(symbol.ToUpper()))
                 {
-                    Console.WriteLine($"Symbol '{symbol}' is not a valid futures contract root.");
+                    Console.WriteLine($"Symbol '{symbol}' is an individual stock, not a futures contract.");
                     Console.WriteLine("Futures contracts are available for commodities, indices, currencies, etc.");
-                    Console.WriteLine($"Try one of: {string.Join(", ", validFutures.Take(5))}...");
+                    Console.WriteLine("Try futures symbols like: ES (S&P 500), CL (Crude Oil), GC (Gold), EUR (Euro), BTC (Bitcoin), etc.");
                 }
                 else
                 {
-                    Console.WriteLine("No futures contracts available from DataBento");
+                    Console.WriteLine($"No futures contracts found for '{symbol}'.");
+                    Console.WriteLine("This may be due to API access limitations or the symbol not being available.");
+                    Console.WriteLine("Try common futures symbols: ES, NQ, CL, NG, GC, SI, ZB, ZN, ZS, ZC, EUR, GBP, BTC, ETH");
                 }
             }
         }
