@@ -1,0 +1,53 @@
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title">Portfolio Summary</h5>
+    </div>
+    <div class="card-body">
+        <button class="btn btn-primary" @onclick="LoadPortfolio">Load Portfolio</button>
+        
+        @if (portfolioData != null)
+        {
+            <div class="mt-3">
+                <h6>Portfolio Information</h6>
+                <pre>@portfolioData</pre>
+            </div>
+        }
+        else if (isLoading)
+        {
+            <div class="mt-3">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string? portfolioData;
+    private bool isLoading = false;
+
+    private async Task LoadPortfolio()
+    {
+        isLoading = true;
+        portfolioData = null;
+        
+        try
+        {
+            var response = await Http.GetAsync("api/portfolio");
+            if (response.IsSuccessStatusCode)
+            {
+                portfolioData = await response.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            portfolioData = $"Error: {ex.Message}";
+        }
+        
+        isLoading = false;
+    }
+
+    [Inject]
+    private HttpClient Http { get; set; } = default!;
+}

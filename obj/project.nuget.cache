@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "grn1Hc3ifFE=",
+  "dgSpecHash": "gmGExqpeBLY=",
   "success": true,
   "projectFilePath": "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj",
   "expectedPackageFiles": [
@@ -16,6 +16,7 @@
     "/home/misango/.nuget/packages/google.apis.youtube.v3/1.68.0.3617/google.apis.youtube.v3.1.68.0.3617.nupkg.sha512",
     "/home/misango/.nuget/packages/htmlagilitypack/1.11.65/htmlagilitypack.1.11.65.nupkg.sha512",
     "/home/misango/.nuget/packages/mathnet.numerics/5.0.0/mathnet.numerics.5.0.0.nupkg.sha512",
+    "/home/misango/.nuget/packages/microsoft.aspnetcore.components.webassembly.server/9.0.0/microsoft.aspnetcore.components.webassembly.server.9.0.0.nupkg.sha512",
     "/home/misango/.nuget/packages/microsoft.bcl.asyncinterfaces/8.0.0/microsoft.bcl.asyncinterfaces.8.0.0.nupkg.sha512",
     "/home/misango/.nuget/packages/microsoft.bcl.hashcode/1.1.1/microsoft.bcl.hashcode.1.1.1.nupkg.sha512",
     "/home/misango/.nuget/packages/microsoft.bcl.timeprovider/8.0.1/microsoft.bcl.timeprovider.8.0.1.nupkg.sha512",

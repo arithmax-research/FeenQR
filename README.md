@@ -169,6 +169,25 @@ The system is built around Microsoft Semantic Kernel, providing:
    dotnet run
    ```
 
+### Web Frontend
+
+The application now includes a web-based frontend built with Blazor Server, providing an interactive dashboard with widgets for various financial analyses.
+
+**To run with the web frontend:**
+```bash
+# Using the launcher script
+./launch.sh web
+
+# Or directly with dotnet
+dotnet run -- --web
+```
+
+The web interface will be available at `http://localhost:5000` with:
+- **Dashboard**: Overview with market data, sentiment, portfolio, news, and risk widgets
+- **Market Analysis**: Technical and comprehensive analysis tools
+- **Portfolio**: Portfolio management and Alpaca integration
+- **Research**: Academic paper search functionality
+
 ## Usage Examples
 
 ### Podcast Analysis

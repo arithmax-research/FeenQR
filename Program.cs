@@ -41,6 +41,8 @@ namespace QuantResearchAgent
 
             // Add API controllers
             builder.Services.AddControllers();
+            builder.Services.AddRazorPages();
+            builder.Services.AddServerSideBlazor();
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>
@@ -64,8 +66,11 @@ namespace QuantResearchAgent
 
             // Configure middleware
             app.UseCors();
+            app.UseStaticFiles();
             app.UseRouting();
             app.MapControllers();
+            app.MapRazorPages();
+            app.MapBlazorHub();
 
             // Get the orchestrator and start
             var orchestrator = app.Services.GetRequiredService<AgentOrchestrator>();
