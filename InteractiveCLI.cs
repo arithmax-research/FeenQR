@@ -45,6 +45,12 @@ public class InteractiveCLI
     private readonly TimeSeriesForecastingService _forecastingService;
     private readonly FeatureEngineeringService _featureEngineeringService;
     private readonly ModelValidationService _modelValidationService;
+    private readonly FactorModelService _factorModelService;
+    private readonly AdvancedOptimizationService _advancedOptimizationService;
+    private readonly AdvancedRiskService _advancedRiskService;
+    private readonly SECFilingsService _secFilingsService;
+    private readonly EarningsCallService _earningsCallService;
+    private readonly SupplyChainService _supplyChainService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -75,7 +81,13 @@ public class InteractiveCLI
         CointegrationAnalysisService cointegrationAnalysisService,
         TimeSeriesForecastingService forecastingService,
         FeatureEngineeringService featureEngineeringService,
-        ModelValidationService modelValidationService)
+        ModelValidationService modelValidationService,
+        FactorModelService factorModelService,
+        AdvancedOptimizationService advancedOptimizationService,
+        AdvancedRiskService advancedRiskService,
+        SECFilingsService secFilingsService,
+        EarningsCallService earningsCallService,
+        SupplyChainService supplyChainService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -106,6 +118,12 @@ public class InteractiveCLI
         _forecastingService = forecastingService;
         _featureEngineeringService = featureEngineeringService;
         _modelValidationService = modelValidationService;
+        _factorModelService = factorModelService;
+        _advancedOptimizationService = advancedOptimizationService;
+        _advancedRiskService = advancedRiskService;
+        _secFilingsService = secFilingsService;
+        _earningsCallService = earningsCallService;
+        _supplyChainService = supplyChainService;
     }
 
     public async Task RunAsync()
@@ -168,9 +186,19 @@ public class InteractiveCLI
         Console.WriteLine(" 52. model-validate [symbol] [method] - Validate model performance");
         Console.WriteLine(" 53. cross-validate [symbol] [folds] - Perform cross-validation analysis");
         Console.WriteLine(" 54. model-metrics [actual] [predicted] - Calculate model performance metrics");
-        Console.WriteLine(" 55. clear - Clear terminal and show menu");
-        Console.WriteLine(" 56. help - Show available functions");
-        Console.WriteLine(" 57. quit - Exit the application");
+        Console.WriteLine(" 55. black-litterman [assets] [views] [start_date] [end_date] - Black-Litterman optimization");
+        Console.WriteLine(" 56. risk-parity [assets] [start_date] [end_date] - Risk parity portfolio optimization");
+        Console.WriteLine(" 57. hierarchical-risk-parity [assets] [start_date] [end_date] - HRP optimization");
+        Console.WriteLine(" 58. minimum-variance [assets] [start_date] [end_date] - Minimum variance optimization");
+        Console.WriteLine(" 59. compare-optimization [assets] [start_date] [end_date] - Compare optimization methods");
+        Console.WriteLine(" 60. calculate-var [weights_json] [confidence] [method] - Calculate Value-at-Risk");
+        Console.WriteLine(" 61. stress-test-portfolio [weights_json] [scenarios] [names] [threshold] - Stress testing");
+        Console.WriteLine(" 62. risk-attribution [weights_json] [factors] [start_date] [end_date] - Risk factor attribution");
+        Console.WriteLine(" 63. risk-report [weights_json] [factors] [scenarios] [names] - Comprehensive risk report");
+        Console.WriteLine(" 64. compare-risk-measures [weights_json] [start_date] [end_date] - Compare VaR methods");
+        Console.WriteLine(" 65. clear - Clear terminal and show menu");
+        Console.WriteLine(" 66. help - Show available functions");
+        Console.WriteLine(" 67. quit - Exit the application");
         Console.WriteLine();
 
         while (true)
@@ -445,6 +473,51 @@ public class InteractiveCLI
                 case "model-metrics":
                     await ModelMetricsCommand(parts);
                     break;
+                case "black-litterman":
+                    await BlackLittermanCommand(parts);
+                    break;
+                case "risk-parity":
+                    await RiskParityCommand(parts);
+                    break;
+                case "hierarchical-risk-parity":
+                    await HierarchicalRiskParityCommand(parts);
+                    break;
+                case "minimum-variance":
+                    await MinimumVarianceCommand(parts);
+                    break;
+                case "compare-optimization":
+                    await CompareOptimizationCommand(parts);
+                    break;
+                case "calculate-var":
+                    await CalculateVaRCommand(parts);
+                    break;
+                case "stress-test-portfolio":
+                    await StressTestPortfolioCommand(parts);
+                    break;
+                case "risk-attribution":
+                    await RiskAttributionCommand(parts);
+                    break;
+                case "risk-report":
+                    await RiskReportCommand(parts);
+                    break;
+                case "compare-risk-measures":
+                    await CompareRiskMeasuresCommand(parts);
+                    break;
+                case "fama-french-3factor":
+                    await FamaFrench3FactorCommand(parts);
+                    break;
+                case "carhart-4factor":
+                    await Carhart4FactorCommand(parts);
+                    break;
+                case "custom-factor-model":
+                    await CustomFactorModelCommand(parts);
+                    break;
+                case "factor-attribution":
+                    await FactorAttributionCommand(parts);
+                    break;
+                case "compare-factor-models":
+                    await CompareFactorModelsCommand(parts);
+                    break;
                 case "engle-granger-test":
                     await EngleGrangerTestCommand(parts);
                     break;
@@ -466,6 +539,57 @@ public class InteractiveCLI
                     break;
                 case "granger-stock-test":
                     await GrangerStockTestCommand(parts);
+                    break;
+                case "sec-analysis":
+                    await SecAnalysisCommand(parts);
+                    break;
+                case "sec-filing-history":
+                    await SecFilingHistoryCommand(parts);
+                    break;
+                case "sec-risk-factors":
+                    await SecRiskFactorsCommand(parts);
+                    break;
+                case "sec-management-discussion":
+                    await SecManagementDiscussionCommand(parts);
+                    break;
+                case "sec-comprehensive":
+                    await SecComprehensiveCommand(parts);
+                    break;
+                case "earnings-analysis":
+                    await EarningsAnalysisCommand(parts);
+                    break;
+                case "earnings-history":
+                    await EarningsHistoryCommand(parts);
+                    break;
+                case "earnings-sentiment":
+                    await EarningsSentimentCommand(parts);
+                    break;
+                case "earnings-strategic":
+                    await EarningsStrategicCommand(parts);
+                    break;
+                case "earnings-risks":
+                    await EarningsRisksCommand(parts);
+                    break;
+                case "earnings-comprehensive":
+                    await EarningsComprehensiveCommand(parts);
+                    break;
+                case "supply-chain-analysis":
+                    await SupplyChainAnalysisCommand(parts);
+                    break;
+                case "supply-chain-risks":
+                    await SupplyChainRisksCommand(parts);
+                    break;
+                case "supply-chain-geography":
+                    await SupplyChainGeographyCommand(parts);
+                    break;
+                case "supply-chain-diversification":
+                    await SupplyChainDiversificationCommand(parts);
+                    break;
+                case "supply-chain-resilience":
+                    await SupplyChainResilienceCommand(parts);
+                    break;
+                case "supply-chain-comprehensive":
+                    await SupplyChainComprehensiveCommand(parts);
                     break;
                 case "clear":
                     await ClearCommand();
@@ -632,9 +756,19 @@ public class InteractiveCLI
         Console.WriteLine(" 52. model-validate [symbol] [method] - Validate model performance");
         Console.WriteLine(" 53. cross-validate [symbol] [folds] - Perform cross-validation analysis");
         Console.WriteLine(" 54. model-metrics [actual] [predicted] - Calculate model performance metrics");
-        Console.WriteLine(" 55. clear - Clear terminal and show menu");
-        Console.WriteLine(" 56. help - Show available functions");
-        Console.WriteLine(" 57. quit - Exit the application");
+        Console.WriteLine(" 55. black-litterman [assets] [views] [start_date] [end_date] - Black-Litterman optimization");
+        Console.WriteLine(" 56. risk-parity [assets] [start_date] [end_date] - Risk parity portfolio optimization");
+        Console.WriteLine(" 57. hierarchical-risk-parity [assets] [start_date] [end_date] - HRP optimization");
+        Console.WriteLine(" 58. minimum-variance [assets] [start_date] [end_date] - Minimum variance optimization");
+        Console.WriteLine(" 59. compare-optimization [assets] [start_date] [end_date] - Compare optimization methods");
+        Console.WriteLine(" 60. calculate-var [weights_json] [confidence] [method] - Calculate Value-at-Risk");
+        Console.WriteLine(" 61. stress-test-portfolio [weights_json] [scenarios] [names] [threshold] - Stress testing");
+        Console.WriteLine(" 62. risk-attribution [weights_json] [factors] [start_date] [end_date] - Risk factor attribution");
+        Console.WriteLine(" 63. risk-report [weights_json] [factors] [scenarios] [names] - Comprehensive risk report");
+        Console.WriteLine(" 64. compare-risk-measures [weights_json] [start_date] [end_date] - Compare VaR methods");
+        Console.WriteLine(" 65. clear - Clear terminal and show menu");
+        Console.WriteLine(" 66. help - Show available functions");
+        Console.WriteLine(" 67. quit - Exit the application");
         Console.WriteLine();
 
         await Task.CompletedTask;
@@ -755,7 +889,10 @@ public class InteractiveCLI
         var forecastingService = serviceProvider.GetRequiredService<TimeSeriesForecastingService>();
         var featureEngineeringService = serviceProvider.GetRequiredService<FeatureEngineeringService>();
         var modelValidationService = serviceProvider.GetRequiredService<ModelValidationService>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService));
+        var factorModelService = serviceProvider.GetRequiredService<FactorModelService>();
+        var advancedOptimizationService = serviceProvider.GetRequiredService<AdvancedOptimizationService>();
+        var advancedRiskService = serviceProvider.GetRequiredService<AdvancedRiskService>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService));
     }
 
     // Alpaca Commands
@@ -4944,7 +5081,1000 @@ public class InteractiveCLI
         PrintSectionFooter();
     }
 
-    // Helper methods for Phase 2 commands
+    private async Task FamaFrench3FactorCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: fama-french-3factor [symbol] [start_date] [end_date]");
+            Console.WriteLine("Example: fama-french-3factor AAPL 2023-01-01 2024-01-01");
+            return;
+        }
+
+        var symbol = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        PrintSectionHeader($"Fama-French 3-Factor Model Analysis: {symbol}");
+
+        try
+        {
+            var result = await _factorModelService.AnalyzeFamaFrench3FactorAsync(symbol, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            Console.WriteLine($"Analysis Date: {result.AnalysisDate:yyyy-MM-dd}");
+            Console.WriteLine($"R²: {result.R2:P3}");
+            Console.WriteLine($"Alpha: {result.Alpha:P3}");
+            Console.WriteLine();
+
+            Console.WriteLine("FACTOR EXPOSURES:");
+            Console.WriteLine($"Market Beta: {result.MarketBeta:F4}");
+            Console.WriteLine($"Size Beta (SMB): {result.SizeBeta:F4}");
+            Console.WriteLine($"Value Beta (HML): {result.ValueBeta:F4}");
+            Console.WriteLine();
+
+            Console.WriteLine("FACTOR RETURNS:");
+            foreach (var factorReturn in result.FactorReturns)
+            {
+                Console.WriteLine($"{factorReturn.Key}: {factorReturn.Value:P3}");
+            }
+
+            // AI interpretation
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Interpret Fama-French 3-factor model results for {symbol}: " +
+                $"Market beta {result.MarketBeta:F3}, Size beta {result.SizeBeta:F3}, Value beta {result.ValueBeta:F3}, " +
+                $"Alpha {result.Alpha:P3}, R² {result.R2:P3}. " +
+                $"What do these results tell us about the stock's risk exposures and performance?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error analyzing Fama-French 3-factor model: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task Carhart4FactorCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: carhart-4factor [symbol] [start_date] [end_date]");
+            Console.WriteLine("Example: carhart-4factor MSFT 2023-01-01 2024-01-01");
+            return;
+        }
+
+        var symbol = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        PrintSectionHeader($"Carhart 4-Factor Model Analysis: {symbol}");
+
+        try
+        {
+            var result = await _factorModelService.AnalyzeCarhart4FactorAsync(symbol, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            Console.WriteLine($"Analysis Date: {result.AnalysisDate:yyyy-MM-dd}");
+            Console.WriteLine($"R²: {result.R2:P3}");
+            Console.WriteLine($"Alpha: {result.Alpha:P3}");
+            Console.WriteLine();
+
+            Console.WriteLine("FACTOR EXPOSURES:");
+            Console.WriteLine($"Market Beta: {result.MarketBeta:F4}");
+            Console.WriteLine($"Size Beta (SMB): {result.SizeBeta:F4}");
+            Console.WriteLine($"Value Beta (HML): {result.ValueBeta:F4}");
+            Console.WriteLine($"Momentum Beta (MOM): {result.MomentumBeta:F4}");
+            Console.WriteLine();
+
+            Console.WriteLine("FACTOR RETURNS:");
+            foreach (var factorReturn in result.FactorReturns)
+            {
+                Console.WriteLine($"{factorReturn.Key}: {factorReturn.Value:P3}");
+            }
+
+            // AI interpretation
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Interpret Carhart 4-factor model results for {symbol}: " +
+                $"Market beta {result.MarketBeta:F3}, Size beta {result.SizeBeta:F3}, Value beta {result.ValueBeta:F3}, " +
+                $"Momentum beta {result.MomentumBeta:F3}, Alpha {result.Alpha:P3}, R² {result.R2:P3}. " +
+                $"What do these results tell us about the stock's risk exposures and momentum characteristics?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error analyzing Carhart 4-factor model: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task CustomFactorModelCommand(string[] parts)
+    {
+        if (parts.Length < 7)
+        {
+            Console.WriteLine("Usage: custom-factor-model [name] [description] [factors] [symbol] [start_date] [end_date]");
+            Console.WriteLine("Example: custom-factor-model \"MyModel\" \"Custom factors\" \"Growth,Quality,Momentum\" AAPL 2023-01-01 2024-01-01");
+            return;
+        }
+
+        var modelName = parts[1];
+        var description = parts[2];
+        var factorsStr = parts[3];
+        var symbol = parts[4];
+        var startDate = parts[5];
+        var endDate = parts[6];
+
+        var factors = factorsStr.Split(',').Select(f => f.Trim()).ToList();
+
+        PrintSectionHeader($"Custom Factor Model: {modelName}");
+
+        try
+        {
+            var result = await _factorModelService.CreateCustomFactorModelAsync(
+                modelName, description, factors, symbol, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            Console.WriteLine($"Model: {result.Name}");
+            Console.WriteLine($"Description: {result.Description}");
+            Console.WriteLine($"Asset: {symbol}");
+            Console.WriteLine($"Analysis Date: {result.AnalysisDate:yyyy-MM-dd}");
+            Console.WriteLine($"R²: {result.R2:P3}");
+            Console.WriteLine($"Alpha: {result.Alpha:P3}");
+            Console.WriteLine();
+
+            Console.WriteLine("FACTOR EXPOSURES:");
+            foreach (var exposure in result.FactorExposures)
+            {
+                Console.WriteLine($"{exposure.Key}: {exposure.Value:F4}");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("FACTOR RETURNS:");
+            foreach (var factorReturn in result.FactorReturns)
+            {
+                Console.WriteLine($"{factorReturn.Key}: {factorReturn.Value:P3}");
+            }
+
+            // AI interpretation
+            var factorExposures = string.Join(", ", result.FactorExposures.Select(f => $"{f.Key}: {f.Value:F3}"));
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Interpret custom factor model results for {symbol}: " +
+                $"Factors: {string.Join(", ", factors)}, Exposures: {factorExposures}, " +
+                $"Alpha {result.Alpha:P3}, R² {result.R2:P3}. " +
+                $"What do these results tell us about the stock's factor exposures?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating custom factor model: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task FactorAttributionCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: factor-attribution [assets] [factors] [start_date] [end_date]");
+            Console.WriteLine("Example: factor-attribution \"AAPL,MSFT\" \"Market,SMB,HML\" 2023-01-01 2024-01-01");
+            return;
+        }
+
+        var assetsStr = parts[1];
+        var factorsStr = parts[2];
+        var startDate = parts[3];
+        var endDate = parts[4];
+
+        var assets = assetsStr.Split(',').Select(a => a.Trim()).ToList();
+        var factors = factorsStr.Split(',').Select(f => f.Trim()).ToList();
+
+        PrintSectionHeader($"Factor Attribution Analysis");
+
+        try
+        {
+            var results = await _factorModelService.PerformFactorAttributionAsync(
+                assets, factors, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            Console.WriteLine($"Period: {startDate} to {endDate}");
+            Console.WriteLine($"Factors: {string.Join(", ", factors)}");
+            Console.WriteLine();
+
+            foreach (var result in results)
+            {
+                Console.WriteLine($"ASSET: {result.Asset}");
+                Console.WriteLine($"Total Attribution: {result.TotalAttribution:P3}");
+                Console.WriteLine($"Residual Return: {result.ResidualReturn:P3}");
+                Console.WriteLine("Factor Contributions:");
+
+                foreach (var contribution in result.FactorContributions)
+                {
+                    Console.WriteLine($"  {contribution.Key}: {contribution.Value:P3}");
+                }
+                Console.WriteLine();
+            }
+
+            // AI interpretation
+            var summary = string.Join("; ", results.Select(r => $"{r.Asset}: {r.TotalAttribution:P1} total attribution"));
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Interpret factor attribution results: {summary}. " +
+                $"Factors analyzed: {string.Join(", ", factors)}. " +
+                $"What do these results tell us about which factors are driving returns for each asset?");
+
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error performing factor attribution: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task CompareFactorModelsCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: compare-factor-models [symbol] [start_date] [end_date]");
+            Console.WriteLine("Example: compare-factor-models TSLA 2023-01-01 2024-01-01");
+            return;
+        }
+
+        var symbol = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        PrintSectionHeader($"Factor Model Comparison: {symbol}");
+
+        try
+        {
+            // Run both models
+            var ff3Result = await _factorModelService.AnalyzeFamaFrench3FactorAsync(symbol, DateTime.Parse(startDate), DateTime.Parse(endDate));
+            var carhartResult = await _factorModelService.AnalyzeCarhart4FactorAsync(symbol, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            Console.WriteLine($"Analysis Period: {startDate} to {endDate}");
+            Console.WriteLine();
+
+            Console.WriteLine("FAMA-FRENCH 3-FACTOR MODEL:");
+            Console.WriteLine($"R²: {ff3Result.R2:P3}");
+            Console.WriteLine($"Alpha: {ff3Result.Alpha:P3}");
+            Console.WriteLine($"Market Beta: {ff3Result.MarketBeta:F4}");
+            Console.WriteLine($"Size Beta: {ff3Result.SizeBeta:F4}");
+            Console.WriteLine($"Value Beta: {ff3Result.ValueBeta:F4}");
+            Console.WriteLine();
+
+            Console.WriteLine("CARHART 4-FACTOR MODEL:");
+            Console.WriteLine($"R²: {carhartResult.R2:P3}");
+            Console.WriteLine($"Alpha: {carhartResult.Alpha:P3}");
+            Console.WriteLine($"Market Beta: {carhartResult.MarketBeta:F4}");
+            Console.WriteLine($"Size Beta: {carhartResult.SizeBeta:F4}");
+            Console.WriteLine($"Value Beta: {carhartResult.ValueBeta:F4}");
+            Console.WriteLine($"Momentum Beta: {carhartResult.MomentumBeta:F4}");
+            Console.WriteLine();
+
+            var ff3Explained = ff3Result.R2;
+            var carhartExplained = carhartResult.R2;
+            var additionalExplained = carhartExplained - ff3Explained;
+
+            Console.WriteLine("MODEL COMPARISON:");
+            Console.WriteLine($"Fama-French explains {ff3Explained:P1} of return variation");
+            Console.WriteLine($"Carhart explains {carhartExplained:P1} of return variation");
+            Console.WriteLine($"Additional explanatory power from momentum: {additionalExplained:P1}");
+
+            // AI interpretation
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Compare Fama-French 3-factor vs Carhart 4-factor models for {symbol}: " +
+                $"FF3 R² {ff3Explained:P3}, Carhart R² {carhartExplained:P3}. " +
+                $"FF3 betas: Market {ff3Result.MarketBeta:F3}, Size {ff3Result.SizeBeta:F3}, Value {ff3Result.ValueBeta:F3}. " +
+                $"Carhart betas: Market {carhartResult.MarketBeta:F3}, Size {carhartResult.SizeBeta:F3}, Value {carhartResult.ValueBeta:F3}, Momentum {carhartResult.MomentumBeta:F3}. " +
+                $"Which model performs better and what does this tell us about the stock?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error comparing factor models: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    // Phase 3.2: Advanced Optimization Commands
+    private async Task BlackLittermanCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: black-litterman [assets] [views] [start_date] [end_date]");
+            Console.WriteLine("Example: black-litterman \"AAPL,MSFT\" \"{\\\"AAPL\\\": 0.15, \\\"MSFT\\\": 0.12}\" 2023-01-01 2024-01-01");
+            return;
+        }
+
+        var assetsStr = parts[1];
+        var viewsJson = parts[2];
+        var startDate = parts[3];
+        var endDate = parts[4];
+
+        var assets = assetsStr.Split(',').Select(a => a.Trim()).ToList();
+
+        PrintSectionHeader("Black-Litterman Portfolio Optimization");
+
+        try
+        {
+            var views = ParseViews(viewsJson);
+            var constraints = new OptimizationConstraints();
+            var result = await _advancedOptimizationService.RunBlackLittermanOptimizationAsync(
+                assets, views, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            Console.WriteLine($"Analysis Date: {result.AnalysisDate:yyyy-MM-dd}");
+            Console.WriteLine($"Risk Aversion: {result.RiskAversion:F2}");
+            Console.WriteLine();
+
+            Console.WriteLine("PRIOR RETURNS (Market Equilibrium):");
+            foreach (var prior in result.PriorReturns)
+            {
+                Console.WriteLine($"{prior.Key}: {prior.Value:P3}");
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("POSTERIOR RETURNS (After Views):");
+            foreach (var posterior in result.PosteriorReturns)
+            {
+                Console.WriteLine($"{posterior.Key}: {posterior.Value:P3}");
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("OPTIMAL PORTFOLIO WEIGHTS:");
+            foreach (var weight in result.OptimalWeights.OrderByDescending(w => w.Value))
+            {
+                Console.WriteLine($"{weight.Key}: {weight.Value:P2}");
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("PORTFOLIO METRICS:");
+            Console.WriteLine($"Expected Return: {result.ExpectedReturn:P3}");
+            Console.WriteLine($"Expected Volatility: {result.ExpectedVolatility:P3}");
+            Console.WriteLine($"Sharpe Ratio: {result.SharpeRatio:F3}");
+
+            // AI interpretation
+            var topWeights = result.OptimalWeights.OrderByDescending(w => w.Value).Take(3);
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Interpret Black-Litterman optimization results: " +
+                $"Top holdings: {string.Join(", ", topWeights.Select(w => $"{w.Key}: {w.Value:P1}"))}, " +
+                $"Expected return {result.ExpectedReturn:P3}, Sharpe ratio {result.SharpeRatio:F3}. " +
+                $"What does this portfolio tell us about the investor's views and market expectations?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in Black-Litterman optimization: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task RiskParityCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: risk-parity [assets] [start_date] [end_date]");
+            Console.WriteLine("Example: risk-parity \"AAPL,MSFT,GOOGL\" 2023-01-01 2024-01-01");
+            return;
+        }
+
+        var assetsStr = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        var assets = assetsStr.Split(',').Select(a => a.Trim()).ToList();
+
+        PrintSectionHeader("Risk Parity Portfolio Optimization");
+
+        try
+        {
+            var constraints = new OptimizationConstraints();
+            var result = await _advancedOptimizationService.OptimizeRiskParityAsync(
+                assets, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            Console.WriteLine($"Analysis Date: {result.AnalysisDate:yyyy-MM-dd}");
+            Console.WriteLine($"Converged: {result.Converged}");
+            Console.WriteLine($"Iterations: {result.Iterations}");
+            Console.WriteLine();
+
+            Console.WriteLine("PORTFOLIO WEIGHTS:");
+            foreach (var weight in result.AssetWeights.OrderByDescending(w => w.Value))
+            {
+                Console.WriteLine($"{weight.Key}: {weight.Value:P2}");
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("RISK CONTRIBUTIONS:");
+            foreach (var contribution in result.RiskContributions.OrderByDescending(c => c.Value))
+            {
+                Console.WriteLine($"{contribution.Key}: {contribution.Value:P3}");
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("PORTFOLIO METRICS:");
+            Console.WriteLine($"Total Risk: {result.TotalRisk:P3}");
+            Console.WriteLine($"Expected Return: {result.ExpectedReturn:P3}");
+
+            // AI interpretation
+            var equalContribution = 1.0 / assets.Count;
+            var maxDeviation = result.RiskContributions.Max(c => Math.Abs(c.Value - equalContribution));
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Interpret risk parity results: Portfolio has {result.AssetWeights.Count} assets, " +
+                $"total risk {result.TotalRisk:P3}, expected return {result.ExpectedReturn:P3}. " +
+                $"Maximum deviation from equal risk contribution: {maxDeviation:P3}. " +
+                $"What does this tell us about diversification and risk management?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in risk parity optimization: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task HierarchicalRiskParityCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: hierarchical-risk-parity [assets] [start_date] [end_date]");
+            Console.WriteLine("Example: hierarchical-risk-parity \"AAPL,MSFT,GOOGL,TSLA\" 2023-01-01 2024-01-01");
+            return;
+        }
+
+        var assetsStr = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        var assets = assetsStr.Split(',').Select(a => a.Trim()).ToList();
+
+        PrintSectionHeader("Hierarchical Risk Parity Optimization");
+
+        try
+        {
+            var constraints = new OptimizationConstraints();
+            var result = await _advancedOptimizationService.OptimizeHierarchicalRiskParityAsync(
+                assets, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            Console.WriteLine($"Analysis Date: {result.AnalysisDate:yyyy-MM-dd}");
+            Console.WriteLine($"Number of Clusters: {result.Clusters.Count}");
+            Console.WriteLine();
+
+            Console.WriteLine("CLUSTERS:");
+            foreach (var cluster in result.Clusters)
+            {
+                Console.WriteLine($"Cluster '{cluster.Name}': {string.Join(", ", cluster.Assets)}");
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("ASSET WEIGHTS:");
+            foreach (var weight in result.Weights.OrderByDescending(w => w.Value))
+            {
+                Console.WriteLine($"{weight.Key}: {weight.Value:P2}");
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("PORTFOLIO METRICS:");
+            Console.WriteLine($"Total Risk: {result.TotalRisk:P3}");
+            Console.WriteLine($"Expected Return: {result.ExpectedReturn:P3}");
+
+            // AI interpretation
+            var clusterSummary = string.Join("; ", result.Clusters.Select(c => $"{c.Name}: {c.Assets.Count} assets"));
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Interpret hierarchical risk parity results: {result.Clusters.Count} clusters identified, " +
+                $"{clusterSummary}. Portfolio risk {result.TotalRisk:P3}, return {result.ExpectedReturn:P3}. " +
+                $"What does this clustering tell us about asset relationships and diversification?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in hierarchical risk parity optimization: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task MinimumVarianceCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: minimum-variance [assets] [start_date] [end_date]");
+            Console.WriteLine("Example: minimum-variance \"AAPL,MSFT,GOOGL\" 2023-01-01 2024-01-01");
+            return;
+        }
+
+        var assetsStr = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        var assets = assetsStr.Split(',').Select(a => a.Trim()).ToList();
+
+        PrintSectionHeader("Minimum Variance Portfolio Optimization");
+
+        try
+        {
+            var constraints = new OptimizationConstraints();
+            var result = await _advancedOptimizationService.OptimizeMinimumVarianceAsync(
+                assets, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            Console.WriteLine($"Analysis Date: {result.AnalysisDate:yyyy-MM-dd}");
+            Console.WriteLine($"Success: {result.Success}");
+            Console.WriteLine();
+
+            if (result.Success)
+            {
+                Console.WriteLine("PORTFOLIO WEIGHTS:");
+                foreach (var weight in result.Weights.OrderByDescending(w => w.Value))
+                {
+                    Console.WriteLine($"{weight.Key}: {weight.Value:P2}");
+                }
+                Console.WriteLine();
+
+                Console.WriteLine("PORTFOLIO METRICS:");
+                Console.WriteLine($"Portfolio Variance: {result.PortfolioVariance:P4}");
+                Console.WriteLine($"Portfolio Volatility: {result.PortfolioVolatility:P3}");
+                Console.WriteLine($"Expected Return: {result.ExpectedReturn:P3}");
+            }
+
+            // AI interpretation
+            if (result.Success)
+            {
+                var topHoldings = result.Weights.OrderByDescending(w => w.Value).Take(3);
+                var interpretation = await _llmService.GetChatCompletionAsync(
+                    $"Interpret minimum variance portfolio: " +
+                    $"Top holdings: {string.Join(", ", topHoldings.Select(w => $"{w.Key}: {w.Value:P1}"))}, " +
+                    $"volatility {result.PortfolioVolatility:P3}, return {result.ExpectedReturn:P3}. " +
+                    $"What does this tell us about low-risk investing?");
+
+                Console.WriteLine();
+                Console.WriteLine("AI INTERPRETATION:");
+                Console.WriteLine(interpretation);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in minimum variance optimization: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task CompareOptimizationCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: compare-optimization [assets] [start_date] [end_date]");
+            Console.WriteLine("Example: compare-optimization \"AAPL,MSFT,GOOGL\" 2023-01-01 2024-01-01");
+            return;
+        }
+
+        var assetsStr = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        var assets = assetsStr.Split(',').Select(a => a.Trim()).ToList();
+
+        PrintSectionHeader("Portfolio Optimization Methods Comparison");
+
+        try
+        {
+            var constraints = new OptimizationConstraints();
+
+            // Run all optimization methods
+            var riskParity = await _advancedOptimizationService.OptimizeRiskParityAsync(
+                assets, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            var hrp = await _advancedOptimizationService.OptimizeHierarchicalRiskParityAsync(
+                assets, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            var minVar = await _advancedOptimizationService.OptimizeMinimumVarianceAsync(
+                assets, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            Console.WriteLine($"Analysis Period: {startDate} to {endDate}");
+            Console.WriteLine($"Assets: {string.Join(", ", assets)}");
+            Console.WriteLine();
+
+            Console.WriteLine("RISK PARITY:");
+            Console.WriteLine($"  Risk: {riskParity.TotalRisk:P3}, Return: {riskParity.ExpectedReturn:P3}");
+            Console.WriteLine($"  Converged: {riskParity.Converged}, Iterations: {riskParity.Iterations}");
+            Console.WriteLine();
+
+            Console.WriteLine("HIERARCHICAL RISK PARITY:");
+            Console.WriteLine($"  Risk: {hrp.TotalRisk:P3}, Return: {hrp.ExpectedReturn:P3}");
+            Console.WriteLine($"  Clusters: {hrp.Clusters.Count}");
+            Console.WriteLine();
+
+            Console.WriteLine("MINIMUM VARIANCE:");
+            Console.WriteLine($"  Risk: {minVar.PortfolioVolatility:P3}, Return: {minVar.ExpectedReturn:P3}");
+            Console.WriteLine($"  Success: {minVar.Success}");
+            Console.WriteLine();
+
+            // Calculate Sharpe ratios for comparison
+            var rpSharpe = riskParity.ExpectedReturn / riskParity.TotalRisk;
+            var hrpSharpe = hrp.ExpectedReturn / hrp.TotalRisk;
+            var mvSharpe = minVar.ExpectedReturn / minVar.PortfolioVolatility;
+
+            Console.WriteLine("SHARPE RATIOS:");
+            Console.WriteLine($"  Risk Parity: {rpSharpe:F3}");
+            Console.WriteLine($"  HRP: {hrpSharpe:F3}");
+            Console.WriteLine($"  Min Variance: {mvSharpe:F3}");
+
+            // AI interpretation
+            var bestMethod = rpSharpe > hrpSharpe && rpSharpe > mvSharpe ? "Risk Parity" :
+                           hrpSharpe > mvSharpe ? "Hierarchical Risk Parity" : "Minimum Variance";
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Compare portfolio optimization methods: Risk Parity Sharpe {rpSharpe:F3}, " +
+                $"HRP Sharpe {hrpSharpe:F3}, Min Variance Sharpe {mvSharpe:F3}. " +
+                $"{bestMethod} appears best. What does this tell us about different optimization approaches?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error comparing optimization methods: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    // Phase 3.3: Advanced Risk Management Commands
+    private async Task CalculateVaRCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: calculate-var [weights_json] [confidence_level] [method] [start_date] [end_date]");
+            Console.WriteLine("Example: calculate-var \"{\\\"AAPL\\\": 0.3, \\\"MSFT\\\": 0.4, \\\"GOOGL\\\": 0.3}\" 0.95 historical 2023-01-01 2024-01-01");
+            return;
+        }
+
+        var weightsJson = parts[1];
+        var confidenceLevel = double.Parse(parts[2]);
+        var method = parts.Length > 3 ? parts[3] : "historical";
+        var startDate = parts.Length > 4 ? parts[4] : "2023-01-01";
+        var endDate = parts.Length > 5 ? parts[5] : "2024-01-01";
+
+        PrintSectionHeader($"Value-at-Risk Analysis ({method.ToUpper()})");
+
+        try
+        {
+            var weights = ParseWeights(weightsJson);
+            var result = await _advancedRiskService.CalculateVaRAsync(
+                weights, confidenceLevel, method, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            Console.WriteLine($"Analysis Date: {result.AnalysisDate:yyyy-MM-dd}");
+            Console.WriteLine($"Method: {result.Method}");
+            Console.WriteLine($"Confidence Level: {result.ConfidenceLevel:P1}");
+            Console.WriteLine();
+
+            Console.WriteLine("RISK MEASURES:");
+            Console.WriteLine($"VaR (Value-at-Risk): {result.VaR:P3}");
+            Console.WriteLine($"Expected Shortfall (CVaR): {result.ExpectedShortfall:P3}");
+            Console.WriteLine($"Diversification Ratio: {result.DiversificationRatio:F2}");
+            Console.WriteLine();
+
+            Console.WriteLine("COMPONENT VaR (by asset):");
+            foreach (var component in result.ComponentVaR.OrderByDescending(c => Math.Abs(c.Value)))
+            {
+                Console.WriteLine($"{component.Key}: {component.Value:P3}");
+            }
+
+            // AI interpretation
+            var riskLevel = result.VaR < 0.02 ? "low" : result.VaR < 0.05 ? "moderate" : "high";
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Interpret VaR results: {result.VaR:P3} VaR at {result.ConfidenceLevel:P1} confidence, " +
+                $"Expected Shortfall {result.ExpectedShortfall:P3}, Diversification ratio {result.DiversificationRatio:F2}. " +
+                $"This indicates {riskLevel} risk. What does this mean for portfolio management?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error calculating VaR: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task StressTestPortfolioCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: stress-test-portfolio [weights_json] [scenarios_json] [scenario_names] [threshold]");
+            Console.WriteLine("Example: stress-test-portfolio \"{\\\"AAPL\\\": 0.3, \\\"MSFT\\\": 0.4, \\\"GOOGL\\\": 0.3}\" \"[{\\\"AAPL\\\": -0.1, \\\"MSFT\\\": -0.05}]\" \"Market Crash\" 0.05");
+            return;
+        }
+
+        var weightsJson = parts[1];
+        var scenariosJson = parts[2];
+        var scenarioNames = parts[3];
+        var threshold = parts.Length > 4 ? double.Parse(parts[4]) : 0.05;
+        var startDate = "2023-01-01";
+        var endDate = "2024-01-01";
+
+        PrintSectionHeader("Portfolio Stress Testing");
+
+        try
+        {
+            var weights = ParseWeights(weightsJson);
+            var scenarios = ParseStressScenarios(scenariosJson);
+            var names = scenarioNames.Split(',').Select(n => n.Trim()).ToList();
+
+            var results = await _advancedRiskService.RunStressTestsAsync(
+                weights, scenarios, names, threshold, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            Console.WriteLine($"Threshold for Breach: {threshold:P1}");
+            Console.WriteLine();
+
+            foreach (var result in results)
+            {
+                Console.WriteLine($"SCENARIO: {result.ScenarioName}");
+                Console.WriteLine($"Portfolio Return: {result.PortfolioReturn:P3}");
+                Console.WriteLine($"Portfolio Loss: {result.PortfolioLoss:P3}");
+                Console.WriteLine($"Breach Threshold: {result.BreachThreshold}");
+                Console.WriteLine();
+
+                Console.WriteLine("Asset Contributions:");
+                foreach (var contribution in result.AssetContributions.OrderBy(c => c.Value))
+                {
+                    Console.WriteLine($"  {contribution.Key}: {contribution.Value:P3}");
+                }
+                Console.WriteLine("----------------------------------------");
+            }
+
+            var breaches = results.Count(r => r.BreachThreshold);
+            Console.WriteLine($"SUMMARY: {breaches}/{results.Count} scenarios breached the {threshold:P1} threshold");
+
+            // AI interpretation
+            var worstCase = results.OrderBy(r => r.PortfolioReturn).First();
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Interpret stress test results: {breaches} out of {results.Count} scenarios breached threshold. " +
+                $"Worst case: {worstCase.ScenarioName} with {worstCase.PortfolioLoss:P3} loss. " +
+                $"What does this tell us about portfolio resilience?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error running stress tests: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task RiskAttributionCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: risk-attribution [weights_json] [factors] [start_date] [end_date]");
+            Console.WriteLine("Example: risk-attribution \"{\\\"AAPL\\\": 0.3, \\\"MSFT\\\": 0.4, \\\"GOOGL\\\": 0.3}\" \"Market,Size,Value,Momentum\" 2023-01-01 2024-01-01");
+            return;
+        }
+
+        var weightsJson = parts[1];
+        var factorsStr = parts[2];
+        var startDate = parts[3];
+        var endDate = parts[4];
+
+        var factors = factorsStr.Split(',').Select(f => f.Trim()).ToList();
+
+        PrintSectionHeader("Risk Factor Attribution Analysis");
+
+        try
+        {
+            var weights = ParseWeights(weightsJson);
+            var result = await _advancedRiskService.PerformRiskFactorAttributionAsync(
+                weights, factors, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            Console.WriteLine($"Analysis Date: {result.AnalysisDate:yyyy-MM-dd}");
+            Console.WriteLine($"R² (Explained Variance): {result.R2:P3}");
+            Console.WriteLine();
+
+            Console.WriteLine("FACTOR EXPOSURES:");
+            foreach (var exposure in result.FactorExposures)
+            {
+                Console.WriteLine($"{exposure.Key}: {exposure.Value:F3}");
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("FACTOR CONTRIBUTIONS TO RISK:");
+            foreach (var contribution in result.FactorContributions.OrderByDescending(c => Math.Abs(c.Value)))
+            {
+                Console.WriteLine($"{contribution.Key}: {contribution.Value:P3}");
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("ATTRIBUTION SUMMARY:");
+            Console.WriteLine($"Total Attribution: {result.TotalAttribution:P3}");
+            Console.WriteLine($"Residual Risk: {result.ResidualRisk:P3}");
+
+            // AI interpretation
+            var topFactor = result.FactorContributions.OrderByDescending(c => Math.Abs(c.Value)).First();
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Interpret risk attribution: {result.R2:P1} of risk explained by factors. " +
+                $"Top risk factor: {topFactor.Key} ({topFactor.Value:P3}). " +
+                $"What does this tell us about portfolio risk drivers?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error performing risk attribution: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task RiskReportCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: risk-report [weights_json] [factors] [scenarios_json] [scenario_names]");
+            Console.WriteLine("Example: risk-report \"{\\\"AAPL\\\": 0.3, \\\"MSFT\\\": 0.4, \\\"GOOGL\\\": 0.3}\" \"Market,Size,Value\" \"[]\" \"Test Scenario\"");
+            return;
+        }
+
+        var weightsJson = parts[1];
+        var factorsStr = parts[2];
+        var scenariosJson = parts.Length > 3 ? parts[3] : "[]";
+        var scenarioNames = parts.Length > 4 ? parts[4] : "Default Scenario";
+        var startDate = "2023-01-01";
+        var endDate = "2024-01-01";
+
+        var factors = factorsStr.Split(',').Select(f => f.Trim()).ToList();
+        var scenarios = ParseStressScenarios(scenariosJson);
+        var names = scenarioNames.Split(',').Select(n => n.Trim()).ToList();
+
+        PrintSectionHeader("Comprehensive Risk Report");
+
+        try
+        {
+            var weights = ParseWeights(weightsJson);
+            var report = await _advancedRiskService.GenerateRiskReportAsync(
+                weights, scenarios, names, factors, DateTime.Parse(startDate), DateTime.Parse(endDate));
+
+            Console.WriteLine($"Report Date: {report.ReportDate:yyyy-MM-dd}");
+            Console.WriteLine($"Risk Rating: {report.RiskRating}");
+            Console.WriteLine();
+
+            Console.WriteLine("VALUE-AT-RISK (95% Confidence):");
+            Console.WriteLine($"VaR: {report.VaR.VaR:P3}");
+            Console.WriteLine($"Expected Shortfall: {report.VaR.ExpectedShortfall:P3}");
+            Console.WriteLine();
+
+            Console.WriteLine("STRESS TEST SUMMARY:");
+            var breaches = report.StressTests.Count(st => st.BreachThreshold);
+            Console.WriteLine($"Scenarios Tested: {report.StressTests.Count}");
+            Console.WriteLine($"Threshold Breaches: {breaches}");
+            if (report.StressTests.Any())
+            {
+                Console.WriteLine($"Worst Case Loss: {report.StressTests.Max(st => st.PortfolioLoss):P3}");
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("RISK METRICS:");
+            foreach (var metric in report.RiskMetrics)
+            {
+                Console.WriteLine($"{metric.Key}: {metric.Value:F4}");
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("FACTOR ATTRIBUTION:");
+            Console.WriteLine($"Explained Variance (R²): {report.FactorAttribution.R2:P3}");
+            Console.WriteLine($"Residual Risk: {report.FactorAttribution.ResidualRisk:P3}");
+
+            // AI interpretation
+            var riskAssessment = report.RiskRating.ToLower();
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Interpret comprehensive risk report: Portfolio rated {riskAssessment} risk, " +
+                $"VaR {report.VaR.VaR:P3}, Sharpe ratio {report.RiskMetrics.GetValueOrDefault("SharpeRatio", 0):F3}. " +
+                $"What recommendations would you make for risk management?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating risk report: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task CompareRiskMeasuresCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: compare-risk-measures [weights_json] [start_date] [end_date]");
+            Console.WriteLine("Example: compare-risk-measures \"{\\\"AAPL\\\": 0.3, \\\"MSFT\\\": 0.4, \\\"GOOGL\\\": 0.3}\" 2023-01-01 2024-01-01");
+            return;
+        }
+
+        var weightsJson = parts[1];
+        var startDate = parts.Length > 2 ? parts[2] : "2023-01-01";
+        var endDate = parts.Length > 3 ? parts[3] : "2024-01-01";
+
+        PrintSectionHeader("Risk Measures Comparison (95% Confidence)");
+
+        try
+        {
+            var weights = ParseWeights(weightsJson);
+
+            // Calculate different VaR measures
+            var historicalVaR = await _advancedRiskService.CalculateVaRAsync(weights, 0.95, "historical", DateTime.Parse(startDate), DateTime.Parse(endDate));
+            var parametricVaR = await _advancedRiskService.CalculateVaRAsync(weights, 0.95, "parametric", DateTime.Parse(startDate), DateTime.Parse(endDate));
+            var monteCarloVaR = await _advancedRiskService.CalculateVaRAsync(weights, 0.95, "montecarlo", DateTime.Parse(startDate), DateTime.Parse(endDate), 10000);
+
+            Console.WriteLine("HISTORICAL VaR:");
+            Console.WriteLine($"  VaR: {historicalVaR.VaR:P3}");
+            Console.WriteLine($"  Expected Shortfall: {historicalVaR.ExpectedShortfall:P3}");
+            Console.WriteLine();
+
+            Console.WriteLine("PARAMETRIC VaR:");
+            Console.WriteLine($"  VaR: {parametricVaR.VaR:P3}");
+            Console.WriteLine($"  Expected Shortfall: {parametricVaR.ExpectedShortfall:P3}");
+            Console.WriteLine();
+
+            Console.WriteLine("MONTE CARLO VaR:");
+            Console.WriteLine($"  VaR: {monteCarloVaR.VaR:P3}");
+            Console.WriteLine($"  Expected Shortfall: {monteCarloVaR.ExpectedShortfall:P3}");
+            Console.WriteLine();
+
+            Console.WriteLine("COMPARISON INSIGHTS:");
+            var avgVar = (historicalVaR.VaR + parametricVaR.VaR + monteCarloVaR.VaR) / 3;
+            Console.WriteLine($"Average VaR: {avgVar:P3}");
+            Console.WriteLine($"Range: {Math.Max(historicalVaR.VaR, Math.Max(parametricVaR.VaR, monteCarloVaR.VaR)) - Math.Min(historicalVaR.VaR, Math.Min(parametricVaR.VaR, monteCarloVaR.VaR)):P3}");
+
+            // AI interpretation
+            var mostConservative = historicalVaR.VaR <= parametricVaR.VaR && historicalVaR.VaR <= monteCarloVaR.VaR ? "Historical" :
+                                 parametricVaR.VaR <= monteCarloVaR.VaR ? "Parametric" : "Monte Carlo";
+            var interpretation = await _llmService.GetChatCompletionAsync(
+                $"Compare VaR calculation methods: Historical {historicalVaR.VaR:P3}, " +
+                $"Parametric {parametricVaR.VaR:P3}, Monte Carlo {monteCarloVaR.VaR:P3}. " +
+                $"{mostConservative} is most conservative. What does this tell us about VaR methodology?");
+
+            Console.WriteLine();
+            Console.WriteLine("AI INTERPRETATION:");
+            Console.WriteLine(interpretation);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error comparing risk measures: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    // Helper methods for Phase 3.2 and 3.3 commands
     private async Task<double[]> GetHistoricalPrices(string symbol, int days)
     {
         try
@@ -4994,5 +6124,540 @@ public class InteractiveCLI
                 .Select(i => DateTime.Now.AddDays(-days + i))
                 .ToList();
         }
+    }
+
+    // Helper methods for Phase 3.2 and 3.3 commands
+    private BlackLittermanViews ParseViews(string viewsJson)
+    {
+        try
+        {
+            var views = JsonSerializer.Deserialize<Dictionary<string, double>>(viewsJson);
+            return new BlackLittermanViews { AbsoluteViews = views };
+        }
+        catch
+        {
+            throw new ArgumentException("Invalid views JSON format. Expected: {\"AAPL\": 0.15, \"MSFT\": 0.12}");
+        }
+    }
+
+    private Dictionary<string, double> ParseWeights(string weightsJson)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, double>>(weightsJson);
+        }
+        catch
+        {
+            throw new ArgumentException("Invalid weights JSON format. Expected: {\"AAPL\": 0.3, \"MSFT\": 0.4}");
+        }
+    }
+
+    private List<Dictionary<string, double>> ParseStressScenarios(string scenariosJson)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<List<Dictionary<string, double>>>(scenariosJson);
+        }
+        catch
+        {
+            throw new ArgumentException("Invalid scenarios JSON format. Expected: [{\"AAPL\": -0.1, \"MSFT\": -0.05}]");
+        }
+    }
+
+    // Phase 4: Alternative Data Integration Commands
+    private async Task SecAnalysisCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: sec-analysis [ticker] [filing_type]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+        var filingType = parts.Length > 2 ? parts[2] : "10-K";
+
+        PrintSectionHeader($"SEC Filing Analysis: {ticker}");
+        try
+        {
+            var result = await _secFilingsService.AnalyzeLatestFilingAsync(ticker, filingType);
+            Console.WriteLine(result.Insights.GetValueOrDefault("Analysis", "Analysis completed"));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task SecFilingHistoryCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: sec-filing-history [ticker] [filing_type] [limit]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+        var filingType = parts.Length > 2 ? parts[2] : "10-K";
+        var limit = parts.Length > 3 && int.TryParse(parts[3], out var l) ? l : 3;
+
+        PrintSectionHeader($"SEC Filing History: {ticker}");
+        try
+        {
+            var filings = await _secFilingsService.GetFilingHistoryAsync(ticker, filingType, limit);
+            foreach (var filing in filings)
+            {
+                Console.WriteLine($"{filing.FilingDate:yyyy-MM-dd} - {filing.FilingType} - {filing.AccessionNumber}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task SecRiskFactorsCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: sec-risk-factors [ticker]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+
+        PrintSectionHeader($"Risk Factors Analysis: {ticker}");
+        try
+        {
+            var analysis = await _secFilingsService.AnalyzeLatestFilingAsync(ticker);
+            if (analysis.Filing.RiskFactors.Any())
+            {
+                foreach (var risk in analysis.Filing.RiskFactors)
+                {
+                    Console.WriteLine($"{risk.Category}: {risk.Description} (Severity: {risk.Severity:F1})");
+                }
+            }
+            else
+            {
+                Console.WriteLine("No risk factors identified.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task SecManagementDiscussionCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: sec-management-discussion [ticker]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+
+        PrintSectionHeader($"Management Discussion & Analysis: {ticker}");
+        try
+        {
+            var analysis = await _secFilingsService.AnalyzeLatestFilingAsync(ticker);
+            Console.WriteLine(analysis.Filing.MDandA.Summary);
+            Console.WriteLine($"\nSentiment Score: {analysis.Filing.MDandA.Sentiment.OverallScore:F2}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task SecComprehensiveCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: sec-comprehensive [ticker]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+
+        PrintSectionHeader($"Comprehensive SEC Analysis: {ticker}");
+        try
+        {
+            var analysis = await _secFilingsService.AnalyzeLatestFilingAsync(ticker);
+            Console.WriteLine($"Filing: {analysis.Filing.FilingType} - {analysis.Filing.FilingDate:yyyy-MM-dd}");
+            Console.WriteLine($"Sentiment: {analysis.ContentSentiment.OverallScore:F2}");
+            Console.WriteLine("\nKey Findings:");
+            foreach (var finding in analysis.KeyFindings)
+            {
+                Console.WriteLine($"- {finding}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task EarningsAnalysisCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: earnings-analysis [ticker]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+
+        PrintSectionHeader($"Earnings Call Analysis: {ticker}");
+        try
+        {
+            var analysis = await _earningsCallService.AnalyzeLatestEarningsCallAsync(ticker);
+            Console.WriteLine($"Call Date: {analysis.EarningsCall.CallDate:yyyy-MM-dd}");
+            Console.WriteLine($"Quarter: {analysis.EarningsCall.Quarter} {analysis.EarningsCall.Year}");
+            Console.WriteLine($"Sentiment: {analysis.SentimentAnalysis.OverallScore:F2}");
+
+            if (analysis.FinancialMetrics.Revenue.Any())
+            {
+                Console.WriteLine($"Revenue: ${analysis.FinancialMetrics.Revenue.Last():N0}M");
+            }
+            if (analysis.FinancialMetrics.EPS.Any())
+            {
+                Console.WriteLine($"EPS: ${analysis.FinancialMetrics.EPS.Last():F2}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task EarningsHistoryCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: earnings-history [ticker] [limit]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+        var limit = parts.Length > 2 && int.TryParse(parts[2], out var l) ? l : 4;
+
+        PrintSectionHeader($"Earnings Call History: {ticker}");
+        try
+        {
+            var calls = await _earningsCallService.GetEarningsCallHistoryAsync(ticker, limit);
+            foreach (var call in calls)
+            {
+                Console.WriteLine($"{call.Quarter} {call.Year} - {call.CallDate:yyyy-MM-dd}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task EarningsSentimentCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: earnings-sentiment [ticker]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+
+        PrintSectionHeader($"Earnings Sentiment Analysis: {ticker}");
+        try
+        {
+            var analysis = await _earningsCallService.AnalyzeLatestEarningsCallAsync(ticker);
+            Console.WriteLine($"Overall Sentiment: {analysis.SentimentAnalysis.OverallScore:F2}");
+            Console.WriteLine($"Confidence: {analysis.SentimentAnalysis.Confidence:P1}");
+
+            if (analysis.SentimentAnalysis.AdditionalMetrics.ContainsKey("ManagementTone"))
+            {
+                var managementTone = (double)analysis.SentimentAnalysis.AdditionalMetrics["ManagementTone"];
+                Console.WriteLine($"Management Tone: {managementTone:F2}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task EarningsStrategicCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: earnings-strategic [ticker]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+
+        PrintSectionHeader($"Strategic Insights: {ticker}");
+        try
+        {
+            var insights = await _earningsCallService.ExtractStrategicInsightsAsync(
+                await _earningsCallService.GetEarningsCallHistoryAsync(ticker, 1).ContinueWith(t => t.Result.First()));
+            foreach (var insight in insights)
+            {
+                Console.WriteLine($"{insight.Key}: {insight.Value}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task EarningsRisksCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: earnings-risks [ticker]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+
+        PrintSectionHeader($"Earnings Risk Indicators: {ticker}");
+        try
+        {
+            var risks = await _earningsCallService.IdentifyRiskIndicatorsAsync(
+                await _earningsCallService.GetEarningsCallHistoryAsync(ticker, 1).ContinueWith(t => t.Result.First()));
+            foreach (var risk in risks)
+            {
+                Console.WriteLine($"- {risk}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task EarningsComprehensiveCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: earnings-comprehensive [ticker]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+
+        PrintSectionHeader($"Comprehensive Earnings Analysis: {ticker}");
+        try
+        {
+            var analysis = await _earningsCallService.AnalyzeLatestEarningsCallAsync(ticker);
+            Console.WriteLine($"Call: {analysis.EarningsCall.Quarter} {analysis.EarningsCall.Year} - {analysis.EarningsCall.CallDate:yyyy-MM-dd}");
+            Console.WriteLine($"Sentiment: {analysis.SentimentAnalysis.OverallScore:F2}");
+
+            if (analysis.FinancialMetrics.Revenue.Any())
+                Console.WriteLine($"Revenue: ${analysis.FinancialMetrics.Revenue.Last():N0}M");
+            if (analysis.FinancialMetrics.EPS.Any())
+                Console.WriteLine($"EPS: ${analysis.FinancialMetrics.EPS.Last():F2}");
+
+            Console.WriteLine("\nRisk Indicators:");
+            foreach (var risk in analysis.RiskIndicators)
+            {
+                Console.WriteLine($"- {risk}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task SupplyChainAnalysisCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: supply-chain-analysis [ticker]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+
+        PrintSectionHeader($"Supply Chain Analysis: {ticker}");
+        try
+        {
+            var analysis = await _supplyChainService.AnalyzeCompanySupplyChainAsync(ticker);
+            Console.WriteLine($"Suppliers: {analysis.SupplyChainData.Suppliers.Count}");
+            Console.WriteLine($"Resilience Score: {analysis.ResilienceScore:P1}");
+            Console.WriteLine($"Inventory Turnover: {analysis.SupplyChainData.InventoryMetrics.InventoryTurnoverRatio:F1}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task SupplyChainRisksCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: supply-chain-risks [ticker]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+
+        PrintSectionHeader($"Supply Chain Risk Assessment: {ticker}");
+        try
+        {
+            var analysis = await _supplyChainService.AnalyzeCompanySupplyChainAsync(ticker);
+            Console.WriteLine($"Resilience Score: {analysis.ResilienceScore:P1}");
+
+            Console.WriteLine("\nConcentration Risks:");
+            foreach (var risk in analysis.ConcentrationRisks)
+            {
+                Console.WriteLine($"- {risk}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task SupplyChainGeographyCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: supply-chain-geography [ticker]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+
+        PrintSectionHeader($"Geographic Exposure: {ticker}");
+        try
+        {
+            var analysis = await _supplyChainService.AnalyzeCompanySupplyChainAsync(ticker);
+            var regionalExposure = analysis.GeographicExposure.GetValueOrDefault("RegionalExposure", new Dictionary<string, double>()) as Dictionary<string, double>;
+
+            if (regionalExposure != null)
+            {
+                foreach (var region in regionalExposure.OrderByDescending(r => r.Value))
+                {
+                    Console.WriteLine($"{region.Key}: {region.Value:P1}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task SupplyChainDiversificationCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: supply-chain-diversification [ticker]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+
+        PrintSectionHeader($"Diversification Metrics: {ticker}");
+        try
+        {
+            var analysis = await _supplyChainService.AnalyzeCompanySupplyChainAsync(ticker);
+            foreach (var metric in analysis.DiversificationMetrics)
+            {
+                Console.WriteLine($"{metric.Key}: {metric.Value}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task SupplyChainResilienceCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: supply-chain-resilience [ticker]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+
+        PrintSectionHeader($"Supply Chain Resilience: {ticker}");
+        try
+        {
+            var analysis = await _supplyChainService.AnalyzeCompanySupplyChainAsync(ticker);
+            Console.WriteLine($"Resilience Score: {analysis.ResilienceScore:P1}");
+
+            var diversificationScore = analysis.DiversificationMetrics.GetValueOrDefault("OverallDiversificationScore", 0.0);
+            Console.WriteLine($"Diversification: {diversificationScore:P1}");
+
+            var avgRiskScore = analysis.RiskAssessment.GetValueOrDefault("AverageSupplierRiskScore", 5.0);
+            var riskNormalized = 1.0 - (Math.Min((double)avgRiskScore, 10.0) / 10.0);
+            Console.WriteLine($"Risk Profile: {riskNormalized:P1}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task SupplyChainComprehensiveCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: supply-chain-comprehensive [ticker]");
+            return;
+        }
+
+        var ticker = parts[1].ToUpper();
+
+        PrintSectionHeader($"Comprehensive Supply Chain Analysis: {ticker}");
+        try
+        {
+            var analysis = await _supplyChainService.AnalyzeCompanySupplyChainAsync(ticker);
+            Console.WriteLine($"Data Date: {analysis.SupplyChainData.DataDate:yyyy-MM-dd}");
+            Console.WriteLine($"Suppliers: {analysis.SupplyChainData.Suppliers.Count}");
+            Console.WriteLine($"Resilience Score: {analysis.ResilienceScore:P1}");
+
+            Console.WriteLine("\nTop Suppliers:");
+            foreach (var supplier in analysis.SupplyChainData.Suppliers.OrderByDescending(s => s.RevenuePercentage).Take(3))
+            {
+                Console.WriteLine($"{supplier.Name} ({supplier.Country}): {supplier.RevenuePercentage:P1}");
+            }
+
+            Console.WriteLine("\nKey Risks:");
+            foreach (var risk in analysis.ConcentrationRisks.Take(3))
+            {
+                Console.WriteLine($"- {risk}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
     }
 }

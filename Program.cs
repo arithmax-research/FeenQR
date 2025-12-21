@@ -204,7 +204,13 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<CointegrationAnalysisService>(),
                     sp.GetRequiredService<TimeSeriesForecastingService>(),
                     sp.GetRequiredService<FeatureEngineeringService>(),
-                    sp.GetRequiredService<ModelValidationService>()
+                    sp.GetRequiredService<ModelValidationService>(),
+                    sp.GetRequiredService<FactorModelService>(),
+                    sp.GetRequiredService<AdvancedOptimizationService>(),
+                    sp.GetRequiredService<AdvancedRiskService>(),
+                    sp.GetRequiredService<SECFilingsService>(),
+                    sp.GetRequiredService<EarningsCallService>(),
+                    sp.GetRequiredService<SupplyChainService>()
                 )
             );
 
@@ -233,7 +239,10 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<StatisticalTestingService>(),
                     sp.GetRequiredService<TimeSeriesForecastingService>(),
                     sp.GetRequiredService<FeatureEngineeringService>(),
-                    sp.GetRequiredService<ModelValidationService>()
+                    sp.GetRequiredService<ModelValidationService>(),
+                    sp.GetRequiredService<FactorModelService>(),
+                    sp.GetRequiredService<AdvancedOptimizationService>(),
+                    sp.GetRequiredService<AdvancedRiskService>()
                 )
             );
             services.AddSingleton<YouTubeAnalysisService>();
@@ -288,6 +297,20 @@ namespace QuantResearchAgent
             services.AddSingleton<TimeSeriesForecastingService>();
             services.AddSingleton<FeatureEngineeringService>();
             services.AddSingleton<ModelValidationService>();
+
+            // Add Phase 3 Factor Model service
+            services.AddSingleton<FactorModelService>();
+
+            // Add Phase 3.2 Advanced Optimization services
+            services.AddSingleton<AdvancedOptimizationService>();
+
+            // Add Phase 3.3 Advanced Risk services
+            services.AddSingleton<AdvancedRiskService>();
+
+            // Add Phase 4 Alternative Data services
+            services.AddSingleton<SECFilingsService>();
+            services.AddSingleton<EarningsCallService>();
+            services.AddSingleton<SupplyChainService>();
 
             // Add research agents
             services.AddSingleton<NewsScrapingService>();
