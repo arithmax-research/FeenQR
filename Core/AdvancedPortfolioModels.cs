@@ -40,7 +40,7 @@ namespace QuantResearchAgent.Core
 
     public class Cluster
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public List<string> Assets { get; set; } = new();
         public double Weight { get; set; }
         public double Risk { get; set; }
@@ -60,7 +60,7 @@ namespace QuantResearchAgent.Core
     public class ValueAtRisk
     {
         public DateTime AnalysisDate { get; set; }
-        public string Method { get; set; } // "Historical", "Parametric", "MonteCarlo"
+        public string Method { get; set; } = "Historical"; // "Historical", "Parametric", "MonteCarlo"
         public double ConfidenceLevel { get; set; }
         public double VaR { get; set; }
         public double ExpectedShortfall { get; set; }
@@ -71,7 +71,7 @@ namespace QuantResearchAgent.Core
     public class StressTestResult
     {
         public DateTime AnalysisDate { get; set; }
-        public string ScenarioName { get; set; }
+        public string ScenarioName { get; set; } = string.Empty;
         public Dictionary<string, double> ShockReturns { get; set; } = new();
         public double PortfolioReturn { get; set; }
         public double PortfolioLoss { get; set; }
@@ -93,11 +93,11 @@ namespace QuantResearchAgent.Core
     public class RiskReport
     {
         public DateTime ReportDate { get; set; }
-        public ValueAtRisk VaR { get; set; }
+        public ValueAtRisk VaR { get; set; } = new();
         public List<StressTestResult> StressTests { get; set; } = new();
-        public RiskFactorAttribution FactorAttribution { get; set; }
+        public RiskFactorAttribution FactorAttribution { get; set; } = new();
         public Dictionary<string, double> RiskMetrics { get; set; } = new();
-        public string RiskRating { get; set; } // "Low", "Medium", "High", "Extreme"
+        public string RiskRating { get; set; } = "Medium"; // "Low", "Medium", "High", "Extreme"
     }
 
     // Optimization Constraints

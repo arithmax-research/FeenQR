@@ -892,7 +892,10 @@ public class InteractiveCLI
         var factorModelService = serviceProvider.GetRequiredService<FactorModelService>();
         var advancedOptimizationService = serviceProvider.GetRequiredService<AdvancedOptimizationService>();
         var advancedRiskService = serviceProvider.GetRequiredService<AdvancedRiskService>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService));
+        var secFilingsService = serviceProvider.GetRequiredService<SECFilingsService>();
+        var earningsCallService = serviceProvider.GetRequiredService<EarningsCallService>();
+        var supplyChainService = serviceProvider.GetRequiredService<SupplyChainService>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService));
     }
 
     // Alpaca Commands
@@ -6132,7 +6135,7 @@ public class InteractiveCLI
         try
         {
             var views = JsonSerializer.Deserialize<Dictionary<string, double>>(viewsJson);
-            return new BlackLittermanViews { AbsoluteViews = views };
+            return new BlackLittermanViews { AbsoluteViews = views ?? new Dictionary<string, double>() };
         }
         catch
         {
@@ -6144,7 +6147,7 @@ public class InteractiveCLI
     {
         try
         {
-            return JsonSerializer.Deserialize<Dictionary<string, double>>(weightsJson);
+            return JsonSerializer.Deserialize<Dictionary<string, double>>(weightsJson) ?? new Dictionary<string, double>();
         }
         catch
         {
@@ -6156,7 +6159,7 @@ public class InteractiveCLI
     {
         try
         {
-            return JsonSerializer.Deserialize<List<Dictionary<string, double>>>(scenariosJson);
+            return JsonSerializer.Deserialize<List<Dictionary<string, double>>>(scenariosJson) ?? new List<Dictionary<string, double>>();
         }
         catch
         {
@@ -6321,13 +6324,13 @@ public class InteractiveCLI
             Console.WriteLine($"Quarter: {analysis.EarningsCall.Quarter} {analysis.EarningsCall.Year}");
             Console.WriteLine($"Sentiment: {analysis.SentimentAnalysis.OverallScore:F2}");
 
-            if (analysis.FinancialMetrics.Revenue.Any())
+            if (analysis.FinancialMetrics.Revenue > 0)
             {
-                Console.WriteLine($"Revenue: ${analysis.FinancialMetrics.Revenue.Last():N0}M");
+                Console.WriteLine($"Revenue: ${analysis.FinancialMetrics.Revenue:N0}M");
             }
-            if (analysis.FinancialMetrics.EPS.Any())
+            if (analysis.FinancialMetrics.EPS != 0)
             {
-                Console.WriteLine($"EPS: ${analysis.FinancialMetrics.EPS.Last():F2}");
+                Console.WriteLine($"EPS: ${analysis.FinancialMetrics.EPS:F2}");
             }
         }
         catch (Exception ex)
@@ -6411,7 +6414,7 @@ public class InteractiveCLI
                 await _earningsCallService.GetEarningsCallHistoryAsync(ticker, 1).ContinueWith(t => t.Result.First()));
             foreach (var insight in insights)
             {
-                Console.WriteLine($"{insight.Key}: {insight.Value}");
+                Console.WriteLine($"- {insight}");
             }
         }
         catch (Exception ex)
@@ -6465,10 +6468,10 @@ public class InteractiveCLI
             Console.WriteLine($"Call: {analysis.EarningsCall.Quarter} {analysis.EarningsCall.Year} - {analysis.EarningsCall.CallDate:yyyy-MM-dd}");
             Console.WriteLine($"Sentiment: {analysis.SentimentAnalysis.OverallScore:F2}");
 
-            if (analysis.FinancialMetrics.Revenue.Any())
-                Console.WriteLine($"Revenue: ${analysis.FinancialMetrics.Revenue.Last():N0}M");
-            if (analysis.FinancialMetrics.EPS.Any())
-                Console.WriteLine($"EPS: ${analysis.FinancialMetrics.EPS.Last():F2}");
+            if (analysis.FinancialMetrics.Revenue > 0)
+                Console.WriteLine($"Revenue: ${analysis.FinancialMetrics.Revenue:N0}M");
+            if (analysis.FinancialMetrics.EPS != 0)
+                Console.WriteLine($"EPS: ${analysis.FinancialMetrics.EPS:F2}");
 
             Console.WriteLine("\nRisk Indicators:");
             foreach (var risk in analysis.RiskIndicators)
@@ -6613,8 +6616,8 @@ public class InteractiveCLI
             var diversificationScore = analysis.DiversificationMetrics.GetValueOrDefault("OverallDiversificationScore", 0.0);
             Console.WriteLine($"Diversification: {diversificationScore:P1}");
 
-            var avgRiskScore = analysis.RiskAssessment.GetValueOrDefault("AverageSupplierRiskScore", 5.0);
-            var riskNormalized = 1.0 - (Math.Min((double)avgRiskScore, 10.0) / 10.0);
+            var avgRiskScore = analysis.RiskAssessment.OverallRiskScore;
+            var riskNormalized = 1.0 - (Math.Min(avgRiskScore, 10.0) / 10.0);
             Console.WriteLine($"Risk Profile: {riskNormalized:P1}");
         }
         catch (Exception ex)

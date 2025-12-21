@@ -38,6 +38,9 @@ public class AgentOrchestrator
     private readonly TimeSeriesForecastingService _forecastingService;
     private readonly FeatureEngineeringService _featureEngineeringService;
     private readonly ModelValidationService _modelValidationService;
+    private readonly FactorModelService _factorModelService;
+    private readonly AdvancedOptimizationService _advancedOptimizationService;
+    private readonly AdvancedRiskService _advancedRiskService;
     
     private readonly ConcurrentQueue<AgentJob> _jobQueue = new();
     private readonly ConcurrentDictionary<string, AgentJob> _runningJobs = new();
@@ -68,7 +71,10 @@ public class AgentOrchestrator
         StatisticalTestingService? statisticalTestingService = null,
         TimeSeriesForecastingService? forecastingService = null,
         FeatureEngineeringService? featureEngineeringService = null,
-        ModelValidationService? modelValidationService = null)
+        ModelValidationService? modelValidationService = null,
+        FactorModelService? factorModelService = null,
+        AdvancedOptimizationService? advancedOptimizationService = null,
+        AdvancedRiskService? advancedRiskService = null)
     {
         _kernel = kernel;
         _youtubeService = youtubeService;
@@ -90,6 +96,9 @@ public class AgentOrchestrator
         _forecastingService = forecastingService ?? throw new ArgumentNullException(nameof(forecastingService));
         _featureEngineeringService = featureEngineeringService ?? throw new ArgumentNullException(nameof(featureEngineeringService));
         _modelValidationService = modelValidationService ?? throw new ArgumentNullException(nameof(modelValidationService));
+        _factorModelService = factorModelService ?? throw new ArgumentNullException(nameof(factorModelService));
+        _advancedOptimizationService = advancedOptimizationService ?? throw new ArgumentNullException(nameof(advancedOptimizationService));
+        _advancedRiskService = advancedRiskService ?? throw new ArgumentNullException(nameof(advancedRiskService));
         _configuration = configuration;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentOrchestrator>.Instance;
 
@@ -115,6 +124,15 @@ public class AgentOrchestrator
         kernel.Plugins.AddFromObject(new ForecastingPlugin(_forecastingService));
         kernel.Plugins.AddFromObject(new FeatureEngineeringPlugin(_featureEngineeringService));
         kernel.Plugins.AddFromObject(new ModelValidationPlugin(_modelValidationService));
+
+        // Register Phase 3 Factor Model plugin
+        kernel.Plugins.AddFromObject(new FactorModelPlugin(_factorModelService));
+
+        // Register Phase 3.2 Advanced Optimization plugins
+        kernel.Plugins.AddFromObject(new AdvancedOptimizationPlugin(_advancedOptimizationService));
+
+        // Register Phase 3.3 Advanced Risk plugins
+        kernel.Plugins.AddFromObject(new AdvancedRiskPlugin(_advancedRiskService));
         
         // Register research agent plugins
         kernel.Plugins.AddFromObject(new MarketSentimentPlugin(_marketSentimentAgent));
