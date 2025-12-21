@@ -1653,7 +1653,18 @@ public class InteractiveCLI
             }
             else
             {
-                Console.WriteLine("No futures contracts available from DataBento");
+                // Check if it's a known invalid symbol
+                var validFutures = new[] { "ES", "NQ", "YM", "RTY", "CL", "NG", "GC", "SI", "ZB", "ZN", "ZS", "ZC", "ZW", "EUR", "GBP", "JPY", "BTC", "ETH" };
+                if (!validFutures.Contains(symbol.ToUpper()))
+                {
+                    Console.WriteLine($"Symbol '{symbol}' is not a valid futures contract root.");
+                    Console.WriteLine("Futures contracts are available for commodities, indices, currencies, etc.");
+                    Console.WriteLine($"Try one of: {string.Join(", ", validFutures.Take(5))}...");
+                }
+                else
+                {
+                    Console.WriteLine("No futures contracts available from DataBento");
+                }
             }
         }
         catch (Exception ex)

@@ -143,10 +143,33 @@ namespace QuantResearchAgent.Services
         /// <summary>
         /// Get futures symbols for CME/CBOT (available with subscription)
         /// </summary>
-        public async Task<List<DataBentoSymbol>> GetFuturesSymbolsAsync(string dataset = "CME.FUT")
+        public async Task<List<DataBentoSymbol>> GetFuturesSymbolsAsync(string dataset = "GLBX.MDP3")
         {
             try
             {
+                // For now, return a predefined list of common futures symbols
+                // The DataBento API for listing symbols may require different parameters or authentication
+                var commonFutures = new List<DataBentoSymbol>
+                {
+                    new DataBentoSymbol { RawSymbol = "ES", Description = "E-mini S&P 500 Futures" },
+                    new DataBentoSymbol { RawSymbol = "NQ", Description = "E-mini NASDAQ-100 Futures" },
+                    new DataBentoSymbol { RawSymbol = "YM", Description = "E-mini Dow Jones Futures" },
+                    new DataBentoSymbol { RawSymbol = "RTY", Description = "E-mini Russell 2000 Futures" },
+                    new DataBentoSymbol { RawSymbol = "CL", Description = "Crude Oil Futures" },
+                    new DataBentoSymbol { RawSymbol = "NG", Description = "Natural Gas Futures" },
+                    new DataBentoSymbol { RawSymbol = "GC", Description = "Gold Futures" },
+                    new DataBentoSymbol { RawSymbol = "SI", Description = "Silver Futures" },
+                    new DataBentoSymbol { RawSymbol = "ZB", Description = "Treasury Bond Futures" },
+                    new DataBentoSymbol { RawSymbol = "ZN", Description = "Treasury Note Futures" },
+                    new DataBentoSymbol { RawSymbol = "ZS", Description = "Soybean Futures" },
+                    new DataBentoSymbol { RawSymbol = "ZC", Description = "Corn Futures" },
+                    new DataBentoSymbol { RawSymbol = "ZW", Description = "Wheat Futures" }
+                };
+
+                return commonFutures;
+                
+                // Original API call (commented out due to API issues)
+                /*
                 var url = $"{BaseUrl}/v0/metadata.list_symbols?dataset={dataset}";
                 
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
@@ -163,6 +186,7 @@ namespace QuantResearchAgent.Services
                 }
                 var symbols = JsonSerializer.Deserialize<DataBentoSymbolsResponse>(responseBody);
                 return symbols?.Symbols ?? new List<DataBentoSymbol>();
+                */
             }
             catch (Exception ex)
             {
@@ -211,6 +235,24 @@ namespace QuantResearchAgent.Services
         {
             try
             {
+                // Check if this is a valid futures root symbol
+                var validFuturesRoots = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "ES", "NQ", "YM", "RTY",  // Equity Index Futures
+                    "CL", "NG", "HO", "RB",   // Energy Futures
+                    "GC", "SI", "HG",         // Metals Futures
+                    "ZB", "ZN", "ZF", "ZT",   // Treasury Futures
+                    "ZS", "ZC", "ZW", "ZM", "ZL", "ZO", "ZK", // Agricultural Futures
+                    "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", // Currency Futures
+                    "BTC", "ETH"              // Crypto Futures
+                };
+
+                if (!validFuturesRoots.Contains(rootSymbol.ToUpper()))
+                {
+                    _logger.LogWarning("Symbol {RootSymbol} is not a valid futures contract root. Futures contracts are available for commodities, indices, currencies, etc., not individual stocks.", rootSymbol);
+                    return new List<DataBentoFuturesContract>();
+                }
+
                 var symbols = await GetFuturesSymbolsAsync();
                 var contracts = symbols
                     .Where(s => s.RawSymbol.StartsWith(rootSymbol, StringComparison.OrdinalIgnoreCase))
@@ -218,8 +260,8 @@ namespace QuantResearchAgent.Services
                     {
                         Symbol = s.RawSymbol,
                         Description = s.Description,
-                        StartDate = s.StartDate,
-                        EndDate = s.EndDate
+                        StartDate = DateTime.Today.AddMonths(-1), // Placeholder
+                        EndDate = DateTime.Today.AddMonths(6)     // Placeholder
                     })
                     .ToList();
 
