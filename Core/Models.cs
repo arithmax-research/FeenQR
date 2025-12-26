@@ -860,7 +860,7 @@ public class MarketState
 /// <summary>
 /// Q-learning agent
 /// </summary>
-public class QAgent
+public class QAgent : RLAgent
 {
     public QAgent() {}
     public QAgent(QLearningConfig config)
