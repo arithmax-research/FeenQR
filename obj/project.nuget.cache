@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "6tv0A9gDaiY=",
+  "dgSpecHash": "hnsbv+ArPeo=",
   "success": true,
   "projectFilePath": "/Users/misango/codechest/FeenQR/QuantResearchAgent.csproj",
   "expectedPackageFiles": [
@@ -63,6 +63,7 @@
     "/Users/misango/.nuget/packages/naudio.wasapi/2.2.1/naudio.wasapi.2.2.1.nupkg.sha512",
     "/Users/misango/.nuget/packages/naudio.winmm/2.2.1/naudio.winmm.2.2.1.nupkg.sha512",
     "/Users/misango/.nuget/packages/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg.sha512",
+    "/Users/misango/.nuget/packages/nodatime/3.1.11/nodatime.3.1.11.nupkg.sha512",
     "/Users/misango/.nuget/packages/nstack.core/1.1.1/nstack.core.1.1.1.nupkg.sha512",
     "/Users/misango/.nuget/packages/openai/2.1.0-beta.1/openai.2.1.0-beta.1.nupkg.sha512",
     "/Users/misango/.nuget/packages/openai-dotnet/8.6.1/openai-dotnet.8.6.1.nupkg.sha512",

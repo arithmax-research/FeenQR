@@ -57,6 +57,9 @@ public class InteractiveCLI
     private readonly MonteCarloService _monteCarloService;
     private readonly StrategyBuilderService _strategyBuilderService;
     private readonly NotebookService _notebookService;
+    private readonly DataValidationService _dataValidationService;
+    private readonly CorporateActionService _corporateActionService;
+    private readonly TimezoneService _timezoneService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -99,7 +102,10 @@ public class InteractiveCLI
         ExecutionService executionService,
         MonteCarloService monteCarloService,
         StrategyBuilderService strategyBuilderService,
-        NotebookService notebookService)
+        NotebookService notebookService,
+        DataValidationService dataValidationService,
+        CorporateActionService corporateActionService,
+        TimezoneService timezoneService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -142,6 +148,9 @@ public class InteractiveCLI
         _monteCarloService = monteCarloService;
         _strategyBuilderService = strategyBuilderService;
         _notebookService = notebookService;
+        _dataValidationService = dataValidationService;
+        _corporateActionService = corporateActionService;
+        _timezoneService = timezoneService;
     }
 
     public async Task RunAsync()
@@ -251,9 +260,12 @@ public class InteractiveCLI
         Console.WriteLine(" 99. optimize-strategy [strategy_id] [param_ranges] - Optimize strategy parameters");
         Console.WriteLine("100. create-notebook [name] [description] - Create research notebook");
         Console.WriteLine("101. execute-notebook [notebook_id] - Execute research notebook");
-        Console.WriteLine("102. clear - Clear terminal and show menu");
-        Console.WriteLine("103. help - Show available functions");
-        Console.WriteLine("104. quit - Exit the application");
+        Console.WriteLine("102. data-validation [symbol] [days] [source] - Validate market data quality");
+        Console.WriteLine("103. corporate-action [symbol] [start-date] [end-date] - Process corporate actions");
+        Console.WriteLine("104. timezone [command] [parameters] - Timezone and market calendar operations");
+        Console.WriteLine("105. clear - Clear terminal and show menu");
+        Console.WriteLine("106. help - Show available functions");
+        Console.WriteLine("107. quit - Exit the application");
         Console.WriteLine();
 
         while (true)
@@ -703,6 +715,15 @@ public class InteractiveCLI
                 case "execute-notebook":
                     await ExecuteNotebookCommand(parts);
                     break;
+                case "data-validation":
+                    await DataValidationCommand(parts);
+                    break;
+                case "corporate-action":
+                    await CorporateActionCommand(parts);
+                    break;
+                case "timezone":
+                    await TimezoneCommand(parts);
+                    break;
                 case "clear":
                     await ClearCommand();
                     break;
@@ -915,9 +936,12 @@ public class InteractiveCLI
         Console.WriteLine(" 99. optimize-strategy [strategy_id] [param_ranges] - Optimize strategy parameters");
         Console.WriteLine("100. create-notebook [name] [description] - Create research notebook");
         Console.WriteLine("101. execute-notebook [notebook_id] - Execute research notebook");
-        Console.WriteLine("102. clear - Clear terminal and show menu");
-        Console.WriteLine("103. help - Show available functions");
-        Console.WriteLine("104. quit - Exit the application");
+        Console.WriteLine("102. data-validation [symbol] [days] [source] - Validate market data quality");
+        Console.WriteLine("103. corporate-action [symbol] [start-date] [end-date] - Process corporate actions");
+        Console.WriteLine("104. timezone [command] [parameters] - Timezone and market calendar operations");
+        Console.WriteLine("105. clear - Clear terminal and show menu");
+        Console.WriteLine("106. help - Show available functions");
+        Console.WriteLine("107. quit - Exit the application");
         Console.WriteLine();
 
         await Task.CompletedTask;
@@ -1218,7 +1242,10 @@ public class InteractiveCLI
         var monteCarloService = serviceProvider.GetRequiredService<MonteCarloService>();
         var strategyBuilderService = serviceProvider.GetRequiredService<StrategyBuilderService>();
         var notebookService = serviceProvider.GetRequiredService<NotebookService>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService));
+        var dataValidationService = serviceProvider.GetRequiredService<DataValidationService>();
+        var corporateActionService = serviceProvider.GetRequiredService<CorporateActionService>();
+        var timezoneService = serviceProvider.GetRequiredService<TimezoneService>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService));
     }
 
     // Alpaca Commands
@@ -7425,6 +7452,192 @@ public class InteractiveCLI
             var result = _executionService.OptimizeExecutionParameters(symbol, shares, urgency);
 
             Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task DataValidationCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: data-validation [symbol] [days] [source]");
+            Console.WriteLine("  symbol: Stock symbol (e.g., AAPL)");
+            Console.WriteLine("  days: Number of days of data to validate (default: 100)");
+            Console.WriteLine("  source: Data source - alpaca, yahoo, polygon (default: alpaca)");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        var days = parts.Length > 2 && int.TryParse(parts[2], out var d) ? d : 100;
+        var source = parts.Length > 3 ? parts[3].ToLower() : "alpaca";
+
+        PrintSectionHeader($"Data Validation: {symbol}");
+        try
+        {
+            // Fetch historical data
+            var historicalData = await _marketDataService.GetHistoricalDataAsync(symbol, days);
+            if (historicalData == null || !historicalData.Any())
+            {
+                Console.WriteLine("No historical data available for validation.");
+                return;
+            }
+
+            // Convert to expected format: Dictionary<string, List<double>>
+            var dataDict = new Dictionary<string, List<double>>
+            {
+                ["close"] = historicalData.Select(d => d.Price).ToList(),
+                ["high"] = historicalData.Select(d => d.High24h).ToList(),
+                ["low"] = historicalData.Select(d => d.Low24h).ToList(),
+                ["open"] = historicalData.Select(d => d.Price).ToList(), // Use close as approximation for open
+                ["volume"] = historicalData.Select(d => d.Volume).ToList()
+            };
+
+            var startDate = historicalData.Min(d => d.Timestamp);
+            var endDate = historicalData.Max(d => d.Timestamp);
+
+            var result = await _dataValidationService.ValidateMarketDataAsync(dataDict, symbol, startDate, endDate);
+            Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task CorporateActionCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: corporate-action [symbol] [start-date] [end-date]");
+            Console.WriteLine("  symbol: Stock symbol (e.g., AAPL)");
+            Console.WriteLine("  start-date: Start date in YYYY-MM-DD format (default: 2020-01-01)");
+            Console.WriteLine("  end-date: End date in YYYY-MM-DD format (default: today)");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        var startDate = parts.Length > 2 ? DateTime.Parse(parts[2]) : new DateTime(2020, 1, 1);
+        var endDate = parts.Length > 3 ? DateTime.Parse(parts[3]) : DateTime.Today;
+
+        PrintSectionHeader($"Corporate Actions: {symbol}");
+        try
+        {
+            // Get historical prices
+            var historicalData = await _marketDataService.GetHistoricalDataAsync(symbol, 1000); // Get plenty of data
+            if (historicalData == null || !historicalData.Any())
+            {
+                Console.WriteLine("No historical data available for corporate action analysis.");
+                return;
+            }
+
+            // Filter data to date range
+            var filteredData = historicalData
+                .Where(d => d.Timestamp >= startDate && d.Timestamp <= endDate)
+                .ToList();
+
+            if (!filteredData.Any())
+            {
+                Console.WriteLine("No data available for the specified date range.");
+                return;
+            }
+
+            // Convert to price dictionary
+            var prices = filteredData.ToDictionary(d => d.Timestamp, d => (decimal)d.Price);
+
+            // Detect corporate actions
+            var actions = await _corporateActionService.DetectCorporateActionsAsync(symbol, prices);
+
+            // Process corporate actions
+            var result = await _corporateActionService.ProcessCorporateActionsAsync(symbol, prices, actions);
+            Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task TimezoneCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: timezone [command] [parameters]");
+            Console.WriteLine("Commands:");
+            Console.WriteLine("  convert [datetime] [from-timezone] [to-timezone] - Convert datetime between timezones");
+            Console.WriteLine("  market-open [symbol] [datetime] - Check if market is open for symbol at datetime");
+            Console.WriteLine("  align [symbol] [days] - Align time series data for symbol");
+            return;
+        }
+
+        var subCommand = parts[1].ToLower();
+
+        PrintSectionHeader($"Timezone: {subCommand}");
+        try
+        {
+            switch (subCommand)
+            {
+                case "convert":
+                    if (parts.Length < 5)
+                    {
+                        Console.WriteLine("Usage: timezone convert [datetime] [from-timezone] [to-timezone]");
+                        return;
+                    }
+                    var dateTime = DateTime.Parse(parts[2]);
+                    var fromTz = parts[3];
+                    var toTz = parts[4];
+                    var result = await _timezoneService.ConvertTimeZoneAsync(dateTime, fromTz, toTz);
+                    Console.WriteLine($"Converted: {result}");
+                    break;
+
+                case "market-open":
+                    if (parts.Length < 4)
+                    {
+                        Console.WriteLine("Usage: timezone market-open [symbol] [datetime]");
+                        return;
+                    }
+                    var symbol = parts[2].ToUpper();
+                    var checkDateTime = DateTime.Parse(parts[3]);
+                    var isOpen = await _timezoneService.IsMarketOpenAsync(symbol, checkDateTime);
+                    Console.WriteLine($"Market Open: {isOpen}");
+                    break;
+
+                case "align":
+                    if (parts.Length < 4)
+                    {
+                        Console.WriteLine("Usage: timezone align [symbol] [days] [source-timezone] [target-timezone]");
+                        return;
+                    }
+                    var alignSymbol = parts[2].ToUpper();
+                    var alignDays = int.Parse(parts[3]);
+                    var sourceTz = parts.Length > 4 ? parts[4] : "America/New_York";
+                    var targetTz = parts.Length > 5 ? parts[5] : "UTC";
+                    
+                    // Fetch historical data
+                    var historicalData = await _marketDataService.GetHistoricalDataAsync(alignSymbol, alignDays);
+                    if (historicalData == null || !historicalData.Any())
+                    {
+                        Console.WriteLine("No historical data available for alignment.");
+                        return;
+                    }
+                    
+                    // Convert to time series data
+                    var timeSeriesData = historicalData.ToDictionary(d => d.Timestamp, d => (object)d.Price);
+                    var interval = TimeSpan.FromDays(1); // Daily data
+                    
+                    var alignedData = await _timezoneService.AlignTimeSeriesDataAsync(timeSeriesData, sourceTz, targetTz, interval);
+                    Console.WriteLine(JsonSerializer.Serialize(alignedData, new JsonSerializerOptions { WriteIndented = true }));
+                    break;
+
+                default:
+                    Console.WriteLine("Unknown timezone command. Use 'timezone' for help.");
+                    break;
+            }
         }
         catch (Exception ex)
         {

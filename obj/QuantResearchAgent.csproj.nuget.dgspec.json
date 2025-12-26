@@ -116,6 +116,10 @@
               "target": "Package",
               "version": "[13.0.3, )"
             },
+            "NodaTime": {
+              "target": "Package",
+              "version": "[3.1.11, )"
+            },
             "OpenAI-DotNet": {
               "target": "Package",
               "version": "[8.6.1, )"

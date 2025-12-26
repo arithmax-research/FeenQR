@@ -216,7 +216,10 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<ExecutionService>(),
                     sp.GetRequiredService<MonteCarloService>(),
                     sp.GetRequiredService<StrategyBuilderService>(),
-                    sp.GetRequiredService<NotebookService>()
+                    sp.GetRequiredService<NotebookService>(),
+                    sp.GetRequiredService<DataValidationService>(),
+                    sp.GetRequiredService<CorporateActionService>(),
+                    sp.GetRequiredService<TimezoneService>()
                 )
             );
 
@@ -333,6 +336,11 @@ namespace QuantResearchAgent
             services.AddSingleton<MonteCarloService>();
             services.AddSingleton<StrategyBuilderService>();
             services.AddSingleton<NotebookService>();
+
+            // Add Phase 7 Data Quality & Management services
+            services.AddSingleton<DataValidationService>();
+            services.AddSingleton<CorporateActionService>();
+            services.AddSingleton<TimezoneService>();
 
             // Add research agents
             services.AddSingleton<NewsScrapingService>();
