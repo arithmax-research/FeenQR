@@ -169,6 +169,28 @@ public class AlpacaService
 
     }
 
+    public async Task<IQuote?> GetLatestQuoteAsync(string symbol)
+    {
+        try
+        {
+            var cleanSymbol = symbol.Trim().ToUpper();
+            if (_dataClient == null)
+            {
+                _logger.LogWarning("Alpaca client not initialized. Cannot fetch quote for {Symbol}", cleanSymbol);
+                return null;
+            }
+
+            var quote = await _dataClient.GetLatestQuoteAsync(new LatestMarketDataRequest(cleanSymbol));
+            _logger.LogDebug("Alpaca quote response: {Quote}", quote != null ? $"Bid={quote.BidPrice}, Ask={quote.AskPrice}, Timestamp={quote.TimestampUtc}" : "null");
+            return quote;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching latest quote for {Symbol}. Exception: {Message}", symbol, ex.Message);
+            return null;
+        }
+    }
+
     public async Task<List<IBar>> GetHistoricalBarsAsync(string symbol, int days = 30, BarTimeFrame? timeFrame = null)
     {
         try
