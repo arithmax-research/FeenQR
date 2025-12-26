@@ -75,6 +75,11 @@ An intelligent, agentic system built with the Microsoft Semantic Kernel Architec
 - **Market Sentiment Agent**: Multi-source sentiment analysis (news, social media, fear/greed index, technical)
 - **Statistical Pattern Agent**: Deep mathematical analysis to detect exploitable market patterns
 
+### Research & Strategy Development Tools
+- **Monte Carlo Simulation Framework**: Advanced risk modeling with stochastic scenario generation
+- **Interactive Strategy Builder**: Visual strategy development with real-time backtesting
+- **Research Notebook Environment**: Interactive quantitative research platform with code execution
+
 ### AI-Powered Analysis
 - **Sentiment Analysis**: Extract market sentiment from video content and internet sources
 - **Technical Insights**: Identify trading concepts and strategies from video content
@@ -104,6 +109,11 @@ The system is built around Microsoft Semantic Kernel, providing:
 - `MarketSentimentAgentService`: Multi-source sentiment analysis and market direction
 - `StatisticalPatternAgentService`: Mathematical pattern detection and exploitability analysis
 
+##### Research & Strategy Development Services
+- `MonteCarloService`: Stochastic simulation and risk modeling
+- `StrategyBuilderService`: Interactive strategy development and optimization
+- `NotebookService`: Interactive research environment and code execution
+
 #### Plugins Layer (Semantic Kernel Functions)
 - `PodcastAnalysisPlugin`: AI functions for YouTube video content analysis
 - `YouTubeAnalysisPlugin`: Dedicated YouTube video analysis functions
@@ -114,6 +124,11 @@ The system is built around Microsoft Semantic Kernel, providing:
 ##### Research Agent Plugins
 - `MarketSentimentPlugin`: Sentiment analysis and trading signal generation
 - `StatisticalPatternPlugin`: Pattern detection and statistical analysis functions
+
+##### Research & Strategy Development Plugins
+- `MonteCarloPlugin`: Stochastic simulation and risk analysis functions
+- `StrategyBuilderPlugin`: Interactive strategy development and backtesting
+- `NotebookPlugin`: Research notebook execution and analysis tools
 
 #### Core Layer
 - `AgentOrchestrator`: Main orchestration engine
@@ -269,6 +284,29 @@ The system exposes AI functions through Semantic Kernel plugins:
 - `AnalyzeVolatilityPatternsAsync()`: Volatility clustering analysis
 - `GenerateImplementationRoadmapAsync()`: Pattern implementation guidance
 
+### Research & Strategy Development Plugins
+
+#### MonteCarloPlugin
+- `RunMonteCarloSimulationAsync()`: Execute stochastic price simulations
+- `CalculateValueAtRiskAsync()`: Compute VaR with confidence intervals
+- `GenerateStressTestScenariosAsync()`: Portfolio stress testing under extreme conditions
+- `AnalyzeSimulationResultsAsync()`: Statistical analysis of simulation outcomes
+- `VisualizeSimulationPathsAsync()`: Interactive visualization of price paths
+
+#### StrategyBuilderPlugin
+- `BuildStrategyAsync()`: Construct trading strategies with components
+- `BacktestStrategyAsync()`: Real-time strategy backtesting
+- `OptimizeParametersAsync()`: Genetic algorithm parameter optimization
+- `ValidateStrategyAsync()`: Walk-forward analysis and robustness testing
+- `GenerateStrategyReportAsync()`: Performance attribution and risk metrics
+
+#### NotebookPlugin
+- `ExecuteCodeAsync()`: Run code cells with real-time output
+- `CreateVisualizationAsync()`: Generate charts and statistical plots
+- `RunStatisticalAnalysisAsync()`: Hypothesis testing and regression analysis
+- `ExportNotebookAsync()`: Export research findings and documentation
+- `ShareAnalysisAsync()`: Collaborative research sharing capabilities
+
 ## Integration with Existing Strategies
 
 This system builds upon your existing Python quantitative strategies:
@@ -338,6 +376,59 @@ This system builds upon your existing Python quantitative strategies:
 - **Regime**: Market regime change detection
 - **Microstructure**: Order flow analysis, volume patterns
 
+### Research & Strategy Development Tools
+
+#### Monte Carlo Simulation Framework
+**Advanced Risk Modeling & Scenario Analysis**
+- Generates thousands of market scenarios using stochastic processes
+- Implements Geometric Brownian Motion (GBM) for price simulation
+- Performs Value-at-Risk (VaR) calculations with confidence intervals
+- Analyzes portfolio stress testing under extreme market conditions
+- Provides probability distributions for returns and drawdowns
+
+**Key Features:**
+- Customizable simulation parameters (time horizon, volatility, drift)
+- Multi-asset portfolio simulation capabilities
+- Historical backtesting integration
+- Risk metric calculations (VaR, CVaR, Expected Shortfall)
+- Interactive visualization of simulation results
+
+#### Interactive Strategy Builder
+**Dynamic Trading Strategy Development**
+- Visual strategy construction with drag-and-drop components
+- Real-time backtesting against historical market data
+- Parameter optimization using genetic algorithms
+- Walk-forward analysis for strategy robustness testing
+- Performance attribution and risk decomposition
+
+**Supported Strategy Components:**
+- **Entry Signals**: Technical indicators, price patterns, volume analysis
+- **Exit Rules**: Profit targets, stop losses, trailing stops, time exits
+- **Risk Management**: Position sizing, portfolio heat management
+- **Filters**: Market regime filters, volatility filters, correlation filters
+- **Performance Metrics**: Sharpe ratio, Sortino ratio, maximum drawdown
+
+#### Research Notebook Environment
+**Interactive Quantitative Research Platform**
+- Jupyter-like notebook interface for financial analysis
+- Code execution with real-time output visualization
+- Integration with all FeenQR services and plugins
+- Markdown support for documentation and analysis notes
+- Export capabilities for sharing research findings
+
+**Built-in Analysis Tools:**
+- **Data Visualization**: Charts, graphs, and statistical plots
+- **Statistical Analysis**: Hypothesis testing, regression analysis
+- **Time Series Analysis**: ARIMA, GARCH, cointegration testing
+- **Machine Learning**: Model training and evaluation workflows
+- **Performance Analytics**: Strategy benchmarking and comparison
+
+**Notebook Plugins:**
+- `MonteCarloPlugin`: Simulation execution and result analysis
+- `StrategyBuilderPlugin`: Interactive strategy development
+- `DataAnalysisPlugin`: Statistical and visualization functions
+- `ModelValidationPlugin`: Backtesting and performance evaluation
+
 The system tracks comprehensive metrics:
 - Total return and P&L
 - Sharpe ratio and volatility
@@ -365,11 +456,17 @@ Built-in risk controls include:
 
 ## Next Steps
 
-1. **Audio Processing**: Integrate speech-to-text for actual podcast transcription
-2. **Live Trading**: Connect to real exchange APIs
-3. **Advanced Strategies**: Implement your complex Python strategies
-4. **UI Dashboard**: Web interface for monitoring and control
-5. **Machine Learning**: Enhanced prediction models
-6. **Multi-Asset Support**: Expand beyond crypto to stocks, forex, etc.
+### Completed Features
+1. **Research & Strategy Development Tools**: Monte Carlo simulations, interactive strategy builder, and research notebook environment
+2. **Web Interface**: Blazor Server dashboard with comprehensive widgets for market analysis, portfolio management, and research
+3. **AI Agent Architecture**: Full Semantic Kernel integration with modular plugins and autonomous orchestration
 
-This system provides a solid foundation for building a comprehensive quantitative research platform with AI-driven analysis and autonomous trading capabilities.
+### In Progress / Future Enhancements
+1. **Audio Processing**: Integrate speech-to-text for actual podcast transcription
+2. **Live Trading**: Enhanced Alpaca integration for production trading
+3. **Advanced Machine Learning**: Deep learning models for price prediction and pattern recognition
+4. **Multi-Asset Support**: Expand beyond crypto to stocks, forex, commodities, and derivatives
+5. **Real-time Data Pipeline**: High-frequency data processing and order book analysis
+6. **Cloud Deployment**: Azure/container deployment with scalable architecture
+
+This system provides a comprehensive quantitative research platform with AI-driven analysis, autonomous trading capabilities, and advanced research tools for professional quantitative finance.
