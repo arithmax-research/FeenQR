@@ -210,7 +210,10 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<AdvancedRiskService>(),
                     sp.GetRequiredService<SECFilingsService>(),
                     sp.GetRequiredService<EarningsCallService>(),
-                    sp.GetRequiredService<SupplyChainService>()
+                    sp.GetRequiredService<SupplyChainService>(),
+                    sp.GetRequiredService<OrderBookAnalysisService>(),
+                    sp.GetRequiredService<MarketImpactService>(),
+                    sp.GetRequiredService<ExecutionService>()
                 )
             );
 
@@ -242,7 +245,10 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<ModelValidationService>(),
                     sp.GetRequiredService<FactorModelService>(),
                     sp.GetRequiredService<AdvancedOptimizationService>(),
-                    sp.GetRequiredService<AdvancedRiskService>()
+                    sp.GetRequiredService<AdvancedRiskService>(),
+                    sp.GetRequiredService<OrderBookAnalysisService>(),
+                    sp.GetRequiredService<MarketImpactService>(),
+                    sp.GetRequiredService<ExecutionService>()
                 )
             );
             services.AddSingleton<YouTubeAnalysisService>();
@@ -311,6 +317,11 @@ namespace QuantResearchAgent
             services.AddSingleton<SECFilingsService>();
             services.AddSingleton<EarningsCallService>();
             services.AddSingleton<SupplyChainService>();
+
+            // Add Phase 5 High-Frequency & Market Microstructure services
+            services.AddSingleton<OrderBookAnalysisService>();
+            services.AddSingleton<MarketImpactService>();
+            services.AddSingleton<ExecutionService>();
 
             // Add research agents
             services.AddSingleton<NewsScrapingService>();
