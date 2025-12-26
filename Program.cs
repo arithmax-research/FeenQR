@@ -213,7 +213,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<SupplyChainService>(),
                     sp.GetRequiredService<OrderBookAnalysisService>(),
                     sp.GetRequiredService<MarketImpactService>(),
-                    sp.GetRequiredService<ExecutionService>()
+                    sp.GetRequiredService<ExecutionService>(),
+                    sp.GetRequiredService<MonteCarloService>()
                 )
             );
 
@@ -248,7 +249,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<AdvancedRiskService>(),
                     sp.GetRequiredService<OrderBookAnalysisService>(),
                     sp.GetRequiredService<MarketImpactService>(),
-                    sp.GetRequiredService<ExecutionService>()
+                    sp.GetRequiredService<ExecutionService>(),
+                    sp.GetRequiredService<MonteCarloService>()
                 )
             );
             services.AddSingleton<YouTubeAnalysisService>();
@@ -322,6 +324,9 @@ namespace QuantResearchAgent
             services.AddSingleton<OrderBookAnalysisService>();
             services.AddSingleton<MarketImpactService>();
             services.AddSingleton<ExecutionService>();
+
+            // Add Phase 6 Research & Strategy Development Tools
+            services.AddSingleton<MonteCarloService>();
 
             // Add research agents
             services.AddSingleton<NewsScrapingService>();

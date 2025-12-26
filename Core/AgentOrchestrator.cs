@@ -44,6 +44,7 @@ public class AgentOrchestrator
     private readonly OrderBookAnalysisService _orderBookAnalysisService;
     private readonly MarketImpactService _marketImpactService;
     private readonly ExecutionService _executionService;
+    private readonly MonteCarloService _monteCarloService;
     
     private readonly ConcurrentQueue<AgentJob> _jobQueue = new();
     private readonly ConcurrentDictionary<string, AgentJob> _runningJobs = new();
@@ -80,7 +81,8 @@ public class AgentOrchestrator
         AdvancedRiskService? advancedRiskService = null,
         OrderBookAnalysisService? orderBookAnalysisService = null,
         MarketImpactService? marketImpactService = null,
-        ExecutionService? executionService = null)
+        ExecutionService? executionService = null,
+        MonteCarloService? monteCarloService = null)
     {
         _kernel = kernel;
         _youtubeService = youtubeService;
@@ -108,6 +110,7 @@ public class AgentOrchestrator
         _orderBookAnalysisService = orderBookAnalysisService ?? throw new ArgumentNullException(nameof(orderBookAnalysisService));
         _marketImpactService = marketImpactService ?? throw new ArgumentNullException(nameof(marketImpactService));
         _executionService = executionService ?? throw new ArgumentNullException(nameof(executionService));
+        _monteCarloService = monteCarloService ?? throw new ArgumentNullException(nameof(monteCarloService));
         _configuration = configuration;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentOrchestrator>.Instance;
 
@@ -147,6 +150,9 @@ public class AgentOrchestrator
         kernel.Plugins.AddFromObject(new OrderBookPlugin(_orderBookAnalysisService));
         kernel.Plugins.AddFromObject(new MarketImpactPlugin(_marketImpactService));
         kernel.Plugins.AddFromObject(new ExecutionPlugin(_executionService));
+
+        // Register Phase 6 Research & Strategy Development Tools
+        kernel.Plugins.AddFromObject(new MonteCarloPlugin(_monteCarloService));
         
         // Register research agent plugins
         kernel.Plugins.AddFromObject(new MarketSentimentPlugin(_marketSentimentAgent));

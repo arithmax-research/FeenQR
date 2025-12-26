@@ -54,6 +54,7 @@ public class InteractiveCLI
     private readonly OrderBookAnalysisService _orderBookAnalysisService;
     private readonly MarketImpactService _marketImpactService;
     private readonly ExecutionService _executionService;
+    private readonly MonteCarloService _monteCarloService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -93,7 +94,8 @@ public class InteractiveCLI
         SupplyChainService supplyChainService,
         OrderBookAnalysisService orderBookAnalysisService,
         MarketImpactService marketImpactService,
-        ExecutionService executionService)
+        ExecutionService executionService,
+        MonteCarloService monteCarloService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -133,6 +135,7 @@ public class InteractiveCLI
         _orderBookAnalysisService = orderBookAnalysisService;
         _marketImpactService = marketImpactService;
         _executionService = executionService;
+        _monteCarloService = monteCarloService;
     }
 
     public async Task RunAsync()
@@ -666,6 +669,15 @@ public class InteractiveCLI
                 case "execution-optimization":
                     await ExecutionOptimizationCommand(parts);
                     break;
+                case "portfolio-monte-carlo":
+                    await PortfolioMonteCarloCommand(parts);
+                    break;
+                case "option-monte-carlo":
+                    await OptionMonteCarloCommand(parts);
+                    break;
+                case "scenario-analysis":
+                    await ScenarioAnalysisCommand(parts);
+                    break;
                 case "clear":
                     await ClearCommand();
                     break;
@@ -871,9 +883,12 @@ public class InteractiveCLI
         Console.WriteLine(" 92. iceberg-order [quantity] [display] [slices] [interval] - Create iceberg order");
         Console.WriteLine(" 93. smart-routing [symbol] [quantity] [type] - Smart order routing decision");
         Console.WriteLine(" 94. execution-optimization [symbol] [shares] [urgency] - Optimize execution parameters");
-        Console.WriteLine(" 95. clear - Clear terminal and show menu");
-        Console.WriteLine(" 96. help - Show available functions");
-        Console.WriteLine(" 97. quit - Exit the application");
+        Console.WriteLine(" 95. portfolio-monte-carlo [symbols] [simulations] [time_horizon] - Monte Carlo portfolio simulation");
+        Console.WriteLine(" 96. option-monte-carlo [option_type] [spot_price] [strike] [time] [vol] [rate] [sims] - Monte Carlo option pricing");
+        Console.WriteLine(" 97. scenario-analysis [symbols] [returns] [shocks] - Scenario analysis with custom shocks");
+        Console.WriteLine(" 98. clear - Clear terminal and show menu");
+        Console.WriteLine(" 99. help - Show available functions");
+        Console.WriteLine("100. quit - Exit the application");
         Console.WriteLine();
 
         await Task.CompletedTask;
@@ -951,6 +966,85 @@ public class InteractiveCLI
         Console.WriteLine("Test sequence completed!");
     }
 
+    private async Task PortfolioMonteCarloCommand(string[] parts)
+    {
+        try
+        {
+            PrintSectionHeader("Portfolio Monte Carlo Simulation");
+            Console.WriteLine("This command requires detailed portfolio parameters.");
+            Console.WriteLine("Use the Monte Carlo plugin for full functionality:");
+            Console.WriteLine("run_portfolio_monte_carlo with JSON parameters");
+            PrintSectionFooter();
+        }
+        catch (Exception ex)
+        {
+            PrintSectionHeader("Error");
+            Console.WriteLine($"Portfolio Monte Carlo failed: {ex.Message}");
+            PrintSectionFooter();
+        }
+    }
+
+    private async Task OptionMonteCarloCommand(string[] parts)
+    {
+        try
+        {
+            if (parts.Length < 8)
+            {
+                PrintSectionHeader("Option Monte Carlo Pricing");
+                Console.WriteLine("Usage: option-monte-carlo [option_type] [spot_price] [strike] [time_to_expiry_years] [volatility] [risk_free_rate] [simulations]");
+                Console.WriteLine("Example: option-monte-carlo call 150 155 1.0 0.3 0.05 10000");
+                Console.WriteLine("Option type: call or put");
+                PrintSectionFooter();
+                return;
+            }
+
+            var optionType = parts[1].ToLower();
+            var spotPrice = double.Parse(parts[2]);
+            var strike = double.Parse(parts[3]);
+            var timeToExpiry = double.Parse(parts[4]);
+            var volatility = double.Parse(parts[5]);
+            var riskFreeRate = double.Parse(parts[6]);
+            var simulations = int.Parse(parts[7]);
+
+            PrintSectionHeader($"Option Monte Carlo Pricing - {optionType.ToUpper()}");
+            Console.WriteLine($"Spot: {spotPrice}, Strike: {strike}, Time to Expiry: {timeToExpiry} years");
+            Console.WriteLine($"Volatility: {volatility}, Risk-free Rate: {riskFreeRate}");
+            Console.WriteLine($"Running {simulations} simulations...");
+
+            var result = _monteCarloService.RunOptionPricingSimulation(optionType, spotPrice, strike, timeToExpiry, riskFreeRate, volatility, simulations);
+
+            Console.WriteLine($"Option Price: {result.OptionPrice:F4}");
+            Console.WriteLine($"Standard Error: {result.StandardError:F6}");
+            Console.WriteLine($"Confidence Interval (95%): [{result.ConfidenceInterval95[0]:F4}, {result.ConfidenceInterval95[1]:F4}]");
+
+            PrintSectionFooter();
+        }
+        catch (Exception ex)
+        {
+            PrintSectionHeader("Error");
+            Console.WriteLine($"Option Monte Carlo failed: {ex.Message}");
+            PrintSectionFooter();
+        }
+    }
+
+    private async Task ScenarioAnalysisCommand(string[] parts)
+    {
+        try
+        {
+            PrintSectionHeader("Scenario Analysis");
+            Console.WriteLine("This command requires detailed scenario parameters.");
+            Console.WriteLine("Use the Monte Carlo plugin for full functionality:");
+            Console.WriteLine("run_scenario_analysis with JSON parameters");
+            PrintSectionFooter();
+        }
+        catch (Exception ex)
+        {
+            PrintSectionHeader("Error");
+            Console.WriteLine($"Scenario Analysis failed: {ex.Message}");
+            PrintSectionFooter();
+        }
+    }
+
     private async Task YahooDataCommand(string[] parts)
     {
         var symbol = parts.Length > 1 ? parts[1] : "AAPL";
@@ -1003,7 +1097,8 @@ public class InteractiveCLI
         var orderBookAnalysisService = serviceProvider.GetRequiredService<OrderBookAnalysisService>();
         var marketImpactService = serviceProvider.GetRequiredService<MarketImpactService>();
         var executionService = serviceProvider.GetRequiredService<ExecutionService>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService));
+        var monteCarloService = serviceProvider.GetRequiredService<MonteCarloService>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService));
     }
 
     // Alpaca Commands
