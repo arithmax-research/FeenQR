@@ -70,6 +70,16 @@ public class InteractiveCLI
     private readonly ModelInterpretabilityService _modelInterpretabilityService;
     private readonly ReinforcementLearningService _reinforcementLearningService;
     private readonly FIXService _fixService;
+    private readonly WebIntelligenceService _webIntelligenceService;
+    private readonly PatentAnalysisService _patentAnalysisService;
+    private readonly FederalReserveService _federalReserveService;
+    private readonly GlobalEconomicService _globalEconomicService;
+    private readonly GeopoliticalRiskService _geopoliticalRiskService;
+    private readonly WebIntelligencePlugin _webIntelligencePlugin;
+    private readonly PatentAnalysisPlugin _patentAnalysisPlugin;
+    private readonly FederalReservePlugin _federalReservePlugin;
+    private readonly GlobalEconomicPlugin _globalEconomicPlugin;
+    private readonly GeopoliticalRiskPlugin _geopoliticalRiskPlugin;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -124,7 +134,17 @@ public class InteractiveCLI
         AutoMLService autoMLService,
         ModelInterpretabilityService modelInterpretabilityService,
         ReinforcementLearningService reinforcementLearningService,
-        FIXService fixService)
+        FIXService fixService,
+        WebIntelligenceService webIntelligenceService,
+        PatentAnalysisService patentAnalysisService,
+        FederalReserveService federalReserveService,
+        GlobalEconomicService globalEconomicService,
+        GeopoliticalRiskService geopoliticalRiskService,
+        WebIntelligencePlugin webIntelligencePlugin,
+        PatentAnalysisPlugin patentAnalysisPlugin,
+        FederalReservePlugin federalReservePlugin,
+        GlobalEconomicPlugin globalEconomicPlugin,
+        GeopoliticalRiskPlugin geopoliticalRiskPlugin)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -179,6 +199,16 @@ public class InteractiveCLI
         _modelInterpretabilityService = modelInterpretabilityService;
         _reinforcementLearningService = reinforcementLearningService;
         _fixService = fixService;
+        _webIntelligenceService = webIntelligenceService;
+        _patentAnalysisService = patentAnalysisService;
+        _federalReserveService = federalReserveService;
+        _globalEconomicService = globalEconomicService;
+        _geopoliticalRiskService = geopoliticalRiskService;
+        _webIntelligencePlugin = webIntelligencePlugin;
+        _patentAnalysisPlugin = patentAnalysisPlugin;
+        _federalReservePlugin = federalReservePlugin;
+        _globalEconomicPlugin = globalEconomicPlugin;
+        _geopoliticalRiskPlugin = geopoliticalRiskPlugin;
     }
 
     public async Task RunAsync()
@@ -360,6 +390,32 @@ public class InteractiveCLI
         Console.WriteLine("165. fix-heartbeat - Send FIX heartbeat");
         Console.WriteLine("166. fix-status - Get FIX connection status");
         Console.WriteLine("167. fix-info - Get FIX protocol information");
+        Console.WriteLine();
+        Console.WriteLine("Phase 10: Web & Alternative Data Integration");
+        Console.WriteLine("===========================================");
+        Console.WriteLine("168. web-scrape-earnings [symbol] - Scrape earnings presentations and reports");
+        Console.WriteLine("169. web-monitor-communications [symbol] - Monitor corporate communications");
+        Console.WriteLine("170. web-analyze-sentiment [symbol] [sources] - Analyze web sentiment for symbol");
+        Console.WriteLine("171. web-analyze-social [symbol] [platforms] - Analyze social media influencers");
+        Console.WriteLine("172. web-monitor-darkweb [symbol] - Monitor dark web for corporate intelligence");
+        Console.WriteLine("173. patent-search [symbol] [max_results] - Search company patents");
+        Console.WriteLine("174. patent-innovation [symbol] [years] - Analyze innovation trends");
+        Console.WriteLine("175. patent-citations [patent_id] - Analyze patent citations");
+        Console.WriteLine("176. patent-value [patent_id] - Estimate patent value");
+        Console.WriteLine("177. fed-fomc-announcements [count] - Get recent FOMC announcements");
+        Console.WriteLine("178. fed-interest-rates [period] - Get interest rate decisions");
+        Console.WriteLine("179. fed-economic-projections - Get economic projections");
+        Console.WriteLine("180. fed-speeches [count] - Get recent Fed speeches");
+        Console.WriteLine("181. global-economic-indicators [countries] - Get global economic indicators");
+        Console.WriteLine("182. global-supply-chain [industries] - Monitor supply chain disruptions");
+        Console.WriteLine("183. global-trade-data [countries] - Get global trade data");
+        Console.WriteLine("184. global-currency-data [currencies] - Get global currency data");
+        Console.WriteLine("185. global-commodity-prices [commodities] - Get global commodity prices");
+        Console.WriteLine("186. geo-events [count|region] [region|count] - Get recent geopolitical events");
+        Console.WriteLine("187. geo-sanctions [countries] - Get sanctions data");
+        Console.WriteLine("188. geo-risk-index [regions] - Calculate geopolitical risk index");
+        Console.WriteLine("189. geo-conflicts [regions] - Monitor ongoing conflicts");
+        Console.WriteLine("190. geo-stability [countries] - Analyze political stability");
 
         while (true)
         {
@@ -1003,6 +1059,76 @@ public class InteractiveCLI
                 case "fix-info":
                     await FIXInfoCommand();
                     break;
+                // Phase 10: Web & Alternative Data Integration
+                case "web-scrape-earnings":
+                    await WebScrapeEarningsCommand(parts);
+                    break;
+                case "web-monitor-communications":
+                    await WebMonitorCommunicationsCommand(parts);
+                    break;
+                case "web-analyze-sentiment":
+                    await WebAnalyzeSentimentCommand(parts);
+                    break;
+                case "web-analyze-social":
+                    await WebAnalyzeSocialCommand(parts);
+                    break;
+                case "web-monitor-darkweb":
+                    await WebMonitorDarkWebCommand(parts);
+                    break;
+                case "patent-search":
+                    await PatentSearchCommand(parts);
+                    break;
+                case "patent-innovation":
+                    await PatentInnovationCommand(parts);
+                    break;
+                case "patent-citations":
+                    await PatentCitationsCommand(parts);
+                    break;
+                case "patent-value":
+                    await PatentValueCommand(parts);
+                    break;
+                case "fed-fomc-announcements":
+                    await FedFOMCAnnouncementsCommand(parts);
+                    break;
+                case "fed-interest-rates":
+                    await FedInterestRatesCommand(parts);
+                    break;
+                case "fed-economic-projections":
+                    await FedEconomicProjectionsCommand();
+                    break;
+                case "fed-speeches":
+                    await FedSpeechesCommand(parts);
+                    break;
+                case "global-economic-indicators":
+                    await GlobalEconomicIndicatorsCommand(parts);
+                    break;
+                case "global-supply-chain":
+                    await GlobalSupplyChainCommand(parts);
+                    break;
+                case "global-trade-data":
+                    await GlobalTradeDataCommand(parts);
+                    break;
+                case "global-currency-data":
+                    await GlobalCurrencyDataCommand(parts);
+                    break;
+                case "global-commodity-prices":
+                    await GlobalCommodityPricesCommand(parts);
+                    break;
+                case "geo-events":
+                    await GeoEventsCommand(parts);
+                    break;
+                case "geo-sanctions":
+                    await GeoSanctionsCommand(parts);
+                    break;
+                case "geo-risk-index":
+                    await GeoRiskIndexCommand(parts);
+                    break;
+                case "geo-conflicts":
+                    await GeoConflictsCommand(parts);
+                    break;
+                case "geo-stability":
+                    await GeoStabilityCommand(parts);
+                    break;
                 default:
                     await ExecuteSemanticFunction(input);
                     break;
@@ -1238,9 +1364,6 @@ public class InteractiveCLI
         Console.WriteLine("128. clear - Clear terminal and show menu");
         Console.WriteLine("129. help - Show available functions");
         Console.WriteLine("130. quit - Exit the application");
-        Console.WriteLine();
-        Console.WriteLine("Phase 9: Advanced Research Tools");
-        Console.WriteLine("================================");
         Console.WriteLine("131. factor-research [symbols] [start_date] [end_date] - Advanced factor research and analysis");
         Console.WriteLine("132. factor-portfolio [factors] [start_date] [end_date] - Create factor-based portfolio");
         Console.WriteLine("133. factor-efficacy [factor] [symbols] [start_date] [end_date] - Test factor efficacy");
@@ -1581,7 +1704,17 @@ public class InteractiveCLI
         var modelInterpretabilityService = serviceProvider.GetRequiredService<ModelInterpretabilityService>();
         var reinforcementLearningService = serviceProvider.GetRequiredService<ReinforcementLearningService>();
         var fixService = serviceProvider.GetRequiredService<FIXService>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService));
+        var webIntelligenceService = serviceProvider.GetRequiredService<WebIntelligenceService>();
+        var patentAnalysisService = serviceProvider.GetRequiredService<PatentAnalysisService>();
+        var federalReserveService = serviceProvider.GetRequiredService<FederalReserveService>();
+        var globalEconomicService = serviceProvider.GetRequiredService<GlobalEconomicService>();
+        var geopoliticalRiskService = serviceProvider.GetRequiredService<GeopoliticalRiskService>();
+        var webIntelligencePlugin = serviceProvider.GetRequiredService<WebIntelligencePlugin>();
+        var patentAnalysisPlugin = serviceProvider.GetRequiredService<PatentAnalysisPlugin>();
+        var federalReservePlugin = serviceProvider.GetRequiredService<FederalReservePlugin>();
+        var globalEconomicPlugin = serviceProvider.GetRequiredService<GlobalEconomicPlugin>();
+        var geopoliticalRiskPlugin = serviceProvider.GetRequiredService<GeopoliticalRiskPlugin>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, geopoliticalRiskPlugin));
     }
 
     // Alpaca Commands
@@ -9450,6 +9583,351 @@ public class InteractiveCLI
 
         var function = _kernel.Plugins["FIXPlugin"]["GetFIXProtocolInfo"];
         var result = await _kernel.InvokeAsync(function);
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    // Phase 10: Web & Alternative Data Integration Commands
+
+    private async Task WebScrapeEarningsCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: web-scrape-earnings [symbol]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        PrintSectionHeader($"Web Intelligence - Earnings Scrape for {symbol}");
+
+        var function = _kernel.Plugins["WebIntelligencePlugin"]["ScrapeEarningsPresentations"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task WebMonitorCommunicationsCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: web-monitor-communications [symbol]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        PrintSectionHeader($"Web Intelligence - Communications Monitor for {symbol}");
+
+        var function = _kernel.Plugins["WebIntelligencePlugin"]["MonitorCorporateCommunications"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task WebAnalyzeSentimentCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: web-analyze-sentiment [symbol] [sources]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        var sources = parts.Length > 2 ? parts[2] : "all";
+        PrintSectionHeader($"Web Intelligence - Sentiment Analysis for {symbol}");
+
+        var function = _kernel.Plugins["WebIntelligencePlugin"]["AnalyzeWebSentiment"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol, ["sources"] = sources });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task WebAnalyzeSocialCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: web-analyze-social [symbol] [platforms]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        var platforms = parts.Length > 2 ? parts[2] : "twitter,reddit,stocktwits";
+        PrintSectionHeader($"Web Intelligence - Social Media Analysis for {symbol}");
+
+        var function = _kernel.Plugins["WebIntelligencePlugin"]["AnalyzeSocialMedia"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol, ["platforms"] = platforms });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task WebMonitorDarkWebCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: web-monitor-darkweb [symbol]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        PrintSectionHeader($"Web Intelligence - Dark Web Monitor for {symbol}");
+
+        var function = _kernel.Plugins["WebIntelligencePlugin"]["MonitorDarkWeb"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task PatentSearchCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: patent-search [symbol] [max_results]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        var maxResults = parts.Length > 2 && int.TryParse(parts[2], out var mr) ? mr : 10;
+        PrintSectionHeader($"Patent Analysis - Search for {symbol}");
+
+        var function = _kernel.Plugins["PatentAnalysisPlugin"]["SearchCompanyPatents"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol, ["maxResults"] = maxResults });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task PatentInnovationCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: patent-innovation [symbol] [years]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        var years = parts.Length > 2 && int.TryParse(parts[2], out var y) ? y : 5;
+        PrintSectionHeader($"Patent Analysis - Innovation Trends for {symbol}");
+
+        var function = _kernel.Plugins["PatentAnalysisPlugin"]["AnalyzeInnovationTrends"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol, ["years"] = years });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task PatentCitationsCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: patent-citations [patent_id]");
+            return;
+        }
+
+        var patentId = parts[1];
+        PrintSectionHeader($"Patent Analysis - Citations for {patentId}");
+
+        var function = _kernel.Plugins["PatentAnalysisPlugin"]["AnalyzePatentCitations"];
+        var result = await _kernel.InvokeAsync(function, new() { ["patentId"] = patentId });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task PatentValueCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: patent-value [patent_id]");
+            return;
+        }
+
+        var patentId = parts[1];
+        PrintSectionHeader($"Patent Analysis - Value Estimation for {patentId}");
+
+        var function = _kernel.Plugins["PatentAnalysisPlugin"]["EstimatePatentValue"];
+        var result = await _kernel.InvokeAsync(function, new() { ["patentId"] = patentId });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FedFOMCAnnouncementsCommand(string[] parts)
+    {
+        var count = parts.Length > 1 && int.TryParse(parts[1], out var c) ? c : 5;
+        PrintSectionHeader($"Federal Reserve - FOMC Announcements (Last {count})");
+
+        var function = _kernel.Plugins["FederalReservePlugin"]["GetRecentFOMCAnnouncements"];
+        var result = await _kernel.InvokeAsync(function, new() { ["count"] = count });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FedInterestRatesCommand(string[] parts)
+    {
+        var period = parts.Length > 1 ? parts[1] : "1y";
+        PrintSectionHeader($"Federal Reserve - Interest Rate Decisions ({period})");
+
+        var function = _kernel.Plugins["FederalReservePlugin"]["GetInterestRateDecisions"];
+        var result = await _kernel.InvokeAsync(function, new() { ["period"] = period });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FedEconomicProjectionsCommand()
+    {
+        PrintSectionHeader("Federal Reserve - Economic Projections");
+
+        var function = _kernel.Plugins["FederalReservePlugin"]["GetEconomicProjections"];
+        var result = await _kernel.InvokeAsync(function);
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FedSpeechesCommand(string[] parts)
+    {
+        var count = parts.Length > 1 && int.TryParse(parts[1], out var c) ? c : 5;
+        PrintSectionHeader($"Federal Reserve - Recent Speeches (Last {count})");
+
+        var function = _kernel.Plugins["FederalReservePlugin"]["GetRecentFedSpeeches"];
+        var result = await _kernel.InvokeAsync(function, new() { ["count"] = count });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task GlobalEconomicIndicatorsCommand(string[] parts)
+    {
+        var countries = parts.Length > 1 ? parts[1] : "US,EU,China";
+        PrintSectionHeader($"Global Economic Indicators - {countries}");
+
+        var function = _kernel.Plugins["GlobalEconomicPlugin"]["GetGlobalEconomicIndicators"];
+        var result = await _kernel.InvokeAsync(function, new() { ["countries"] = countries });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task GlobalSupplyChainCommand(string[] parts)
+    {
+        var industries = parts.Length > 1 ? parts[1] : "technology,automotive";
+        PrintSectionHeader($"Global Supply Chain Monitor - {industries}");
+
+        var function = _kernel.Plugins["GlobalEconomicPlugin"]["MonitorSupplyChainDisruptions"];
+        var result = await _kernel.InvokeAsync(function, new() { ["industries"] = industries });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task GlobalTradeDataCommand(string[] parts)
+    {
+        var countries = parts.Length > 1 ? parts[1] : "US,China,EU";
+        PrintSectionHeader($"Global Trade Data - {countries}");
+
+        var function = _kernel.Plugins["GlobalEconomicPlugin"]["GetGlobalTradeData"];
+        var result = await _kernel.InvokeAsync(function, new() { ["countries"] = countries });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task GlobalCurrencyDataCommand(string[] parts)
+    {
+        var currencies = parts.Length > 1 ? parts[1] : "USD,EUR,CNY";
+        PrintSectionHeader($"Global Currency Data - {currencies}");
+
+        var function = _kernel.Plugins["GlobalEconomicPlugin"]["GetGlobalCurrencyData"];
+        var result = await _kernel.InvokeAsync(function, new() { ["currencies"] = currencies });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task GlobalCommodityPricesCommand(string[] parts)
+    {
+        var commodities = parts.Length > 1 ? parts[1] : "oil,gold,copper";
+        PrintSectionHeader($"Global Commodity Prices - {commodities}");
+
+        var function = _kernel.Plugins["GlobalEconomicPlugin"]["GetGlobalCommodityPrices"];
+        var result = await _kernel.InvokeAsync(function, new() { ["commodities"] = commodities });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task GeoEventsCommand(string[] parts)
+    {
+        var count = 10;
+        string region = null;
+
+        if (parts.Length > 1)
+        {
+            // Try to parse as count first
+            if (int.TryParse(parts[1], out var parsedCount))
+            {
+                count = parsedCount;
+                // Check if there's a region parameter
+                if (parts.Length > 2)
+                {
+                    region = parts[2];
+                }
+            }
+            else
+            {
+                // Treat as region
+                region = parts[1];
+                // Check if there's a count parameter after region
+                if (parts.Length > 2 && int.TryParse(parts[2], out var parsedCountAfterRegion))
+                {
+                    count = parsedCountAfterRegion;
+                }
+            }
+        }
+
+        var header = string.IsNullOrEmpty(region) 
+            ? $"Geopolitical Events (Last {count})"
+            : $"Geopolitical Events for {region} (Last {count})";
+
+        PrintSectionHeader(header);
+
+        var function = _kernel.Plugins["GeopoliticalRiskPlugin"]["GetRecentGeopoliticalEvents"];
+        var result = await _kernel.InvokeAsync(function, new() { 
+            ["count"] = count,
+            ["region"] = region
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task GeoSanctionsCommand(string[] parts)
+    {
+        var countries = parts.Length > 1 ? parts[1] : "Russia,Iran,North Korea";
+        PrintSectionHeader($"Geopolitical Sanctions - {countries}");
+
+        var function = _kernel.Plugins["GeopoliticalRiskPlugin"]["GetSanctionsData"];
+        var result = await _kernel.InvokeAsync(function, new() { ["countries"] = countries });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task GeoRiskIndexCommand(string[] parts)
+    {
+        var regions = parts.Length > 1 ? parts[1] : "global";
+        PrintSectionHeader($"Geopolitical Risk Index - {regions}");
+
+        var function = _kernel.Plugins["GeopoliticalRiskPlugin"]["CalculateGeopoliticalRiskIndex"];
+        var result = await _kernel.InvokeAsync(function, new() { ["regions"] = regions });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task GeoConflictsCommand(string[] parts)
+    {
+        var regions = parts.Length > 1 ? parts[1] : "Middle East,Europe";
+        PrintSectionHeader($"Ongoing Conflicts Monitor - {regions}");
+
+        var function = _kernel.Plugins["GeopoliticalRiskPlugin"]["MonitorOngoingConflicts"];
+        var result = await _kernel.InvokeAsync(function, new() { ["regions"] = regions });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task GeoStabilityCommand(string[] parts)
+    {
+        var countries = parts.Length > 1 ? parts[1] : "US,China,Russia";
+        PrintSectionHeader($"Political Stability Analysis - {countries}");
+
+        var function = _kernel.Plugins["GeopoliticalRiskPlugin"]["AnalyzePoliticalStability"];
+        var result = await _kernel.InvokeAsync(function, new() { ["countries"] = countries });
         Console.WriteLine(result.ToString());
         PrintSectionFooter();
     }
