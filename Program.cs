@@ -219,7 +219,9 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<NotebookService>(),
                     sp.GetRequiredService<DataValidationService>(),
                     sp.GetRequiredService<CorporateActionService>(),
-                    sp.GetRequiredService<TimezoneService>()
+                    sp.GetRequiredService<TimezoneService>(),
+                    sp.GetRequiredService<FREDService>(),
+                    sp.GetRequiredService<WorldBankService>()
                 )
             );
 
@@ -257,7 +259,9 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<ExecutionService>(),
                     sp.GetRequiredService<MonteCarloService>(),
                     sp.GetRequiredService<StrategyBuilderService>(),
-                    sp.GetRequiredService<NotebookService>()
+                    sp.GetRequiredService<NotebookService>(),
+                    sp.GetRequiredService<FREDService>(),
+                    sp.GetRequiredService<WorldBankService>()
                 )
             );
             services.AddSingleton<YouTubeAnalysisService>();
@@ -341,6 +345,22 @@ namespace QuantResearchAgent
             services.AddSingleton<DataValidationService>();
             services.AddSingleton<CorporateActionService>();
             services.AddSingleton<TimezoneService>();
+
+            // Add Phase 8 Free Institutional Data services
+            services.AddSingleton<FREDService>(sp =>
+                new FREDService(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<FREDService>>(),
+                    sp.GetRequiredService<IConfiguration>()
+                )
+            );
+            services.AddSingleton<WorldBankService>(sp =>
+                new WorldBankService(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<WorldBankService>>(),
+                    sp.GetRequiredService<IConfiguration>()
+                )
+            );
 
             // Add research agents
             services.AddSingleton<NewsScrapingService>();

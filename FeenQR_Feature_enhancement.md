@@ -329,31 +329,44 @@ This comprehensive workplan outlines the implementation of missing features to t
 ## Phase 8: Professional Features & Integration (Weeks 57-64)
 **Priority**: Medium | **Effort**: Medium-High | **Dependencies**: All Previous Phases
 
-### 8.1 Bloomberg Terminal Integration
-**Objective**: Connect to Bloomberg data and analytics
+### 8.1 Free Institutional Data Integration
+**Objective**: Connect to comprehensive free government and international data sources
 
 **Deliverables**:
-- Bloomberg API integration
-- Real-time data streaming
-- Bloomberg function access
-- Analytics integration
+- Federal Reserve Economic Data (FRED) API integration for 800,000+ economic indicators
+- U.S. Treasury Department data (yields, auction results, debt statistics)
+- Bureau of Economic Analysis (BEA) GDP and trade data
+- Bureau of Labor Statistics (BLS) employment and inflation data
+- World Bank Open Data for global economic indicators
+- OECD Data for international economic comparisons
+- Eurostat for European Union statistics
+- Enhanced SEC EDGAR database integration
+- Multi-source economic data aggregation and analysis
 
 **Files to Create**:
-- `Services/BloombergService.cs`
-- `Plugins/BloombergPlugin.cs`
+- `Services/FREDService.cs`
+- `Services/EconomicDataService.cs`
+- `Services/WorldBankService.cs`
+- `Services/OECDService.cs`
+- `Services/EnhancedSECAnalysisService.cs`
+- `Plugins/FREDEconomicPlugin.cs`
+- `Plugins/GlobalEconomicPlugin.cs`
+- `Plugins/AdvancedSECAnalysisPlugin.cs`
 
-### 8.2 Interactive Brokers Integration
-**Objective**: Live trading and data capabilities
+### 8.2 Advanced Alpaca Integration
+**Objective**: Enhanced live trading and data capabilities with Alpaca
 
 **Deliverables**:
-- Alpaca (for now) / IBKR API integration (Future)
-- Live order execution
-- Real-time position monitoring
-- Advanced order types
+- Advanced order types (bracket orders, OCO, trailing stops)
+- Real-time portfolio analytics and performance tracking
+- Enhanced risk management and position monitoring
+- Tax reporting and cost basis calculations
+- Paper trading environment integration
+- Alpaca news and market data integration
 
 **Files to Create**:
-- `Services/InteractiveBrokersService.cs`
-- `Plugins/IBKRPlugin.cs`
+- `Services/AdvancedAlpacaService.cs`
+- `Plugins/AdvancedAlpacaPlugin.cs`
 
 ### 8.3 FIX Protocol Support
 **Objective**: Institutional connectivity

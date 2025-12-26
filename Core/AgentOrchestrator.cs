@@ -47,6 +47,8 @@ public class AgentOrchestrator
     private readonly MonteCarloService _monteCarloService;
     private readonly StrategyBuilderService _strategyBuilderService;
     private readonly NotebookService _notebookService;
+    private readonly FREDService _fredService;
+    private readonly WorldBankService _worldBankService;
     
     private readonly ConcurrentQueue<AgentJob> _jobQueue = new();
     private readonly ConcurrentDictionary<string, AgentJob> _runningJobs = new();
@@ -86,7 +88,9 @@ public class AgentOrchestrator
         ExecutionService? executionService = null,
         MonteCarloService? monteCarloService = null,
         StrategyBuilderService? strategyBuilderService = null,
-        NotebookService? notebookService = null)
+        NotebookService? notebookService = null,
+        FREDService? fredService = null,
+        WorldBankService? worldBankService = null)
     {
         _kernel = kernel;
         _youtubeService = youtubeService;
@@ -117,6 +121,8 @@ public class AgentOrchestrator
         _monteCarloService = monteCarloService ?? throw new ArgumentNullException(nameof(monteCarloService));
         _strategyBuilderService = strategyBuilderService ?? throw new ArgumentNullException(nameof(strategyBuilderService));
         _notebookService = notebookService ?? throw new ArgumentNullException(nameof(notebookService));
+        _fredService = fredService ?? throw new ArgumentNullException(nameof(fredService));
+        _worldBankService = worldBankService ?? throw new ArgumentNullException(nameof(worldBankService));
         _configuration = configuration;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentOrchestrator>.Instance;
 
@@ -176,6 +182,10 @@ public class AgentOrchestrator
         
         // Register General AI Plugin for analysis
         kernel.Plugins.AddFromObject(new GeneralAIPlugin(_kernel));
+
+        // Register Phase 8 Free Institutional Data plugins
+        kernel.Plugins.AddFromObject(new FREDEconomicPlugin(_fredService));
+        kernel.Plugins.AddFromObject(new WorldBankEconomicPlugin(_worldBankService));
 
         // Plugins registered successfully
     }

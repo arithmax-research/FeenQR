@@ -60,6 +60,8 @@ public class InteractiveCLI
     private readonly DataValidationService _dataValidationService;
     private readonly CorporateActionService _corporateActionService;
     private readonly TimezoneService _timezoneService;
+    private readonly FREDService _fredService;
+    private readonly WorldBankService _worldBankService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -105,7 +107,9 @@ public class InteractiveCLI
         NotebookService notebookService,
         DataValidationService dataValidationService,
         CorporateActionService corporateActionService,
-        TimezoneService timezoneService)
+        TimezoneService timezoneService,
+        FREDService fredService,
+        WorldBankService worldBankService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -151,6 +155,8 @@ public class InteractiveCLI
         _dataValidationService = dataValidationService;
         _corporateActionService = corporateActionService;
         _timezoneService = timezoneService;
+        _fredService = fredService;
+        _worldBankService = worldBankService;
     }
 
     public async Task RunAsync()
@@ -408,6 +414,27 @@ public class InteractiveCLI
                     break;
                 case "databento-futures":
                     await DataBentoFuturesCommand(parts);
+                    break;
+                case "fred-series":
+                    await FredSeriesCommand(parts);
+                    break;
+                case "fred-search":
+                    await FredSearchCommand(parts);
+                    break;
+                case "fred-popular":
+                    await FredPopularCommand(parts);
+                    break;
+                case "worldbank-series":
+                    await WorldBankSeriesCommand(parts);
+                    break;
+                case "worldbank-search":
+                    await WorldBankSearchCommand(parts);
+                    break;
+                case "worldbank-popular":
+                    await WorldBankPopularCommand(parts);
+                    break;
+                case "worldbank-indicator":
+                    await WorldBankIndicatorCommand(parts);
                     break;
                 case "news":
                 case "live-news":
@@ -1245,7 +1272,9 @@ public class InteractiveCLI
         var dataValidationService = serviceProvider.GetRequiredService<DataValidationService>();
         var corporateActionService = serviceProvider.GetRequiredService<CorporateActionService>();
         var timezoneService = serviceProvider.GetRequiredService<TimezoneService>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService));
+        var fredService = serviceProvider.GetRequiredService<FREDService>();
+        var worldBankService = serviceProvider.GetRequiredService<WorldBankService>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService));
     }
 
     // Alpaca Commands
@@ -7645,6 +7674,156 @@ public class InteractiveCLI
         {
             Console.WriteLine($"Error: {ex.Message}");
         }
+        PrintSectionFooter();
+    }
+
+    private async Task FredSeriesCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: fred-series <series_id> [start_date] [end_date]");
+            Console.WriteLine("Example: fred-series GDP 2020-01-01 2023-12-31");
+            return;
+        }
+
+        var seriesId = parts[1];
+        var startDate = parts.Length > 2 ? parts[2] : null;
+        var endDate = parts.Length > 3 ? parts[3] : null;
+
+        PrintSectionHeader("FRED Economic Series Data");
+        Console.WriteLine($"Series ID: {seriesId}");
+        if (startDate != null) Console.WriteLine($"Start Date: {startDate}");
+        if (endDate != null) Console.WriteLine($"End Date: {endDate}");
+
+        var function = _kernel.Plugins["FREDEconomicPlugin"]["GetEconomicSeries"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments { 
+            ["seriesId"] = seriesId,
+            ["startDate"] = startDate,
+            ["endDate"] = endDate
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FredSearchCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: fred-search <search_text> [limit]");
+            Console.WriteLine("Example: fred-search 'unemployment rate' 10");
+            return;
+        }
+
+        var searchText = parts[1];
+        var limit = parts.Length > 2 ? int.Parse(parts[2]) : 10;
+
+        PrintSectionHeader("FRED Series Search");
+        Console.WriteLine($"Search Text: {searchText}");
+        Console.WriteLine($"Limit: {limit}");
+
+        var function = _kernel.Plugins["FREDEconomicPlugin"]["SearchEconomicSeries"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments { 
+            ["searchText"] = searchText, 
+            ["limit"] = limit 
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FredPopularCommand(string[] parts)
+    {
+        PrintSectionHeader("FRED Popular Economic Indicators");
+        var function = _kernel.Plugins["FREDEconomicPlugin"]["GetPopularEconomicIndicators"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments());
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task WorldBankSeriesCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: worldbank-series <indicator_code> [country_code] [start_year] [end_year]");
+            Console.WriteLine("Example: worldbank-series NY.GDP.MKTP.CD USA 2010 2023");
+            Console.WriteLine("Country codes: USA, CHN, DEU, JPN, GBR, FRA, etc.");
+            return;
+        }
+
+        var indicatorCode = parts[1];
+        var countryCode = parts.Length > 2 ? parts[2] : "USA";
+        var startYear = parts.Length > 3 ? int.Parse(parts[3]) : (int?)null;
+        var endYear = parts.Length > 4 ? int.Parse(parts[4]) : (int?)null;
+
+        PrintSectionHeader("World Bank Economic Series Data");
+        Console.WriteLine($"Indicator Code: {indicatorCode}");
+        Console.WriteLine($"Country Code: {countryCode}");
+        if (startYear.HasValue) Console.WriteLine($"Start Year: {startYear}");
+        if (endYear.HasValue) Console.WriteLine($"End Year: {endYear}");
+
+        var function = _kernel.Plugins["WorldBankEconomicPlugin"]["get_world_bank_economic_series"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["indicatorCode"] = indicatorCode,
+            ["countryCode"] = countryCode,
+            ["startYear"] = startYear,
+            ["endYear"] = endYear
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task WorldBankSearchCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: worldbank-search <search_query> [max_results]");
+            Console.WriteLine("Example: worldbank-search 'GDP per capita' 10");
+            return;
+        }
+
+        var searchQuery = parts[1];
+        var maxResults = parts.Length > 2 ? int.Parse(parts[2]) : 10;
+
+        PrintSectionHeader("World Bank Indicator Search");
+        Console.WriteLine($"Search Query: {searchQuery}");
+        Console.WriteLine($"Max Results: {maxResults}");
+
+        var function = _kernel.Plugins["WorldBankEconomicPlugin"]["search_world_bank_indicators"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["query"] = searchQuery,
+            ["maxResults"] = maxResults
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task WorldBankPopularCommand(string[] parts)
+    {
+        PrintSectionHeader("World Bank Popular Economic Indicators");
+        var function = _kernel.Plugins["WorldBankEconomicPlugin"]["get_world_bank_popular_indicators"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments());
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task WorldBankIndicatorCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: worldbank-indicator <indicator_code>");
+            Console.WriteLine("Example: worldbank-indicator NY.GDP.MKTP.CD");
+            return;
+        }
+
+        var indicatorCode = parts[1];
+
+        PrintSectionHeader("World Bank Indicator Information");
+        Console.WriteLine($"Indicator Code: {indicatorCode}");
+
+        var function = _kernel.Plugins["WorldBankEconomicPlugin"]["get_world_bank_indicator_info"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["indicatorCode"] = indicatorCode
+        });
+        Console.WriteLine(result.ToString());
         PrintSectionFooter();
     }
 }
