@@ -404,3 +404,131 @@ public class LeadLagResult
     public double[] CrossCorrelations { get; set; } = Array.Empty<double>();
     public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
 }
+
+/// <summary>
+/// Advanced Alpaca order response
+/// </summary>
+public class AlpacaOrderResponse
+{
+    public string Id { get; set; } = string.Empty;
+    public string ClientOrderId { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public DateTime SubmittedAt { get; set; }
+    public DateTime? FilledAt { get; set; }
+    public DateTime? ExpiredAt { get; set; }
+    public DateTime? CanceledAt { get; set; }
+    public DateTime? FailedAt { get; set; }
+    public string? FailedReason { get; set; }
+    public string Symbol { get; set; } = string.Empty;
+    public string Qty { get; set; } = string.Empty;
+    public string? FilledQty { get; set; }
+    public string Side { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string TimeInForce { get; set; } = string.Empty;
+    public decimal? LimitPrice { get; set; }
+    public decimal? StopPrice { get; set; }
+    public decimal? TrailPrice { get; set; }
+    public decimal? TrailPercent { get; set; }
+    public decimal? Hwm { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public bool? ExtendedHours { get; set; }
+    public List<AlpacaOrderLeg> Legs { get; set; } = new();
+}
+
+/// <summary>
+/// Alpaca order leg for complex orders
+/// </summary>
+public class AlpacaOrderLeg
+{
+    public string Id { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Side { get; set; } = string.Empty;
+    public string Symbol { get; set; } = string.Empty;
+    public string Qty { get; set; } = string.Empty;
+    public decimal? Price { get; set; }
+}
+
+/// <summary>
+/// Portfolio analytics data
+/// </summary>
+public class PortfolioAnalytics
+{
+    public decimal TotalValue { get; set; }
+    public decimal Cash { get; set; }
+    public decimal BuyingPower { get; set; }
+    public decimal DayChange { get; set; }
+    public decimal DayChangePercent { get; set; }
+    public List<PositionAnalytics> Positions { get; set; } = new();
+    public int TotalPositions { get; set; }
+    public decimal TotalMarketValue { get; set; }
+    public decimal TotalUnrealizedPL { get; set; }
+}
+
+/// <summary>
+/// Position analytics data
+/// </summary>
+public class PositionAnalytics
+{
+    public string Symbol { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal MarketValue { get; set; }
+    public decimal UnrealizedPL { get; set; }
+    public decimal UnrealizedPLPercent { get; set; }
+    public decimal CurrentPrice { get; set; }
+    public decimal LastDayPrice { get; set; }
+    public decimal ChangeToday { get; set; }
+}
+
+/// <summary>
+/// Risk metrics for portfolio
+/// </summary>
+public class RiskMetrics
+{
+    public decimal PortfolioValue { get; set; }
+    public int Positions { get; set; }
+    public List<PositionConcentration> PositionConcentrations { get; set; } = new();
+    public decimal DiversificationRatio { get; set; }
+    public decimal ValueAtRisk95 { get; set; }
+}
+
+/// <summary>
+/// Position concentration data
+/// </summary>
+public class PositionConcentration
+{
+    public string Symbol { get; set; } = string.Empty;
+    public decimal Weight { get; set; }
+    public decimal Value { get; set; }
+    public decimal UnrealizedPL { get; set; }
+}
+
+/// <summary>
+/// Tax lot information
+/// </summary>
+public class TaxLot
+{
+    public string Symbol { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal CostBasis { get; set; }
+    public DateTime PurchaseDate { get; set; }
+    public decimal CurrentValue { get; set; }
+    public decimal UnrealizedGainLoss { get; set; }
+}
+
+/// <summary>
+/// Performance metrics for portfolio
+/// </summary>
+public class PerformanceMetrics
+{
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public decimal CurrentValue { get; set; }
+    public decimal StartValue { get; set; }
+    public decimal TotalReturn { get; set; }
+    public decimal TotalReturnAmount { get; set; }
+    public decimal AnnualizedReturn { get; set; }
+    public decimal Volatility { get; set; }
+    public decimal SharpeRatio { get; set; }
+    public decimal MaxDrawdown { get; set; }
+}

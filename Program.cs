@@ -221,7 +221,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<CorporateActionService>(),
                     sp.GetRequiredService<TimezoneService>(),
                     sp.GetRequiredService<FREDService>(),
-                    sp.GetRequiredService<WorldBankService>()
+                    sp.GetRequiredService<WorldBankService>(),
+                    sp.GetRequiredService<AdvancedAlpacaService>()
                 )
             );
 
@@ -261,7 +262,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<StrategyBuilderService>(),
                     sp.GetRequiredService<NotebookService>(),
                     sp.GetRequiredService<FREDService>(),
-                    sp.GetRequiredService<WorldBankService>()
+                    sp.GetRequiredService<WorldBankService>(),
+                    sp.GetRequiredService<AdvancedAlpacaService>()
                 )
             );
             services.AddSingleton<YouTubeAnalysisService>();
@@ -359,6 +361,14 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<HttpClient>(),
                     sp.GetRequiredService<ILogger<WorldBankService>>(),
                     sp.GetRequiredService<IConfiguration>()
+                )
+            );
+            services.AddSingleton<AdvancedAlpacaService>(sp =>
+                new AdvancedAlpacaService(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<AdvancedAlpacaService>>(),
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetRequiredService<AlpacaService>()
                 )
             );
 

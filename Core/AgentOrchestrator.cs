@@ -49,6 +49,7 @@ public class AgentOrchestrator
     private readonly NotebookService _notebookService;
     private readonly FREDService _fredService;
     private readonly WorldBankService _worldBankService;
+    private readonly AdvancedAlpacaService _advancedAlpacaService;
     
     private readonly ConcurrentQueue<AgentJob> _jobQueue = new();
     private readonly ConcurrentDictionary<string, AgentJob> _runningJobs = new();
@@ -90,7 +91,8 @@ public class AgentOrchestrator
         StrategyBuilderService? strategyBuilderService = null,
         NotebookService? notebookService = null,
         FREDService? fredService = null,
-        WorldBankService? worldBankService = null)
+        WorldBankService? worldBankService = null,
+        AdvancedAlpacaService? advancedAlpacaService = null)
     {
         _kernel = kernel;
         _youtubeService = youtubeService;
@@ -123,6 +125,7 @@ public class AgentOrchestrator
         _notebookService = notebookService ?? throw new ArgumentNullException(nameof(notebookService));
         _fredService = fredService ?? throw new ArgumentNullException(nameof(fredService));
         _worldBankService = worldBankService ?? throw new ArgumentNullException(nameof(worldBankService));
+        _advancedAlpacaService = advancedAlpacaService ?? throw new ArgumentNullException(nameof(advancedAlpacaService));
         _configuration = configuration;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentOrchestrator>.Instance;
 
@@ -186,6 +189,7 @@ public class AgentOrchestrator
         // Register Phase 8 Free Institutional Data plugins
         kernel.Plugins.AddFromObject(new FREDEconomicPlugin(_fredService));
         kernel.Plugins.AddFromObject(new WorldBankEconomicPlugin(_worldBankService));
+        kernel.Plugins.AddFromObject(new AdvancedAlpacaPlugin(_advancedAlpacaService));
 
         // Plugins registered successfully
     }

@@ -62,6 +62,7 @@ public class InteractiveCLI
     private readonly TimezoneService _timezoneService;
     private readonly FREDService _fredService;
     private readonly WorldBankService _worldBankService;
+    private readonly AdvancedAlpacaService _advancedAlpacaService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -109,7 +110,8 @@ public class InteractiveCLI
         CorporateActionService corporateActionService,
         TimezoneService timezoneService,
         FREDService fredService,
-        WorldBankService worldBankService)
+        WorldBankService worldBankService,
+        AdvancedAlpacaService advancedAlpacaService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -157,6 +159,7 @@ public class InteractiveCLI
         _timezoneService = timezoneService;
         _fredService = fredService;
         _worldBankService = worldBankService;
+        _advancedAlpacaService = advancedAlpacaService;
     }
 
     public async Task RunAsync()
@@ -269,9 +272,32 @@ public class InteractiveCLI
         Console.WriteLine("102. data-validation [symbol] [days] [source] - Validate market data quality");
         Console.WriteLine("103. corporate-action [symbol] [start-date] [end-date] - Process corporate actions");
         Console.WriteLine("104. timezone [command] [parameters] - Timezone and market calendar operations");
-        Console.WriteLine("105. clear - Clear terminal and show menu");
-        Console.WriteLine("106. help - Show available functions");
-        Console.WriteLine("107. quit - Exit the application");
+        Console.WriteLine("105. fred-series [series_id] [start_date] [end_date] - Get FRED economic series data");
+        Console.WriteLine("106. fred-search [query] [max_results] - Search FRED economic indicators");
+        Console.WriteLine("107. fred-popular - Get popular FRED economic indicators");
+        Console.WriteLine("108. worldbank-series [indicator] [country] [start_year] [end_year] - Get World Bank series data");
+        Console.WriteLine("109. worldbank-search [query] [max_results] - Search World Bank indicators");
+        Console.WriteLine("110. worldbank-popular - Get popular World Bank indicators");
+        Console.WriteLine("111. worldbank-indicator [indicator_code] - Get World Bank indicator info");
+        Console.WriteLine("112. oecd-series [indicator] [country] [start_year] [end_year] - Get OECD series data");
+        Console.WriteLine("113. oecd-search [query] [max_results] - Search OECD indicators");
+        Console.WriteLine("114. oecd-popular - Get popular OECD indicators");
+        Console.WriteLine("115. oecd-indicator [indicator_key] - Get OECD indicator info");
+        Console.WriteLine("116. imf-series [indicator] [country] [start_year] [end_year] - Get IMF series data");
+        Console.WriteLine("117. imf-search [query] [max_results] - Search IMF indicators");
+        Console.WriteLine("118. imf-popular - Get popular IMF indicators");
+        Console.WriteLine("119. imf-indicator [indicator_code] - Get IMF indicator info");
+        Console.WriteLine("120. bracket-order [symbol] [qty] [limit] [stop] [profit] [side] - Place bracket order");
+        Console.WriteLine("121. oco-order [symbol] [qty] [stop_price] [limit_price] [side] - Place OCO order");
+        Console.WriteLine("122. trailing-stop [symbol] [qty] [trail_percent] [side] - Place trailing stop order");
+        Console.WriteLine("123. portfolio-analytics [symbol] - Advanced portfolio analytics");
+        Console.WriteLine("124. risk-metrics [symbol] - Calculate risk metrics");
+        Console.WriteLine("125. performance-metrics [symbol] - Performance metrics analysis");
+        Console.WriteLine("126. tax-lots [symbol] - Tax lot analysis");
+        Console.WriteLine("127. portfolio-strategy [strategy] - Portfolio strategy optimization");
+        Console.WriteLine("128. clear - Clear terminal and show menu");
+        Console.WriteLine("129. help - Show available functions");
+        Console.WriteLine("130. quit - Exit the application");
         Console.WriteLine();
 
         while (true)
@@ -435,6 +461,54 @@ public class InteractiveCLI
                     break;
                 case "worldbank-indicator":
                     await WorldBankIndicatorCommand(parts);
+                    break;
+                case "oecd-series":
+                    await OECDSeriesCommand(parts);
+                    break;
+                case "oecd-search":
+                    await OECDSearchCommand(parts);
+                    break;
+                case "oecd-popular":
+                    await OECDPopularCommand(parts);
+                    break;
+                case "oecd-indicator":
+                    await OECDIndicatorCommand(parts);
+                    break;
+                case "imf-series":
+                    await IMFSeriesCommand(parts);
+                    break;
+                case "imf-search":
+                    await IMFSearchCommand(parts);
+                    break;
+                case "imf-popular":
+                    await IMFPopularCommand(parts);
+                    break;
+                case "imf-indicator":
+                    await IMFIndicatorCommand(parts);
+                    break;
+                case "bracket-order":
+                    await BracketOrderCommand(parts);
+                    break;
+                case "oco-order":
+                    await OcoOrderCommand(parts);
+                    break;
+                case "trailing-stop":
+                    await TrailingStopCommand(parts);
+                    break;
+                case "portfolio-analytics":
+                    await PortfolioAnalyticsCommand(parts);
+                    break;
+                case "risk-metrics":
+                    await RiskMetricsCommand(parts);
+                    break;
+                case "performance-metrics":
+                    await PerformanceMetricsCommand(parts);
+                    break;
+                case "tax-lots":
+                    await TaxLotsCommand(parts);
+                    break;
+                case "portfolio-strategy":
+                    await PortfolioStrategyCommand(parts);
                     break;
                 case "news":
                 case "live-news":
@@ -966,9 +1040,32 @@ public class InteractiveCLI
         Console.WriteLine("102. data-validation [symbol] [days] [source] - Validate market data quality");
         Console.WriteLine("103. corporate-action [symbol] [start-date] [end-date] - Process corporate actions");
         Console.WriteLine("104. timezone [command] [parameters] - Timezone and market calendar operations");
-        Console.WriteLine("105. clear - Clear terminal and show menu");
-        Console.WriteLine("106. help - Show available functions");
-        Console.WriteLine("107. quit - Exit the application");
+        Console.WriteLine("105. fred-series [series_id] [start_date] [end_date] - Get FRED economic series data");
+        Console.WriteLine("106. fred-search [query] [max_results] - Search FRED economic indicators");
+        Console.WriteLine("107. fred-popular - Get popular FRED economic indicators");
+        Console.WriteLine("108. worldbank-series [indicator] [country] [start_year] [end_year] - Get World Bank series data");
+        Console.WriteLine("109. worldbank-search [query] [max_results] - Search World Bank indicators");
+        Console.WriteLine("110. worldbank-popular - Get popular World Bank indicators");
+        Console.WriteLine("111. worldbank-indicator [indicator_code] - Get World Bank indicator info");
+        Console.WriteLine("112. oecd-series [indicator] [country] [start_year] [end_year] - Get OECD series data");
+        Console.WriteLine("113. oecd-search [query] [max_results] - Search OECD indicators");
+        Console.WriteLine("114. oecd-popular - Get popular OECD indicators");
+        Console.WriteLine("115. oecd-indicator [indicator_key] - Get OECD indicator info");
+        Console.WriteLine("116. imf-series [indicator] [country] [start_year] [end_year] - Get IMF series data");
+        Console.WriteLine("117. imf-search [query] [max_results] - Search IMF indicators");
+        Console.WriteLine("118. imf-popular - Get popular IMF indicators");
+        Console.WriteLine("119. imf-indicator [indicator_code] - Get IMF indicator info");
+        Console.WriteLine("120. bracket-order [symbol] [qty] [limit] [stop] [profit] [side] - Place bracket order");
+        Console.WriteLine("121. oco-order [symbol] [qty] [stop_price] [limit_price] [side] - Place OCO order");
+        Console.WriteLine("122. trailing-stop [symbol] [qty] [trail_percent] [side] - Place trailing stop order");
+        Console.WriteLine("123. portfolio-analytics [symbol] - Advanced portfolio analytics");
+        Console.WriteLine("124. risk-metrics [symbol] - Calculate risk metrics");
+        Console.WriteLine("125. performance-metrics [symbol] - Performance metrics analysis");
+        Console.WriteLine("126. tax-lots [symbol] - Tax lot analysis");
+        Console.WriteLine("127. portfolio-strategy [strategy] - Portfolio strategy optimization");
+        Console.WriteLine("128. clear - Clear terminal and show menu");
+        Console.WriteLine("129. help - Show available functions");
+        Console.WriteLine("130. quit - Exit the application");
         Console.WriteLine();
 
         await Task.CompletedTask;
@@ -1274,7 +1371,8 @@ public class InteractiveCLI
         var timezoneService = serviceProvider.GetRequiredService<TimezoneService>();
         var fredService = serviceProvider.GetRequiredService<FREDService>();
         var worldBankService = serviceProvider.GetRequiredService<WorldBankService>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService));
+        var advancedAlpacaService = serviceProvider.GetRequiredService<AdvancedAlpacaService>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService));
     }
 
     // Alpaca Commands
@@ -7822,6 +7920,364 @@ public class InteractiveCLI
         var function = _kernel.Plugins["WorldBankEconomicPlugin"]["get_world_bank_indicator_info"];
         var result = await _kernel.InvokeAsync(function, new KernelArguments {
             ["indicatorCode"] = indicatorCode
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task OECDSeriesCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: oecd-series <indicator_key> [country_code] [start_year] [end_year]");
+            Console.WriteLine("Example: oecd-series QNA|USA.B1_GE.GYSA+GYSA_Q|OECD USA 2010 2023");
+            Console.WriteLine("Country codes: USA, DEU, FRA, GBR, JPN, etc.");
+            return;
+        }
+
+        var indicatorKey = parts[1];
+        var countryCode = parts.Length > 2 ? parts[2] : "USA";
+        var startYear = parts.Length > 3 ? int.Parse(parts[3]) : (int?)null;
+        var endYear = parts.Length > 4 ? int.Parse(parts[4]) : (int?)null;
+
+        PrintSectionHeader("OECD Economic Series Data");
+        Console.WriteLine($"Indicator Key: {indicatorKey}");
+        Console.WriteLine($"Country Code: {countryCode}");
+        if (startYear.HasValue) Console.WriteLine($"Start Year: {startYear}");
+        if (endYear.HasValue) Console.WriteLine($"End Year: {endYear}");
+
+        var function = _kernel.Plugins["OECEconomicPlugin"]["get_oecd_economic_series"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["indicatorKey"] = indicatorKey,
+            ["countryCode"] = countryCode,
+            ["startYear"] = startYear,
+            ["endYear"] = endYear
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task OECDSearchCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: oecd-search <search_query> [max_results]");
+            Console.WriteLine("Example: oecd-search 'GDP growth' 10");
+            return;
+        }
+
+        var searchQuery = parts[1];
+        var maxResults = parts.Length > 2 ? int.Parse(parts[2]) : 10;
+
+        PrintSectionHeader("OECD Indicator Search");
+        Console.WriteLine($"Search Query: {searchQuery}");
+        Console.WriteLine($"Max Results: {maxResults}");
+
+        var function = _kernel.Plugins["OECEconomicPlugin"]["search_oecd_indicators"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["query"] = searchQuery,
+            ["maxResults"] = maxResults
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task OECDPopularCommand(string[] parts)
+    {
+        PrintSectionHeader("OECD Popular Economic Indicators");
+        var function = _kernel.Plugins["OECEconomicPlugin"]["get_oecd_popular_indicators"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments());
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task OECDIndicatorCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: oecd-indicator <indicator_key>");
+            Console.WriteLine("Example: oecd-indicator QNA|USA.B1_GE.GYSA+GYSA_Q|OECD");
+            return;
+        }
+
+        var indicatorKey = parts[1];
+
+        PrintSectionHeader("OECD Indicator Information");
+        Console.WriteLine($"Indicator Key: {indicatorKey}");
+
+        var function = _kernel.Plugins["OECEconomicPlugin"]["get_oecd_indicator_info"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["indicatorKey"] = indicatorKey
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task IMFSeriesCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: imf-series <indicator_code> [country_code] [start_year] [end_year]");
+            Console.WriteLine("Example: imf-series NGDP_R USA 2010 2023");
+            Console.WriteLine("Country codes: USA, DEU, FRA, GBR, JPN, etc.");
+            return;
+        }
+
+        var indicatorCode = parts[1];
+        var countryCode = parts.Length > 2 ? parts[2] : "USA";
+        var startYear = parts.Length > 3 ? int.Parse(parts[3]) : (int?)null;
+        var endYear = parts.Length > 4 ? int.Parse(parts[4]) : (int?)null;
+
+        PrintSectionHeader("IMF Economic Series Data");
+        Console.WriteLine($"Indicator Code: {indicatorCode}");
+        Console.WriteLine($"Country Code: {countryCode}");
+        if (startYear.HasValue) Console.WriteLine($"Start Year: {startYear}");
+        if (endYear.HasValue) Console.WriteLine($"End Year: {endYear}");
+
+        var function = _kernel.Plugins["IMFEconomicPlugin"]["get_imf_economic_series"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["indicatorCode"] = indicatorCode,
+            ["countryCode"] = countryCode,
+            ["startYear"] = startYear,
+            ["endYear"] = endYear
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task IMFSearchCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: imf-search <search_query> [max_results]");
+            Console.WriteLine("Example: imf-search 'GDP' 10");
+            return;
+        }
+
+        var searchQuery = parts[1];
+        var maxResults = parts.Length > 2 ? int.Parse(parts[2]) : 10;
+
+        PrintSectionHeader("IMF Indicator Search");
+        Console.WriteLine($"Search Query: {searchQuery}");
+        Console.WriteLine($"Max Results: {maxResults}");
+
+        var function = _kernel.Plugins["IMFEconomicPlugin"]["search_imf_indicators"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["query"] = searchQuery,
+            ["maxResults"] = maxResults
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task IMFPopularCommand(string[] parts)
+    {
+        PrintSectionHeader("IMF Popular Economic Indicators");
+        var function = _kernel.Plugins["IMFEconomicPlugin"]["get_imf_popular_indicators"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments());
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task IMFIndicatorCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: imf-indicator <indicator_code>");
+            Console.WriteLine("Example: imf-indicator NGDP_R");
+            return;
+        }
+
+        var indicatorCode = parts[1];
+
+        PrintSectionHeader("IMF Indicator Information");
+        Console.WriteLine($"Indicator Code: {indicatorCode}");
+
+        var function = _kernel.Plugins["IMFEconomicPlugin"]["get_imf_indicator_info"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["indicatorCode"] = indicatorCode
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task BracketOrderCommand(string[] parts)
+    {
+        if (parts.Length < 6)
+        {
+            Console.WriteLine("Usage: bracket-order <symbol> <quantity> <limit_price> <stop_loss_price> <take_profit_price> [side]");
+            Console.WriteLine("Example: bracket-order AAPL 100 150.00 140.00 160.00 buy");
+            return;
+        }
+
+        var symbol = parts[1];
+        var quantity = int.Parse(parts[2]);
+        var limitPrice = decimal.Parse(parts[3]);
+        var stopLossPrice = decimal.Parse(parts[4]);
+        var takeProfitPrice = decimal.Parse(parts[5]);
+        var side = parts.Length > 6 ? parts[6] : "buy";
+
+        PrintSectionHeader("Advanced Alpaca Bracket Order");
+        Console.WriteLine($"Symbol: {symbol}, Quantity: {quantity}, Side: {side}");
+        Console.WriteLine($"Limit Price: ${limitPrice:N2}, Stop Loss: ${stopLossPrice:N2}, Take Profit: ${takeProfitPrice:N2}");
+
+        var function = _kernel.Plugins["AdvancedAlpacaPlugin"]["place_bracket_order"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbol"] = symbol,
+            ["quantity"] = quantity,
+            ["limitPrice"] = limitPrice,
+            ["stopLossPrice"] = stopLossPrice,
+            ["takeProfitPrice"] = takeProfitPrice,
+            ["side"] = side
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task OcoOrderCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: oco-order <symbol> <quantity> <stop_loss_price> <take_profit_price> [side]");
+            Console.WriteLine("Example: oco-order AAPL 100 140.00 160.00 buy");
+            return;
+        }
+
+        var symbol = parts[1];
+        var quantity = int.Parse(parts[2]);
+        var stopLossPrice = decimal.Parse(parts[3]);
+        var takeProfitPrice = decimal.Parse(parts[4]);
+        var side = parts.Length > 5 ? parts[5] : "buy";
+
+        PrintSectionHeader("Advanced Alpaca OCO Order");
+        Console.WriteLine($"Symbol: {symbol}, Quantity: {quantity}, Side: {side}");
+        Console.WriteLine($"Stop Loss: ${stopLossPrice:N2}, Take Profit: ${takeProfitPrice:N2}");
+
+        var function = _kernel.Plugins["AdvancedAlpacaPlugin"]["place_oco_order"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbol"] = symbol,
+            ["quantity"] = quantity,
+            ["stopLossPrice"] = stopLossPrice,
+            ["takeProfitPrice"] = takeProfitPrice,
+            ["side"] = side
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task TrailingStopCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: trailing-stop <symbol> <quantity> <trail_percent> [side]");
+            Console.WriteLine("Example: trailing-stop AAPL 100 5.0 buy");
+            return;
+        }
+
+        var symbol = parts[1];
+        var quantity = int.Parse(parts[2]);
+        var trailPercent = decimal.Parse(parts[3]);
+        var side = parts.Length > 4 ? parts[4] : "buy";
+
+        PrintSectionHeader("Advanced Alpaca Trailing Stop Order");
+        Console.WriteLine($"Symbol: {symbol}, Quantity: {quantity}, Side: {side}");
+        Console.WriteLine($"Trail Percent: {trailPercent}%");
+
+        var function = _kernel.Plugins["AdvancedAlpacaPlugin"]["place_trailing_stop_order"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbol"] = symbol,
+            ["quantity"] = quantity,
+            ["trailPercent"] = trailPercent,
+            ["side"] = side
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task PortfolioAnalyticsCommand(string[] parts)
+    {
+        PrintSectionHeader("Advanced Alpaca Portfolio Analytics");
+
+        var function = _kernel.Plugins["AdvancedAlpacaPlugin"]["get_portfolio_analytics"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments());
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task RiskMetricsCommand(string[] parts)
+    {
+        PrintSectionHeader("Advanced Alpaca Risk Metrics");
+
+        var function = _kernel.Plugins["AdvancedAlpacaPlugin"]["calculate_risk_metrics"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments());
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task PerformanceMetricsCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: performance-metrics <start_date> <end_date>");
+            Console.WriteLine("Example: performance-metrics 2024-01-01 2024-12-31");
+            return;
+        }
+
+        var startDate = parts[1];
+        var endDate = parts[2];
+
+        PrintSectionHeader("Advanced Alpaca Performance Metrics");
+        Console.WriteLine($"Period: {startDate} to {endDate}");
+
+        var function = _kernel.Plugins["AdvancedAlpacaPlugin"]["get_performance_metrics"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["startDate"] = startDate,
+            ["endDate"] = endDate
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task TaxLotsCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: tax-lots <symbol>");
+            Console.WriteLine("Example: tax-lots AAPL");
+            return;
+        }
+
+        var symbol = parts[1];
+
+        PrintSectionHeader("Advanced Alpaca Tax Lots");
+        Console.WriteLine($"Symbol: {symbol}");
+
+        var function = _kernel.Plugins["AdvancedAlpacaPlugin"]["get_tax_lots"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbol"] = symbol
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task PortfolioStrategyCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: portfolio-strategy <strategy>");
+            Console.WriteLine("Example: portfolio-strategy growth");
+            Console.WriteLine("Available strategies: growth, value, dividend");
+            return;
+        }
+
+        var strategy = parts[1];
+
+        PrintSectionHeader("Advanced Alpaca Portfolio Strategy Analysis");
+        Console.WriteLine($"Strategy: {strategy}");
+
+        var function = _kernel.Plugins["AdvancedAlpacaPlugin"]["analyze_portfolio_strategy"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["strategy"] = strategy
         });
         Console.WriteLine(result.ToString());
         PrintSectionFooter();
