@@ -45,6 +45,8 @@ public class AgentOrchestrator
     private readonly MarketImpactService _marketImpactService;
     private readonly ExecutionService _executionService;
     private readonly MonteCarloService _monteCarloService;
+    private readonly StrategyBuilderService _strategyBuilderService;
+    private readonly NotebookService _notebookService;
     
     private readonly ConcurrentQueue<AgentJob> _jobQueue = new();
     private readonly ConcurrentDictionary<string, AgentJob> _runningJobs = new();
@@ -82,7 +84,9 @@ public class AgentOrchestrator
         OrderBookAnalysisService? orderBookAnalysisService = null,
         MarketImpactService? marketImpactService = null,
         ExecutionService? executionService = null,
-        MonteCarloService? monteCarloService = null)
+        MonteCarloService? monteCarloService = null,
+        StrategyBuilderService? strategyBuilderService = null,
+        NotebookService? notebookService = null)
     {
         _kernel = kernel;
         _youtubeService = youtubeService;
@@ -111,6 +115,8 @@ public class AgentOrchestrator
         _marketImpactService = marketImpactService ?? throw new ArgumentNullException(nameof(marketImpactService));
         _executionService = executionService ?? throw new ArgumentNullException(nameof(executionService));
         _monteCarloService = monteCarloService ?? throw new ArgumentNullException(nameof(monteCarloService));
+        _strategyBuilderService = strategyBuilderService ?? throw new ArgumentNullException(nameof(strategyBuilderService));
+        _notebookService = notebookService ?? throw new ArgumentNullException(nameof(notebookService));
         _configuration = configuration;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentOrchestrator>.Instance;
 
@@ -187,6 +193,11 @@ public class AgentOrchestrator
             // Research agent plugins
             _kernel.Plugins.AddFromType<MarketSentimentPlugin>();
             _kernel.Plugins.AddFromType<StatisticalPatternPlugin>();
+            
+            // Phase 6 Research & Strategy Development Tools plugins
+            _kernel.Plugins.AddFromType<MonteCarloPlugin>();
+            _kernel.Plugins.AddFromType<StrategyBuilderPlugin>();
+            _kernel.Plugins.AddFromType<NotebookPlugin>();
             
             _logger.LogInformation("Successfully registered all plugins with Semantic Kernel");
         }
