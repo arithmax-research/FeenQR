@@ -16,7 +16,7 @@ namespace QuantResearchAgent.Plugins
         [KernelFunction, Description("Get recent geopolitical events and developments")]
         public async Task<string> GetRecentGeopoliticalEvents(
             [Description("Number of events to retrieve")] int count = 10,
-            [Description("Filter by region or country")] string region = null)
+            [Description("Filter by region or country")] string? region = null)
         {
             try
             {
