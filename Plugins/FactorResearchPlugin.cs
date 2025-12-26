@@ -2,6 +2,7 @@ using Microsoft.SemanticKernel;
 using QuantResearchAgent.Services;
 using System.ComponentModel;
 using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.Statistics;
 using QuantResearchAgent.Core;
 
 namespace QuantResearchAgent.Plugins;

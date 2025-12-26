@@ -277,7 +277,7 @@ public class ReinforcementLearningPlugin
             // Create a simple agent for evaluation
             var agent = new QAgent(new QLearningConfig());
 
-            var evaluation = await _rlService.EvaluateRLAgentAsync(testData, episodes);
+            var evaluation = await _rlService.EvaluateRLAgentAsync(agent, testData, episodes);
 
             return $"RL Agent Evaluation Results:\n" +
                    $"Evaluation Episodes: {evaluation.EvaluationEpisodes}\n" +
@@ -313,7 +313,7 @@ public class ReinforcementLearningPlugin
             var agent = await _rlService.TrainQAgentAsync(trainingData, config);
 
             // Evaluate performance
-            var evaluation = await _rlService.EvaluateRLAgentAsync(trainingData, 50);
+            var evaluation = await _rlService.EvaluateRLAgentAsync(agent, trainingData, 50);
 
             return $"RL Strategy Adaptation Report\n" +
                    $"==============================\n\n" +

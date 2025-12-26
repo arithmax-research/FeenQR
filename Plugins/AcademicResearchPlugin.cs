@@ -1,5 +1,6 @@
 using Microsoft.SemanticKernel;
 using QuantResearchAgent.Services;
+using QuantResearchAgent.Core;
 using System.ComponentModel;
 
 namespace QuantResearchAgent.Plugins;

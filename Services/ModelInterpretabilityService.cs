@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using QuantResearchAgent.Core;
 using QuantResearchAgent.Services;
 using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.Statistics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -324,8 +325,8 @@ public class ModelInterpretabilityService
             foreach (var group in protectedGroups)
             {
                 var groupIndices = group.Value;
-                var groupPredictions = predictions.SubVector(groupIndices.ToArray());
-                var groupActuals = actuals.SubVector(groupIndices.ToArray());
+                var groupPredictions = Vector<double>.Build.DenseOfEnumerable(groupIndices.Select(i => predictions[i]));
+                var groupActuals = Vector<double>.Build.DenseOfEnumerable(groupIndices.Select(i => actuals[i]));
 
                 var metrics = CalculateFairnessMetrics(groupPredictions, groupActuals);
 
@@ -404,8 +405,8 @@ public class ModelInterpretabilityService
         Vector<double> predictions)
     {
         // Simplified interaction calculation using correlation of residuals
-        var correlation = Correlation.Pearson(feature1, feature2);
-        return correlation * predictions.Variance();
+        var correlation = Correlation.Pearson(feature1.ToArray(), feature2.ToArray());
+        return correlation * predictions.ToArray().Variance();
     }
 
     private Matrix<double> CreateBackgroundData(Vector<double> instance)
@@ -444,7 +445,7 @@ public class ModelInterpretabilityService
     private double CalculateModelScore(Vector<double> predictions)
     {
         // Simplified scoring (could be MSE, R², etc.)
-        return 1.0 / (1.0 + predictions.Variance());
+        return 1.0 / (1.0 + predictions.ToArray().Variance());
     }
 
     private FairnessMetrics CalculateFairnessMetrics(Vector<double> predictions, Vector<double> actuals)

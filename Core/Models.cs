@@ -862,6 +862,11 @@ public class MarketState
 /// </summary>
 public class QAgent
 {
+    public QAgent() {}
+    public QAgent(QLearningConfig config)
+    {
+        Config = config;
+    }
     public Dictionary<string, double[]> QTable { get; set; } = new();
     public QLearningConfig Config { get; set; } = new();
     public bool TrainingComplete { get; set; }
@@ -953,6 +958,11 @@ public class QLearningConfig
 /// </summary>
 public class PolicyGradientAgent
 {
+    public PolicyGradientAgent() {}
+    public PolicyGradientAgent(PolicyGradientConfig config)
+    {
+        Config = config;
+    }
     public PolicyGradientConfig Config { get; set; } = new();
     public bool TrainingComplete { get; set; }
 
@@ -986,6 +996,11 @@ public class PolicyGradientConfig
 /// </summary>
 public class ActorCriticAgent
 {
+    public ActorCriticAgent() {}
+    public ActorCriticAgent(ActorCriticConfig config)
+    {
+        Config = config;
+    }
     public ActorCriticConfig Config { get; set; } = new();
     public bool TrainingComplete { get; set; }
 

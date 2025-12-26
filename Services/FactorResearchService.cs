@@ -107,8 +107,11 @@ public class FactorResearchService
 
             foreach (var symbol in symbols)
             {
-                // Get price data for the symbol
-                var priceData = await _marketDataService.GetHistoricalDataAsync(symbol, startDate, endDate);
+                // Get price data for the symbol using available API and filter by date
+                var rawData = await _marketDataService.GetHistoricalDataAsync(symbol, 5000) ?? new List<MarketData>();
+                var priceData = rawData.Where(d => d.Timestamp >= startDate && d.Timestamp <= endDate)
+                                       .OrderBy(d => d.Timestamp)
+                                       .ToList();
 
                 // Calculate factor for each date
                 for (int i = lookbackPeriod; i < priceData.Count; i++)
@@ -118,7 +121,7 @@ public class FactorResearchService
 
                     factorData.Add(new FactorDataPoint
                     {
-                        Date = priceData[i].Date,
+                        Date = priceData[i].Timestamp,
                         Symbol = symbol,
                         Value = factorValue
                     });
