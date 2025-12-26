@@ -15,8 +15,8 @@ namespace QuantResearchAgent.Plugins
 
         [KernelFunction, Description("Get global economic indicators from IMF, OECD, and World Bank")]
         public async Task<string> GetGlobalEconomicIndicators(
-            [Description("Start date for data retrieval (YYYY-MM-DD format)")] string startDate = null,
-            [Description("End date for data retrieval (YYYY-MM-DD format)")] string endDate = null)
+            [Description("Start date for data retrieval (YYYY-MM-DD format)")] string? startDate = null,
+            [Description("End date for data retrieval (YYYY-MM-DD format)")] string? endDate = null)
         {
             try
             {
@@ -48,8 +48,8 @@ namespace QuantResearchAgent.Plugins
 
         [KernelFunction, Description("Get global trade data and statistics")]
         public async Task<string> GetGlobalTradeData(
-            [Description("Start date for data retrieval (YYYY-MM-DD format)")] string startDate = null,
-            [Description("End date for data retrieval (YYYY-MM-DD format)")] string endDate = null)
+            [Description("Start date for data retrieval (YYYY-MM-DD format)")] string? startDate = null,
+            [Description("End date for data retrieval (YYYY-MM-DD format)")] string? endDate = null)
         {
             try
             {

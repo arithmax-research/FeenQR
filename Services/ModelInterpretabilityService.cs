@@ -198,7 +198,7 @@ public class ModelInterpretabilityService
         Vector<double> instanceFeatures,
         List<string> featureNames,
         double prediction,
-        Matrix<double> backgroundData = null)
+        Matrix<double>? backgroundData = null)
     {
         try
         {

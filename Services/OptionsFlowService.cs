@@ -202,11 +202,11 @@ namespace Feen.Services
     /// </summary>
     public class OptionsFlowAnalysis
     {
-        public string Symbol { get; set; }
+        public string? Symbol { get; set; }
         public DateTime Timestamp { get; set; }
         public long TotalVolume { get; set; }
-        public List<UnusualOptionsActivity> UnusualActivity { get; set; }
-        public string FlowDirection { get; set; }
+        public List<UnusualOptionsActivity>? UnusualActivity { get; set; }
+        public string? FlowDirection { get; set; }
         public decimal ConfidenceScore { get; set; }
     }
 
@@ -217,13 +217,13 @@ namespace Feen.Services
     {
         public decimal Strike { get; set; }
         public DateTime Expiration { get; set; }
-        public string OptionType { get; set; }
+        public string? OptionType { get; set; }
         public long Volume { get; set; }
         public long OpenInterest { get; set; }
         public decimal ImpliedVolatility { get; set; }
         public decimal Delta { get; set; }
         public decimal UnusualScore { get; set; }
-        public string ActivityType { get; set; }
+        public string? ActivityType { get; set; }
     }
 
     /// <summary>
@@ -231,11 +231,11 @@ namespace Feen.Services
     /// </summary>
     public class OptionsGammaAnalysis
     {
-        public string Symbol { get; set; }
+        public string? Symbol { get; set; }
         public decimal TotalGamma { get; set; }
         public decimal NetGamma { get; set; }
-        public Dictionary<decimal, decimal> GammaByStrike { get; set; }
-        public string GammaRisk { get; set; }
+        public Dictionary<decimal, decimal>? GammaByStrike { get; set; }
+        public string? GammaRisk { get; set; }
         public decimal SpotGamma { get; set; }
     }
 
@@ -244,13 +244,13 @@ namespace Feen.Services
     /// </summary>
     public class OptionsOrderBook
     {
-        public string Symbol { get; set; }
+        public string? Symbol { get; set; }
         public decimal Strike { get; set; }
         public DateTime Expiration { get; set; }
-        public string OptionType { get; set; }
-        public List<OrderBookLevel> Bids { get; set; }
-        public List<OrderBookLevel> Asks { get; set; }
-        public OptionsTrade LastTrade { get; set; }
+        public string? OptionType { get; set; }
+        public List<OrderBookLevel>? Bids { get; set; }
+        public List<OrderBookLevel>? Asks { get; set; }
+        public OptionsTrade? LastTrade { get; set; }
         public decimal Spread { get; set; }
         public decimal MidPrice { get; set; }
     }
@@ -272,6 +272,6 @@ namespace Feen.Services
         public decimal Price { get; set; }
         public int Size { get; set; }
         public DateTime Timestamp { get; set; }
-        public string TradeType { get; set; }
+        public string? TradeType { get; set; }
     }
 }

@@ -284,11 +284,11 @@ namespace Feen.Services
     /// </summary>
     public class OrderBookReconstruction
     {
-        public string Symbol { get; set; }
+        public string? Symbol { get; set; }
         public DateTime Timestamp { get; set; }
-        public List<ExchangeOrderBook> Exchanges { get; set; }
-        public AggregatedOrderBook AggregatedBook { get; set; }
-        public MicrostructureMetrics MicrostructureMetrics { get; set; }
+        public List<ExchangeOrderBook>? Exchanges { get; set; }
+        public AggregatedOrderBook? AggregatedBook { get; set; }
+        public MicrostructureMetrics? MicrostructureMetrics { get; set; }
     }
 
     /// <summary>
@@ -296,9 +296,9 @@ namespace Feen.Services
     /// </summary>
     public class ExchangeOrderBook
     {
-        public string Exchange { get; set; }
-        public List<OrderBookLevel> Bids { get; set; }
-        public List<OrderBookLevel> Asks { get; set; }
+        public string? Exchange { get; set; }
+        public List<OrderBookLevel>? Bids { get; set; }
+        public List<OrderBookLevel>? Asks { get; set; }
         public DateTime LastUpdate { get; set; }
     }
 
@@ -333,14 +333,14 @@ namespace Feen.Services
     /// </summary>
     public class HFTAnalysis
     {
-        public string Symbol { get; set; }
+        public string? Symbol { get; set; }
         public TimeSpan AnalysisWindow { get; set; }
         public int TotalTrades { get; set; }
         public decimal HFTParticipation { get; set; }
-        public Dictionary<string, decimal> AlgorithmTypes { get; set; }
-        public Dictionary<string, int> TradeSizeDistribution { get; set; }
-        public LatencyMetrics LatencyMetrics { get; set; }
-        public MarketQualityMetrics MarketQuality { get; set; }
+        public Dictionary<string, decimal>? AlgorithmTypes { get; set; }
+        public Dictionary<string, int>? TradeSizeDistribution { get; set; }
+        public LatencyMetrics? LatencyMetrics { get; set; }
+        public MarketQualityMetrics? MarketQuality { get; set; }
     }
 
     /// <summary>
@@ -370,12 +370,12 @@ namespace Feen.Services
     /// </summary>
     public class LiquidityAnalysis
     {
-        public string Symbol { get; set; }
+        public string? Symbol { get; set; }
         public int OrderSize { get; set; }
-        public LiquidityMetrics CurrentLiquidity { get; set; }
-        public ExecutionStrategy OptimalExecution { get; set; }
-        public LiquidityRiskMetrics LiquidityRisk { get; set; }
-        public List<ExecutionStrategy> AlternativeStrategies { get; set; }
+        public LiquidityMetrics? CurrentLiquidity { get; set; }
+        public ExecutionStrategy? OptimalExecution { get; set; }
+        public LiquidityRiskMetrics? LiquidityRisk { get; set; }
+        public List<ExecutionStrategy>? AlternativeStrategies { get; set; }
     }
 
     /// <summary>
@@ -395,7 +395,7 @@ namespace Feen.Services
     /// </summary>
     public class ExecutionStrategy
     {
-        public string Strategy { get; set; }
+        public string? Strategy { get; set; }
         public decimal EstimatedSlippage { get; set; }
         public decimal EstimatedMarketImpact { get; set; }
         public TimeSpan RecommendedTimeHorizon { get; set; }
@@ -418,13 +418,13 @@ namespace Feen.Services
     /// </summary>
     public class MarketManipulationDetection
     {
-        public string Symbol { get; set; }
+        public string? Symbol { get; set; }
         public DateTime Timestamp { get; set; }
         public decimal ManipulationScore { get; set; }
-        public List<ManipulationPattern> DetectedPatterns { get; set; }
-        public List<MarketAnomaly> Anomalies { get; set; }
-        public List<string> RegulatoryFlags { get; set; }
-        public string OverallRiskAssessment { get; set; }
+        public List<ManipulationPattern>? DetectedPatterns { get; set; }
+        public List<MarketAnomaly>? Anomalies { get; set; }
+        public List<string>? RegulatoryFlags { get; set; }
+        public string? OverallRiskAssessment { get; set; }
     }
 
     /// <summary>
@@ -432,10 +432,10 @@ namespace Feen.Services
     /// </summary>
     public class ManipulationPattern
     {
-        public string PatternType { get; set; }
+        public string? PatternType { get; set; }
         public decimal Confidence { get; set; }
-        public string Description { get; set; }
-        public string Severity { get; set; }
+        public string? Description { get; set; }
+        public string? Severity { get; set; }
     }
 
     /// <summary>
@@ -443,10 +443,10 @@ namespace Feen.Services
     /// </summary>
     public class MarketAnomaly
     {
-        public string AnomalyType { get; set; }
+        public string? AnomalyType { get; set; }
         public DateTime Timestamp { get; set; }
         public decimal Magnitude { get; set; }
-        public string Description { get; set; }
-        public string RiskLevel { get; set; }
+        public string? Description { get; set; }
+        public string? RiskLevel { get; set; }
     }
 }

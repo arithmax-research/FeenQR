@@ -3,8 +3,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using QuantResearchAgent.Services;
+using Feen.Services;
 using QuantResearchAgent.Services.ResearchAgents;
 using QuantResearchAgent.Plugins;
+using Feen.Plugins;
 using System.Collections.Concurrent;
 
 namespace QuantResearchAgent.Core;
@@ -46,6 +48,10 @@ public class AgentOrchestrator
     private readonly ExecutionService _executionService;
     private readonly MonteCarloService _monteCarloService;
     private readonly StrategyBuilderService _strategyBuilderService;
+    private readonly OptionsFlowService _optionsFlowService;
+    private readonly VolatilityTradingService _volatilityTradingService;
+    private readonly AdvancedMicrostructureService _advancedMicrostructureService;
+    private readonly LatencyArbitrageService _latencyArbitrageService;
     private readonly NotebookService _notebookService;
     private readonly FREDService _fredService;
     private readonly IMFService _imfService;
@@ -83,6 +89,10 @@ public class AgentOrchestrator
         RedditScrapingService redditScrapingService,
         StrategyGeneratorService strategyGeneratorService,
         TradingTemplateGeneratorAgent tradingTemplateGeneratorAgent,
+        OptionsFlowService optionsFlowService,
+        VolatilityTradingService volatilityTradingService,
+        AdvancedMicrostructureService advancedMicrostructureService,
+        LatencyArbitrageService latencyArbitrageService,
         IConfiguration? configuration = null,
         ILogger<AgentOrchestrator>? logger = null,
         StatisticalTestingService? statisticalTestingService = null,
@@ -138,6 +148,10 @@ public class AgentOrchestrator
         _executionService = executionService ?? throw new ArgumentNullException(nameof(executionService));
         _monteCarloService = monteCarloService ?? throw new ArgumentNullException(nameof(monteCarloService));
         _strategyBuilderService = strategyBuilderService ?? throw new ArgumentNullException(nameof(strategyBuilderService));
+        _optionsFlowService = optionsFlowService;
+        _volatilityTradingService = volatilityTradingService;
+        _advancedMicrostructureService = advancedMicrostructureService;
+        _latencyArbitrageService = latencyArbitrageService;
         _notebookService = notebookService ?? throw new ArgumentNullException(nameof(notebookService));
         _fredService = fredService ?? throw new ArgumentNullException(nameof(fredService));
         _imfService = imfService ?? throw new ArgumentNullException(nameof(imfService));

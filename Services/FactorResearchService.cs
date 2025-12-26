@@ -67,7 +67,7 @@ public class FactorResearchService
             {
                 Name = factorName,
                 Description = description,
-                Type = FactorType.Fundamental,
+                Type = QuantResearchAgent.Core.FactorType.Fundamental,
                 DataPoints = factorData,
                 CreationDate = DateTime.UtcNow
             };
@@ -132,7 +132,7 @@ public class FactorResearchService
             {
                 Name = factorName,
                 Description = description,
-                Type = FactorType.Technical,
+                Type = QuantResearchAgent.Core.FactorType.Technical,
                 DataPoints = factorData,
                 CreationDate = DateTime.UtcNow
             };
@@ -260,7 +260,7 @@ public class FactorResearchService
             {
                 Name = factorName,
                 Description = description,
-                Type = FactorType.Composite,
+                Type = QuantResearchAgent.Core.FactorType.Composite,
                 DataPoints = compositeData,
                 CreationDate = DateTime.UtcNow
             };

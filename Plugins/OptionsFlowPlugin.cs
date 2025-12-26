@@ -128,7 +128,7 @@ Bid Depth (Top 3):
 Ask Depth (Top 3):
 {string.Join("\n", orderBook.Asks.Take(3).Select(a => $"{a.Price:C} x {a.Size}"))}
 
-Last Trade: {(orderBook.LastTrade?.Price ?? 0):C} x {orderBook.LastTrade?.Size ?? 0} at {orderBook.LastTrade?.Timestamp?.ToString("HH:mm:ss") ?? "N/A"} ({orderBook.LastTrade?.TradeType ?? "N/A"})";
+Last Trade: {(orderBook.LastTrade?.Price ?? 0):C} x {orderBook.LastTrade?.Size ?? 0} at {orderBook.LastTrade?.Timestamp.ToString("HH:mm:ss") ?? "N/A"} ({orderBook.LastTrade?.TradeType ?? "N/A"})";
             }
             catch (Exception ex)
             {

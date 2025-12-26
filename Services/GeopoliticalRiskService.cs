@@ -19,7 +19,7 @@ namespace QuantResearchAgent.Services
             _httpClient = httpClient;
         }
 
-        public async Task<List<GeopoliticalEvent>> GetRecentGeopoliticalEventsAsync(int count = 10, string region = null)
+        public async Task<List<GeopoliticalEvent>> GetRecentGeopoliticalEventsAsync(int count = 10, string? region = null)
         {
             try
             {

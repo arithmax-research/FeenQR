@@ -4,8 +4,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using QuantResearchAgent.Core;
 using QuantResearchAgent.Services;
+using Feen.Services;
 using QuantResearchAgent.Services.ResearchAgents;
 using QuantResearchAgent.Plugins;
+using Feen.Plugins;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Builder;
 
@@ -238,7 +240,29 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<PatentAnalysisPlugin>(),
                     sp.GetRequiredService<FederalReservePlugin>(),
                     sp.GetRequiredService<GlobalEconomicPlugin>(),
-                    sp.GetRequiredService<GeopoliticalRiskPlugin>()
+                    sp.GetRequiredService<GeopoliticalRiskPlugin>(),
+                    sp.GetRequiredService<OptionsFlowService>(),
+                    sp.GetRequiredService<VolatilityTradingService>(),
+                    sp.GetRequiredService<AdvancedMicrostructureService>(),
+                    sp.GetRequiredService<LatencyArbitrageService>(),
+                    sp.GetRequiredService<OptionsFlowPlugin>(),
+                    sp.GetRequiredService<VolatilityTradingPlugin>(),
+                    sp.GetRequiredService<AdvancedMicrostructurePlugin>(),
+                    sp.GetRequiredService<LatencyArbitragePlugin>(),
+                    sp.GetRequiredService<ConversationalResearchPlugin>(),
+                    sp.GetRequiredService<AutomatedReportingPlugin>(),
+                    sp.GetRequiredService<MarketRegimePlugin>(),
+                    sp.GetRequiredService<AnomalyDetectionPlugin>(),
+                    sp.GetRequiredService<DynamicFactorPlugin>(),
+                    sp.GetRequiredService<TradingTemplateGeneratorPlugin>(),
+                    sp.GetRequiredService<AdvancedRiskAnalyticsService>(),
+                    sp.GetRequiredService<CounterpartyRiskService>(),
+                    sp.GetRequiredService<PerformanceAttributionService>(),
+                    sp.GetRequiredService<BenchmarkingService>(),
+                    sp.GetRequiredService<AdvancedRiskAnalyticsPlugin>(),
+                    sp.GetRequiredService<CounterpartyRiskPlugin>(),
+                    sp.GetRequiredService<PerformanceAttributionPlugin>(),
+                    sp.GetRequiredService<BenchmarkingPlugin>()
                 )
             );
 
@@ -262,6 +286,10 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<RedditScrapingService>(),
                     sp.GetRequiredService<StrategyGeneratorService>(),
                     sp.GetRequiredService<TradingTemplateGeneratorAgent>(),
+                    sp.GetRequiredService<OptionsFlowService>(),
+                    sp.GetRequiredService<VolatilityTradingService>(),
+                    sp.GetRequiredService<AdvancedMicrostructureService>(),
+                    sp.GetRequiredService<LatencyArbitrageService>(),
                     sp.GetRequiredService<IConfiguration>(),
                     sp.GetRequiredService<ILogger<AgentOrchestrator>>(),
                     sp.GetRequiredService<StatisticalTestingService>(),
@@ -445,6 +473,33 @@ namespace QuantResearchAgent
 
             // Add Phase 8.3 FIX Protocol service
             services.AddSingleton<FIXService>();
+
+            // Add Phase 14 AI-Enhanced Research services
+            services.AddSingleton<ConversationalResearchService>();
+            services.AddSingleton<AutomatedReportingService>();
+            services.AddSingleton<MarketRegimeService>();
+            services.AddSingleton<AnomalyDetectionService>();
+            services.AddSingleton<DynamicFactorService>();
+
+            // Add Phase 14 AI-Enhanced Research plugins
+            services.AddSingleton<ConversationalResearchPlugin>();
+            services.AddSingleton<AutomatedReportingPlugin>();
+            services.AddSingleton<MarketRegimePlugin>();
+            services.AddSingleton<AnomalyDetectionPlugin>();
+            services.AddSingleton<DynamicFactorPlugin>();
+            services.AddSingleton<TradingTemplateGeneratorPlugin>();
+
+            // Add Phase 15 Specialized Quantitative Tools services
+            services.AddSingleton<AdvancedRiskAnalyticsService>();
+            services.AddSingleton<CounterpartyRiskService>();
+            services.AddSingleton<PerformanceAttributionService>();
+            services.AddSingleton<BenchmarkingService>();
+
+            // Add Phase 15 Specialized Quantitative Tools plugins
+            services.AddSingleton<AdvancedRiskAnalyticsPlugin>();
+            services.AddSingleton<CounterpartyRiskPlugin>();
+            services.AddSingleton<PerformanceAttributionPlugin>();
+            services.AddSingleton<BenchmarkingPlugin>();
 
             // Add research agents
             services.AddSingleton<NewsScrapingService>();

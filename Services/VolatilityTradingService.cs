@@ -231,13 +231,13 @@ namespace Feen.Services
     /// </summary>
     public class VolatilitySurface
     {
-        public string Symbol { get; set; }
+        public string? Symbol { get; set; }
         public DateTime Timestamp { get; set; }
         public decimal SpotPrice { get; set; }
-        public Dictionary<string, Dictionary<decimal, decimal>> VolatilityMatrix { get; set; }
+        public Dictionary<string, Dictionary<decimal, decimal>>? VolatilityMatrix { get; set; }
         public decimal Skew { get; set; }
         public decimal Kurtosis { get; set; }
-        public string TermStructure { get; set; }
+        public string? TermStructure { get; set; }
         public decimal RiskReversal { get; set; }
     }
 
@@ -248,10 +248,10 @@ namespace Feen.Services
     {
         public decimal VIXSpot { get; set; }
         public decimal VIXChange { get; set; }
-        public List<VIXFuture> FuturesCurve { get; set; }
+        public List<VIXFuture>? FuturesCurve { get; set; }
         public decimal Contango { get; set; }
-        public List<VIXETF> VIXETFs { get; set; }
-        public string MarketRegime { get; set; }
+        public List<VIXETF>? VIXETFs { get; set; }
+        public string? MarketRegime { get; set; }
         public decimal SignalStrength { get; set; }
     }
 
@@ -260,7 +260,7 @@ namespace Feen.Services
     /// </summary>
     public class VIXFuture
     {
-        public string Month { get; set; }
+        public string? Month { get; set; }
         public decimal Price { get; set; }
         public decimal Change { get; set; }
     }
@@ -270,7 +270,7 @@ namespace Feen.Services
     /// </summary>
     public class VIXETF
     {
-        public string Symbol { get; set; }
+        public string? Symbol { get; set; }
         public decimal Price { get; set; }
         public decimal Change { get; set; }
         public long Volume { get; set; }
@@ -281,16 +281,16 @@ namespace Feen.Services
     /// </summary>
     public class VolatilityStrategy
     {
-        public string Symbol { get; set; }
-        public string StrategyType { get; set; }
+        public string? Symbol { get; set; }
+        public string? StrategyType { get; set; }
         public decimal CurrentVolatility { get; set; }
         public decimal HistoricalVolatility { get; set; }
         public decimal ImpliedVolatility { get; set; }
         public decimal VolatilityRatio { get; set; }
-        public string Signal { get; set; }
+        public string? Signal { get; set; }
         public decimal Confidence { get; set; }
-        public PositionRecommendation RecommendedPosition { get; set; }
-        public VolatilityRiskMetrics RiskMetrics { get; set; }
+        public PositionRecommendation? RecommendedPosition { get; set; }
+        public VolatilityRiskMetrics? RiskMetrics { get; set; }
     }
 
     /// <summary>
@@ -298,7 +298,7 @@ namespace Feen.Services
     /// </summary>
     public class PositionRecommendation
     {
-        public string Direction { get; set; }
+        public string? Direction { get; set; }
         public int Size { get; set; }
         public decimal EntryPrice { get; set; }
         public decimal StopLoss { get; set; }
@@ -322,13 +322,13 @@ namespace Feen.Services
     /// </summary>
     public class VolatilityMonitor
     {
-        public string Symbol { get; set; }
+        public string? Symbol { get; set; }
         public DateTime Timestamp { get; set; }
-        public Dictionary<string, decimal> VolatilityChange { get; set; }
+        public Dictionary<string, decimal>? VolatilityChange { get; set; }
         public decimal SkewChange { get; set; }
-        public string TermStructureChange { get; set; }
-        public List<VolatilityAlert> Alerts { get; set; }
-        public string TrendDirection { get; set; }
+        public string? TermStructureChange { get; set; }
+        public List<VolatilityAlert>? Alerts { get; set; }
+        public string? TrendDirection { get; set; }
         public decimal MomentumScore { get; set; }
     }
 
@@ -337,9 +337,9 @@ namespace Feen.Services
     /// </summary>
     public class VolatilityAlert
     {
-        public string AlertType { get; set; }
-        public string Message { get; set; }
-        public string Severity { get; set; }
+        public string? AlertType { get; set; }
+        public string? Message { get; set; }
+        public string? Severity { get; set; }
         public DateTime Timestamp { get; set; }
     }
 }

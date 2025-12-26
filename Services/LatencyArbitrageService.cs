@@ -337,11 +337,11 @@ namespace Feen.Services
     /// </summary>
     public class LatencyArbitrageAnalysis
     {
-        public string Symbol { get; set; }
+        public string? Symbol { get; set; }
         public DateTime Timestamp { get; set; }
-        public List<ArbitrageOpportunity> ArbitrageOpportunities { get; set; }
-        public LatencyMetrics LatencyMetrics { get; set; }
-        public NetworkTopology NetworkTopology { get; set; }
+        public List<ArbitrageOpportunity>? ArbitrageOpportunities { get; set; }
+        public LatencyMetrics? LatencyMetrics { get; set; }
+        public NetworkTopology? NetworkTopology { get; set; }
         public int ActiveArbitrageurs { get; set; }
         public decimal SuccessRate { get; set; }
     }
@@ -351,13 +351,13 @@ namespace Feen.Services
     /// </summary>
     public class ArbitrageOpportunity
     {
-        public string BuyExchange { get; set; }
-        public string SellExchange { get; set; }
+        public string? BuyExchange { get; set; }
+        public string? SellExchange { get; set; }
         public decimal PriceDifference { get; set; }
         public decimal LatencyGap { get; set; }
         public decimal EstimatedProfit { get; set; }
         public decimal Confidence { get; set; }
-        public string RiskLevel { get; set; }
+        public string? RiskLevel { get; set; }
         public TimeSpan TimeToLive { get; set; }
     }
 
@@ -366,8 +366,8 @@ namespace Feen.Services
     /// </summary>
     public class NetworkTopology
     {
-        public List<DataCenter> DataCenters { get; set; }
-        public List<string> OptimalRoutes { get; set; }
+        public List<DataCenter>? DataCenters { get; set; }
+        public List<string>? OptimalRoutes { get; set; }
     }
 
     /// <summary>
@@ -375,8 +375,8 @@ namespace Feen.Services
     /// </summary>
     public class DataCenter
     {
-        public string Name { get; set; }
-        public string Location { get; set; }
+        public string? Name { get; set; }
+        public string? Location { get; set; }
         public decimal Latency { get; set; }
     }
 
@@ -385,10 +385,10 @@ namespace Feen.Services
     /// </summary>
     public class CoLocationAnalysis
     {
-        public string Exchange { get; set; }
-        public List<CoLocationTier> CoLocationTiers { get; set; }
-        public PerformanceMetrics PerformanceMetrics { get; set; }
-        public CostBenefitAnalysis CostBenefitAnalysis { get; set; }
+        public string? Exchange { get; set; }
+        public List<CoLocationTier>? CoLocationTiers { get; set; }
+        public PerformanceMetrics? PerformanceMetrics { get; set; }
+        public CostBenefitAnalysis? CostBenefitAnalysis { get; set; }
     }
 
     /// <summary>
@@ -396,12 +396,12 @@ namespace Feen.Services
     /// </summary>
     public class CoLocationTier
     {
-        public string Tier { get; set; }
+        public string? Tier { get; set; }
         public decimal Distance { get; set; }
         public decimal MonthlyCost { get; set; }
         public decimal LatencyAdvantage { get; set; }
-        public string Bandwidth { get; set; }
-        public string PowerBackup { get; set; }
+        public string? Bandwidth { get; set; }
+        public string? PowerBackup { get; set; }
     }
 
     /// <summary>
@@ -431,12 +431,12 @@ namespace Feen.Services
     /// </summary>
     public class OrderRoutingAnalysis
     {
-        public string Symbol { get; set; }
-        public string OrderType { get; set; }
-        public List<RoutingStrategy> RoutingStrategies { get; set; }
-        public string OptimalStrategy { get; set; }
-        public LatencyBreakdown LatencyBreakdown { get; set; }
-        public RoutingPerformanceMetrics PerformanceMetrics { get; set; }
+        public string? Symbol { get; set; }
+        public string? OrderType { get; set; }
+        public List<RoutingStrategy>? RoutingStrategies { get; set; }
+        public string? OptimalStrategy { get; set; }
+        public LatencyBreakdown? LatencyBreakdown { get; set; }
+        public RoutingPerformanceMetrics? PerformanceMetrics { get; set; }
     }
 
     /// <summary>
@@ -444,7 +444,7 @@ namespace Feen.Services
     /// </summary>
     public class RoutingStrategy
     {
-        public string Strategy { get; set; }
+        public string? Strategy { get; set; }
         public decimal AverageLatency { get; set; }
         public decimal SuccessRate { get; set; }
         public decimal Cost { get; set; }
@@ -479,11 +479,11 @@ namespace Feen.Services
     /// </summary>
     public class MarketDataFeedAnalysis
     {
-        public string Symbol { get; set; }
-        public List<FeedProvider> FeedProviders { get; set; }
-        public string OptimalFeed { get; set; }
-        public LatencyDistribution LatencyDistribution { get; set; }
-        public DataQualityMetrics DataQuality { get; set; }
+        public string? Symbol { get; set; }
+        public List<FeedProvider>? FeedProviders { get; set; }
+        public string? OptimalFeed { get; set; }
+        public LatencyDistribution? LatencyDistribution { get; set; }
+        public DataQualityMetrics? DataQuality { get; set; }
     }
 
     /// <summary>
@@ -491,7 +491,7 @@ namespace Feen.Services
     /// </summary>
     public class FeedProvider
     {
-        public string Provider { get; set; }
+        public string? Provider { get; set; }
         public decimal Latency { get; set; }
         public int UpdateFrequency { get; set; }
         public decimal Coverage { get; set; }
@@ -526,7 +526,7 @@ namespace Feen.Services
     /// </summary>
     public class ArbitrageProfitability
     {
-        public string Symbol { get; set; }
+        public string? Symbol { get; set; }
         public decimal Capital { get; set; }
         public int DailyOpportunities { get; set; }
         public decimal AverageProfitPerTrade { get; set; }
@@ -535,9 +535,9 @@ namespace Feen.Services
         public decimal ExpectedMonthlyProfit { get; set; }
         public decimal SharpeRatio { get; set; }
         public decimal MaxDrawdown { get; set; }
-        public ArbitrageRiskMetrics RiskMetrics { get; set; }
-        public InfrastructureCosts InfrastructureCosts { get; set; }
-        public NetProfitability NetProfitability { get; set; }
+        public ArbitrageRiskMetrics? RiskMetrics { get; set; }
+        public InfrastructureCosts? InfrastructureCosts { get; set; }
+        public NetProfitability? NetProfitability { get; set; }
     }
 
     /// <summary>

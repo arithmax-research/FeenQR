@@ -3,8 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using QuantResearchAgent.Core;
+using Feen.Services;
 using QuantResearchAgent.Services;
 using QuantResearchAgent.Services.ResearchAgents;
+using Feen.Plugins;
 using QuantResearchAgent.Plugins;
 using MathNet.Numerics.LinearAlgebra;
 using System.Linq;
@@ -88,6 +90,20 @@ public class InteractiveCLI
     private readonly VolatilityTradingPlugin _volatilityTradingPlugin;
     private readonly AdvancedMicrostructurePlugin _advancedMicrostructurePlugin;
     private readonly LatencyArbitragePlugin _latencyArbitragePlugin;
+    private readonly ConversationalResearchPlugin _conversationalResearchPlugin;
+    private readonly AutomatedReportingPlugin _automatedReportingPlugin;
+    private readonly MarketRegimePlugin _marketRegimePlugin;
+    private readonly AnomalyDetectionPlugin _anomalyDetectionPlugin;
+    private readonly DynamicFactorPlugin _dynamicFactorPlugin;
+    private readonly TradingTemplateGeneratorPlugin _tradingTemplateGeneratorPlugin;
+    private readonly AdvancedRiskAnalyticsService _advancedRiskAnalyticsService;
+    private readonly CounterpartyRiskService _counterpartyRiskService;
+    private readonly PerformanceAttributionService _performanceAttributionService;
+    private readonly BenchmarkingService _benchmarkingService;
+    private readonly AdvancedRiskAnalyticsPlugin _advancedRiskAnalyticsPlugin;
+    private readonly CounterpartyRiskPlugin _counterpartyRiskPlugin;
+    private readonly PerformanceAttributionPlugin _performanceAttributionPlugin;
+    private readonly BenchmarkingPlugin _benchmarkingPlugin;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -160,7 +176,21 @@ public class InteractiveCLI
         OptionsFlowPlugin optionsFlowPlugin,
         VolatilityTradingPlugin volatilityTradingPlugin,
         AdvancedMicrostructurePlugin advancedMicrostructurePlugin,
-        LatencyArbitragePlugin latencyArbitragePlugin)
+        LatencyArbitragePlugin latencyArbitragePlugin,
+        ConversationalResearchPlugin conversationalResearchPlugin,
+        AutomatedReportingPlugin automatedReportingPlugin,
+        MarketRegimePlugin marketRegimePlugin,
+        AnomalyDetectionPlugin anomalyDetectionPlugin,
+        DynamicFactorPlugin dynamicFactorPlugin,
+        TradingTemplateGeneratorPlugin tradingTemplateGeneratorPlugin,
+        AdvancedRiskAnalyticsService advancedRiskAnalyticsService,
+        CounterpartyRiskService counterpartyRiskService,
+        PerformanceAttributionService performanceAttributionService,
+        BenchmarkingService benchmarkingService,
+        AdvancedRiskAnalyticsPlugin advancedRiskAnalyticsPlugin,
+        CounterpartyRiskPlugin counterpartyRiskPlugin,
+        PerformanceAttributionPlugin performanceAttributionPlugin,
+        BenchmarkingPlugin benchmarkingPlugin)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -233,6 +263,20 @@ public class InteractiveCLI
         _volatilityTradingPlugin = volatilityTradingPlugin;
         _advancedMicrostructurePlugin = advancedMicrostructurePlugin;
         _latencyArbitragePlugin = latencyArbitragePlugin;
+        _conversationalResearchPlugin = conversationalResearchPlugin;
+        _automatedReportingPlugin = automatedReportingPlugin;
+        _marketRegimePlugin = marketRegimePlugin;
+        _anomalyDetectionPlugin = anomalyDetectionPlugin;
+        _dynamicFactorPlugin = dynamicFactorPlugin;
+        _tradingTemplateGeneratorPlugin = tradingTemplateGeneratorPlugin;
+        _advancedRiskAnalyticsService = advancedRiskAnalyticsService;
+        _counterpartyRiskService = counterpartyRiskService;
+        _performanceAttributionService = performanceAttributionService;
+        _benchmarkingService = benchmarkingService;
+        _advancedRiskAnalyticsPlugin = advancedRiskAnalyticsPlugin;
+        _counterpartyRiskPlugin = counterpartyRiskPlugin;
+        _performanceAttributionPlugin = performanceAttributionPlugin;
+        _benchmarkingPlugin = benchmarkingPlugin;
     }
 
     public async Task RunAsync()
@@ -461,6 +505,24 @@ public class InteractiveCLI
         Console.WriteLine("205. order-routing [symbol] [order_type] - Analyze order routing latency");
         Console.WriteLine("206. market-data-feeds [symbol] - Analyze market data feed quality");
         Console.WriteLine("207. arbitrage-profitability [symbol] [capital] - Calculate arbitrage profitability");
+
+        Console.WriteLine();
+        Console.WriteLine("Phase 14: AI-Enhanced Research");
+        Console.WriteLine("==============================");
+        Console.WriteLine("208. research-query [query] - Natural language research queries");
+        Console.WriteLine("209. research-report [symbol] [report_type] - Generate automated research reports");
+        Console.WriteLine("210. detect-market-regime [symbol] - Detect current market regime");
+        Console.WriteLine("211. detect-anomalies [symbol] [anomaly_type] - Detect market anomalies");
+        Console.WriteLine("212. dynamic-factors [symbol] - Analyze dynamic factor models");
+        Console.WriteLine("213. trading-template [symbol] [strategy_type] - Generate trading strategy template");
+
+        Console.WriteLine();
+        Console.WriteLine("Phase 15: Specialized Quantitative Tools");
+        Console.WriteLine("========================================");
+        Console.WriteLine("214. advanced-risk [command] [parameters] - Advanced risk analytics (cvar, black-litterman, risk-parity)");
+        Console.WriteLine("215. counterparty-risk [command] [parameters] - Counterparty risk analysis and monitoring");
+        Console.WriteLine("216. performance-attribution [command] [parameters] - Performance attribution and factor analysis");
+        Console.WriteLine("217. benchmarking [command] [parameters] - Benchmarking and replication analysis");
 
         while (true)
         {
@@ -1205,9 +1267,6 @@ public class InteractiveCLI
                 case "hft-analysis":
                     await HFTAnalysisCommand(parts);
                     break;
-                case "liquidity-analysis":
-                    await LiquidityAnalysisCommand(parts);
-                    break;
                 case "manipulation-detection":
                     await ManipulationDetectionCommand(parts);
                     break;
@@ -1225,6 +1284,38 @@ public class InteractiveCLI
                     break;
                 case "arbitrage-profitability":
                     await ArbitrageProfitabilityCommand(parts);
+                    break;
+                // Phase 14: AI-Enhanced Research
+                case "research-query":
+                    await ResearchQueryCommand(parts);
+                    break;
+                case "research-report":
+                    await GenerateResearchReportCommand(parts);
+                    break;
+                case "detect-market-regime":
+                    await DetectMarketRegimeCommand(parts);
+                    break;
+                case "detect-anomalies":
+                    await DetectAnomaliesCommand(parts);
+                    break;
+                case "dynamic-factors":
+                    await DynamicFactorsCommand(parts);
+                    break;
+                case "trading-template":
+                    await TradingTemplateCommand(parts);
+                    break;
+                // Phase 15: Specialized Quantitative Tools
+                case "advanced-risk":
+                    await AdvancedRiskCommand(parts);
+                    break;
+                case "counterparty-risk":
+                    await CounterpartyRiskCommand(parts);
+                    break;
+                case "performance-attribution":
+                    await PerformanceAttributionCommand(parts);
+                    break;
+                case "benchmarking":
+                    await BenchmarkingCommand(parts);
                     break;
                 default:
                     await ExecuteSemanticFunction(input);
@@ -1806,12 +1897,26 @@ public class InteractiveCLI
         var federalReserveService = serviceProvider.GetRequiredService<FederalReserveService>();
         var globalEconomicService = serviceProvider.GetRequiredService<GlobalEconomicService>();
         var geopoliticalRiskService = serviceProvider.GetRequiredService<GeopoliticalRiskService>();
+        var optionsFlowService = serviceProvider.GetRequiredService<OptionsFlowService>();
+        var volatilityTradingService = serviceProvider.GetRequiredService<VolatilityTradingService>();
+        var advancedMicrostructureService = serviceProvider.GetRequiredService<AdvancedMicrostructureService>();
+        var latencyArbitrageService = serviceProvider.GetRequiredService<LatencyArbitrageService>();
         var webIntelligencePlugin = serviceProvider.GetRequiredService<WebIntelligencePlugin>();
         var patentAnalysisPlugin = serviceProvider.GetRequiredService<PatentAnalysisPlugin>();
         var federalReservePlugin = serviceProvider.GetRequiredService<FederalReservePlugin>();
         var globalEconomicPlugin = serviceProvider.GetRequiredService<GlobalEconomicPlugin>();
         var geopoliticalRiskPlugin = serviceProvider.GetRequiredService<GeopoliticalRiskPlugin>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, geopoliticalRiskPlugin));
+        var optionsFlowPlugin = serviceProvider.GetRequiredService<OptionsFlowPlugin>();
+        var volatilityTradingPlugin = serviceProvider.GetRequiredService<VolatilityTradingPlugin>();
+        var advancedMicrostructurePlugin = serviceProvider.GetRequiredService<AdvancedMicrostructurePlugin>();
+        var latencyArbitragePlugin = serviceProvider.GetRequiredService<LatencyArbitragePlugin>();
+        var conversationalResearchPlugin = serviceProvider.GetRequiredService<ConversationalResearchPlugin>();
+        var automatedReportingPlugin = serviceProvider.GetRequiredService<AutomatedReportingPlugin>();
+        var marketRegimePlugin = serviceProvider.GetRequiredService<MarketRegimePlugin>();
+        var anomalyDetectionPlugin = serviceProvider.GetRequiredService<AnomalyDetectionPlugin>();
+        var dynamicFactorPlugin = serviceProvider.GetRequiredService<DynamicFactorPlugin>();
+        var tradingTemplateGeneratorPlugin = serviceProvider.GetRequiredService<TradingTemplateGeneratorPlugin>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, geopoliticalRiskPlugin, optionsFlowService, volatilityTradingService, advancedMicrostructureService, latencyArbitrageService, optionsFlowPlugin, volatilityTradingPlugin, advancedMicrostructurePlugin, latencyArbitragePlugin, conversationalResearchPlugin, automatedReportingPlugin, marketRegimePlugin, anomalyDetectionPlugin, dynamicFactorPlugin, tradingTemplateGeneratorPlugin));
     }
 
     // Alpaca Commands
@@ -4291,7 +4396,7 @@ public class InteractiveCLI
                 Console.WriteLine();
 
                 Console.WriteLine("STRATEGY PARAMETERS:");
-                Console.WriteLine(template.StrategyParameters);
+                Console.WriteLine(template.StrategyParams);
                 Console.WriteLine();
 
                 Console.WriteLine("ENTRY CONDITIONS:");
@@ -4315,20 +4420,20 @@ public class InteractiveCLI
                 Console.WriteLine();
 
                 Console.WriteLine("BACKTEST CONFIGURATION:");
-                Console.WriteLine(template.BacktestConfiguration);
+                Console.WriteLine(template.BacktestConfig);
                 Console.WriteLine();
 
-                if (!string.IsNullOrEmpty(template.KnownLimitations))
+                if (template.Limitations.Any())
                 {
                     Console.WriteLine("KNOWN LIMITATIONS:");
-                    Console.WriteLine(template.KnownLimitations);
+                    Console.WriteLine(string.Join("\n", template.Limitations));
                     Console.WriteLine();
                 }
 
-                if (!string.IsNullOrEmpty(template.ImplementationNotes))
+                if (template.ImplementationNotes.Any())
                 {
                     Console.WriteLine("IMPLEMENTATION NOTES:");
-                    Console.WriteLine(template.ImplementationNotes);
+                    Console.WriteLine(string.Join("\n", template.ImplementationNotes));
                     Console.WriteLine();
                 }
 
@@ -10149,17 +10254,6 @@ public class InteractiveCLI
         PrintSectionFooter();
     }
 
-    private async Task LiquidityAnalysisCommand(string[] parts)
-    {
-        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
-        var orderSize = parts.Length > 2 && int.TryParse(parts[2], out var size) ? size : 10000;
-        PrintSectionHeader($"Liquidity Analysis - {symbol} (Order Size: {orderSize:N0})");
-
-        var result = await _advancedMicrostructurePlugin.AnalyzeLiquidity(symbol, orderSize);
-        Console.WriteLine(result);
-        PrintSectionFooter();
-    }
-
     private async Task ManipulationDetectionCommand(string[] parts)
     {
         var symbol = parts.Length > 1 ? parts[1] : "AAPL";
@@ -10224,6 +10318,94 @@ public class InteractiveCLI
         PrintSectionHeader($"Arbitrage Profitability - {symbol} (Capital: ${capital:N0})");
 
         var result = await _latencyArbitragePlugin.CalculateArbitrageProfitability(symbol, capital);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    // Phase 14: AI-Enhanced Research Commands
+    private async Task ResearchQueryCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: research-query [natural language query]");
+            return;
+        }
+
+        var query = string.Join(" ", parts.Skip(1));
+        PrintSectionHeader($"Conversational Research - {query}");
+
+        var result = _conversationalResearchPlugin.ExecuteResearchQuery(query);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task GenerateResearchReportCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: generate-report [symbol] [report_type: executive/detailed/insights]");
+            return;
+        }
+
+        var symbol = parts[1];
+        var reportType = parts.Length > 2 ? parts[2] : "executive";
+        PrintSectionHeader($"Automated Report Generation - {symbol} ({reportType})");
+
+        var result = _automatedReportingPlugin.GenerateResearchReport(symbol, reportType);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task DetectMarketRegimeCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "SPY";
+        PrintSectionHeader($"Market Regime Detection - {symbol}");
+
+        var result = _marketRegimePlugin.DetectMarketRegime(symbol);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task DetectAnomaliesCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: detect-anomalies [symbol] [anomaly_type: price/volume/return/pattern]");
+            return;
+        }
+
+        var symbol = parts[1];
+        var lookbackDays = parts.Length > 2 ? int.Parse(parts[2]) : 252;
+        PrintSectionHeader($"Anomaly Detection - {symbol} ({lookbackDays} days)");
+
+        var result = _anomalyDetectionPlugin.DetectAnomalies(symbol, lookbackDays);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task DynamicFactorsCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "SPY";
+        PrintSectionHeader($"Dynamic Factor Analysis - {symbol}");
+
+        var result = _dynamicFactorPlugin.AnalyzeDynamicFactors(symbol);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task TradingTemplateCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: trading-template [symbol] [strategy_type: swing/momentum/mean_reversion/breakout]");
+            return;
+        }
+
+        var symbol = parts[1];
+        var strategyType = parts.Length > 2 ? parts[2] : "swing";
+        PrintSectionHeader($"Trading Template Generation - {symbol} ({strategyType})");
+
+        var result = _tradingTemplateGeneratorPlugin.GenerateTradingTemplate(symbol, strategyType);
         Console.WriteLine(result);
         PrintSectionFooter();
     }

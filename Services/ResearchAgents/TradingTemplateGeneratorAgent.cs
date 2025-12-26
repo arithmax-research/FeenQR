@@ -99,15 +99,64 @@ namespace QuantResearchAgent.Services.ResearchAgents
                     Symbol = symbol,
                     StrategyType = strategyType,
                     GeneratedAt = DateTime.UtcNow,
-                    StrategyParameters = strategyParams,
-                    EntryConditions = entryConditions,
-                    ExitFramework = exitFramework,
-                    RiskManagement = riskManagement,
-                    TechnicalIndicators = technicalIndicators,
-                    DataRequirements = dataRequirements,
-                    BacktestConfiguration = backtestConfig,
-                    KnownLimitations = limitations,
-                    ImplementationNotes = implementationNotes
+                    StrategyParams = new StrategyParameters
+                    {
+                        SupportLevel = 100.00m, // Will be populated by research
+                        ResistanceLevel = 150.00m,
+                        RSIPeriod = 14,
+                        EMAPeriod = 20,
+                        PositionRiskPercent = 2.0m,
+                        VolatilityThreshold = 0.02m
+                    },
+                    EntryConditions = new EntryConditions
+                    {
+                        PrimaryConditions = new List<string> { "Price breaks above resistance", "Volume confirmation" },
+                        SecondaryConditions = new List<string> { "RSI oversold", "Technical alignment" },
+                        ConfirmationSignals = new List<string> { "Volume spike", "Momentum divergence" }
+                    },
+                    ExitFramework = new ExitFramework
+                    {
+                        ProfitTargets = new List<ProfitTarget>
+                        {
+                            new ProfitTarget { Level = 1, Percentage = 5.0m, Description = "First target" },
+                            new ProfitTarget { Level = 2, Percentage = 12.0m, Description = "Second target" }
+                        },
+                        RiskExits = new List<RiskExit>
+                        {
+                            new RiskExit { Type = "Stop Loss", Threshold = 3.0m, Description = "Initial stop" }
+                        },
+                        TimeBasedExits = new List<string> { "21 trading days maximum" }
+                    },
+                    RiskManagement = new RiskManagement
+                    {
+                        MaxPositionSize = 5.0m,
+                        MaxPortfolioRisk = 10.0m,
+                        MaxConcurrentPositions = 3,
+                        RiskRules = new List<string> { "Max 2% per position", "Max 10% portfolio risk" }
+                    },
+                    TechnicalIndicators = new TechnicalIndicators
+                    {
+                        TrendIndicators = new List<string> { "EMA 20", "SMA 50" },
+                        MomentumIndicators = new List<string> { "RSI 14", "MACD" },
+                        VolatilityIndicators = new List<string> { "Bollinger Bands", "ATR" },
+                        VolumeIndicators = new List<string> { "Volume", "OBV" }
+                    },
+                    DataRequirements = new DataRequirements
+                    {
+                        RequiredDataSources = new List<string> { "Yahoo Finance", "Alpha Vantage" },
+                        FrequencyRequirements = new List<string> { "1-minute", "Daily" },
+                        HistoricalDataPeriod = new List<string> { "2 years" }
+                    },
+                    BacktestConfig = new BacktestConfiguration
+                    {
+                        StartDate = DateTime.Now.AddYears(-2),
+                        EndDate = DateTime.Now,
+                        InitialCapital = 100000m,
+                        BenchmarkSymbol = "SPY",
+                        PerformanceMetrics = new List<string> { "Sharpe Ratio", "Max Drawdown", "Win Rate" }
+                    },
+                    Limitations = new List<string> { limitations },
+                    ImplementationNotes = new List<string> { implementationNotes }
                 };
 
                 // Save template to file
@@ -682,37 +731,83 @@ Format as structured indicator definitions with code-like syntax where appropria
             sb.AppendLine();
 
             sb.AppendLine("// Strategy Parameters");
-            sb.AppendLine(template.StrategyParameters);
+            sb.AppendLine($"private decimal _supportLevel = {template.StrategyParams.SupportLevel}m; // Key support level");
+            sb.AppendLine($"private decimal _resistanceLevel = {template.StrategyParams.ResistanceLevel}m; // Key resistance level");
+            sb.AppendLine($"private int _rsiPeriod = {template.StrategyParams.RSIPeriod};");
+            sb.AppendLine($"private decimal _positionRiskPercent = {template.StrategyParams.PositionRiskPercent}m;");
             sb.AppendLine();
 
             sb.AppendLine("// Entry Conditions");
-            sb.AppendLine(template.EntryConditions);
+            sb.AppendLine("Primary Entry Conditions:");
+            foreach (var condition in template.EntryConditions.PrimaryConditions)
+                sb.AppendLine($"- {condition}");
+            sb.AppendLine();
+            sb.AppendLine("Secondary Entry Conditions:");
+            foreach (var condition in template.EntryConditions.SecondaryConditions)
+                sb.AppendLine($"- {condition}");
             sb.AppendLine();
 
             sb.AppendLine("// Exit Framework");
-            sb.AppendLine(template.ExitFramework);
+            sb.AppendLine("Profit Targets:");
+            foreach (var target in template.ExitFramework.ProfitTargets)
+                sb.AppendLine($"- Level {target.Level}: {target.Percentage}% ({target.Description})");
+            sb.AppendLine();
+            sb.AppendLine("Risk Exits:");
+            foreach (var exit in template.ExitFramework.RiskExits)
+                sb.AppendLine($"- {exit.Type}: {exit.Threshold}% ({exit.Description})");
             sb.AppendLine();
 
             sb.AppendLine("// Risk Management");
-            sb.AppendLine(template.RiskManagement);
+            sb.AppendLine($"Max Position Size: {template.RiskManagement.MaxPositionSize}%");
+            sb.AppendLine($"Max Portfolio Risk: {template.RiskManagement.MaxPortfolioRisk}%");
+            sb.AppendLine($"Max Concurrent Positions: {template.RiskManagement.MaxConcurrentPositions}");
+            sb.AppendLine("Risk Rules:");
+            foreach (var rule in template.RiskManagement.RiskRules)
+                sb.AppendLine($"- {rule}");
             sb.AppendLine();
 
             sb.AppendLine("// Technical Indicators");
-            sb.AppendLine(template.TechnicalIndicators);
+            sb.AppendLine("Trend Indicators:");
+            foreach (var indicator in template.TechnicalIndicators.TrendIndicators)
+                sb.AppendLine($"- {indicator}");
+            sb.AppendLine();
+            sb.AppendLine("Volatility Indicators:");
+            foreach (var indicator in template.TechnicalIndicators.VolatilityIndicators)
+                sb.AppendLine($"- {indicator}");
+            sb.AppendLine();
+            sb.AppendLine("Volume Indicators:");
+            foreach (var indicator in template.TechnicalIndicators.VolumeIndicators)
+                sb.AppendLine($"- {indicator}");
             sb.AppendLine();
 
-            sb.AppendLine(template.DataRequirements);
+            sb.AppendLine("// Data Requirements");
+            sb.AppendLine("Required Data Sources:");
+            foreach (var source in template.DataRequirements.RequiredDataSources)
+                sb.AppendLine($"- {source}");
+            sb.AppendLine();
+            sb.AppendLine("Frequency Requirements:");
+            foreach (var freq in template.DataRequirements.FrequencyRequirements)
+                sb.AppendLine($"- {freq}");
             sb.AppendLine();
 
-            sb.AppendLine(template.BacktestConfiguration);
+            sb.AppendLine("// Backtest Configuration");
+            sb.AppendLine($"Start Date: {template.BacktestConfig.StartDate:yyyy-MM-dd}");
+            sb.AppendLine($"End Date: {template.BacktestConfig.EndDate:yyyy-MM-dd}");
+            sb.AppendLine($"Initial Capital: ${template.BacktestConfig.InitialCapital:N0}");
+            sb.AppendLine($"Benchmark: {template.BacktestConfig.BenchmarkSymbol}");
+            sb.AppendLine("Performance Metrics:");
+            foreach (var metric in template.BacktestConfig.PerformanceMetrics)
+                sb.AppendLine($"- {metric}");
             sb.AppendLine();
 
             sb.AppendLine("// Known Limitations");
-            sb.AppendLine(template.KnownLimitations);
+            foreach (var limitation in template.Limitations)
+                sb.AppendLine($"- {limitation}");
             sb.AppendLine();
 
             sb.AppendLine("// Implementation Notes");
-            sb.AppendLine(template.ImplementationNotes);
+            foreach (var note in template.ImplementationNotes)
+                sb.AppendLine($"- {note}");
             sb.AppendLine();
 
             sb.AppendLine("DISCLAIMER: This strategy contains hypothetical assumptions. Actual market conditions may vary significantly. Always test with out-of-sample data before live deployment. Options trading carries substantial risk of loss.");
@@ -946,22 +1041,6 @@ Return the most likely regime with reasoning.";
 
             return new KeyLevels { Resistance = 100m, Support = 50m };
         }
-    }
-
-    public class TradingTemplate
-    {
-        public string Symbol { get; set; } = string.Empty;
-        public string StrategyType { get; set; } = string.Empty;
-        public DateTime GeneratedAt { get; set; }
-        public string StrategyParameters { get; set; } = string.Empty;
-        public string EntryConditions { get; set; } = string.Empty;
-        public string ExitFramework { get; set; } = string.Empty;
-        public string RiskManagement { get; set; } = string.Empty;
-        public string TechnicalIndicators { get; set; } = string.Empty;
-        public string DataRequirements { get; set; } = string.Empty;
-        public string BacktestConfiguration { get; set; } = string.Empty;
-        public string KnownLimitations { get; set; } = string.Empty;
-        public string ImplementationNotes { get; set; } = string.Empty;
     }
 
     public class ResearchData

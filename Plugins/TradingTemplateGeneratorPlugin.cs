@@ -41,6 +41,31 @@ The complete template has been saved as a .txt file in the Extracted_Strategies 
             }
         }
 
+        [KernelFunction("generate_trading_template_sync")]
+        [Description("Generate a comprehensive trading strategy template for a given stock symbol after thorough research")]
+        public string GenerateTradingTemplate(
+            [Description("Stock symbol to generate template for (e.g., AAPL, TSLA, PLTR)")] string symbol,
+            [Description("Type of strategy (swing, momentum, mean_reversion, breakout)")] string strategyType = "swing")
+        {
+            try
+            {
+                var template = Task.Run(() => _agent.GenerateTradingTemplateAsync(symbol, strategyType)).GetAwaiter().GetResult();
+
+                return $@"Trading template for {symbol} has been generated and saved successfully!
+
+Template Summary:
+- Symbol: {template.Symbol}
+- Strategy Type: {template.StrategyType}
+- Generated: {template.GeneratedAt:yyyy-MM-dd HH:mm:ss UTC}
+
+The complete template has been saved as a .txt file in the Extracted_Strategies folder with all strategy parameters, entry/exit conditions, risk management rules, and implementation details.";
+            }
+            catch (Exception ex)
+            {
+                return $"Error generating trading template for {symbol}: {ex.Message}";
+            }
+        }
+
         [KernelFunction("GenerateStrategyParameters")]
         [Description("Generate optimized strategy parameters based on research data")]
         public async Task<string> GenerateStrategyParametersAsync(

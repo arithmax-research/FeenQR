@@ -35,6 +35,28 @@ namespace QuantResearchAgent.Plugins
             }
         }
 
+        [KernelFunction("analyze_dynamic_factors")]
+        [Description("Analyze dynamic factors for portfolio analysis")]
+        public string AnalyzeDynamicFactors(
+            [Description("Comma-separated list of stock symbols")] string symbols,
+            [Description("Lookback period in days")] int lookbackDays = 252)
+        {
+            try
+            {
+                var data = new Dictionary<string, object>
+                {
+                    ["symbols"] = symbols,
+                    ["lookbackDays"] = lookbackDays
+                };
+
+                return Task.Run(() => _factorService.ComputeDynamicFactorsAsync(data)).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                return $"Error analyzing dynamic factors: {ex.Message}";
+            }
+        }
+
         [KernelFunction("factor_attribution")]
         [Description("Perform factor attribution analysis for a portfolio")]
         public async Task<string> PerformFactorAttributionAsync(

@@ -33,8 +33,8 @@ Term Structure: {surface.TermStructure}
 Risk Reversal: {surface.RiskReversal:F3}
 
 Volatility Matrix:
-{string.Join("\n", surface.VolatilityMatrix.Select(kvp =>
-    $"{kvp.Key}: {string.Join(", ", kvp.Value.OrderBy(x => x.Key).Select(x => $"{x.Key:C}: {x.Value:P2}"))}"))}";
+{string.Join("\n", surface.VolatilityMatrix?.Select(kvp =>
+    $"{kvp.Key}: {string.Join(", ", kvp.Value.OrderBy(x => x.Key).Select(x => $"{x.Key:C}: {x.Value:P2}"))}") ?? new List<string>())}";
             }
             catch (Exception ex)
             {
@@ -57,12 +57,12 @@ Contango: {vixAnalysis.Contango:F3}
 Signal Strength: {vixAnalysis.SignalStrength:P2}
 
 Futures Curve:
-{string.Join("\n", vixAnalysis.FuturesCurve.Select(f =>
-    $"{f.Month}: {f.Price:F2} ({f.Change:+0.00;-0.00})"))}
+{string.Join("\n", vixAnalysis.FuturesCurve?.Select(f =>
+    $"{f.Month}: {f.Price:F2} ({f.Change:+0.00;-0.00})") ?? new List<string>())}
 
 VIX ETFs:
-{string.Join("\n", vixAnalysis.VIXETFs.Select(etf =>
-    $"{etf.Symbol}: {etf.Price:C} ({etf.Change:+0.00;-0.00}%) Vol: {etf.Volume:N0}"))}";
+{string.Join("\n", vixAnalysis.VIXETFs?.Select(etf =>
+    $"{etf.Symbol}: {etf.Price:C} ({etf.Change:+0.00;-0.00}%) Vol: {etf.Volume:N0}") ?? new List<string>())}";
             }
             catch (Exception ex)
             {
@@ -90,18 +90,18 @@ Signal: {strategy.Signal}
 Confidence: {strategy.Confidence:P2}
 
 Recommended Position:
-- Direction: {strategy.RecommendedPosition.Direction}
-- Size: {strategy.RecommendedPosition.Size:N0}
-- Entry Price: {strategy.RecommendedPosition.EntryPrice:C}
-- Stop Loss: {strategy.RecommendedPosition.StopLoss:C}
-- Take Profit: {strategy.RecommendedPosition.TakeProfit:C}
-- Risk/Reward Ratio: {strategy.RecommendedPosition.RiskRewardRatio:F2}
+- Direction: {strategy.RecommendedPosition!.Direction}
+- Size: {strategy.RecommendedPosition!.Size:N0}
+- Entry Price: {strategy.RecommendedPosition!.EntryPrice:C}
+- Stop Loss: {strategy.RecommendedPosition!.StopLoss:C}
+- Take Profit: {strategy.RecommendedPosition!.TakeProfit:C}
+- Risk/Reward Ratio: {strategy.RecommendedPosition!.RiskRewardRatio:F2}
 
 Risk Metrics:
-- Max Drawdown: {strategy.RiskMetrics.MaxDrawdown:P2}
-- Sharpe Ratio: {strategy.RiskMetrics.SharpeRatio:F2}
-- Sortino Ratio: {strategy.RiskMetrics.SortinoRatio:F2}
-- Value at Risk: {strategy.RiskMetrics.ValueAtRisk:P2}";
+- Max Drawdown: {strategy.RiskMetrics!.MaxDrawdown:P2}
+- Sharpe Ratio: {strategy.RiskMetrics!.SharpeRatio:F2}
+- Sortino Ratio: {strategy.RiskMetrics!.SortinoRatio:F2}
+- Value at Risk: {strategy.RiskMetrics!.ValueAtRisk:P2}";
             }
             catch (Exception ex)
             {
@@ -125,12 +125,12 @@ Skew Change: {monitor.SkewChange:F3}
 Term Structure Change: {monitor.TermStructureChange}
 
 Volatility Changes:
-{string.Join("\n", monitor.VolatilityChange.Select(kvp =>
-    $"{kvp.Key}: {kvp.Value:+0.00;-0.00}"))}
+{string.Join("\n", monitor.VolatilityChange?.Select(kvp =>
+    $"{kvp.Key}: {kvp.Value:+0.00;-0.00}") ?? new List<string>())}
 
 Alerts:
-{string.Join("\n", monitor.Alerts.Select(a =>
-    $"{a.Timestamp:HH:mm:ss} [{a.Severity}] {a.AlertType}: {a.Message}"))}";
+{string.Join("\n", monitor.Alerts?.Select(a =>
+    $"{a.Timestamp:HH:mm:ss} [{a.Severity}] {a.AlertType}: {a.Message}") ?? new List<string>())}";
             }
             catch (Exception ex)
             {
