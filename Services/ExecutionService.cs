@@ -54,12 +54,12 @@ public class ExecutionService
         public DateTime ExecutionTime { get; set; }
         public double Quantity { get; set; }
         public double Price { get; set; }
-        public string OrderType { get; set; }
+        public string OrderType { get; set; } = string.Empty;
     }
 
     public class SmartRoutingDecision
     {
-        public string RecommendedVenue { get; set; }
+        public string RecommendedVenue { get; set; } = string.Empty;
         public double ExpectedPriceImprovement { get; set; }
         public double EstimatedLatency { get; set; }
         public double LiquidityScore { get; set; }
@@ -71,7 +71,7 @@ public class ExecutionService
     /// </summary>
     public async Task<VWAPExecution> GenerateVWAPSchedule(
         string symbol, double totalShares, DateTime startTime, DateTime endTime,
-        List<double> expectedVolumes = null)
+        List<double>? expectedVolumes = null)
     {
         try
         {

@@ -36,7 +36,7 @@ public class OrderBookAnalysisService
         public List<OrderBookLevel> Bids { get; set; } = new();
         public List<OrderBookLevel> Asks { get; set; } = new();
         public DateTime Timestamp { get; set; }
-        public string Symbol { get; set; }
+        public string Symbol { get; set; } = string.Empty;
     }
 
     public class OrderBookAnalysis

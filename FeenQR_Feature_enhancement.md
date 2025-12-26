@@ -346,7 +346,7 @@ This comprehensive workplan outlines the implementation of missing features to t
 **Objective**: Live trading and data capabilities
 
 **Deliverables**:
-- IBKR API integration
+- Alpaca (for now) / IBKR API integration (Future)
 - Live order execution
 - Real-time position monitoring
 - Advanced order types

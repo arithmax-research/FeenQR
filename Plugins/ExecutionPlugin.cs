@@ -20,13 +20,13 @@ public class ExecutionPlugin
         [Description("Total shares to trade")] double totalShares,
         [Description("Start time (ISO format)")] string startTime,
         [Description("End time (ISO format)")] string endTime,
-        [Description("Expected volumes as comma-separated values (optional)")] string expectedVolumes = null)
+        [Description("Expected volumes as comma-separated values (optional)")] string? expectedVolumes = null)
     {
         try
         {
             DateTime start = DateTime.Parse(startTime);
             DateTime end = DateTime.Parse(endTime);
-            List<double> volumes = null;
+            List<double>? volumes = null;
 
             if (!string.IsNullOrEmpty(expectedVolumes))
             {
