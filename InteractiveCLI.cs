@@ -51,6 +51,9 @@ public class InteractiveCLI
     private readonly SECFilingsService _secFilingsService;
     private readonly EarningsCallService _earningsCallService;
     private readonly SupplyChainService _supplyChainService;
+    private readonly OrderBookAnalysisService _orderBookAnalysisService;
+    private readonly MarketImpactService _marketImpactService;
+    private readonly ExecutionService _executionService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -87,7 +90,10 @@ public class InteractiveCLI
         AdvancedRiskService advancedRiskService,
         SECFilingsService secFilingsService,
         EarningsCallService earningsCallService,
-        SupplyChainService supplyChainService)
+        SupplyChainService supplyChainService,
+        OrderBookAnalysisService orderBookAnalysisService,
+        MarketImpactService marketImpactService,
+        ExecutionService executionService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -124,6 +130,9 @@ public class InteractiveCLI
         _secFilingsService = secFilingsService;
         _earningsCallService = earningsCallService;
         _supplyChainService = supplyChainService;
+        _orderBookAnalysisService = orderBookAnalysisService;
+        _marketImpactService = marketImpactService;
+        _executionService = executionService;
     }
 
     public async Task RunAsync()
@@ -213,9 +222,22 @@ public class InteractiveCLI
         Console.WriteLine(" 79. supply-chain-diversification [ticker] - Supply chain diversification metrics");
         Console.WriteLine(" 80. supply-chain-resilience [ticker] - Supply chain resilience score");
         Console.WriteLine(" 81. supply-chain-comprehensive [ticker] - Comprehensive supply chain analysis");
-        Console.WriteLine(" 82. clear - Clear terminal and show menu");
-        Console.WriteLine(" 83. help - Show available functions");
-        Console.WriteLine(" 84. quit - Exit the application");
+        Console.WriteLine(" 82. order-book-analysis [symbol] [depth] - Analyze order book microstructure");
+        Console.WriteLine(" 83. market-depth [symbol] [levels] - Generate market depth visualization");
+        Console.WriteLine(" 84. liquidity-analysis [symbol] - Analyze market liquidity metrics");
+        Console.WriteLine(" 85. spread-analysis [symbol] - Calculate bid-ask spread analysis");
+        Console.WriteLine(" 86. almgren-chriss [shares] [horizon] [volatility] - Almgren-Chriss optimal execution");
+        Console.WriteLine(" 87. implementation-shortfall [benchmark] [prices] [volumes] [total_volume] - Calculate IS");
+        Console.WriteLine(" 88. price-impact [size] [volume] [volatility] [market_cap] [beta] - Estimate price impact");
+        Console.WriteLine(" 89. optimal-execution [shares] [horizon] [volatility] [price] [volume] - Optimal execution strategy");
+        Console.WriteLine(" 90. vwap-schedule [symbol] [shares] [start] [end] [volumes] - Generate VWAP schedule");
+        Console.WriteLine(" 91. twap-schedule [shares] [start] [end] [intervals] - Generate TWAP schedule");
+        Console.WriteLine(" 92. iceberg-order [quantity] [display] [slices] [interval] - Create iceberg order");
+        Console.WriteLine(" 93. smart-routing [symbol] [quantity] [type] - Smart order routing decision");
+        Console.WriteLine(" 94. execution-optimization [symbol] [shares] [urgency] - Optimize execution parameters");
+        Console.WriteLine(" 95. clear - Clear terminal and show menu");
+        Console.WriteLine(" 96. help - Show available functions");
+        Console.WriteLine(" 97. quit - Exit the application");
         Console.WriteLine();
 
         while (true)
@@ -608,6 +630,42 @@ public class InteractiveCLI
                 case "supply-chain-comprehensive":
                     await SupplyChainComprehensiveCommand(parts);
                     break;
+                case "order-book-analysis":
+                    await OrderBookAnalysisCommand(parts);
+                    break;
+                case "market-depth":
+                    await MarketDepthCommand(parts);
+                    break;
+                case "liquidity-analysis":
+                    await LiquidityAnalysisCommand(parts);
+                    break;
+                case "spread-analysis":
+                    await SpreadAnalysisCommand(parts);
+                    break;
+                case "almgren-chriss":
+                    await AlmgrenChrissCommand(parts);
+                    break;
+                case "implementation-shortfall":
+                    await ImplementationShortfallCommand(parts);
+                    break;
+                case "price-impact":
+                    await PriceImpactCommand(parts);
+                    break;
+                case "vwap-schedule":
+                    await VWAPScheduleCommand(parts);
+                    break;
+                case "twap-schedule":
+                    await TWAPScheduleCommand(parts);
+                    break;
+                case "iceberg-order":
+                    await IcebergOrderCommand(parts);
+                    break;
+                case "smart-routing":
+                    await SmartRoutingCommand(parts);
+                    break;
+                case "execution-optimization":
+                    await ExecutionOptimizationCommand(parts);
+                    break;
                 case "clear":
                     await ClearCommand();
                     break;
@@ -800,9 +858,22 @@ public class InteractiveCLI
         Console.WriteLine(" 79. supply-chain-diversification [ticker] - Supply chain diversification metrics");
         Console.WriteLine(" 80. supply-chain-resilience [ticker] - Supply chain resilience score");
         Console.WriteLine(" 81. supply-chain-comprehensive [ticker] - Comprehensive supply chain analysis");
-        Console.WriteLine(" 82. clear - Clear terminal and show menu");
-        Console.WriteLine(" 83. help - Show available functions");
-        Console.WriteLine(" 84. quit - Exit the application");
+        Console.WriteLine(" 82. order-book-analysis [symbol] [depth] - Analyze order book microstructure");
+        Console.WriteLine(" 83. market-depth [symbol] [levels] - Generate market depth visualization");
+        Console.WriteLine(" 84. liquidity-analysis [symbol] - Analyze market liquidity metrics");
+        Console.WriteLine(" 85. spread-analysis [symbol] - Calculate bid-ask spread analysis");
+        Console.WriteLine(" 86. almgren-chriss [shares] [horizon] [volatility] - Almgren-Chriss optimal execution");
+        Console.WriteLine(" 87. implementation-shortfall [benchmark] [prices] [volumes] [total_volume] - Calculate IS");
+        Console.WriteLine(" 88. price-impact [size] [volume] [volatility] [market_cap] [beta] - Estimate price impact");
+        Console.WriteLine(" 89. optimal-execution [shares] [horizon] [volatility] [price] [volume] - Optimal execution strategy");
+        Console.WriteLine(" 90. vwap-schedule [symbol] [shares] [start] [end] [volumes] - Generate VWAP schedule");
+        Console.WriteLine(" 91. twap-schedule [shares] [start] [end] [intervals] - Generate TWAP schedule");
+        Console.WriteLine(" 92. iceberg-order [quantity] [display] [slices] [interval] - Create iceberg order");
+        Console.WriteLine(" 93. smart-routing [symbol] [quantity] [type] - Smart order routing decision");
+        Console.WriteLine(" 94. execution-optimization [symbol] [shares] [urgency] - Optimize execution parameters");
+        Console.WriteLine(" 95. clear - Clear terminal and show menu");
+        Console.WriteLine(" 96. help - Show available functions");
+        Console.WriteLine(" 97. quit - Exit the application");
         Console.WriteLine();
 
         await Task.CompletedTask;
@@ -929,7 +1000,10 @@ public class InteractiveCLI
         var secFilingsService = serviceProvider.GetRequiredService<SECFilingsService>();
         var earningsCallService = serviceProvider.GetRequiredService<EarningsCallService>();
         var supplyChainService = serviceProvider.GetRequiredService<SupplyChainService>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService));
+        var orderBookAnalysisService = serviceProvider.GetRequiredService<OrderBookAnalysisService>();
+        var marketImpactService = serviceProvider.GetRequiredService<MarketImpactService>();
+        var executionService = serviceProvider.GetRequiredService<ExecutionService>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService));
     }
 
     // Alpaca Commands
@@ -6690,6 +6764,452 @@ public class InteractiveCLI
             {
                 Console.WriteLine($"- {risk}");
             }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    // Phase 5: High-Frequency & Market Microstructure Commands
+    private async Task OrderBookAnalysisCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: order-book-analysis [symbol] [depth]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        var depth = parts.Length > 2 && int.TryParse(parts[2], out var d) ? d : 10;
+
+        PrintSectionHeader($"Order Book Analysis: {symbol}");
+        try
+        {
+            var orderBook = await _orderBookAnalysisService.ReconstructOrderBook(symbol, depth);
+            var analysis = _orderBookAnalysisService.AnalyzeOrderBook(orderBook);
+
+            Console.WriteLine($"Symbol: {orderBook.Symbol}");
+            Console.WriteLine($"Timestamp: {orderBook.Timestamp:yyyy-MM-dd HH:mm:ss}");
+            Console.WriteLine($"Bid-Ask Spread: ${analysis.BidAskSpread:F4} ({analysis.SpreadPercentage:F3}%)");
+            Console.WriteLine($"Market Depth: ${analysis.MarketDepth:F2}");
+            Console.WriteLine($"Liquidity Ratio: {analysis.LiquidityRatio:F3}");
+            Console.WriteLine($"Imbalance Ratio: {analysis.ImbalanceRatio:F3}");
+
+            Console.WriteLine("\nTop 5 Bids:");
+            foreach (var bid in orderBook.Bids.Take(5))
+            {
+                Console.WriteLine($"  ${bid.Price:F2}: {bid.Quantity:F0} shares");
+            }
+
+            Console.WriteLine("\nTop 5 Asks:");
+            foreach (var ask in orderBook.Asks.Take(5))
+            {
+                Console.WriteLine($"  ${ask.Price:F2}: {ask.Quantity:F0} shares");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task MarketDepthCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: market-depth [symbol] [levels]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        var levels = parts.Length > 2 && int.TryParse(parts[2], out var l) ? l : 10;
+
+        PrintSectionHeader($"Market Depth Visualization: {symbol}");
+        try
+        {
+            var orderBook = await _orderBookAnalysisService.ReconstructOrderBook(symbol, levels);
+            var visualization = _orderBookAnalysisService.GenerateDepthVisualization(orderBook, levels);
+
+            Console.WriteLine(JsonSerializer.Serialize(visualization, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task LiquidityAnalysisCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: liquidity-analysis [symbol]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+
+        PrintSectionHeader($"Liquidity Analysis: {symbol}");
+        try
+        {
+            var orderBook = await _orderBookAnalysisService.ReconstructOrderBook(symbol);
+            var metrics = _orderBookAnalysisService.AnalyzeLiquidity(orderBook);
+
+            Console.WriteLine("Liquidity Metrics:");
+            foreach (var metric in metrics)
+            {
+                Console.WriteLine($"  {metric.Key}: {metric.Value:F4}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task SpreadAnalysisCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: spread-analysis [symbol]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+
+        PrintSectionHeader($"Spread Analysis: {symbol}");
+        try
+        {
+            var orderBook = await _orderBookAnalysisService.ReconstructOrderBook(symbol);
+            var analysis = _orderBookAnalysisService.AnalyzeOrderBook(orderBook);
+
+            Console.WriteLine($"Bid-Ask Spread: ${analysis.BidAskSpread:F4}");
+            Console.WriteLine($"Spread Percentage: {analysis.SpreadPercentage:F3}%");
+            Console.WriteLine($"Liquidity Ratio: {analysis.LiquidityRatio:F3}");
+            Console.WriteLine($"Imbalance Ratio: {analysis.ImbalanceRatio:F3}");
+
+            Console.WriteLine("\nDepth Metrics:");
+            foreach (var metric in analysis.DepthMetrics)
+            {
+                Console.WriteLine($"  {metric.Key}: ${metric.Value:F2}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task AlmgrenChrissCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: almgren-chriss [shares] [horizon] [volatility]");
+            return;
+        }
+
+        if (!double.TryParse(parts[1], out var shares) ||
+            !double.TryParse(parts[2], out var horizon) ||
+            !double.TryParse(parts[3], out var volatility))
+        {
+            Console.WriteLine("Error: Invalid numeric parameters");
+            return;
+        }
+
+        PrintSectionHeader($"Almgren-Chriss Optimal Execution");
+        try
+        {
+            var result = _marketImpactService.CalculateAlmgrenChriss(shares, horizon, volatility);
+
+            Console.WriteLine($"Total Shares: {shares:F0}");
+            Console.WriteLine($"Time Horizon: {horizon:F1} days");
+            Console.WriteLine($"Volatility: {volatility:F3}");
+            Console.WriteLine($"Optimal Trajectory: {result.OptimalTrajectory:F4}");
+            Console.WriteLine($"Trading Cost: ${result.TradingCost:F2}");
+            Console.WriteLine($"Risk Term: ${result.RiskTerm:F2}");
+            Console.WriteLine($"Total Cost: ${result.TotalCost:F2}");
+
+            Console.WriteLine("\nOptimal Schedule (first 5 periods):");
+            for (int i = 0; i < Math.Min(5, result.OptimalSchedule.Count); i++)
+            {
+                Console.WriteLine($"  Period {i + 1}: {result.OptimalSchedule[i]:F0} shares");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task ImplementationShortfallCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: implementation-shortfall [benchmark] [prices] [volumes] [total_volume]");
+            return;
+        }
+
+        if (!double.TryParse(parts[1], out var benchmark) ||
+            !double.TryParse(parts[4], out var totalVolume))
+        {
+            Console.WriteLine("Error: Invalid benchmark or total volume");
+            return;
+        }
+
+        try
+        {
+            var prices = parts[2].Split(',').Select(double.Parse).ToList();
+            var volumes = parts[3].Split(',').Select(double.Parse).ToList();
+
+            var result = _marketImpactService.CalculateImplementationShortfall(
+                benchmark, prices, volumes, totalVolume, DateTime.Now, DateTime.Now);
+
+            PrintSectionHeader("Implementation Shortfall Analysis");
+            Console.WriteLine($"Benchmark Price: ${benchmark:F2}");
+            Console.WriteLine($"VWAP: ${(prices.Sum() * volumes.Sum() / volumes.Sum()):F2}");
+            Console.WriteLine($"Expected Cost: ${result.ExpectedCost:F4}");
+            Console.WriteLine($"Market Impact: ${result.MarketImpact:F4}");
+            Console.WriteLine($"Timing Risk: ${result.TimingRisk:F4}");
+            Console.WriteLine($"Total Shortfall: ${result.Shortfall:F4}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task PriceImpactCommand(string[] parts)
+    {
+        if (parts.Length < 6)
+        {
+            Console.WriteLine("Usage: price-impact [size] [volume] [volatility] [market_cap] [beta]");
+            return;
+        }
+
+        if (!double.TryParse(parts[1], out var size) ||
+            !double.TryParse(parts[2], out var volume) ||
+            !double.TryParse(parts[3], out var volatility) ||
+            !double.TryParse(parts[4], out var marketCap) ||
+            !double.TryParse(parts[5], out var beta))
+        {
+            Console.WriteLine("Error: Invalid numeric parameters");
+            return;
+        }
+
+        PrintSectionHeader("Price Impact Estimation");
+        try
+        {
+            var result = _marketImpactService.EstimatePriceImpact(size, volume, volatility, marketCap, beta);
+
+            Console.WriteLine($"Trade Size: {size:F0} shares");
+            Console.WriteLine($"Daily Volume: {volume:F0}");
+            Console.WriteLine($"Volatility: {volatility:F3}");
+            Console.WriteLine($"Market Cap: ${marketCap:F0}");
+            Console.WriteLine($"Beta: {beta:F2}");
+            Console.WriteLine($"Permanent Impact: {result.PermanentImpact:F4}");
+            Console.WriteLine($"Temporary Impact: {result.TemporaryImpact:F4}");
+            Console.WriteLine($"Total Impact: {result.TotalImpact:F4}");
+            Console.WriteLine($"Price Elasticity: {result.PriceElasticity:F4}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task VWAPScheduleCommand(string[] parts)
+    {
+        if (parts.Length < 6)
+        {
+            Console.WriteLine("Usage: vwap-schedule [symbol] [shares] [start] [end] [volumes]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        if (!double.TryParse(parts[2], out var shares))
+        {
+            Console.WriteLine("Error: Invalid shares parameter");
+            return;
+        }
+
+        try
+        {
+            DateTime start = DateTime.Parse(parts[3]);
+            DateTime end = DateTime.Parse(parts[4]);
+            var volumes = parts[5].Split(',').Select(double.Parse).ToList();
+
+            var result = await _executionService.GenerateVWAPSchedule(symbol, shares, start, end, volumes);
+
+            PrintSectionHeader($"VWAP Schedule: {symbol}");
+            Console.WriteLine($"Total Shares: {result.TotalVolume:F0}");
+            Console.WriteLine($"Target VWAP: ${result.TargetVWAP:F2}");
+            Console.WriteLine($"Estimated Slippage: {result.EstimatedSlippage:F4}");
+
+            Console.WriteLine("\nExecution Schedule:");
+            foreach (var slice in result.Schedule)
+            {
+                Console.WriteLine($"  {slice.ExecutionTime:HH:mm}: {slice.Quantity:F0} shares");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task TWAPScheduleCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: twap-schedule [shares] [start] [end] [intervals]");
+            return;
+        }
+
+        if (!double.TryParse(parts[1], out var shares) ||
+            !int.TryParse(parts[4], out var intervals))
+        {
+            Console.WriteLine("Error: Invalid parameters");
+            return;
+        }
+
+        try
+        {
+            DateTime start = DateTime.Parse(parts[2]);
+            DateTime end = DateTime.Parse(parts[3]);
+
+            var result = _executionService.GenerateTWAPSchedule(shares, start, end, intervals);
+
+            PrintSectionHeader("TWAP Schedule");
+            Console.WriteLine($"Total Shares: {shares:F0}");
+            Console.WriteLine($"Time Horizon: {(end - start).TotalMinutes:F0} minutes");
+            Console.WriteLine($"Intervals: {intervals}");
+            Console.WriteLine($"Shares per Interval: {shares / intervals:F0}");
+            Console.WriteLine($"Estimated Cost: ${result.EstimatedCost:F2}");
+
+            Console.WriteLine("\nExecution Schedule:");
+            foreach (var slice in result.Schedule)
+            {
+                Console.WriteLine($"  {slice.ExecutionTime:HH:mm}: {slice.Quantity:F0} shares");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task IcebergOrderCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: iceberg-order [quantity] [display] [slices] [interval]");
+            return;
+        }
+
+        if (!double.TryParse(parts[1], out var quantity) ||
+            !double.TryParse(parts[2], out var display) ||
+            !int.TryParse(parts[3], out var slices) ||
+            !double.TryParse(parts[4], out var interval))
+        {
+            Console.WriteLine("Error: Invalid parameters");
+            return;
+        }
+
+        PrintSectionHeader("Iceberg Order Structure");
+        try
+        {
+            var result = _executionService.CreateIcebergOrder(quantity, display, slices, interval);
+
+            Console.WriteLine($"Total Quantity: {result.TotalQuantity:F0}");
+            Console.WriteLine($"Display Quantity: {result.DisplayQuantity:F0}");
+            Console.WriteLine($"Number of Slices: {result.NumberOfSlices}");
+            Console.WriteLine($"Slice Interval: {result.SliceIntervalSeconds:F1} seconds");
+
+            Console.WriteLine("\nSlice Schedule:");
+            foreach (var slice in result.Slices)
+            {
+                Console.WriteLine($"  {slice.ExecutionTime:HH:mm:ss}: {slice.Quantity:F0} shares");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task SmartRoutingCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: smart-routing [symbol] [quantity] [type]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        if (!double.TryParse(parts[2], out var quantity))
+        {
+            Console.WriteLine("Error: Invalid quantity");
+            return;
+        }
+
+        var orderType = parts[3];
+
+        PrintSectionHeader($"Smart Routing Decision: {symbol}");
+        try
+        {
+            var result = await _executionService.MakeSmartRoutingDecision(symbol, quantity, orderType);
+
+            Console.WriteLine($"Recommended Venue: {result.RecommendedVenue}");
+            Console.WriteLine($"Expected Price Improvement: {result.ExpectedPriceImprovement:F4}");
+            Console.WriteLine($"Estimated Latency: {result.EstimatedLatency:F1}ms");
+            Console.WriteLine($"Liquidity Score: {result.LiquidityScore:F2}");
+
+            Console.WriteLine("\nVenue Scores:");
+            foreach (var score in result.VenueScores.OrderByDescending(s => s.Value))
+            {
+                Console.WriteLine($"  {score.Key}: {score.Value:F2}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task ExecutionOptimizationCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: execution-optimization [symbol] [shares] [urgency]");
+            return;
+        }
+
+        var symbol = parts[1].ToUpper();
+        if (!double.TryParse(parts[2], out var shares) ||
+            !double.TryParse(parts[3], out var urgency))
+        {
+            Console.WriteLine("Error: Invalid parameters");
+            return;
+        }
+
+        PrintSectionHeader($"Execution Optimization: {symbol}");
+        try
+        {
+            var result = _executionService.OptimizeExecutionParameters(symbol, shares, urgency);
+
+            Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
         }
         catch (Exception ex)
         {
