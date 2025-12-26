@@ -102,15 +102,5 @@
     "/Users/misango/.nuget/packages/terminal.gui/1.19.0/terminal.gui.1.19.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/yahoofinanceapi/2.3.3/yahoofinanceapi.2.3.3.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "Undefined",
-      "level": "Warning",
-      "message": "Problem reading the cache file /Users/misango/codechest/FeenQR/obj/project.nuget.cache : '<' is an invalid start of a property name. Expected a '\"'. Path: $ | LineNumber: 2 | BytePositionInLine: 0.",
-      "projectPath": "/Users/misango/codechest/FeenQR/QuantResearchAgent.csproj",
-      "warningLevel": 1,
-      "filePath": "/Users/misango/codechest/FeenQR/QuantResearchAgent.csproj",
-      "targetGraphs": []
-    }
-  ]
+  "logs": []
 }
