@@ -69,6 +69,7 @@ public class InteractiveCLI
     private readonly AutoMLService _autoMLService;
     private readonly ModelInterpretabilityService _modelInterpretabilityService;
     private readonly ReinforcementLearningService _reinforcementLearningService;
+    private readonly FIXService _fixService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -122,7 +123,8 @@ public class InteractiveCLI
         AcademicResearchService academicResearchService,
         AutoMLService autoMLService,
         ModelInterpretabilityService modelInterpretabilityService,
-        ReinforcementLearningService reinforcementLearningService)
+        ReinforcementLearningService reinforcementLearningService,
+        FIXService fixService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -176,6 +178,7 @@ public class InteractiveCLI
         _autoMLService = autoMLService;
         _modelInterpretabilityService = modelInterpretabilityService;
         _reinforcementLearningService = reinforcementLearningService;
+        _fixService = fixService;
     }
 
     public async Task RunAsync()
@@ -346,6 +349,17 @@ public class InteractiveCLI
         Console.WriteLine("157. contextual-bandit [symbols] [strategies] [start_date] [end_date] - Run contextual bandit");
         Console.WriteLine("158. evaluate-rl-agent [symbols] [start_date] [end_date] [episodes] - Evaluate RL agent");
         Console.WriteLine("159. rl-strategy-report [symbols] [start_date] [end_date] - Generate RL strategy report");
+        Console.WriteLine();
+        Console.WriteLine("Phase 8.3: FIX Protocol Integration");
+        Console.WriteLine("===================================");
+        Console.WriteLine("160. fix-connect [host] [port] [sender_id] [target_id] - Connect to FIX server");
+        Console.WriteLine("161. fix-disconnect - Disconnect from FIX server");
+        Console.WriteLine("162. fix-order [symbol] [side] [type] [quantity] [price] - Send FIX order");
+        Console.WriteLine("163. fix-cancel [order_id] [symbol] - Cancel FIX order");
+        Console.WriteLine("164. fix-market-data [symbol] - Request FIX market data");
+        Console.WriteLine("165. fix-heartbeat - Send FIX heartbeat");
+        Console.WriteLine("166. fix-status - Get FIX connection status");
+        Console.WriteLine("167. fix-info - Get FIX protocol information");
 
         while (true)
         {
@@ -965,6 +979,30 @@ public class InteractiveCLI
                 case "rl-strategy-report":
                     await RLStrategyReportCommand(parts);
                     break;
+                case "fix-connect":
+                    await FIXConnectCommand(parts);
+                    break;
+                case "fix-disconnect":
+                    await FIXDisconnectCommand();
+                    break;
+                case "fix-order":
+                    await FIXOrderCommand(parts);
+                    break;
+                case "fix-cancel":
+                    await FIXCancelCommand(parts);
+                    break;
+                case "fix-market-data":
+                    await FIXMarketDataCommand(parts);
+                    break;
+                case "fix-heartbeat":
+                    await FIXHeartbeatCommand();
+                    break;
+                case "fix-status":
+                    await FIXStatusCommand();
+                    break;
+                case "fix-info":
+                    await FIXInfoCommand();
+                    break;
                 default:
                     await ExecuteSemanticFunction(input);
                     break;
@@ -1542,7 +1580,8 @@ public class InteractiveCLI
         var autoMLService = serviceProvider.GetRequiredService<AutoMLService>();
         var modelInterpretabilityService = serviceProvider.GetRequiredService<ModelInterpretabilityService>();
         var reinforcementLearningService = serviceProvider.GetRequiredService<ReinforcementLearningService>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService));
+        var fixService = serviceProvider.GetRequiredService<FIXService>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService));
     }
 
     // Alpaca Commands
@@ -9281,5 +9320,137 @@ public class InteractiveCLI
             parameterSets.Add(parameters);
         }
         return parameterSets;
+    }
+
+    // FIX Protocol Integration Commands
+    private async Task FIXConnectCommand(string[] parts)
+    {
+        var host = parts.Length > 1 ? parts[1] : "localhost";
+        var port = parts.Length > 2 ? int.Parse(parts[2]) : 9876;
+        var senderId = parts.Length > 3 ? parts[3] : "QUANT_AGENT";
+        var targetId = parts.Length > 4 ? parts[4] : "BROKER";
+
+        PrintSectionHeader("FIX Connection");
+        Console.WriteLine($"Connecting to FIX server at {host}:{port}");
+
+        var function = _kernel.Plugins["FIXPlugin"]["ConnectToFIXServerAsync"];
+        var result = await _kernel.InvokeAsync(function, new()
+        {
+            ["host"] = host,
+            ["port"] = port,
+            ["senderCompID"] = senderId,
+            ["targetCompID"] = targetId
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FIXDisconnectCommand()
+    {
+        PrintSectionHeader("FIX Disconnection");
+
+        var function = _kernel.Plugins["FIXPlugin"]["DisconnectFromFIXServerAsync"];
+        var result = await _kernel.InvokeAsync(function);
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FIXOrderCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: fix-order [symbol] [side] [type] [quantity] [price]");
+            Console.WriteLine("Example: fix-order AAPL 1 2 100 150.50");
+            return;
+        }
+
+        var symbol = parts[1];
+        var side = parts[2]; // 1=Buy, 2=Sell
+        var orderType = parts[3]; // 1=Market, 2=Limit
+        var quantity = decimal.Parse(parts[4]);
+        var price = parts.Length > 5 ? (decimal?)decimal.Parse(parts[5]) : null;
+
+        PrintSectionHeader("FIX Order");
+        Console.WriteLine($"Symbol: {symbol}, Side: {side}, Type: {orderType}, Quantity: {quantity}, Price: {price}");
+
+        var function = _kernel.Plugins["FIXPlugin"]["SendFIXOrderAsync"];
+        var result = await _kernel.InvokeAsync(function, new()
+        {
+            ["symbol"] = symbol,
+            ["side"] = side,
+            ["orderType"] = orderType,
+            ["quantity"] = quantity,
+            ["price"] = price
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FIXCancelCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: fix-cancel [order_id] [symbol]");
+            Console.WriteLine("Example: fix-cancel ORD_123 AAPL");
+            return;
+        }
+
+        var orderId = parts[1];
+        var symbol = parts[2];
+
+        PrintSectionHeader("FIX Order Cancel");
+        Console.WriteLine($"Order ID: {orderId}, Symbol: {symbol}");
+
+        var function = _kernel.Plugins["FIXPlugin"]["CancelFIXOrderAsync"];
+        var result = await _kernel.InvokeAsync(function, new()
+        {
+            ["orderId"] = orderId,
+            ["symbol"] = symbol
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FIXMarketDataCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+
+        PrintSectionHeader("FIX Market Data Request");
+        Console.WriteLine($"Symbol: {symbol}");
+
+        var function = _kernel.Plugins["FIXPlugin"]["RequestFIXMarketDataAsync"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FIXHeartbeatCommand()
+    {
+        PrintSectionHeader("FIX Heartbeat");
+
+        var function = _kernel.Plugins["FIXPlugin"]["SendFIXHeartbeatAsync"];
+        var result = await _kernel.InvokeAsync(function);
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FIXStatusCommand()
+    {
+        PrintSectionHeader("FIX Connection Status");
+
+        var function = _kernel.Plugins["FIXPlugin"]["GetFIXConnectionStatus"];
+        var result = await _kernel.InvokeAsync(function);
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FIXInfoCommand()
+    {
+        PrintSectionHeader("FIX Protocol Information");
+
+        var function = _kernel.Plugins["FIXPlugin"]["GetFIXProtocolInfo"];
+        var result = await _kernel.InvokeAsync(function);
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
     }
 }

@@ -50,6 +50,7 @@ public class AgentOrchestrator
     private readonly FREDService _fredService;
     private readonly WorldBankService _worldBankService;
     private readonly AdvancedAlpacaService _advancedAlpacaService;
+    private readonly FIXService _fixService;
     
     private readonly ConcurrentQueue<AgentJob> _jobQueue = new();
     private readonly ConcurrentDictionary<string, AgentJob> _runningJobs = new();
@@ -92,7 +93,8 @@ public class AgentOrchestrator
         NotebookService? notebookService = null,
         FREDService? fredService = null,
         WorldBankService? worldBankService = null,
-        AdvancedAlpacaService? advancedAlpacaService = null)
+        AdvancedAlpacaService? advancedAlpacaService = null,
+        FIXService? fixService = null)
     {
         _kernel = kernel;
         _youtubeService = youtubeService;
@@ -126,6 +128,7 @@ public class AgentOrchestrator
         _fredService = fredService ?? throw new ArgumentNullException(nameof(fredService));
         _worldBankService = worldBankService ?? throw new ArgumentNullException(nameof(worldBankService));
         _advancedAlpacaService = advancedAlpacaService ?? throw new ArgumentNullException(nameof(advancedAlpacaService));
+        _fixService = fixService ?? throw new ArgumentNullException(nameof(fixService));
         _configuration = configuration;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentOrchestrator>.Instance;
 
@@ -190,6 +193,10 @@ public class AgentOrchestrator
         kernel.Plugins.AddFromObject(new FREDEconomicPlugin(_fredService));
         kernel.Plugins.AddFromObject(new WorldBankEconomicPlugin(_worldBankService));
         kernel.Plugins.AddFromObject(new AdvancedAlpacaPlugin(_advancedAlpacaService));
+
+        // Register Phase 8.3 FIX Protocol plugin
+        var fixPluginLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<QuantResearchAgent.Plugins.FIXPlugin>.Instance;
+        kernel.Plugins.AddFromObject(new FIXPlugin(_fixService, fixPluginLogger));
 
         // Plugins registered successfully
     }

@@ -227,7 +227,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<AcademicResearchService>(),
                     sp.GetRequiredService<AutoMLService>(),
                     sp.GetRequiredService<ModelInterpretabilityService>(),
-                    sp.GetRequiredService<ReinforcementLearningService>()
+                    sp.GetRequiredService<ReinforcementLearningService>(),
+                    sp.GetRequiredService<FIXService>()
                 )
             );
 
@@ -268,7 +269,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<NotebookService>(),
                     sp.GetRequiredService<FREDService>(),
                     sp.GetRequiredService<WorldBankService>(),
-                    sp.GetRequiredService<AdvancedAlpacaService>()
+                    sp.GetRequiredService<AdvancedAlpacaService>(),
+                    sp.GetRequiredService<FIXService>()
                 )
             );
             services.AddSingleton<YouTubeAnalysisService>();
@@ -383,6 +385,9 @@ namespace QuantResearchAgent
             services.AddSingleton<AutoMLService>();
             services.AddSingleton<ModelInterpretabilityService>();
             services.AddSingleton<ReinforcementLearningService>();
+
+            // Add Phase 8.3 FIX Protocol service
+            services.AddSingleton<FIXService>();
 
             // Add research agents
             services.AddSingleton<NewsScrapingService>();
