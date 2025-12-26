@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "NV261t1xGs0=",
+  "dgSpecHash": "3lxB4OIuF6Q=",
   "success": true,
-  "projectFilePath": "/Users/misango/codechest/ArithmaxResearchChest/QuantResearchAgent.csproj",
+  "projectFilePath": "/Users/misango/codechest/FeenQR/QuantResearchAgent.csproj",
   "expectedPackageFiles": [
     "/Users/misango/.nuget/packages/alpaca.markets/7.2.0/alpaca.markets.7.2.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/azure.ai.openai/2.1.0-beta.1/azure.ai.openai.2.1.0-beta.1.nupkg.sha512",
@@ -14,10 +14,12 @@
     "/Users/misango/.nuget/packages/google.apis.auth/1.68.0/google.apis.auth.1.68.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/google.apis.core/1.68.0/google.apis.core.1.68.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/google.apis.youtube.v3/1.68.0.3617/google.apis.youtube.v3.1.68.0.3617.nupkg.sha512",
+    "/Users/misango/.nuget/packages/htmlagilitypack/1.11.65/htmlagilitypack.1.11.65.nupkg.sha512",
     "/Users/misango/.nuget/packages/mathnet.numerics/5.0.0/mathnet.numerics.5.0.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/microsoft.bcl.asyncinterfaces/8.0.0/microsoft.bcl.asyncinterfaces.8.0.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/microsoft.bcl.hashcode/1.1.1/microsoft.bcl.hashcode.1.1.1.nupkg.sha512",
     "/Users/misango/.nuget/packages/microsoft.bcl.timeprovider/8.0.1/microsoft.bcl.timeprovider.8.0.1.nupkg.sha512",
+    "/Users/misango/.nuget/packages/microsoft.csharp/4.5.0/microsoft.csharp.4.5.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/microsoft.extensions.configuration/8.0.0/microsoft.extensions.configuration.8.0.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/microsoft.extensions.configuration.abstractions/8.0.0/microsoft.extensions.configuration.abstractions.8.0.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/microsoft.extensions.configuration.binder/8.0.0/microsoft.extensions.configuration.binder.8.0.0.nupkg.sha512",
@@ -56,8 +58,10 @@
     "/Users/misango/.nuget/packages/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg.sha512",
     "/Users/misango/.nuget/packages/openai/2.1.0-beta.1/openai.2.1.0-beta.1.nupkg.sha512",
     "/Users/misango/.nuget/packages/openai-dotnet/8.6.1/openai-dotnet.8.6.1.nupkg.sha512",
+    "/Users/misango/.nuget/packages/pdfpig/0.1.11/pdfpig.0.1.11.nupkg.sha512",
     "/Users/misango/.nuget/packages/polly/8.5.0/polly.8.5.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/polly.core/8.5.0/polly.core.8.5.0.nupkg.sha512",
+    "/Users/misango/.nuget/packages/reddit/1.5.2/reddit.1.5.2.nupkg.sha512",
     "/Users/misango/.nuget/packages/restsharp/112.0.0/restsharp.112.0.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/skender.stock.indicators/3.0.0-preview.1/skender.stock.indicators.3.0.0-preview.1.nupkg.sha512",
     "/Users/misango/.nuget/packages/system.clientmodel/1.1.0/system.clientmodel.1.1.0.nupkg.sha512",
@@ -76,10 +80,7 @@
     "/Users/misango/.nuget/packages/system.text.json/8.0.5/system.text.json.8.0.5.nupkg.sha512",
     "/Users/misango/.nuget/packages/system.threading.channels/9.0.0/system.threading.channels.9.0.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/system.threading.tasks.extensions/4.5.4/system.threading.tasks.extensions.4.5.4.nupkg.sha512",
-    "/Users/misango/.nuget/packages/yahoofinanceapi/2.3.3/yahoofinanceapi.2.3.3.nupkg.sha512",
-    "/Users/misango/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.18/microsoft.aspnetcore.app.ref.8.0.18.nupkg.sha512",
-    "/Users/misango/.nuget/packages/microsoft.netcore.app.host.osx-x64/8.0.18/microsoft.netcore.app.host.osx-x64.8.0.18.nupkg.sha512",
-    "/Users/misango/.nuget/packages/microsoft.netcore.app.ref/8.0.18/microsoft.netcore.app.ref.8.0.18.nupkg.sha512"
+    "/Users/misango/.nuget/packages/yahoofinanceapi/2.3.3/yahoofinanceapi.2.3.3.nupkg.sha512"
   ],
   "logs": []
 }
