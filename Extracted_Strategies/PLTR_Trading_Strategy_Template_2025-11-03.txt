@@ -1,0 +1,218 @@
+PLTR Algorithmic Trading Strategy (QuantConnect/LEAN C# Template)
+--------------------------------------------------------------------------------
+Last Updated: 2025-11-03 20:35:38 UTC
+
+// Strategy Parameters
+private decimal _supportLevel = 100.00m; // Key support level for PLTR
+private decimal _resistanceLevel = 150.00m; // Key resistance level for PLTR
+private int _rsiPeriod = 14;
+private int _emaPeriod = 20;
+private decimal _positionRiskPercent = 2.0m;
+private decimal _volatilityThreshold = 0.02m; // 2% volatility threshold
+
+// Entry Conditions
+1. SWING Entry:
+   - Price breaks above key resistance level
+   - Volume confirmation with 1.5x average
+   - RSI indicates favorable conditions
+   - Technical indicators align positively
+
+2. Secondary Entry:
+   - Pullback to support with oversold conditions
+   - Volume spike on reversal candle
+   - Momentum divergence resolved
+
+// Exit Framework
+- Profit Targets:
+  1. First Target: 5-8% gain (scale out 40-50%)
+  2. Second Target: 12-15% gain (exit remaining position)
+
+- Risk Management Exits:
+  Initial Stop: 3-5% below entry
+  Trailing Stop: 2x ATR distance
+  Time-based Exit: 21 trading days maximum hold
+
+// Risk Management
+Here's a comprehensive set of risk management rules for a trading strategy focused on PLTR, taking into consideration the current technical analysis, volatility, and overall market conditions:
+
+### Risk Management Rules for PLTR Trading Strategy
+
+---
+
+#### 1. Position Sizing Rules
+- **Percentage of Portfolio**: 
+  - Initial position size should not exceed **5% of the total portfolio value** per trade.
+  - If the position is increased due to a positive trend, ensure that no single position exceeds **10% of the portfolio** after scaling.
+
+---
+
+#### 2. Stop Loss Levels
+- **Initial Stop Loss**: 
+  - Set an initial stop loss at **3% below the entry price** for long positions.
+- **Trailing Stop Loss**: 
+  - Utilize a trailing stop loss of **2%** once the trade is in profit by **5%**.
+  - If the price retraces to the trailing stop loss level, exit the position to lock in profits.
+
+---
+
+#### 3. Take Profit Targets
+- **Multiple Levels of Take Profit**:
+  - **Level 1**: Take profit at **10% above the entry price**.
+  - **Level 2**: Take profit at **15% above the entry price**.
+  - **Level 3**: Take profit at **20% above the entry price**.
+  - As each level is hit, consider adjusting the stop loss to protect profits after Level 1.
+
+---
+
+#### 4. Maximum Drawdown Limits
+- **Maximum Drawdown**: 
+  - The maximum drawdown for an individual trading strategy should not exceed **15% of the portfolio** value.
+  - If this drawdown threshold is reached, re-evaluate the strategy's viability or temporarily suspend trading.
+
+---
+
+#### 5. Daily Loss Limits
+- **Daily Loss Limit**: 
+  - Set a daily loss limit of **3% of the portfolio** value. 
+  - If incurred losses hit this threshold, cease trading activities for the remainder of the trading day.
+
+---
+
+#### 6. Maximum Open Positions
+- **Maximum Open Positions**:
+  - Hold a maximum of **4 concurrent open positions** within the portfolio.
+  - Ensure total exposure in the market (aggregated position sizes) does not exceed **20% of the total portfolio value** at any time.
+
+---
+
+#### 7. Circuit Breakers for Adverse Conditions
+- **Market Circuit Breakers**:
+  - If PLTR shares drop more than **5% in a single trading session**, review the position and consider reducing exposure.
+  - If the overall market experiences extreme volatility (as indicated by an increase in ATR above **10%**), temporarily halt trading until conditions stabilize.
+
+---
+
+#### 8. Hedging Strategies
+- **Hedging Strategies**:
+  - Consider using options strategies, such as purchasing **put options** on PLTR to mitigate risk exposure during high volatility.
+  - Diversify by investing in unrelated assets (e.g., commodities, bonds) to counterbalance risks associated with PLTR.
+
+---
+
+### Summary
+These structured rules are designed to protect capital, minimize risks, and manage profits effectively in trading PLTR. Constantly review and adjust these parameters based on changing market conditions and trading performance. Implementing these risk management strategies can help maintain a disciplined approach to trading.
+
+// Technical Indicators
+Here are three custom technical indicators tailored for PLTR trading strategy:
+
+### Indicator 1: Trend Strength Composite Index (TSCI)
+
+#### Formula/Calculation Method:
+```python
+TSCI = (RSI + Aroon_Oscillator + ADX_PlusDI) / 3
+```
+
+#### Interpretation Guidelines:
+- A TSCI value above 70 indicates strong upward momentum.
+- Values between 40 to 70 suggest moderate trends.
+- Values below 40 could signal a weak trend or consolidation.
+
+#### Buy/Sell Signals:
+- **Buy Signal**: TSCI crosses above 70.
+- **Sell Signal**: TSCI crosses below 40.
+
+#### Optimal Timeframes:
+- Day Trading: 1-hour to 4-hour charts.
+- Swing Trading: Daily charts.
+
+#### Risk Considerations:
+- A low ADX (<20) could indicate a lack of trend strength, leading to false signals.
+- Using TSCI alongside price action confirmations is recommended to reduce false positives.
+
+
+### Indicator 2: Momentum Reversal Indicator (MRI)
+
+#### Formula/Calculation Method:
+```python
+MRI = ((MACD - MACD_Signal) / MACD_Signal) * 100
+```
+
+#### Interpretation Guidelines:
+- A high positive value (e.g., above +20) indicates increasing momentum.
+- A value around zero suggests momentum is stable or reversing.
+- A negative value (e.g., below -20) indicates a potential reversal.
+
+#### Buy/Sell Signals:
+- **Buy Signal**: MRI crosses above +20.
+- **Sell Signal**: MRI crosses below -20.
+
+#### Optimal Timeframes:
+- Day Trading: 15-minute to 30-minute charts.
+- Swing Trading: Daily charts.
+
+#### Risk Considerations:
+- Watch for divergences between prices and MRI values, which could indicate false momentum signals.
+- High volatility conditions could lead to rapid changes in MRI, necessitating tighter stop-loss orders.
+
+
+### Indicator 3: Volatility Adjusted Resistance Support (VARS)
+
+#### Formula/Calculation Method:
+```python
+VARS = [(Resistance_1 + Support_1) / 2] + (ATR * 0.5)
+```
+
+#### Interpretation Guidelines:
+- The VARS level represents a dynamic area of support/resistance adjusted for current market volatility.
+- Price approaching VARS can indicate potential reversal points.
+
+#### Buy/Sell Signals:
+- **Buy Signal**: Price bounces off VARS from below.
+- **Sell Signal**: Price rejects VARS from above.
+
+#### Optimal Timeframes:
+- Day Trading: 5-minute to 1-hour charts.
+- Swing Trading: Daily to weekly charts.
+
+#### Risk Considerations:
+- Ensure the ATR is not dropping too low as it signals shrinking volatility, affecting the validity of VARS.
+- Monitor other indicators (e.g., MACD, RSI) in conjunction with VARS for confirming signals to minimize the chance of whipsaws.
+
+These composite indicators integrate various established metrics in a way that is tailored to the specific behavior of PLTR, catering to both entry and exit management strategies.
+
+// Data Requirements
+1. Primary Data:
+   - PLTR Minute Bars (OHLCV)
+   - Corporate Action Handling enabled
+
+2. Secondary Data:
+   - SPY 5-minute bars (correlation check)
+   - VIX Daily Close
+   - US10Y Yield (macro filter)
+   - PLTR Options Chain (for earnings strategies)
+
+// Backtest Configuration
+- Benchmark: SPY
+- Commission: Interactive Brokers Tiered
+- Slippage: VolumeShareModel(0.1, 5)
+- Warmup Period: 200 trading days
+- Optimization Params:
+  Genetic Settings:
+  Population Size: 100
+  Generations: 20
+  Mutation Probability: 0.1
+
+// Known Limitations
+1. Assumes continuous options liquidity
+2. Doesn't account for sudden geopolitical events
+3. Earnings date accuracy depends on data feed reliability
+
+// Implementation Notes
+// Implementation Notes
+- Requires custom Universe Selection for earnings dates
+- Needs fundamental data integration for contract news
+- Suggested walk-forward period: 90 days
+- Critical to implement IV percentile calculations
+- Consider implementing adaptive position sizing based on VIX levels
+
+DISCLAIMER: This strategy contains hypothetical assumptions. Actual market conditions may vary significantly. Always test with out-of-sample data before live deployment. Options trading carries substantial risk of loss.

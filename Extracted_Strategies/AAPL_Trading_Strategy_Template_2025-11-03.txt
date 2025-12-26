@@ -1,0 +1,200 @@
+AAPL Algorithmic Trading Strategy (QuantConnect/LEAN C# Template)
+--------------------------------------------------------------------------------
+Last Updated: 2025-11-03 20:15:10 UTC
+
+// Strategy Parameters
+private decimal _supportLevel = 100.00m; // Key support level for AAPL
+private decimal _resistanceLevel = 150.00m; // Key resistance level for AAPL
+private int _rsiPeriod = 14;
+private int _emaPeriod = 20;
+private decimal _positionRiskPercent = 2.0m;
+private decimal _volatilityThreshold = 0.02m; // 2% volatility threshold
+
+// Entry Conditions
+1. SWING Entry:
+   - Price breaks above key resistance level
+   - Volume confirmation with 1.5x average
+   - RSI indicates favorable conditions
+   - Technical indicators align positively
+
+2. Secondary Entry:
+   - Pullback to support with oversold conditions
+   - Volume spike on reversal candle
+   - Momentum divergence resolved
+
+// Exit Framework
+- Profit Targets:
+  1. First Target: 5-8% gain (scale out 40-50%)
+  2. Second Target: 12-15% gain (exit remaining position)
+
+- Risk Management Exits:
+  Initial Stop: 3-5% below entry
+  Trailing Stop: 2x ATR distance
+  Time-based Exit: 21 trading days maximum hold
+
+// Risk Management
+Here are comprehensive risk management rules tailored for an AAPL trading strategy, considering the provided technical analysis data and overall market conditions:
+
+### Comprehensive Risk Management Rules for AAPL Trading Strategy
+
+#### 1. Position Sizing Rules
+   - **Maximum Position Size:** 5% of the total portfolio value per trade.
+   - **Minimum Position Size:** 1% of the total portfolio value per trade.
+   - **Adjustment Based on Volatility:** If the ATR exceeds 5%, consider reducing the position size to a maximum of 3% to manage higher risk.
+
+#### 2. Stop Loss Levels
+   - **Initial Stop Loss:** Set at 2% below the entry price for AAPL trades.
+   - **Trailing Stop Loss:** Once the trade is in profit, move the stop loss to 1% below the highest price reached after entering the trade. 
+
+#### 3. Take Profit Targets
+   - **Multiple Levels of Take Profit:**
+     - **Level 1:** 2% above entry price.
+     - **Level 2:** 5% above entry price.
+     - **Level 3:** 10% above entry price.
+   - **Implementation:** Exit 50% of the position at Level 1, 30% at Level 2, and 20% at Level 3.
+
+#### 4. Maximum Drawdown Limits
+   - **Drawdown Limit:** Maximum allowable drawdown of 10% from portfolio peaks.
+   - **Action upon Limit Violation:** If the drawdown exceeds 10%, halt all trading activities and reassess overall market conditions and trading strategy.
+
+#### 5. Daily Loss Limits
+   - **Daily Loss Limit:** Set a maximum daily loss of 2% of the total portfolio.
+   - **Action upon Limit Violation:** Cease trading for the day to prevent further losses until the next trading day.
+
+#### 6. Maximum Open Positions
+   - **Limit on Open Positions:** A maximum of 5 open positions in AAPL at any time to maintain concentrated risk management.
+   - **Allocation Limitation:** No single position can exceed 25% of the total number of open positions at any time.
+
+#### 7. Circuit Breakers for Adverse Conditions
+   - **Market Conditions Trigger:** If AAPL's price moves against the position by more than 3% within a single trading day, trigger a review of the position.
+   - **Exit Strategy:** If the market continues to show adverse movements (like a confirmed break below key support or bearish news), exit the position regardless of the stop loss level.
+
+#### 8. Hedging Strategies (if applicable)
+   - **Use of Options:** Purchase protective puts for AAPL if significant downside risks are anticipated, aiming for puts that expire within 30-60 days.
+   - **Inverse ETF Positions:** Consider small positions in inverse ETFs (e.g., SQQQ) if major market corrections are anticipated while holding AAPL to offset potential losses.
+
+### Summary
+This risk management framework aims to preserve capital while allowing for opportunistic trading. Regular reviews and adjustments based on market volatility, technical patterns, and macroeconomic conditions are recommended for optimal performance and risk mitigation. Always ensure compliance with personal risk tolerance levels and account size.
+
+// Technical Indicators
+Here are three custom composite indicators specifically designed for trading AAPL. Each indicator includes its formula, interpretation guidelines, buy/sell signals, optimal timeframes, and risk considerations.
+
+### Indicator 1: Momentum-Weighted Support-Resistance (MWSR)
+
+#### Formula:
+```plaintext
+MWSR = (SMA_20 + SMA_50 + SMA_200) / 3 + (RSI - 50) / 100 * (Resistance_1 - Support_1)
+```
+Where:
+- `SMA_20`, `SMA_50`, and `SMA_200` are the simple moving averages for the respective periods.
+- `RSI` is the 14-day Relative Strength Index.
+- `Resistance_1` and `Support_1` are the first line of resistance and support defined in the analytics.
+
+#### Interpretation Guidelines:
+- A MWSR value that is rising indicates stronger support and potential price appreciation.
+- A falling MWSR suggests that resistance is becoming more significant, indicating a potential price decline.
+
+#### Buy/Sell Signals:
+- **Buy Signal:** When the current price crosses above MWSR.
+- **Sell Signal:** When the current price crosses below MWSR.
+
+#### Optimal Timeframes:
+- Best used on daily (1D) or weekly (1W) charts for longer-term strategies.
+
+#### Risk Considerations:
+- High volatility periods can distort the MWSR readings, leading to false signals.
+- Ensure to combine with other indicators for confirmation.
+
+---
+
+### Indicator 2: Volume-Weighted Moving Average Convergence Divergence (VW-MACD)
+
+#### Formula:
+```plaintext
+VW-MACD = EMA(Volume * Price, ShortPeriod) - EMA(Volume * Price, LongPeriod)
+```
+Where:
+- `ShortPeriod` is 12.
+- `LongPeriod` is 26.
+- Use volume-adjusted price data.
+
+#### Interpretation Guidelines:
+- A positive VW-MACD indicates that buying pressure is stronger, suggesting potential upside.
+- A negative VW-MACD indicates selling pressure, suggesting potential downside.
+
+#### Buy/Sell Signals:
+- **Buy Signal:** When VW-MACD crosses above the zero line.
+- **Sell Signal:** When VW-MACD crosses below the zero line.
+
+#### Optimal Timeframes:
+- Suitable for 1-hour (1H) or daily (1D) charts, allowing for both short-term and medium-term trading.
+
+#### Risk Considerations:
+- High-volume trading sessions can lead to false signals. A confirmation with a secondary indicator like RSI is advisable.
+
+---
+
+### Indicator 3: Choppiness Adjusted Trend Strength Indicator (CATSI)
+
+#### Formula:
+```plaintext
+CATSI = (ADX * (100 - Choppiness_Index)) / 100
+```
+Where:
+- `ADX` measures trend strength (preferably set to a length of 14).
+- `Choppiness_Index` is a measure of market volatility.
+
+#### Interpretation Guidelines:
+- A CATSI value above 20 indicates a strong trend (either bullish or bearish), while a value below 20 suggests a choppy market with no clear trend.
+- Higher values mean stronger trends, while lower values reflect potential sideways movement.
+
+#### Buy/Sell Signals:
+- **Buy Signal:** When CATSI exceeds 20 and is increasing.
+- **Sell Signal:** When CATSI exceeds 20 but starts to decrease.
+
+#### Optimal Timeframes:
+- Best utilized in daily (1D) or 4-hour (4H) timeframes to capture significant trends.
+
+#### Risk Considerations:
+- Ensure to monitor for sudden market changes that can cause spike volatility and render trend strength indicators ineffective. Always use stop-loss orders.
+
+---
+
+**Notes:** Each of these custom indicators is designed to enhance analysis for AAPL by providing unique insights into price movements, volume trends, and market conditions. They should be used in conjunction with traditional technical indicators to improve the robustness of trading strategies.
+
+// Data Requirements
+1. Primary Data:
+   - AAPL Minute Bars (OHLCV)
+   - Corporate Action Handling enabled
+
+2. Secondary Data:
+   - SPY 5-minute bars (correlation check)
+   - VIX Daily Close
+   - US10Y Yield (macro filter)
+   - AAPL Options Chain (for earnings strategies)
+
+// Backtest Configuration
+- Benchmark: SPY
+- Commission: Interactive Brokers Tiered
+- Slippage: VolumeShareModel(0.1, 5)
+- Warmup Period: 200 trading days
+- Optimization Params:
+  Genetic Settings:
+  Population Size: 100
+  Generations: 20
+  Mutation Probability: 0.1
+
+// Known Limitations
+1. Assumes continuous options liquidity
+2. Doesn't account for sudden geopolitical events
+3. Earnings date accuracy depends on data feed reliability
+
+// Implementation Notes
+// Implementation Notes
+- Requires custom Universe Selection for earnings dates
+- Needs fundamental data integration for contract news
+- Suggested walk-forward period: 90 days
+- Critical to implement IV percentile calculations
+- Consider implementing adaptive position sizing based on VIX levels
+
+DISCLAIMER: This strategy contains hypothetical assumptions. Actual market conditions may vary significantly. Always test with out-of-sample data before live deployment. Options trading carries substantial risk of loss.

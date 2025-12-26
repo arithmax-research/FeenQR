@@ -142,3 +142,265 @@ public class RiskManagementConfig
     public double StopLossPercent { get; set; } = 0.05;
     public double TakeProfitPercent { get; set; } = 0.10;
 }
+
+/// <summary>
+/// Represents a comprehensive trading strategy template
+/// </summary>
+public class TradingTemplate
+{
+    public string Symbol { get; set; } = string.Empty;
+    public string StrategyType { get; set; } = string.Empty;
+    public DateTime GeneratedAt { get; set; }
+    public string StrategyParameters { get; set; } = string.Empty;
+    public string EntryConditions { get; set; } = string.Empty;
+    public string ExitFramework { get; set; } = string.Empty;
+    public string RiskManagement { get; set; } = string.Empty;
+    public string TechnicalIndicators { get; set; } = string.Empty;
+    public string DataRequirements { get; set; } = string.Empty;
+    public string BacktestConfiguration { get; set; } = string.Empty;
+    public string KnownLimitations { get; set; } = string.Empty;
+    public string ImplementationNotes { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Research data collected for strategy generation
+/// </summary>
+public class ResearchData
+{
+    public MarketData? MarketData { get; set; }
+    public CompanyInfo? CompanyInfo { get; set; }
+    public TechnicalAnalysis? TechnicalAnalysis { get; set; }
+    public SentimentAnalysis? SentimentAnalysis { get; set; }
+    public string WebResearch { get; set; } = string.Empty;
+    public decimal VolatilityData { get; set; }
+    public KeyLevels? KeyLevels { get; set; }
+    public Dictionary<string, object> StructuredWebData { get; set; } = new();
+}
+
+/// <summary>
+/// Key price levels for technical analysis
+/// </summary>
+public class KeyLevels
+{
+    public decimal Support { get; set; }
+    public decimal Resistance { get; set; }
+}
+
+/// <summary>
+/// Company fundamental information
+/// </summary>
+public class CompanyInfo
+{
+    public string Symbol { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Sector { get; set; } = string.Empty;
+    public string Industry { get; set; } = string.Empty;
+    public long MarketCap { get; set; }
+    public decimal PERatio { get; set; }
+    public decimal DividendYield { get; set; }
+    public decimal Beta { get; set; }
+    public string Description { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Technical analysis results
+/// </summary>
+public class TechnicalAnalysis
+{
+    public string Symbol { get; set; } = string.Empty;
+    public Dictionary<string, decimal> Indicators { get; set; } = new();
+    public List<decimal> SupportLevels { get; set; } = new();
+    public List<decimal> ResistanceLevels { get; set; } = new();
+    public string Trend { get; set; } = string.Empty;
+    public decimal Momentum { get; set; }
+}
+
+/// <summary>
+/// Sentiment analysis results
+/// </summary>
+public class SentimentAnalysis
+{
+    public string Symbol { get; set; } = string.Empty;
+    public decimal OverallSentiment { get; set; } // -1 to 1
+    public decimal NewsSentiment { get; set; }
+    public decimal SocialSentiment { get; set; }
+    public int NewsArticleCount { get; set; }
+    public DateTime AnalyzedAt { get; set; }
+}
+
+/// <summary>
+/// Statistical test result
+/// </summary>
+public class StatisticalTest
+{
+    public string TestName { get; set; } = string.Empty;
+    public string TestType { get; set; } = string.Empty; // t-test, anova, chi-square, etc.
+    public double TestStatistic { get; set; }
+    public double PValue { get; set; }
+    public double SignificanceLevel { get; set; } = 0.05;
+    public bool IsSignificant { get; set; }
+    public string NullHypothesis { get; set; } = string.Empty;
+    public string AlternativeHypothesis { get; set; } = string.Empty;
+    public Dictionary<string, double> Parameters { get; set; } = new();
+    public string Interpretation { get; set; } = string.Empty;
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Power analysis result
+/// </summary>
+public class PowerAnalysis
+{
+    public double EffectSize { get; set; }
+    public int SampleSize { get; set; }
+    public double Power { get; set; }
+    public double SignificanceLevel { get; set; } = 0.05;
+    public string TestType { get; set; } = string.Empty;
+    public Dictionary<string, double> Parameters { get; set; } = new();
+    public DateTime CalculatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Time series analysis result
+/// </summary>
+public class TimeSeriesAnalysis
+{
+    public string Symbol { get; set; } = string.Empty;
+    public bool IsStationary { get; set; }
+    public double ADFStatistic { get; set; }
+    public double ADFPValue { get; set; }
+    public double KPSSStatistic { get; set; }
+    public double KPSSPValue { get; set; }
+    public List<double> Autocorrelation { get; set; } = new();
+    public List<double> PartialAutocorrelation { get; set; } = new();
+    public string Trend { get; set; } = string.Empty;
+    public string Seasonality { get; set; } = string.Empty;
+    public DateTime AnalyzedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Cointegration test result
+/// </summary>
+public class CointegrationTest
+{
+    public string TestType { get; set; } = string.Empty; // Engle-Granger, Johansen
+    public List<string> Symbols { get; set; } = new();
+    public double TestStatistic { get; set; }
+    public double CriticalValue { get; set; }
+    public double PValue { get; set; }
+    public bool IsCointegrated { get; set; }
+    public List<double> CointegrationVector { get; set; } = new();
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Statistical test result with data source and AI interpretation
+/// </summary>
+public class StatisticalTestResult
+{
+    public StatisticalTest Test { get; set; } = new();
+    public string DataSource { get; set; } = string.Empty;
+    public int DataPoints { get; set; }
+    public string TimeRange { get; set; } = string.Empty;
+    public List<double> Data { get; set; } = new();
+    public string AIInterpretation { get; set; } = string.Empty;
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Stationarity test result (ADF, KPSS, Phillips-Perron)
+/// </summary>
+public class StationarityTestResult
+{
+    public string TestType { get; set; } = string.Empty; // "ADF", "KPSS", "Phillips-Perron"
+    public double TestStatistic { get; set; }
+    public Dictionary<double, double> CriticalValues { get; set; } = new();
+    public bool IsStationary { get; set; }
+    public int LagOrder { get; set; }
+    public double SignificanceLevel { get; set; } = 0.05;
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Autocorrelation analysis result
+/// </summary>
+public class AutocorrelationResult
+{
+    public List<double> Autocorrelations { get; set; } = new();
+    public List<double> PartialAutocorrelations { get; set; } = new();
+    public int MaxLags { get; set; }
+    public double LjungBoxStatistic { get; set; }
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Seasonal decomposition result
+/// </summary>
+public class SeasonalDecompositionResult
+{
+    public double[] OriginalData { get; set; } = Array.Empty<double>();
+    public double[] Trend { get; set; } = Array.Empty<double>();
+    public double[] Seasonal { get; set; } = Array.Empty<double>();
+    public double[] Residual { get; set; } = Array.Empty<double>();
+    public int SeasonalPeriod { get; set; }
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Engle-Granger cointegration test result
+/// </summary>
+public class EngleGrangerResult
+{
+    public List<string> Symbols { get; set; } = new();
+    public double TestStatistic { get; set; }
+    public Dictionary<double, double> CriticalValues { get; set; } = new();
+    public bool IsCointegrated { get; set; }
+    public double[] CointegrationVector { get; set; } = Array.Empty<double>();
+    public double ResidualVariance { get; set; }
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Johansen cointegration test result
+/// </summary>
+public class JohansenResult
+{
+    public List<string> Symbols { get; set; } = new();
+    public int Rank { get; set; } // Number of cointegrating relationships
+    public double[] Eigenvalues { get; set; } = Array.Empty<double>();
+    public double[] TraceStatistics { get; set; } = Array.Empty<double>();
+    public double[] MaxEigenvalueStatistics { get; set; } = Array.Empty<double>();
+    public Dictionary<double, double[]> CriticalValues { get; set; } = new();
+    public double[][] CointegrationVectors { get; set; } = Array.Empty<double[]>();
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Granger causality test result
+/// </summary>
+public class GrangerCausalityResult
+{
+    public string CauseSymbol { get; set; } = string.Empty;
+    public string EffectSymbol { get; set; } = string.Empty;
+    public int LagOrder { get; set; }
+    public double FStatistic { get; set; }
+    public double PValue { get; set; }
+    public bool GrangerCauses { get; set; }
+    public double SignificanceLevel { get; set; } = 0.05;
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Lead-lag relationship analysis result
+/// </summary>
+public class LeadLagResult
+{
+    public string Symbol1 { get; set; } = string.Empty;
+    public string Symbol2 { get; set; } = string.Empty;
+    public int OptimalLag { get; set; }
+    public double CrossCorrelation { get; set; }
+    public bool Symbol1Leads { get; set; }
+    public int LagPeriods { get; set; }
+    public double[] CrossCorrelations { get; set; } = Array.Empty<double>();
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+}

@@ -41,6 +41,8 @@ namespace QuantResearchAgent
 
             // Add API controllers
             builder.Services.AddControllers();
+            builder.Services.AddRazorPages();
+            builder.Services.AddServerSideBlazor();
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>
@@ -64,8 +66,11 @@ namespace QuantResearchAgent
 
             // Configure middleware
             app.UseCors();
+            app.UseStaticFiles();
             app.UseRouting();
             app.MapControllers();
+            app.MapRazorPages();
+            app.MapBlazorHub();
 
             // Get the orchestrator and start
             var orchestrator = app.Services.GetRequiredService<AgentOrchestrator>();
@@ -140,7 +145,9 @@ namespace QuantResearchAgent
             // Register LLM services
             services.AddSingleton<OpenAIService>();
             services.AddSingleton<DeepSeekService>();
+            services.AddSingleton<LLMRouterService>();
             services.AddSingleton<ILLMService, LLMRouterService>();
+            services.AddSingleton<StrategyGeneratorService>();
 
             // Ensure logs directory exists for file logging
             var logDir = Path.Combine(Directory.GetCurrentDirectory(), "logs");
@@ -177,6 +184,7 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<YahooFinanceService>(),
                     sp.GetRequiredService<AlpacaService>(),
                     sp.GetRequiredService<PolygonService>(),
+                    sp.GetRequiredService<MarketDataService>(),
                     sp.GetRequiredService<DataBentoService>(),
                     sp.GetRequiredService<YFinanceNewsService>(),
                     sp.GetRequiredService<FinvizNewsService>(),
@@ -189,13 +197,54 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<SatelliteImageryAnalysisService>(),
                     sp.GetRequiredService<ILLMService>(),
                     sp.GetRequiredService<TechnicalAnalysisService>(),
-                    sp.GetRequiredService<IntelligentAIAssistantService>()
+                    sp.GetRequiredService<IntelligentAIAssistantService>(),
+                    sp.GetRequiredService<TradingTemplateGeneratorAgent>(),
+                    sp.GetRequiredService<StatisticalTestingService>(),
+                    sp.GetRequiredService<TimeSeriesAnalysisService>(),
+                    sp.GetRequiredService<CointegrationAnalysisService>(),
+                    sp.GetRequiredService<TimeSeriesForecastingService>(),
+                    sp.GetRequiredService<FeatureEngineeringService>(),
+                    sp.GetRequiredService<ModelValidationService>(),
+                    sp.GetRequiredService<FactorModelService>(),
+                    sp.GetRequiredService<AdvancedOptimizationService>(),
+                    sp.GetRequiredService<AdvancedRiskService>(),
+                    sp.GetRequiredService<SECFilingsService>(),
+                    sp.GetRequiredService<EarningsCallService>(),
+                    sp.GetRequiredService<SupplyChainService>()
                 )
             );
 
             // Add core services
             services.AddSingleton<LeanDataService>();
-            services.AddSingleton<AgentOrchestrator>();
+            services.AddSingleton<AgentOrchestrator>(sp =>
+                new AgentOrchestrator(
+                    sp.GetRequiredService<Kernel>(),
+                    sp.GetRequiredService<YouTubeAnalysisService>(),
+                    sp.GetRequiredService<TradingSignalService>(),
+                    sp.GetRequiredService<MarketDataService>(),
+                    sp.GetRequiredService<RiskManagementService>(),
+                    sp.GetRequiredService<PortfolioService>(),
+                    sp.GetRequiredService<MarketSentimentAgentService>(),
+                    sp.GetRequiredService<StatisticalPatternAgentService>(),
+                    sp.GetRequiredService<CompanyValuationService>(),
+                    sp.GetRequiredService<HighFrequencyDataService>(),
+                    sp.GetRequiredService<TradingStrategyLibraryService>(),
+                    sp.GetRequiredService<AlpacaService>(),
+                    sp.GetRequiredService<TechnicalAnalysisService>(),
+                    sp.GetRequiredService<RedditScrapingService>(),
+                    sp.GetRequiredService<StrategyGeneratorService>(),
+                    sp.GetRequiredService<TradingTemplateGeneratorAgent>(),
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetRequiredService<ILogger<AgentOrchestrator>>(),
+                    sp.GetRequiredService<StatisticalTestingService>(),
+                    sp.GetRequiredService<TimeSeriesForecastingService>(),
+                    sp.GetRequiredService<FeatureEngineeringService>(),
+                    sp.GetRequiredService<ModelValidationService>(),
+                    sp.GetRequiredService<FactorModelService>(),
+                    sp.GetRequiredService<AdvancedOptimizationService>(),
+                    sp.GetRequiredService<AdvancedRiskService>()
+                )
+            );
             services.AddSingleton<YouTubeAnalysisService>();
             services.AddSingleton<MarketDataService>(sp =>
                 new MarketDataService(
@@ -235,12 +284,56 @@ namespace QuantResearchAgent
             services.AddSingleton<ReportGenerationService>();
             services.AddSingleton<SatelliteImageryAnalysisService>();
 
+            // Add statistical testing service
+            services.AddSingleton<StatisticalTestingService>();
+
+            // Add time series analysis service
+            services.AddSingleton<TimeSeriesAnalysisService>();
+
+            // Add cointegration analysis service
+            services.AddSingleton<CointegrationAnalysisService>();
+
+            // Add Phase 2 ML services
+            services.AddSingleton<TimeSeriesForecastingService>();
+            services.AddSingleton<FeatureEngineeringService>();
+            services.AddSingleton<ModelValidationService>();
+
+            // Add Phase 3 Factor Model service
+            services.AddSingleton<FactorModelService>();
+
+            // Add Phase 3.2 Advanced Optimization services
+            services.AddSingleton<AdvancedOptimizationService>();
+
+            // Add Phase 3.3 Advanced Risk services
+            services.AddSingleton<AdvancedRiskService>();
+
+            // Add Phase 4 Alternative Data services
+            services.AddSingleton<SECFilingsService>();
+            services.AddSingleton<EarningsCallService>();
+            services.AddSingleton<SupplyChainService>();
+
             // Add research agents
             services.AddSingleton<NewsScrapingService>();
             services.AddSingleton<MarketSentimentAgentService>();
             services.AddSingleton<StatisticalPatternAgentService>();
             services.AddSingleton<ComprehensiveStockAnalysisAgent>();
             services.AddSingleton<AcademicResearchPaperAgent>();
+            services.AddSingleton<TradingTemplateGeneratorAgent>(sp =>
+                new TradingTemplateGeneratorAgent(
+                    sp.GetRequiredService<Kernel>(),
+                    sp.GetRequiredService<ILogger<TradingTemplateGeneratorAgent>>(),
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetRequiredService<MarketDataService>(),
+                    sp.GetRequiredService<CompanyValuationService>(),
+                    sp.GetRequiredService<TechnicalAnalysisService>(),
+                    sp.GetRequiredService<NewsSentimentAnalysisService>(),
+                    sp.GetRequiredService<QuantResearchAgent.Plugins.IWebSearchPlugin>(),
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILLMService>(),
+                    sp.GetRequiredService<WebDataExtractionService>(),
+                    sp.GetRequiredService<DeepSeekService>()
+                )
+            );
         }
     }
 }

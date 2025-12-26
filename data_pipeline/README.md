@@ -118,14 +118,14 @@ The pipeline converts data to LEAN's standard format:
 
 ```
 data_pipeline/
-├── config.py              # Configuration settings
-├── utils.py               # Utility functions
-├── alpaca_downloader.py   # Alpaca data downloader
-├── binance_downloader.py  # Binance data downloader
-├── main.py               # Main pipeline script
-├── setup.sh              # Setup script
-├── requirements.txt      # Python dependencies
-└── README.md            # This file
+ config.py              # Configuration settings
+ utils.py               # Utility functions
+ alpaca_downloader.py   # Alpaca data downloader
+ binance_downloader.py  # Binance data downloader
+ main.py               # Main pipeline script
+ setup.sh              # Setup script
+ requirements.txt      # Python dependencies
+ README.md            # This file
 ```
 
 ## Configuration

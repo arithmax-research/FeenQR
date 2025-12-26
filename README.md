@@ -35,7 +35,7 @@ An intelligent, agentic system built with the Microsoft Semantic Kernel Architec
 
 <div align="center">
 
-### 🔧 Build & Deployment
+###  Build & Deployment
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/arithmax-research/FeenQR)
 [![Tests](https://img.shields.io/badge/tests-95%25_passing-brightgreen.svg)](https://github.com/arithmax-research/FeenQR/actions)
 [![Coverage](https://img.shields.io/badge/coverage-82%25-green.svg)](https://github.com/arithmax-research/FeenQR)
@@ -169,6 +169,25 @@ The system is built around Microsoft Semantic Kernel, providing:
    dotnet run
    ```
 
+### Web Frontend
+
+The application now includes a web-based frontend built with Blazor Server, providing an interactive dashboard with widgets for various financial analyses.
+
+**To run with the web frontend:**
+```bash
+# Using the launcher script
+./launch.sh web
+
+# Or directly with dotnet
+dotnet run -- --web
+```
+
+The web interface will be available at `http://localhost:5000` with:
+- **Dashboard**: Overview with market data, sentiment, portfolio, news, and risk widgets
+- **Market Analysis**: Technical and comprehensive analysis tools
+- **Portfolio**: Portfolio management and Alpaca integration
+- **Research**: Academic paper search functionality
+
 ## Usage Examples
 
 ### Podcast Analysis
@@ -278,7 +297,7 @@ This system builds upon your existing Python quantitative strategies:
 
 ## Performance Monitoring
 
-## 🧠 Research Agent Capabilities
+##  Research Agent Capabilities
 
 ### Market Sentiment Agent
 **Multi-Source Sentiment Analysis & Prediction**
@@ -336,7 +355,7 @@ Built-in risk controls include:
 - Diversification requirements
 - Stop-loss and take-profit management
 
-## 🤖 AI Agent Capabilities
+##  AI Agent Capabilities
 
 - **Autonomous Operation**: Self-managing job execution
 - **Adaptive Learning**: Performance-based strategy adjustment

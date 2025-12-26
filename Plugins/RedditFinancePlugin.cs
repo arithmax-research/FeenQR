@@ -11,14 +11,16 @@ namespace QuantResearchAgent.Plugins;
 public class RedditFinancePlugin
 {
     private readonly RedditScrapingService _redditService;
+    private readonly StrategyGeneratorService _strategyGenerator;
     private readonly ILogger<RedditFinancePlugin> _logger;
     
     // Target subreddits for financial analysis
     private readonly string[] _targetSubreddits = { "wallstreetbets", "quant", "quantfinance", "crypto" };
 
-    public RedditFinancePlugin(RedditScrapingService redditService, ILogger<RedditFinancePlugin> logger)
+    public RedditFinancePlugin(RedditScrapingService redditService, StrategyGeneratorService strategyGenerator, ILogger<RedditFinancePlugin> logger)
     {
         _redditService = redditService;
+        _strategyGenerator = strategyGenerator;
         _logger = logger;
     }
 
@@ -52,22 +54,22 @@ public class RedditFinancePlugin
                     
                     foreach (var post in posts.Take(postsPerSubreddit))
                     {
-                        results.Add($"\n📈 {post.Title}");
-                        results.Add($"   👤 u/{post.Author} | ⬆️ {post.Score} | 💬 {post.Comments} comments");
-                        results.Add($"   🕒 {post.CreatedUtc:yyyy-MM-dd HH:mm} UTC");
+                        results.Add($"\n{post.Title}");
+                        results.Add($"   u/{post.Author} | {post.Score} | {post.Comments} comments");
+                        results.Add($"   {post.CreatedUtc:yyyy-MM-dd HH:mm} UTC");
                         
                         if (!string.IsNullOrEmpty(post.Flair))
-                            results.Add($"   🏷️ {post.Flair}");
+                            results.Add($"   {post.Flair}");
                         
                         if (!string.IsNullOrEmpty(post.Content) && post.Content.Length > 0)
                         {
                             var preview = post.Content.Length > 200 
                                 ? post.Content.Substring(0, 200) + "..." 
                                 : post.Content;
-                            results.Add($"   📝 {preview}");
+                            results.Add($"  {preview}");
                         }
                         
-                        results.Add($"   🔗 {post.Url}");
+                        results.Add($"   {post.Url}");
                     }
                 }
                 else
@@ -95,11 +97,13 @@ public class RedditFinancePlugin
         try
         {
             var results = new List<string>();
-            results.Add($"🔍 Searching for '{symbol.ToUpper()}' mentions across financial subreddits...\n");
+            results.Add($"Searching for '{symbol.ToUpper()}' mentions across financial subreddits...\n");
 
             foreach (var subreddit in _targetSubreddits)
             {
+                _logger.LogInformation("Searching r/{Subreddit} for symbol {Symbol}", subreddit, symbol);
                 var posts = await _redditService.SearchSubredditAsync(subreddit, symbol, resultsPerSubreddit);
+                _logger.LogInformation("Found {Count} posts for {Symbol} in r/{Subreddit}", posts.Count, symbol, subreddit);
                 
                 if (posts.Any())
                 {
@@ -107,19 +111,19 @@ public class RedditFinancePlugin
                     
                     foreach (var post in posts)
                     {
-                        results.Add($"\n💰 {post.Title}");
-                        results.Add($"   👤 u/{post.Author} | ⬆️ {post.Score} | 💬 {post.Comments} comments");
-                        results.Add($"   🕒 {post.CreatedUtc:yyyy-MM-dd HH:mm} UTC");
+                        results.Add($"\n{post.Title}");
+                        results.Add($"   u/{post.Author} | {post.Score} | {post.Comments} comments");
+                        results.Add($"   {post.CreatedUtc:yyyy-MM-dd HH:mm} UTC");
                         
                         if (!string.IsNullOrEmpty(post.Content) && post.Content.Length > 0)
                         {
                             var preview = post.Content.Length > 150 
                                 ? post.Content.Substring(0, 150) + "..." 
                                 : post.Content;
-                            results.Add($"   📝 {preview}");
+                            results.Add($"   {preview}");
                         }
                         
-                        results.Add($"   🔗 {post.Url}");
+                        results.Add($"   {post.Url}");
                     }
                     results.Add("");
                 }
@@ -148,7 +152,7 @@ public class RedditFinancePlugin
         try
         {
             var results = new List<string>();
-            results.Add($"📊 Sentiment Analysis for '{symbol.ToUpper()}' across financial subreddits\n");
+            results.Add($"Sentiment Analysis for '{symbol.ToUpper()}' across financial subreddits\n");
 
             var overallStats = new
             {
@@ -170,13 +174,13 @@ public class RedditFinancePlugin
                     results.Add($"=== r/{subreddit} Analysis ===");
                     results.Add($"Posts Analyzed: {analysis.TotalPosts}");
                     results.Add($"Average Score: {analysis.AverageScore:F1}");
-                    results.Add($"Total Engagement: ⬆️ {analysis.TotalUpvotes} | ⬇️ {analysis.TotalDownvotes} | 💬 {analysis.TotalComments}");
+                    results.Add($"Total Engagement: {analysis.TotalUpvotes} | Downvotes {analysis.TotalDownvotes} | Comments {analysis.TotalComments}");
                     results.Add($"Sentiment: {analysis.OverallSentiment} (Score: {analysis.SentimentScore:F2})");
-                    results.Add($"Keyword Analysis: 📈 {analysis.PositiveKeywordCount} positive | 📉 {analysis.NegativeKeywordCount} negative");
+                    results.Add($"Keyword Analysis: {analysis.PositiveKeywordCount} positive | {analysis.NegativeKeywordCount} negative");
                     
                     if (analysis.TopPost != null)
                     {
-                        results.Add($"🔥 Top Post: \"{analysis.TopPost.Title}\" ({analysis.TopPost.Score} points)");
+                        results.Add($"Top Post: \"{analysis.TopPost.Title}\" ({analysis.TopPost.Score} points)");
                     }
                     
                     results.Add("");
@@ -217,8 +221,8 @@ public class RedditFinancePlugin
         try
         {
             var results = new List<string>();
-            results.Add("🌍 Market Pulse - Financial Reddit Community Overview\n");
-            results.Add($"📅 Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC\n");
+            results.Add("Market Pulse - Financial Reddit Community Overview\n");
+            results.Add($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC\n");
 
             var communityStats = new Dictionary<string, object>();
 
@@ -233,10 +237,10 @@ public class RedditFinancePlugin
                     var totalEngagement = posts.Sum(p => p.Comments + p.Upvotes);
 
                     results.Add($"=== r/{subreddit} Community Pulse ===");
-                    results.Add($"📊 Posts Analyzed: {posts.Count}");
-                    results.Add($"📈 Average Score: {avgScore:F1}");
-                    results.Add($"🎯 Total Engagement: {totalEngagement:N0}");
-                    results.Add($"🔥 Hottest Topic: \"{topPost.Title}\" ({topPost.Score} points, {topPost.Comments} comments)");
+                    results.Add($"Posts Analyzed: {posts.Count}");
+                    results.Add($"Average Score: {avgScore:F1}");
+                    results.Add($"Total Engagement: {totalEngagement:N0}");
+                    results.Add($"Hottest Topic: \"{topPost.Title}\" ({topPost.Score} points, {topPost.Comments} comments)");
                     
                     // Identify trending topics by looking at common keywords in titles
                     var commonWords = posts
@@ -251,7 +255,7 @@ public class RedditFinancePlugin
 
                     if (commonWords.Any())
                     {
-                        results.Add($"🏷️ Trending Keywords: {string.Join(", ", commonWords)}");
+                        results.Add($"Trending Keywords: {string.Join(", ", commonWords)}");
                     }
                     
                     results.Add("");
@@ -260,7 +264,7 @@ public class RedditFinancePlugin
 
             results.Add("=== Quick Market Insights ===");
             results.Add("Use specific search commands to dive deeper into any trending topics or symbols.");
-            results.Add("💡 Tip: Try searching for specific tickers mentioned in the trending keywords above.");
+            results.Add("Tip: Try searching for specific tickers mentioned in the trending keywords above.");
 
             return string.Join("\n", results);
         }
@@ -268,6 +272,29 @@ public class RedditFinancePlugin
         {
             _logger.LogError(ex, "Failed to get market pulse");
             return "Error generating market pulse. Please try again later.";
+        }
+    }
+
+    [KernelFunction]
+    [Description("Generate trading strategy based on Reddit sentiment and discussions using DeepSeek AI")]
+    public async Task<string> GenerateStrategyFromRedditAsync(
+        [Description("Specific subreddit to analyze (optional): wallstreetbets, quant, quantfinance, or crypto")] string? targetSubreddit = null,
+        [Description("Number of posts to analyze (default: 20)")] int postsToAnalyze = 20)
+    {
+        try
+        {
+            // Get trending posts data
+            string redditData = await GetTrendingFinancialPostsAsync(postsToAnalyze, targetSubreddit);
+            
+            // Generate strategy using DeepSeek
+            string strategy = await _strategyGenerator.GenerateStrategyAsync(redditData, "Reddit");
+            
+            return $"Strategy generated from Reddit analysis:\n\n{strategy}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate strategy from Reddit");
+            return "Error generating strategy from Reddit data. Please try again later.";
         }
     }
 

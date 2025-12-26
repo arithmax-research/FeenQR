@@ -1,16 +1,22 @@
 #!/bin/bash
 
-# Arithmax Research Agent - CLI Launcher
-# Direct CLI mode - simplified launcher
+# Arithmax Research Agent - Launcher
+# Supports both CLI and Web modes
 
-echo "Arithmax Research Agent - CLI Mode"
-echo "==================================="
+echo "Arithmax Research Agent"
+echo "======================="
 echo ""
 
 # Check if we're in the right directory
 if [ ! -f "QuantResearchAgent.csproj" ]; then
     echo " Error: Please run this script from the ArithmaxResearchChest root directory"
     exit 1
+fi
+
+# Check for mode argument
+MODE="cli"
+if [ "$1" = "web" ]; then
+    MODE="web"
 fi
 
 echo " Building backend..."
@@ -23,8 +29,15 @@ fi
 
 echo " Backend built successfully"
 echo ""
-echo " Starting CLI interface..."
-echo ""
 
-# Run in CLI mode (no --web flag)
-dotnet run --project QuantResearchAgent.csproj
+if [ "$MODE" = "web" ]; then
+    echo " Starting Web interface..."
+    echo " Backend API will be available at http://localhost:5000"
+    echo " Frontend will be available at http://localhost:5000"
+    echo ""
+    dotnet run --project QuantResearchAgent.csproj -- --web
+else
+    echo " Starting CLI interface..."
+    echo ""
+    dotnet run --project QuantResearchAgent.csproj
+fi

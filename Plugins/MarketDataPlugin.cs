@@ -178,7 +178,7 @@ public class MarketDataPlugin
             {
                 var data = sortedData[i];
                 var indicator = data.ChangePercent24h >= 0 ? "" : "TREND:";
-                var position = i == 0 ? "🥇" : i == 1 ? "🥈" : i == 2 ? "🥉" : $"{i + 1}.";
+                var position = i == 0 ? "" : i == 1 ? "" : i == 2 ? "" : $"{i + 1}.";
                 
                 result += $"{position} {indicator} {data.Symbol}\n" +
                          $"   Price: ${data.Price:F2}\n" +

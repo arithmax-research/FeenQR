@@ -1,3 +1,4 @@
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
@@ -31,6 +32,15 @@ public class AgentOrchestrator
     private readonly AlpacaService _alpacaService;
     private readonly TechnicalAnalysisService _technicalAnalysisService;
     private readonly RedditScrapingService _redditScrapingService;
+    private readonly StrategyGeneratorService _strategyGeneratorService;
+    private readonly TradingTemplateGeneratorAgent _tradingTemplateGeneratorAgent;
+    private readonly StatisticalTestingService _statisticalTestingService;
+    private readonly TimeSeriesForecastingService _forecastingService;
+    private readonly FeatureEngineeringService _featureEngineeringService;
+    private readonly ModelValidationService _modelValidationService;
+    private readonly FactorModelService _factorModelService;
+    private readonly AdvancedOptimizationService _advancedOptimizationService;
+    private readonly AdvancedRiskService _advancedRiskService;
     
     private readonly ConcurrentQueue<AgentJob> _jobQueue = new();
     private readonly ConcurrentDictionary<string, AgentJob> _runningJobs = new();
@@ -54,8 +64,17 @@ public class AgentOrchestrator
         AlpacaService alpacaService,
         TechnicalAnalysisService technicalAnalysisService,
         RedditScrapingService redditScrapingService,
+        StrategyGeneratorService strategyGeneratorService,
+        TradingTemplateGeneratorAgent tradingTemplateGeneratorAgent,
         IConfiguration? configuration = null,
-        ILogger<AgentOrchestrator>? logger = null)
+        ILogger<AgentOrchestrator>? logger = null,
+        StatisticalTestingService? statisticalTestingService = null,
+        TimeSeriesForecastingService? forecastingService = null,
+        FeatureEngineeringService? featureEngineeringService = null,
+        ModelValidationService? modelValidationService = null,
+        FactorModelService? factorModelService = null,
+        AdvancedOptimizationService? advancedOptimizationService = null,
+        AdvancedRiskService? advancedRiskService = null)
     {
         _kernel = kernel;
         _youtubeService = youtubeService;
@@ -71,6 +90,15 @@ public class AgentOrchestrator
         _alpacaService = alpacaService;
         _technicalAnalysisService = technicalAnalysisService;
         _redditScrapingService = redditScrapingService;
+        _strategyGeneratorService = strategyGeneratorService;
+        _tradingTemplateGeneratorAgent = tradingTemplateGeneratorAgent;
+        _statisticalTestingService = statisticalTestingService ?? throw new ArgumentNullException(nameof(statisticalTestingService));
+        _forecastingService = forecastingService ?? throw new ArgumentNullException(nameof(forecastingService));
+        _featureEngineeringService = featureEngineeringService ?? throw new ArgumentNullException(nameof(featureEngineeringService));
+        _modelValidationService = modelValidationService ?? throw new ArgumentNullException(nameof(modelValidationService));
+        _factorModelService = factorModelService ?? throw new ArgumentNullException(nameof(factorModelService));
+        _advancedOptimizationService = advancedOptimizationService ?? throw new ArgumentNullException(nameof(advancedOptimizationService));
+        _advancedRiskService = advancedRiskService ?? throw new ArgumentNullException(nameof(advancedRiskService));
         _configuration = configuration;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentOrchestrator>.Instance;
 
@@ -89,9 +117,27 @@ public class AgentOrchestrator
         kernel.Plugins.AddFromObject(new AlpacaPlugin(_alpacaService));
         kernel.Plugins.AddFromObject(new TechnicalAnalysisPlugin(_technicalAnalysisService));
         
+        // Register statistical testing plugin
+        kernel.Plugins.AddFromObject(new StatisticalTestingPlugin(_statisticalTestingService));
+        
+        // Register Phase 2 ML plugins
+        kernel.Plugins.AddFromObject(new ForecastingPlugin(_forecastingService));
+        kernel.Plugins.AddFromObject(new FeatureEngineeringPlugin(_featureEngineeringService));
+        kernel.Plugins.AddFromObject(new ModelValidationPlugin(_modelValidationService));
+
+        // Register Phase 3 Factor Model plugin
+        kernel.Plugins.AddFromObject(new FactorModelPlugin(_factorModelService));
+
+        // Register Phase 3.2 Advanced Optimization plugins
+        kernel.Plugins.AddFromObject(new AdvancedOptimizationPlugin(_advancedOptimizationService));
+
+        // Register Phase 3.3 Advanced Risk plugins
+        kernel.Plugins.AddFromObject(new AdvancedRiskPlugin(_advancedRiskService));
+        
         // Register research agent plugins
         kernel.Plugins.AddFromObject(new MarketSentimentPlugin(_marketSentimentAgent));
         kernel.Plugins.AddFromObject(new StatisticalPatternPlugin(_statisticalPatternAgent));
+        kernel.Plugins.AddFromObject(new TradingTemplateGeneratorPlugin(_tradingTemplateGeneratorAgent));
         
         // Register consolidated plugins from redundant projects
         kernel.Plugins.AddFromObject(new CompanyValuationPlugin(_companyValuationService));
@@ -100,7 +146,7 @@ public class AgentOrchestrator
         
         // Register Reddit Finance Plugin for monitoring financial subreddits
         var redditPluginLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<RedditFinancePlugin>.Instance;
-        kernel.Plugins.AddFromObject(new RedditFinancePlugin(_redditScrapingService, redditPluginLogger), "RedditFinancePlugin");
+        kernel.Plugins.AddFromObject(new RedditFinancePlugin(_redditScrapingService, _strategyGeneratorService, redditPluginLogger), "RedditFinancePlugin");
         
         // Register General AI Plugin for analysis
         kernel.Plugins.AddFromObject(new GeneralAIPlugin(_kernel));

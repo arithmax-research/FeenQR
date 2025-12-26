@@ -50,6 +50,30 @@ public class AlpacaService
         }
     }
 
+    /// <summary>
+    /// Return a short diagnostics string summarizing Alpaca configuration and client initialization state.
+    /// Useful for surface-level debugging when no market data is returned.
+    /// </summary>
+    public string GetDiagnostics()
+    {
+        try
+        {
+            var apiKey = _configuration["Alpaca:ApiKey"];
+            var secretKey = _configuration["Alpaca:SecretKey"];
+            var isPaperTrading = _configuration.GetValue<bool>("Alpaca:IsPaperTrading", true);
+
+            var keysConfigured = !string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(secretKey) && apiKey != "YOUR_ALPACA_API_KEY" && secretKey != "YOUR_ALPACA_SECRET_KEY";
+            var clientInitialized = _dataClient != null;
+
+            return $"Alpaca Diagnostics: KeysConfigured={keysConfigured}, DataClientInitialized={clientInitialized}, IsPaperTrading={isPaperTrading}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error building Alpaca diagnostics");
+            return $"Alpaca Diagnostics: error building diagnostics: {ex.Message}";
+        }
+    }
+
     public async Task<MarketData?> GetMarketDataAsync(string symbol)
     {
         try

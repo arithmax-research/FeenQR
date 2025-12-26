@@ -17,14 +17,14 @@ try:
 except ImportError:
     raise ImportError("Please install databento: pip install databento")
 
-from config import (
+from .config import (
     DATA_BENTO_API_KEY,
-    DATA_BENTO_USER_ID, 
+    DATA_BENTO_USER_ID,
     DATA_BENTO_PROD_NAME,
     DATA_ROOT,
     LEAN_PRICE_MULTIPLIER,
 )
-from utils import ensure_directory_exists, setup_logging
+from .utils import ensure_directory_exists, setup_logging
 
 
 class DatabentoFuturesDownloader:
@@ -151,15 +151,55 @@ class DatabentoFuturesDownloader:
             
             self.logger.info(f"Fetching {symbol} (Databento: {databento_symbol}) futures data from {start_date.date()} to {end_date.date()} with schema {schema_to_use.name}")
             
-            # Download data from Databento  
-            data = self.client.timeseries.get_range(
-                dataset='GLBX.MDP3',  # CME Globex dataset
-                symbols=databento_symbol,  # Use the converted symbol format
-                schema=schema_to_use,
-                start=start_date.strftime('%Y-%m-%d'),
-                end=end_date.strftime('%Y-%m-%d'),
-                stype_in=SType.CONTINUOUS if '.c.' in databento_symbol else SType.RAW_SYMBOL
-            )
+            # Download data from Databento
+            start_str = start_date.strftime('%Y-%m-%d')
+            end_str = end_date.strftime('%Y-%m-%d')
+
+            try:
+                data = self.client.timeseries.get_range(
+                    dataset='GLBX.MDP3',  # CME Globex dataset
+                    symbols=databento_symbol,  # Use the converted symbol format
+                    schema=schema_to_use,
+                    start=start_str,
+                    end=end_str,
+                    stype_in=SType.CONTINUOUS if '.c.' in databento_symbol else SType.RAW_SYMBOL
+                )
+            except Exception as e:
+                # Databento may return a 422 with available_start/available_end in the message
+                # e.g. schema not available for requested period. Try to parse available_end
+                # from the error and retry with a clipped end date.
+                import re
+                msg = str(e)
+                match = re.search(r'"available_end"\s*:\s*"([0-9T:\.\-Z]+)"', msg)
+                if match:
+                    try:
+                        available_end_str = match.group(1)
+                        # Parse RFC3339-ish timestamp; handle trailing Z
+                        if available_end_str.endswith('Z'):
+                            available_end = datetime.fromisoformat(available_end_str.replace('Z', '+00:00'))
+                        else:
+                            available_end = datetime.fromisoformat(available_end_str)
+
+                        # Clip the requested end date to available_end (use datetime comparison)
+                        clipped_end_date = min(end_date, available_end)
+                        clipped_end_str = clipped_end_date.strftime('%Y-%m-%d')
+                        self.logger.warning(f"Requested end {end_str} beyond dataset availability; retrying with end={clipped_end_str}")
+
+                        # Retry the request once with clipped end
+                        data = self.client.timeseries.get_range(
+                            dataset='GLBX.MDP3',
+                            symbols=databento_symbol,
+                            schema=schema_to_use,
+                            start=start_str,
+                            end=clipped_end_str,
+                            stype_in=SType.CONTINUOUS if '.c.' in databento_symbol else SType.RAW_SYMBOL
+                        )
+                    except Exception:
+                        self.logger.error(f"Databento request failed and could not parse available_end: {e}")
+                        return pd.DataFrame()
+                else:
+                    self.logger.error(f"Databento request failed: {e}")
+                    return pd.DataFrame()
             
             # Convert to DataFrame
             if data is None:

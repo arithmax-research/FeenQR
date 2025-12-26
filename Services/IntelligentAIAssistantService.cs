@@ -273,7 +273,7 @@ Return your analysis in this JSON format:
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️ Failed to parse analysis JSON: {ex.Message}");
+                Console.WriteLine($" Failed to parse analysis JSON: {ex.Message}");
             }
 
             // Fallback analysis
