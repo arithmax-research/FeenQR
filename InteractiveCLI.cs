@@ -7527,11 +7527,12 @@ public class InteractiveCLI
         PrintSectionHeader($"Corporate Actions: {symbol}");
         try
         {
-            // Get historical prices
-            var historicalData = await _marketDataService.GetHistoricalDataAsync(symbol, 1000); // Get plenty of data
+            // Get historical prices with Yahoo Finance fallback for corporate action analysis
+            var historicalData = await _marketDataService.GetHistoricalDataWithYahooFallbackAsync(symbol, 1000); // Get plenty of data
             if (historicalData == null || !historicalData.Any())
             {
                 Console.WriteLine("No historical data available for corporate action analysis.");
+                Console.WriteLine("Please check your internet connection or ensure the symbol is valid.");
                 return;
             }
 
@@ -7542,7 +7543,8 @@ public class InteractiveCLI
 
             if (!filteredData.Any())
             {
-                Console.WriteLine("No data available for the specified date range.");
+                Console.WriteLine($"No data available for the specified date range ({startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}).");
+                Console.WriteLine($"Available data range: {historicalData.Min(d => d.Timestamp):yyyy-MM-dd} to {historicalData.Max(d => d.Timestamp):yyyy-MM-dd}");
                 return;
             }
 

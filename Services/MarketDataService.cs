@@ -599,6 +599,38 @@ public class MarketDataService
         }
         return fallbackData;
     }
+
+    /// <summary>
+    /// Gets historical data with Yahoo Finance fallback for corporate action analysis
+    /// </summary>
+    public async Task<List<MarketData>?> GetHistoricalDataWithYahooFallbackAsync(string symbol, int limit)
+    {
+        try
+        {
+            // First try local data
+            var data = FetchStockHistoricalData(symbol, limit);
+            if (data != null && data.Any())
+            {
+                // Filter: exclude the most recent minute, and only include up to 5 years ago
+                var now = DateTime.UtcNow;
+                var fiveYearsAgo = now.AddYears(-5);
+                data = data.Where(d => d.Timestamp < now.AddMinutes(-1) && d.Timestamp >= fiveYearsAgo)
+                           .OrderBy(d => d.Timestamp)
+                           .TakeLast(limit)
+                           .ToList();
+                return data;
+            }
+
+            // Fallback to Yahoo Finance for corporate action analysis
+            _logger.LogInformation($"No local data found for {symbol}, falling back to Yahoo Finance");
+            return await FetchYahooFinanceHistoricalData(symbol, limit);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error fetching historical data with Yahoo fallback for {symbol}");
+            return null;
+        }
+    }
 }
 
 // DTOs for Binance API responses
