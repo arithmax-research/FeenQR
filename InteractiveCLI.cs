@@ -55,6 +55,8 @@ public class InteractiveCLI
     private readonly MarketImpactService _marketImpactService;
     private readonly ExecutionService _executionService;
     private readonly MonteCarloService _monteCarloService;
+    private readonly StrategyBuilderService _strategyBuilderService;
+    private readonly NotebookService _notebookService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -95,7 +97,9 @@ public class InteractiveCLI
         OrderBookAnalysisService orderBookAnalysisService,
         MarketImpactService marketImpactService,
         ExecutionService executionService,
-        MonteCarloService monteCarloService)
+        MonteCarloService monteCarloService,
+        StrategyBuilderService strategyBuilderService,
+        NotebookService notebookService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -136,6 +140,8 @@ public class InteractiveCLI
         _marketImpactService = marketImpactService;
         _executionService = executionService;
         _monteCarloService = monteCarloService;
+        _strategyBuilderService = strategyBuilderService;
+        _notebookService = notebookService;
     }
 
     public async Task RunAsync()
@@ -238,9 +244,16 @@ public class InteractiveCLI
         Console.WriteLine(" 92. iceberg-order [quantity] [display] [slices] [interval] - Create iceberg order");
         Console.WriteLine(" 93. smart-routing [symbol] [quantity] [type] - Smart order routing decision");
         Console.WriteLine(" 94. execution-optimization [symbol] [shares] [urgency] - Optimize execution parameters");
-        Console.WriteLine(" 95. clear - Clear terminal and show menu");
-        Console.WriteLine(" 96. help - Show available functions");
-        Console.WriteLine(" 97. quit - Exit the application");
+        Console.WriteLine(" 95. portfolio-monte-carlo [symbols] [simulations] [time_horizon] - Monte Carlo portfolio simulation");
+        Console.WriteLine(" 96. option-monte-carlo [option_type] [spot_price] [strike] [time] [vol] [rate] [sims] - Monte Carlo option pricing");
+        Console.WriteLine(" 97. scenario-analysis [symbols] [returns] [shocks] - Scenario analysis with custom shocks");
+        Console.WriteLine(" 98. build-strategy [strategy_type] [parameters] - Build interactive trading strategy");
+        Console.WriteLine(" 99. optimize-strategy [strategy_id] [param_ranges] - Optimize strategy parameters");
+        Console.WriteLine("100. create-notebook [name] [description] - Create research notebook");
+        Console.WriteLine("101. execute-notebook [notebook_id] - Execute research notebook");
+        Console.WriteLine("102. clear - Clear terminal and show menu");
+        Console.WriteLine("103. help - Show available functions");
+        Console.WriteLine("104. quit - Exit the application");
         Console.WriteLine();
 
         while (true)
@@ -678,6 +691,18 @@ public class InteractiveCLI
                 case "scenario-analysis":
                     await ScenarioAnalysisCommand(parts);
                     break;
+                case "build-strategy":
+                    await BuildStrategyCommand(parts);
+                    break;
+                case "optimize-strategy":
+                    await OptimizeStrategyCommand(parts);
+                    break;
+                case "create-notebook":
+                    await CreateNotebookCommand(parts);
+                    break;
+                case "execute-notebook":
+                    await ExecuteNotebookCommand(parts);
+                    break;
                 case "clear":
                     await ClearCommand();
                     break;
@@ -886,9 +911,13 @@ public class InteractiveCLI
         Console.WriteLine(" 95. portfolio-monte-carlo [symbols] [simulations] [time_horizon] - Monte Carlo portfolio simulation");
         Console.WriteLine(" 96. option-monte-carlo [option_type] [spot_price] [strike] [time] [vol] [rate] [sims] - Monte Carlo option pricing");
         Console.WriteLine(" 97. scenario-analysis [symbols] [returns] [shocks] - Scenario analysis with custom shocks");
-        Console.WriteLine(" 98. clear - Clear terminal and show menu");
-        Console.WriteLine(" 99. help - Show available functions");
-        Console.WriteLine("100. quit - Exit the application");
+        Console.WriteLine(" 98. build-strategy [strategy_type] [parameters] - Build interactive trading strategy");
+        Console.WriteLine(" 99. optimize-strategy [strategy_id] [param_ranges] - Optimize strategy parameters");
+        Console.WriteLine("100. create-notebook [name] [description] - Create research notebook");
+        Console.WriteLine("101. execute-notebook [notebook_id] - Execute research notebook");
+        Console.WriteLine("102. clear - Clear terminal and show menu");
+        Console.WriteLine("103. help - Show available functions");
+        Console.WriteLine("104. quit - Exit the application");
         Console.WriteLine();
 
         await Task.CompletedTask;
@@ -1045,6 +1074,95 @@ public class InteractiveCLI
         }
     }
 
+    private async Task BuildStrategyCommand(string[] parts)
+    {
+        try
+        {
+            PrintSectionHeader("Interactive Strategy Builder");
+            Console.WriteLine("This command builds trading strategies interactively.");
+            Console.WriteLine("Use the Strategy Builder plugin for full functionality:");
+            Console.WriteLine("build_interactive_strategy with JSON parameters");
+            PrintSectionFooter();
+        }
+        catch (Exception ex)
+        {
+            PrintSectionHeader("Error");
+            Console.WriteLine($"Strategy building failed: {ex.Message}");
+            PrintSectionFooter();
+        }
+    }
+
+    private async Task OptimizeStrategyCommand(string[] parts)
+    {
+        try
+        {
+            PrintSectionHeader("Strategy Optimization");
+            Console.WriteLine("This command optimizes trading strategy parameters.");
+            Console.WriteLine("Use the Strategy Builder plugin for full functionality:");
+            Console.WriteLine("optimize_strategy_parameters with JSON parameters");
+            PrintSectionFooter();
+        }
+        catch (Exception ex)
+        {
+            PrintSectionHeader("Error");
+            Console.WriteLine($"Strategy optimization failed: {ex.Message}");
+            PrintSectionFooter();
+        }
+    }
+
+    private async Task CreateNotebookCommand(string[] parts)
+    {
+        try
+        {
+            if (parts.Length < 2)
+            {
+                PrintSectionHeader("Create Research Notebook");
+                Console.WriteLine("Usage: create-notebook [name] [description]");
+                Console.WriteLine("Example: create-notebook \"My Research\" \"Portfolio analysis notebook\"");
+                PrintSectionFooter();
+                return;
+            }
+
+            var name = parts[1];
+            var description = parts.Length > 2 ? string.Join(" ", parts.Skip(2)) : "";
+
+            PrintSectionHeader($"Creating Research Notebook: {name}");
+            Console.WriteLine($"Description: {description}");
+
+            var notebook = _notebookService.CreateNotebook(name, description);
+
+            Console.WriteLine($"Notebook created successfully!");
+            Console.WriteLine($"ID: {notebook.Id}");
+            Console.WriteLine($"Cells: {notebook.Cells.Count}");
+
+            PrintSectionFooter();
+        }
+        catch (Exception ex)
+        {
+            PrintSectionHeader("Error");
+            Console.WriteLine($"Notebook creation failed: {ex.Message}");
+            PrintSectionFooter();
+        }
+    }
+
+    private async Task ExecuteNotebookCommand(string[] parts)
+    {
+        try
+        {
+            PrintSectionHeader("Execute Research Notebook");
+            Console.WriteLine("This command executes all cells in a research notebook.");
+            Console.WriteLine("Use the Notebook plugin for full functionality:");
+            Console.WriteLine("execute_notebook with notebook ID");
+            PrintSectionFooter();
+        }
+        catch (Exception ex)
+        {
+            PrintSectionHeader("Error");
+            Console.WriteLine($"Notebook execution failed: {ex.Message}");
+            PrintSectionFooter();
+        }
+    }
+
     private async Task YahooDataCommand(string[] parts)
     {
         var symbol = parts.Length > 1 ? parts[1] : "AAPL";
@@ -1098,7 +1216,9 @@ public class InteractiveCLI
         var marketImpactService = serviceProvider.GetRequiredService<MarketImpactService>();
         var executionService = serviceProvider.GetRequiredService<ExecutionService>();
         var monteCarloService = serviceProvider.GetRequiredService<MonteCarloService>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService));
+        var strategyBuilderService = serviceProvider.GetRequiredService<StrategyBuilderService>();
+        var notebookService = serviceProvider.GetRequiredService<NotebookService>();
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService));
     }
 
     // Alpaca Commands
