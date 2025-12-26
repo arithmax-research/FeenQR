@@ -228,7 +228,17 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<AutoMLService>(),
                     sp.GetRequiredService<ModelInterpretabilityService>(),
                     sp.GetRequiredService<ReinforcementLearningService>(),
-                    sp.GetRequiredService<FIXService>()
+                    sp.GetRequiredService<FIXService>(),
+                    sp.GetRequiredService<WebIntelligenceService>(),
+                    sp.GetRequiredService<PatentAnalysisService>(),
+                    sp.GetRequiredService<FederalReserveService>(),
+                    sp.GetRequiredService<GlobalEconomicService>(),
+                    sp.GetRequiredService<GeopoliticalRiskService>(),
+                    sp.GetRequiredService<WebIntelligencePlugin>(),
+                    sp.GetRequiredService<PatentAnalysisPlugin>(),
+                    sp.GetRequiredService<FederalReservePlugin>(),
+                    sp.GetRequiredService<GlobalEconomicPlugin>(),
+                    sp.GetRequiredService<GeopoliticalRiskPlugin>()
                 )
             );
 
@@ -268,9 +278,16 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<StrategyBuilderService>(),
                     sp.GetRequiredService<NotebookService>(),
                     sp.GetRequiredService<FREDService>(),
+                    sp.GetRequiredService<IMFService>(),
+                    sp.GetRequiredService<OECDService>(),
                     sp.GetRequiredService<WorldBankService>(),
                     sp.GetRequiredService<AdvancedAlpacaService>(),
-                    sp.GetRequiredService<FIXService>()
+                    sp.GetRequiredService<FIXService>(),
+                    sp.GetRequiredService<WebIntelligenceService>(),
+                    sp.GetRequiredService<PatentAnalysisService>(),
+                    sp.GetRequiredService<FederalReserveService>(),
+                    sp.GetRequiredService<GlobalEconomicService>(),
+                    sp.GetRequiredService<GeopoliticalRiskService>()
                 )
             );
             services.AddSingleton<YouTubeAnalysisService>();
@@ -363,6 +380,20 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<IConfiguration>()
                 )
             );
+            services.AddSingleton<IMFService>(sp =>
+                new IMFService(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<IMFService>>(),
+                    sp.GetRequiredService<IConfiguration>()
+                )
+            );
+            services.AddSingleton<OECDService>(sp =>
+                new OECDService(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<OECDService>>(),
+                    sp.GetRequiredService<IConfiguration>()
+                )
+            );
             services.AddSingleton<WorldBankService>(sp =>
                 new WorldBankService(
                     sp.GetRequiredService<HttpClient>(),
@@ -385,6 +416,20 @@ namespace QuantResearchAgent
             services.AddSingleton<AutoMLService>();
             services.AddSingleton<ModelInterpretabilityService>();
             services.AddSingleton<ReinforcementLearningService>();
+
+            // Add Phase 10 Web & Alternative Data Integration services
+            services.AddSingleton<WebIntelligenceService>();
+            services.AddSingleton<PatentAnalysisService>();
+            services.AddSingleton<FederalReserveService>();
+            services.AddSingleton<GlobalEconomicService>();
+            services.AddSingleton<GeopoliticalRiskService>();
+
+            // Add Phase 10 Web & Alternative Data Integration plugins
+            services.AddSingleton<WebIntelligencePlugin>();
+            services.AddSingleton<PatentAnalysisPlugin>();
+            services.AddSingleton<FederalReservePlugin>();
+            services.AddSingleton<GlobalEconomicPlugin>();
+            services.AddSingleton<GeopoliticalRiskPlugin>();
 
             // Add Phase 8.3 FIX Protocol service
             services.AddSingleton<FIXService>();

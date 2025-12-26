@@ -48,9 +48,16 @@ public class AgentOrchestrator
     private readonly StrategyBuilderService _strategyBuilderService;
     private readonly NotebookService _notebookService;
     private readonly FREDService _fredService;
+    private readonly IMFService _imfService;
+    private readonly OECDService _oecdService;
     private readonly WorldBankService _worldBankService;
     private readonly AdvancedAlpacaService _advancedAlpacaService;
     private readonly FIXService _fixService;
+    private readonly WebIntelligenceService _webIntelligenceService;
+    private readonly PatentAnalysisService _patentAnalysisService;
+    private readonly FederalReserveService _federalReserveService;
+    private readonly GlobalEconomicService _globalEconomicService;
+    private readonly GeopoliticalRiskService _geopoliticalRiskService;
     
     private readonly ConcurrentQueue<AgentJob> _jobQueue = new();
     private readonly ConcurrentDictionary<string, AgentJob> _runningJobs = new();
@@ -92,9 +99,16 @@ public class AgentOrchestrator
         StrategyBuilderService? strategyBuilderService = null,
         NotebookService? notebookService = null,
         FREDService? fredService = null,
+        IMFService? imfService = null,
+        OECDService? oecdService = null,
         WorldBankService? worldBankService = null,
         AdvancedAlpacaService? advancedAlpacaService = null,
-        FIXService? fixService = null)
+        FIXService? fixService = null,
+        WebIntelligenceService? webIntelligenceService = null,
+        PatentAnalysisService? patentAnalysisService = null,
+        FederalReserveService? federalReserveService = null,
+        GlobalEconomicService? globalEconomicService = null,
+        GeopoliticalRiskService? geopoliticalRiskService = null)
     {
         _kernel = kernel;
         _youtubeService = youtubeService;
@@ -126,9 +140,16 @@ public class AgentOrchestrator
         _strategyBuilderService = strategyBuilderService ?? throw new ArgumentNullException(nameof(strategyBuilderService));
         _notebookService = notebookService ?? throw new ArgumentNullException(nameof(notebookService));
         _fredService = fredService ?? throw new ArgumentNullException(nameof(fredService));
+        _imfService = imfService ?? throw new ArgumentNullException(nameof(imfService));
+        _oecdService = oecdService ?? throw new ArgumentNullException(nameof(oecdService));
         _worldBankService = worldBankService ?? throw new ArgumentNullException(nameof(worldBankService));
         _advancedAlpacaService = advancedAlpacaService ?? throw new ArgumentNullException(nameof(advancedAlpacaService));
         _fixService = fixService ?? throw new ArgumentNullException(nameof(fixService));
+        _webIntelligenceService = webIntelligenceService ?? throw new ArgumentNullException(nameof(webIntelligenceService));
+        _patentAnalysisService = patentAnalysisService ?? throw new ArgumentNullException(nameof(patentAnalysisService));
+        _federalReserveService = federalReserveService ?? throw new ArgumentNullException(nameof(federalReserveService));
+        _globalEconomicService = globalEconomicService ?? throw new ArgumentNullException(nameof(globalEconomicService));
+        _geopoliticalRiskService = geopoliticalRiskService ?? throw new ArgumentNullException(nameof(geopoliticalRiskService));
         _configuration = configuration;
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AgentOrchestrator>.Instance;
 
@@ -191,6 +212,8 @@ public class AgentOrchestrator
 
         // Register Phase 8 Free Institutional Data plugins
         kernel.Plugins.AddFromObject(new FREDEconomicPlugin(_fredService));
+        kernel.Plugins.AddFromObject(new IMFEconomicPlugin(_imfService));
+        kernel.Plugins.AddFromObject(new OECEconomicPlugin(_oecdService));
         kernel.Plugins.AddFromObject(new WorldBankEconomicPlugin(_worldBankService));
         kernel.Plugins.AddFromObject(new AdvancedAlpacaPlugin(_advancedAlpacaService));
 
@@ -198,7 +221,12 @@ public class AgentOrchestrator
         var fixPluginLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<QuantResearchAgent.Plugins.FIXPlugin>.Instance;
         kernel.Plugins.AddFromObject(new FIXPlugin(_fixService, fixPluginLogger));
 
-        // Plugins registered successfully
+        // Register Phase 10 Web & Alternative Data Integration plugins
+        kernel.Plugins.AddFromObject(new WebIntelligencePlugin(_webIntelligenceService));
+        kernel.Plugins.AddFromObject(new PatentAnalysisPlugin(_patentAnalysisService));
+        kernel.Plugins.AddFromObject(new FederalReservePlugin(_federalReserveService));
+        kernel.Plugins.AddFromObject(new GlobalEconomicPlugin(_globalEconomicService));
+        kernel.Plugins.AddFromObject(new GeopoliticalRiskPlugin(_geopoliticalRiskService));
     }
 
     private void RegisterPlugins()
