@@ -80,6 +80,14 @@ public class InteractiveCLI
     private readonly FederalReservePlugin _federalReservePlugin;
     private readonly GlobalEconomicPlugin _globalEconomicPlugin;
     private readonly GeopoliticalRiskPlugin _geopoliticalRiskPlugin;
+    private readonly OptionsFlowService _optionsFlowService;
+    private readonly VolatilityTradingService _volatilityTradingService;
+    private readonly AdvancedMicrostructureService _advancedMicrostructureService;
+    private readonly LatencyArbitrageService _latencyArbitrageService;
+    private readonly OptionsFlowPlugin _optionsFlowPlugin;
+    private readonly VolatilityTradingPlugin _volatilityTradingPlugin;
+    private readonly AdvancedMicrostructurePlugin _advancedMicrostructurePlugin;
+    private readonly LatencyArbitragePlugin _latencyArbitragePlugin;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -144,7 +152,15 @@ public class InteractiveCLI
         PatentAnalysisPlugin patentAnalysisPlugin,
         FederalReservePlugin federalReservePlugin,
         GlobalEconomicPlugin globalEconomicPlugin,
-        GeopoliticalRiskPlugin geopoliticalRiskPlugin)
+        GeopoliticalRiskPlugin geopoliticalRiskPlugin,
+        OptionsFlowService optionsFlowService,
+        VolatilityTradingService volatilityTradingService,
+        AdvancedMicrostructureService advancedMicrostructureService,
+        LatencyArbitrageService latencyArbitrageService,
+        OptionsFlowPlugin optionsFlowPlugin,
+        VolatilityTradingPlugin volatilityTradingPlugin,
+        AdvancedMicrostructurePlugin advancedMicrostructurePlugin,
+        LatencyArbitragePlugin latencyArbitragePlugin)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -209,6 +225,14 @@ public class InteractiveCLI
         _federalReservePlugin = federalReservePlugin;
         _globalEconomicPlugin = globalEconomicPlugin;
         _geopoliticalRiskPlugin = geopoliticalRiskPlugin;
+        _optionsFlowService = optionsFlowService;
+        _volatilityTradingService = volatilityTradingService;
+        _advancedMicrostructureService = advancedMicrostructureService;
+        _latencyArbitrageService = latencyArbitrageService;
+        _optionsFlowPlugin = optionsFlowPlugin;
+        _volatilityTradingPlugin = volatilityTradingPlugin;
+        _advancedMicrostructurePlugin = advancedMicrostructurePlugin;
+        _latencyArbitragePlugin = latencyArbitragePlugin;
     }
 
     public async Task RunAsync()
@@ -416,6 +440,27 @@ public class InteractiveCLI
         Console.WriteLine("188. geo-risk-index [regions] - Calculate geopolitical risk index");
         Console.WriteLine("189. geo-conflicts [regions] - Monitor ongoing conflicts");
         Console.WriteLine("190. geo-stability [countries] - Analyze political stability");
+
+        Console.WriteLine();
+        Console.WriteLine("Phase 11: Derivatives & Options Analytics");
+        Console.WriteLine("==========================================");
+        Console.WriteLine("191. options-flow [symbol] [minutes] - Analyze options order flow");
+        Console.WriteLine("192. unusual-options [symbol] [threshold] - Detect unusual options activity");
+        Console.WriteLine("193. gamma-exposure [symbol] - Analyze options gamma exposure");
+        Console.WriteLine("194. options-orderbook [symbol] [strike] [expiration] [type] - Get options order book");
+        Console.WriteLine("195. volatility-surface [symbol] - Analyze volatility surface");
+        Console.WriteLine("196. vix-analysis - Analyze VIX futures and products");
+        Console.WriteLine("197. volatility-strategy [symbol] [strategy] - Calculate volatility trading strategy");
+        Console.WriteLine("198. volatility-monitor [symbol] - Monitor volatility changes");
+        Console.WriteLine("199. orderbook-reconstruction [symbol] - Reconstruct order book across exchanges");
+        Console.WriteLine("200. hft-analysis [symbol] [minutes] - Analyze high-frequency trading");
+        Console.WriteLine("201. liquidity-analysis [symbol] [order_size] - Analyze liquidity patterns");
+        Console.WriteLine("202. manipulation-detection [symbol] - Detect market manipulation");
+        Console.WriteLine("203. latency-arbitrage [symbol] - Detect latency arbitrage opportunities");
+        Console.WriteLine("204. colocation-analysis [exchange] - Analyze co-location advantages");
+        Console.WriteLine("205. order-routing [symbol] [order_type] - Analyze order routing latency");
+        Console.WriteLine("206. market-data-feeds [symbol] - Analyze market data feed quality");
+        Console.WriteLine("207. arbitrage-profitability [symbol] [capital] - Calculate arbitrage profitability");
 
         while (true)
         {
@@ -1128,6 +1173,58 @@ public class InteractiveCLI
                     break;
                 case "geo-stability":
                     await GeoStabilityCommand(parts);
+                    break;
+                // Phase 11: Derivatives & Options Analytics
+                case "options-flow":
+                    await OptionsFlowCommand(parts);
+                    break;
+                case "unusual-options":
+                    await UnusualOptionsCommand(parts);
+                    break;
+                case "gamma-exposure":
+                    await GammaExposureCommand(parts);
+                    break;
+                case "options-orderbook":
+                    await OptionsOrderBookCommand(parts);
+                    break;
+                case "volatility-surface":
+                    await VolatilitySurfaceCommand(parts);
+                    break;
+                case "vix-analysis":
+                    await VIXAnalysisCommand();
+                    break;
+                case "volatility-strategy":
+                    await VolatilityStrategyCommand(parts);
+                    break;
+                case "volatility-monitor":
+                    await VolatilityMonitorCommand(parts);
+                    break;
+                case "orderbook-reconstruction":
+                    await OrderBookReconstructionCommand(parts);
+                    break;
+                case "hft-analysis":
+                    await HFTAnalysisCommand(parts);
+                    break;
+                case "liquidity-analysis":
+                    await LiquidityAnalysisCommand(parts);
+                    break;
+                case "manipulation-detection":
+                    await ManipulationDetectionCommand(parts);
+                    break;
+                case "latency-arbitrage":
+                    await LatencyArbitrageCommand(parts);
+                    break;
+                case "colocation-analysis":
+                    await CoLocationAnalysisCommand(parts);
+                    break;
+                case "order-routing":
+                    await OrderRoutingCommand(parts);
+                    break;
+                case "market-data-feeds":
+                    await MarketDataFeedsCommand(parts);
+                    break;
+                case "arbitrage-profitability":
+                    await ArbitrageProfitabilityCommand(parts);
                     break;
                 default:
                     await ExecuteSemanticFunction(input);
@@ -9929,6 +10026,205 @@ public class InteractiveCLI
         var function = _kernel.Plugins["GeopoliticalRiskPlugin"]["AnalyzePoliticalStability"];
         var result = await _kernel.InvokeAsync(function, new() { ["countries"] = countries });
         Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    // Phase 11: Derivatives & Options Analytics Commands
+    private async Task OptionsFlowCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        var minutes = parts.Length > 2 && int.TryParse(parts[2], out var m) ? m : 60;
+        PrintSectionHeader($"Options Flow Analysis - {symbol} ({minutes} min)");
+
+        var result = await _optionsFlowPlugin.AnalyzeOptionsFlow(symbol, minutes);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task UnusualOptionsCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        var threshold = parts.Length > 2 && decimal.TryParse(parts[2], out var t) ? t : 7.0m;
+        PrintSectionHeader($"Unusual Options Activity - {symbol} (Threshold: {threshold})");
+
+        var result = await _optionsFlowPlugin.DetectUnusualActivity(symbol, threshold);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task GammaExposureCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        PrintSectionHeader($"Gamma Exposure Analysis - {symbol}");
+
+        var result = await _optionsFlowPlugin.AnalyzeGammaExposure(symbol);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task OptionsOrderBookCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: options-orderbook [symbol] [strike] [expiration YYYY-MM-DD] [type CALL/PUT]");
+            return;
+        }
+
+        var symbol = parts[1];
+        var strike = decimal.Parse(parts[2]);
+        var expiration = parts[3];
+        var optionType = parts[4].ToUpper();
+
+        PrintSectionHeader($"Options Order Book - {symbol} {optionType} {strike:C} {expiration}");
+
+        var result = await _optionsFlowPlugin.GetOptionsOrderBook(symbol, strike, expiration, optionType);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task VolatilitySurfaceCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        PrintSectionHeader($"Volatility Surface Analysis - {symbol}");
+
+        var result = await _volatilityTradingPlugin.AnalyzeVolatilitySurface(symbol);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task VIXAnalysisCommand()
+    {
+        PrintSectionHeader("VIX Futures Analysis");
+
+        var result = await _volatilityTradingPlugin.AnalyzeVIXFutures();
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task VolatilityStrategyCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: volatility-strategy [symbol] [strategy: Long Volatility/Short Volatility/Volatility Arbitrage]");
+            return;
+        }
+
+        var symbol = parts[1];
+        var strategy = string.Join(" ", parts.Skip(2));
+        PrintSectionHeader($"Volatility Strategy - {symbol} ({strategy})");
+
+        var result = await _volatilityTradingPlugin.CalculateVolatilityStrategy(symbol, strategy);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task VolatilityMonitorCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        PrintSectionHeader($"Volatility Monitor - {symbol}");
+
+        var result = await _volatilityTradingPlugin.MonitorVolatilityChanges(symbol);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task OrderBookReconstructionCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        PrintSectionHeader($"Order Book Reconstruction - {symbol}");
+
+        var result = await _advancedMicrostructurePlugin.ReconstructOrderBook(symbol);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task HFTAnalysisCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        var minutes = parts.Length > 2 && int.TryParse(parts[2], out var m) ? m : 5;
+        PrintSectionHeader($"HFT Analysis - {symbol} ({minutes} min window)");
+
+        var result = await _advancedMicrostructurePlugin.AnalyzeHighFrequencyTrading(symbol, minutes);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task LiquidityAnalysisCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        var orderSize = parts.Length > 2 && int.TryParse(parts[2], out var size) ? size : 10000;
+        PrintSectionHeader($"Liquidity Analysis - {symbol} (Order Size: {orderSize:N0})");
+
+        var result = await _advancedMicrostructurePlugin.AnalyzeLiquidity(symbol, orderSize);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task ManipulationDetectionCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        PrintSectionHeader($"Market Manipulation Detection - {symbol}");
+
+        var result = await _advancedMicrostructurePlugin.DetectMarketManipulation(symbol);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task LatencyArbitrageCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        PrintSectionHeader($"Latency Arbitrage Detection - {symbol}");
+
+        var result = await _latencyArbitragePlugin.DetectLatencyArbitrage(symbol);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task CoLocationAnalysisCommand(string[] parts)
+    {
+        var exchange = parts.Length > 1 ? parts[1] : "NYSE";
+        PrintSectionHeader($"Co-Location Analysis - {exchange}");
+
+        var result = await _latencyArbitragePlugin.AnalyzeCoLocationAdvantages(exchange);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task OrderRoutingCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: order-routing [symbol] [order_type: Market/Limit/Stop]");
+            return;
+        }
+
+        var symbol = parts[1];
+        var orderType = parts[2];
+        PrintSectionHeader($"Order Routing Analysis - {symbol} ({orderType})");
+
+        var result = await _latencyArbitragePlugin.AnalyzeOrderRouting(symbol, orderType);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task MarketDataFeedsCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        PrintSectionHeader($"Market Data Feeds Analysis - {symbol}");
+
+        var result = await _latencyArbitragePlugin.AnalyzeMarketDataFeeds(symbol);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task ArbitrageProfitabilityCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        var capital = parts.Length > 2 && decimal.TryParse(parts[2], out var cap) ? cap : 1000000m;
+        PrintSectionHeader($"Arbitrage Profitability - {symbol} (Capital: ${capital:N0})");
+
+        var result = await _latencyArbitragePlugin.CalculateArbitrageProfitability(symbol, capital);
+        Console.WriteLine(result);
         PrintSectionFooter();
     }
 }

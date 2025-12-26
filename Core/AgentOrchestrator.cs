@@ -227,6 +227,12 @@ public class AgentOrchestrator
         kernel.Plugins.AddFromObject(new FederalReservePlugin(_federalReserveService));
         kernel.Plugins.AddFromObject(new GlobalEconomicPlugin(_globalEconomicService));
         kernel.Plugins.AddFromObject(new GeopoliticalRiskPlugin(_geopoliticalRiskService));
+
+        // Register Phase 11 Derivatives & Options Analytics plugins
+        kernel.Plugins.AddFromObject(new OptionsFlowPlugin(_optionsFlowService));
+        kernel.Plugins.AddFromObject(new VolatilityTradingPlugin(_volatilityTradingService));
+        kernel.Plugins.AddFromObject(new AdvancedMicrostructurePlugin(_advancedMicrostructureService));
+        kernel.Plugins.AddFromObject(new LatencyArbitragePlugin(_latencyArbitrageService));
     }
 
     private void RegisterPlugins()

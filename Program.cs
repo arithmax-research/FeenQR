@@ -424,12 +424,24 @@ namespace QuantResearchAgent
             services.AddSingleton<GlobalEconomicService>();
             services.AddSingleton<GeopoliticalRiskService>();
 
+            // Add Phase 11 Derivatives & Options Analytics services
+            services.AddSingleton<OptionsFlowService>();
+            services.AddSingleton<VolatilityTradingService>();
+            services.AddSingleton<AdvancedMicrostructureService>();
+            services.AddSingleton<LatencyArbitrageService>();
+
             // Add Phase 10 Web & Alternative Data Integration plugins
             services.AddSingleton<WebIntelligencePlugin>();
             services.AddSingleton<PatentAnalysisPlugin>();
             services.AddSingleton<FederalReservePlugin>();
             services.AddSingleton<GlobalEconomicPlugin>();
             services.AddSingleton<GeopoliticalRiskPlugin>();
+
+            // Add Phase 11 Derivatives & Options Analytics plugins
+            services.AddSingleton<OptionsFlowPlugin>();
+            services.AddSingleton<VolatilityTradingPlugin>();
+            services.AddSingleton<AdvancedMicrostructurePlugin>();
+            services.AddSingleton<LatencyArbitragePlugin>();
 
             // Add Phase 8.3 FIX Protocol service
             services.AddSingleton<FIXService>();
