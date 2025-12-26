@@ -93,6 +93,46 @@ public class FactorModelPlugin
         }
     }
 
+    [KernelFunction, Description("Run Fama-French 5-Factor model analysis on an asset")]
+    public async Task<string> AnalyzeFamaFrench5FactorAsync(
+        [Description("The asset symbol to analyze (e.g., AAPL, MSFT)")] string symbol,
+        [Description("Start date for analysis (YYYY-MM-DD)")] string startDate,
+        [Description("End date for analysis (YYYY-MM-DD)")] string endDate)
+    {
+        try
+        {
+            if (!DateTime.TryParse(startDate, out var start) || !DateTime.TryParse(endDate, out var end))
+            {
+                return "ERROR: Invalid date format. Use YYYY-MM-DD format.";
+            }
+
+            var result = await _factorModelService.AnalyzeFamaFrench5FactorAsync(symbol, start, end);
+
+            var response = $"FAMA-FRENCH 5-FACTOR ANALYSIS: {symbol}\n\n" +
+                          $"Analysis Date: {result.AnalysisDate:yyyy-MM-dd}\n" +
+                          $"R²: {result.R2:P3}\n" +
+                          $"Alpha: {result.Alpha:P3}\n\n" +
+                          $"Factor Exposures:\n" +
+                          $"- Market Beta: {result.MarketBeta:F4}\n" +
+                          $"- Size Beta (SMB): {result.SizeBeta:F4}\n" +
+                          $"- Value Beta (HML): {result.ValueBeta:F4}\n" +
+                          $"- Profitability Beta (RMW): {result.ProfitabilityBeta:F4}\n" +
+                          $"- Investment Beta (CMA): {result.InvestmentBeta:F4}\n\n" +
+                          $"Factor Returns:\n";
+
+            foreach (var factorReturn in result.FactorReturns)
+            {
+                response += $"- {factorReturn.Key}: {factorReturn.Value:P3}\n";
+            }
+
+            return response.TrimEnd();
+        }
+        catch (Exception ex)
+        {
+            return $"ERROR: Failed to analyze Fama-French 5-Factor for {symbol}: {ex.Message}";
+        }
+    }
+
     [KernelFunction, Description("Create and analyze a custom factor model")]
     public async Task<string> CreateCustomFactorModelAsync(
         [Description("Name of the custom factor model")] string modelName,

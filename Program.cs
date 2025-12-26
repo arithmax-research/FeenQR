@@ -222,7 +222,12 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<TimezoneService>(),
                     sp.GetRequiredService<FREDService>(),
                     sp.GetRequiredService<WorldBankService>(),
-                    sp.GetRequiredService<AdvancedAlpacaService>()
+                    sp.GetRequiredService<AdvancedAlpacaService>(),
+                    sp.GetRequiredService<FactorResearchService>(),
+                    sp.GetRequiredService<AcademicResearchService>(),
+                    sp.GetRequiredService<AutoMLService>(),
+                    sp.GetRequiredService<ModelInterpretabilityService>(),
+                    sp.GetRequiredService<ReinforcementLearningService>()
                 )
             );
 
@@ -371,6 +376,13 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<AlpacaService>()
                 )
             );
+
+            // Add Phase 9 Advanced Research Tools services
+            services.AddSingleton<FactorResearchService>();
+            services.AddSingleton<AcademicResearchService>();
+            services.AddSingleton<AutoMLService>();
+            services.AddSingleton<ModelInterpretabilityService>();
+            services.AddSingleton<ReinforcementLearningService>();
 
             // Add research agents
             services.AddSingleton<NewsScrapingService>();

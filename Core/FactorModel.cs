@@ -51,6 +51,22 @@ public class Carhart4FactorModel : FamaFrench3FactorModel
 }
 
 /// <summary>
+/// Fama-French 5-Factor Model
+/// </summary>
+public class FamaFrench5FactorModel : Carhart4FactorModel
+{
+    public FamaFrench5FactorModel()
+    {
+        Name = "Fama-French 5-Factor";
+        Description = "Market, Size, Value, Profitability, and Investment factors";
+        Factors = new List<string> { "Market", "SMB", "HML", "RMW", "CMA" };
+    }
+
+    public double ProfitabilityBeta { get; set; } // RMW - Robust Minus Weak
+    public double InvestmentBeta { get; set; } // CMA - Conservative Minus Aggressive
+}
+
+/// <summary>
 /// Custom factor model for user-defined factors
 /// </summary>
 public class CustomFactorModel : FactorModel
@@ -100,4 +116,88 @@ public class FactorRegressionResult
     public Dictionary<string, double> PValues { get; set; } = new();
     public List<double> Residuals { get; set; } = new();
     public DateTime AnalysisDate { get; set; }
+}
+
+/// <summary>
+/// Custom factor for advanced factor research
+/// </summary>
+public class CustomFactor
+{
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public FactorType Type { get; set; }
+    public List<FactorDataPoint> DataPoints { get; set; } = new();
+    public FactorStatistics Statistics { get; set; } = new();
+    public DateTime CreationDate { get; set; }
+}
+
+/// <summary>
+/// Factor data point
+/// </summary>
+public class FactorDataPoint
+{
+    public DateTime Date { get; set; }
+    public string Symbol { get; set; } = string.Empty;
+    public double Value { get; set; }
+}
+
+/// <summary>
+/// Factor statistics
+/// </summary>
+public class FactorStatistics
+{
+    public double Mean { get; set; }
+    public double StandardDeviation { get; set; }
+    public double Skewness { get; set; }
+    public double Kurtosis { get; set; }
+    public double Min { get; set; }
+    public double Max { get; set; }
+    public int Count { get; set; }
+    public List<FactorDataPoint> DataPoints { get; set; } = new();
+}
+
+/// <summary>
+/// Fundamental data for factor creation
+/// </summary>
+public class FundamentalData
+{
+    public DateTime Date { get; set; }
+    public string Symbol { get; set; } = string.Empty;
+    public Dictionary<string, object> Data { get; set; } = new();
+}
+
+/// <summary>
+/// Factor portfolio for efficacy testing
+/// </summary>
+public class FactorPortfolio
+{
+    public string Name { get; set; } = string.Empty;
+    public List<string> Symbols { get; set; } = new();
+    public Dictionary<string, double> FactorValues { get; set; } = new();
+}
+
+/// <summary>
+/// Factor efficacy test results
+/// </summary>
+public class FactorEfficacyTest
+{
+    public string FactorName { get; set; } = string.Empty;
+    public DateTime TestPeriodStart { get; set; }
+    public DateTime TestPeriodEnd { get; set; }
+    public int PortfolioCount { get; set; }
+    public List<FactorPortfolio> Portfolios { get; set; } = new();
+    public List<double> FactorReturns { get; set; } = new();
+    public double SharpeRatio { get; set; }
+    public double MaxDrawdown { get; set; }
+    public double WinRate { get; set; }
+}
+
+/// <summary>
+/// Factor type enumeration
+/// </summary>
+public enum FactorType
+{
+    Fundamental,
+    Technical,
+    Composite
 }

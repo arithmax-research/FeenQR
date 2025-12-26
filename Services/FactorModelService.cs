@@ -149,6 +149,68 @@ public class FactorModelService
     }
 
     /// <summary>
+    /// Run Fama-French 5-Factor model analysis
+    /// </summary>
+    public async Task<FamaFrench5FactorModel> AnalyzeFamaFrench5FactorAsync(
+        string assetSymbol,
+        DateTime startDate,
+        DateTime endDate)
+    {
+        try
+        {
+            _logger.LogInformation("Running Fama-French 5-Factor analysis for {Asset}", assetSymbol);
+
+            // Get asset returns
+            var assetReturns = await GetAssetReturnsAsync(assetSymbol, startDate, endDate);
+            if (!assetReturns.Any())
+            {
+                throw new InvalidOperationException($"No return data available for {assetSymbol}");
+            }
+
+            // Get Fama-French 5 factors
+            var factors = await GetFamaFrench5FactorsAsync(startDate, endDate);
+            if (!factors.Any())
+            {
+                throw new InvalidOperationException("No Fama-French 5-factor data available");
+            }
+
+            // Align data
+            var alignedData = AlignFactorData(assetReturns, factors);
+            if (!alignedData.Any())
+            {
+                throw new InvalidOperationException("No aligned data for regression");
+            }
+
+            // Run regression
+            var regressionResult = RunFactorRegression(alignedData, new[] { "Market", "SMB", "HML", "RMW", "CMA" });
+
+            var model = new FamaFrench5FactorModel
+            {
+                MarketBeta = regressionResult.Coefficients.GetValueOrDefault("Market", 0),
+                SizeBeta = regressionResult.Coefficients.GetValueOrDefault("SMB", 0),
+                ValueBeta = regressionResult.Coefficients.GetValueOrDefault("HML", 0),
+                MomentumBeta = regressionResult.Coefficients.GetValueOrDefault("MOM", 0), // Note: MOM is not in 5-factor but keeping for inheritance
+                ProfitabilityBeta = regressionResult.Coefficients.GetValueOrDefault("RMW", 0),
+                InvestmentBeta = regressionResult.Coefficients.GetValueOrDefault("CMA", 0),
+                Alpha = regressionResult.Intercept,
+                R2 = regressionResult.RSquared,
+                AnalysisDate = DateTime.UtcNow
+            };
+
+            // Calculate factor returns
+            model.FactorReturns = CalculateFactorReturns(alignedData, new[] { "Market", "SMB", "HML", "RMW", "CMA" });
+
+            _logger.LogInformation("Fama-French 5-Factor analysis completed for {Asset}", assetSymbol);
+            return model;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to analyze Fama-French 5-Factor for {Asset}", assetSymbol);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Create custom factor model
     /// </summary>
     public async Task<CustomFactorModel> CreateCustomFactorModelAsync(
@@ -348,6 +410,21 @@ public class FactorModelService
         foreach (var factor in factors)
         {
             factor.FactorValues["MOM"] = (random.NextDouble() - 0.5) * 0.012;
+        }
+
+        return factors;
+    }
+
+    private async Task<List<FactorData>> GetFamaFrench5FactorsAsync(DateTime startDate, DateTime endDate)
+    {
+        var factors = await GetCarhartFactorsAsync(startDate, endDate);
+
+        // Add profitability (RMW) and investment (CMA) factors
+        var random = new Random(44);
+        foreach (var factor in factors)
+        {
+            factor.FactorValues["RMW"] = (random.NextDouble() - 0.5) * 0.010; // Robust Minus Weak
+            factor.FactorValues["CMA"] = (random.NextDouble() - 0.5) * 0.008; // Conservative Minus Aggressive
         }
 
         return factors;

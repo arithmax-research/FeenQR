@@ -63,6 +63,11 @@ public class InteractiveCLI
     private readonly FREDService _fredService;
     private readonly WorldBankService _worldBankService;
     private readonly AdvancedAlpacaService _advancedAlpacaService;
+    private readonly FactorResearchService _factorResearchService;
+    private readonly AcademicResearchService _academicResearchService;
+    private readonly AutoMLService _autoMLService;
+    private readonly ModelInterpretabilityService _modelInterpretabilityService;
+    private readonly ReinforcementLearningService _reinforcementLearningService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -111,7 +116,12 @@ public class InteractiveCLI
         TimezoneService timezoneService,
         FREDService fredService,
         WorldBankService worldBankService,
-        AdvancedAlpacaService advancedAlpacaService)
+        AdvancedAlpacaService advancedAlpacaService,
+        FactorResearchService factorResearchService,
+        AcademicResearchService academicResearchService,
+        AutoMLService autoMLService,
+        ModelInterpretabilityService modelInterpretabilityService,
+        ReinforcementLearningService reinforcementLearningService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -160,6 +170,11 @@ public class InteractiveCLI
         _fredService = fredService;
         _worldBankService = worldBankService;
         _advancedAlpacaService = advancedAlpacaService;
+        _factorResearchService = factorResearchService;
+        _academicResearchService = academicResearchService;
+        _autoMLService = autoMLService;
+        _modelInterpretabilityService = modelInterpretabilityService;
+        _reinforcementLearningService = reinforcementLearningService;
     }
 
     public async Task RunAsync()
@@ -299,6 +314,37 @@ public class InteractiveCLI
         Console.WriteLine("129. help - Show available functions");
         Console.WriteLine("130. quit - Exit the application");
         Console.WriteLine();
+        Console.WriteLine("Phase 9: Advanced Research Tools");
+        Console.WriteLine("================================");
+        Console.WriteLine("131. factor-research [symbols] [start_date] [end_date] - Advanced factor research and analysis");
+        Console.WriteLine("132. factor-portfolio [factors] [start_date] [end_date] - Create factor-based portfolio");
+        Console.WriteLine("133. factor-efficacy [factor] [symbols] [start_date] [end_date] - Test factor efficacy");
+        Console.WriteLine("134. academic-research [topic] [max_papers] - Extract strategies from academic papers");
+        Console.WriteLine("135. replicate-study [paper_url] [focus_area] - Replicate academic study");
+        Console.WriteLine("136. citation-network [topic] [max_papers] - Build citation network analysis");
+        Console.WriteLine("137. quantitative-model [paper_url] - Extract quantitative models from papers");
+        Console.WriteLine("138. literature-review [topic] [max_papers] - Generate literature review synthesis");
+        Console.WriteLine("139. automl-pipeline [symbols] [target] [start_date] [end_date] - Run AutoML pipeline");
+        Console.WriteLine("140. model-selection [data_type] [target_type] [features] [samples] - Select optimal model");
+        Console.WriteLine("141. feature-selection [symbols] [start_date] [end_date] [method] - Perform feature selection");
+        Console.WriteLine("142. ensemble-prediction [symbols] [method] [models] - Generate ensemble predictions");
+        Console.WriteLine("143. cross-validation [model] [symbols] [folds] - Perform cross-validation");
+        Console.WriteLine("144. hyperparameter-opt [model] [symbols] [method] - Optimize hyperparameters");
+        Console.WriteLine("145. shap-analysis [symbols] [start_date] [end_date] - Calculate SHAP values");
+        Console.WriteLine("146. partial-dependence [symbols] [feature] [start_date] [end_date] - Generate partial dependence plots");
+        Console.WriteLine("147. feature-interactions [symbols] [start_date] [end_date] - Analyze feature interactions");
+        Console.WriteLine("148. explain-prediction [symbol] [date] - Explain individual prediction");
+        Console.WriteLine("149. permutation-importance [symbols] [start_date] [end_date] - Calculate permutation importance");
+        Console.WriteLine("150. model-fairness [symbols] [start_date] [end_date] [groups] - Analyze model fairness");
+        Console.WriteLine("151. interpretability-report [symbols] [start_date] [end_date] - Generate interpretability report");
+        Console.WriteLine("152. train-q-learning [symbols] [start_date] [end_date] [episodes] - Train Q-learning agent");
+        Console.WriteLine("153. train-policy-gradient [symbols] [start_date] [end_date] [episodes] - Train policy gradient agent");
+        Console.WriteLine("154. train-actor-critic [symbols] [start_date] [end_date] [episodes] - Train actor-critic agent");
+        Console.WriteLine("155. adapt-strategy [symbol] [features] [base_params] - Adapt strategy with RL");
+        Console.WriteLine("156. bandit-optimization [param_sets] [trials] - Optimize parameters with bandit");
+        Console.WriteLine("157. contextual-bandit [symbols] [strategies] [start_date] [end_date] - Run contextual bandit");
+        Console.WriteLine("158. evaluate-rl-agent [symbols] [start_date] [end_date] [episodes] - Evaluate RL agent");
+        Console.WriteLine("159. rl-strategy-report [symbols] [start_date] [end_date] - Generate RL strategy report");
 
         while (true)
         {
@@ -831,6 +877,93 @@ public class InteractiveCLI
                 case "help":
                     await ShowAvailableFunctions();
                     break;
+                case "factor-research":
+                    await FactorResearchCommand(parts);
+                    break;
+                case "factor-portfolio":
+                    await FactorPortfolioCommand(parts);
+                    break;
+                case "factor-efficacy":
+                    await FactorEfficacyCommand(parts);
+                    break;
+                case "academic-research":
+                    await AcademicResearchCommand(parts);
+                    break;
+                case "replicate-study":
+                    await ReplicateStudyCommand(parts);
+                    break;
+                case "citation-network":
+                    await CitationNetworkCommand(parts);
+                    break;
+                case "quantitative-model":
+                    await QuantitativeModelCommand(parts);
+                    break;
+                case "literature-review":
+                    await LiteratureReviewCommand(parts);
+                    break;
+                case "automl-pipeline":
+                    await AutoMLPipelineCommand(parts);
+                    break;
+                case "model-selection":
+                    await ModelSelectionCommand(parts);
+                    break;
+                case "feature-selection":
+                    await FeatureSelectionCommand(parts);
+                    break;
+                case "ensemble-prediction":
+                    await EnsemblePredictionCommand(parts);
+                    break;
+                case "cross-validation":
+                    await CrossValidationCommand(parts);
+                    break;
+                case "hyperparameter-opt":
+                    await HyperparameterOptimizationCommand(parts);
+                    break;
+                case "shap-analysis":
+                    await SHAPAnalysisCommand(parts);
+                    break;
+                case "partial-dependence":
+                    await PartialDependenceCommand(parts);
+                    break;
+                case "feature-interactions":
+                    await FeatureInteractionsCommand(parts);
+                    break;
+                case "explain-prediction":
+                    await ExplainPredictionCommand(parts);
+                    break;
+                case "permutation-importance":
+                    await PermutationImportanceCommand(parts);
+                    break;
+                case "model-fairness":
+                    await ModelFairnessCommand(parts);
+                    break;
+                case "interpretability-report":
+                    await InterpretabilityReportCommand(parts);
+                    break;
+                case "train-q-learning":
+                    await TrainQLearningCommand(parts);
+                    break;
+                case "train-policy-gradient":
+                    await TrainPolicyGradientCommand(parts);
+                    break;
+                case "train-actor-critic":
+                    await TrainActorCriticCommand(parts);
+                    break;
+                case "adapt-strategy":
+                    await AdaptStrategyCommand(parts);
+                    break;
+                case "bandit-optimization":
+                    await BanditOptimizationCommand(parts);
+                    break;
+                case "contextual-bandit":
+                    await ContextualBanditCommand(parts);
+                    break;
+                case "evaluate-rl-agent":
+                    await EvaluateRLAgentCommand(parts);
+                    break;
+                case "rl-strategy-report":
+                    await RLStrategyReportCommand(parts);
+                    break;
                 default:
                     await ExecuteSemanticFunction(input);
                     break;
@@ -1067,6 +1200,37 @@ public class InteractiveCLI
         Console.WriteLine("129. help - Show available functions");
         Console.WriteLine("130. quit - Exit the application");
         Console.WriteLine();
+        Console.WriteLine("Phase 9: Advanced Research Tools");
+        Console.WriteLine("================================");
+        Console.WriteLine("131. factor-research [symbols] [start_date] [end_date] - Advanced factor research and analysis");
+        Console.WriteLine("132. factor-portfolio [factors] [start_date] [end_date] - Create factor-based portfolio");
+        Console.WriteLine("133. factor-efficacy [factor] [symbols] [start_date] [end_date] - Test factor efficacy");
+        Console.WriteLine("134. academic-research [topic] [max_papers] - Extract strategies from academic papers");
+        Console.WriteLine("135. replicate-study [paper_url] [focus_area] - Replicate academic study");
+        Console.WriteLine("136. citation-network [topic] [max_papers] - Build citation network analysis");
+        Console.WriteLine("137. quantitative-model [paper_url] - Extract quantitative models from papers");
+        Console.WriteLine("138. literature-review [topic] [max_papers] - Generate literature review synthesis");
+        Console.WriteLine("139. automl-pipeline [symbols] [target] [start_date] [end_date] - Run AutoML pipeline");
+        Console.WriteLine("140. model-selection [data_type] [target_type] [features] [samples] - Select optimal model");
+        Console.WriteLine("141. feature-selection [symbols] [start_date] [end_date] [method] - Perform feature selection");
+        Console.WriteLine("142. ensemble-prediction [symbols] [method] [models] - Generate ensemble predictions");
+        Console.WriteLine("143. cross-validation [model] [symbols] [folds] - Perform cross-validation");
+        Console.WriteLine("144. hyperparameter-opt [model] [symbols] [method] - Optimize hyperparameters");
+        Console.WriteLine("145. shap-analysis [symbols] [start_date] [end_date] - Calculate SHAP values");
+        Console.WriteLine("146. partial-dependence [symbols] [feature] [start_date] [end_date] - Generate partial dependence plots");
+        Console.WriteLine("147. feature-interactions [symbols] [start_date] [end_date] - Analyze feature interactions");
+        Console.WriteLine("148. explain-prediction [symbol] [date] - Explain individual prediction");
+        Console.WriteLine("149. permutation-importance [symbols] [start_date] [end_date] - Calculate permutation importance");
+        Console.WriteLine("150. model-fairness [symbols] [start_date] [end_date] [groups] - Analyze model fairness");
+        Console.WriteLine("151. interpretability-report [symbols] [start_date] [end_date] - Generate interpretability report");
+        Console.WriteLine("152. train-q-learning [symbols] [start_date] [end_date] [episodes] - Train Q-learning agent");
+        Console.WriteLine("153. train-policy-gradient [symbols] [start_date] [end_date] [episodes] - Train policy gradient agent");
+        Console.WriteLine("154. train-actor-critic [symbols] [start_date] [end_date] [episodes] - Train actor-critic agent");
+        Console.WriteLine("155. adapt-strategy [symbol] [features] [base_params] - Adapt strategy with RL");
+        Console.WriteLine("156. bandit-optimization [param_sets] [trials] - Optimize parameters with bandit");
+        Console.WriteLine("157. contextual-bandit [symbols] [strategies] [start_date] [end_date] - Run contextual bandit");
+        Console.WriteLine("158. evaluate-rl-agent [symbols] [start_date] [end_date] [episodes] - Evaluate RL agent");
+        Console.WriteLine("159. rl-strategy-report [symbols] [start_date] [end_date] - Generate RL strategy report");
 
         await Task.CompletedTask;
     }
@@ -8281,5 +8445,788 @@ public class InteractiveCLI
         });
         Console.WriteLine(result.ToString());
         PrintSectionFooter();
+    }
+
+    // Phase 9: Advanced Research Tools Commands
+
+    private async Task FactorResearchCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: factor-research [symbols] [start_date] [end_date]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        PrintSectionHeader("Advanced Factor Research");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+
+        var function = _kernel.Plugins["FactorResearchPlugin"]["CreateFundamentalFactor"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["factorName"] = "CustomValueFactor",
+            ["description"] = "Custom fundamental value factor",
+            ["symbols"] = symbols,
+            ["startDate"] = startDate,
+            ["endDate"] = endDate,
+            ["factorType"] = "Value"
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FactorPortfolioCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: factor-portfolio [factors] [start_date] [end_date]");
+            return;
+        }
+
+        var factors = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        PrintSectionHeader("Factor-Based Portfolio Creation");
+        Console.WriteLine($"Factors: {factors}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+
+        // Use the first factor for testing efficacy (which creates portfolios)
+        var firstFactor = factors.Split(',')[0].Trim();
+        var function = _kernel.Plugins["FactorResearchPlugin"]["test_factor_efficacy"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["factorName"] = firstFactor,
+            ["startDate"] = startDate,
+            ["endDate"] = endDate,
+            ["portfolioCount"] = 5
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FactorEfficacyCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: factor-efficacy [factor] [start_date] [end_date]");
+            return;
+        }
+
+        var factor = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        PrintSectionHeader("Factor Efficacy Testing");
+        Console.WriteLine($"Factor: {factor}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+
+        var function = _kernel.Plugins["FactorResearchPlugin"]["test_factor_efficacy"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["factorName"] = factor,
+            ["startDate"] = startDate,
+            ["endDate"] = endDate,
+            ["portfolioCount"] = 5
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task AcademicResearchCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: academic-research [topic] [max_papers]");
+            return;
+        }
+
+        var topic = parts[1];
+        var maxPapers = parts[2];
+
+        PrintSectionHeader("Academic Research Analysis");
+        Console.WriteLine($"Topic: {topic}");
+        Console.WriteLine($"Max Papers: {maxPapers}");
+
+        var function = _kernel.Plugins["AcademicResearchPlugin"]["GenerateLiteratureReview"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["topic"] = topic,
+            ["maxPapers"] = maxPapers
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task ReplicateStudyCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: replicate-study [strategy_name] [start_date] [end_date]");
+            return;
+        }
+
+        var strategyName = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        PrintSectionHeader("Academic Study Replication");
+        Console.WriteLine($"Strategy Name: {strategyName}");
+        Console.WriteLine($"Start Date: {startDate}");
+        Console.WriteLine($"End Date: {endDate}");
+
+        var academicPlugin = new AcademicResearchPlugin(_academicResearchService);
+        var result = await academicPlugin.ReplicateAcademicStudyAsync(strategyName, startDate, endDate);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task CitationNetworkCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: citation-network [topic] [max_papers]");
+            return;
+        }
+
+        var topic = parts[1];
+        var maxPapers = int.Parse(parts[2]);
+
+        PrintSectionHeader("Citation Network Analysis");
+        Console.WriteLine($"Topic: {topic}");
+        Console.WriteLine($"Max Papers: {maxPapers}");
+
+        var academicPlugin = new AcademicResearchPlugin(_academicResearchService);
+        var result = await academicPlugin.BuildCitationNetworkAsync(topic, maxPapers);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task QuantitativeModelCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: quantitative-model [paper_url] [model_name]");
+            return;
+        }
+
+        var paperUrl = parts[1];
+        var modelName = parts[2];
+
+        PrintSectionHeader("Quantitative Model Extraction");
+        Console.WriteLine($"Paper URL: {paperUrl}");
+        Console.WriteLine($"Model Name: {modelName}");
+
+        var academicPlugin = new AcademicResearchPlugin(_academicResearchService);
+        var result = await academicPlugin.ExtractQuantitativeModelAsync(paperUrl, modelName);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task LiteratureReviewCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: literature-review [topic] [max_papers]");
+            return;
+        }
+
+        var topic = parts[1];
+        var maxPapers = int.Parse(parts[2]);
+
+        PrintSectionHeader("Literature Review Synthesis");
+        Console.WriteLine($"Topic: {topic}");
+        Console.WriteLine($"Max Papers: {maxPapers}");
+
+        var academicPlugin = new AcademicResearchPlugin(_academicResearchService);
+        var result = await academicPlugin.GenerateLiteratureReviewAsync(topic, maxPapers);
+        Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task AutoMLPipelineCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: automl-pipeline [symbols] [target] [start_date] [end_date]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var target = parts[2];
+        var startDate = parts[3];
+        var endDate = parts[4];
+
+        PrintSectionHeader("AutoML Pipeline Execution");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Target: {target}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+
+        var function = _kernel.Plugins["AutoMLPlugin"]["run_automl_pipeline"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbols"] = symbols,
+            ["target"] = target,
+            ["startDate"] = startDate,
+            ["endDate"] = endDate
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task ModelSelectionCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: model-selection [data_type] [target_type] [features] [samples]");
+            return;
+        }
+
+        var dataType = parts[1];
+        var targetType = parts[2];
+        var features = int.Parse(parts[3]);
+        var samples = int.Parse(parts[4]);
+
+        PrintSectionHeader("Optimal Model Selection");
+        Console.WriteLine($"Data Type: {dataType}");
+        Console.WriteLine($"Target Type: {targetType}");
+        Console.WriteLine($"Features: {features}");
+        Console.WriteLine($"Samples: {samples}");
+
+        var result = await _autoMLService.SelectOptimalModelAsync(dataType, targetType, features, samples);
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FeatureSelectionCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: feature-selection [symbols] [start_date] [end_date] [method]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+        var method = parts[4];
+
+        PrintSectionHeader("Feature Selection Analysis");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+        Console.WriteLine($"Method: {method}");
+
+        var result = await _autoMLService.PerformFeatureSelectionAsync(symbols.Split(','), DateTime.Parse(startDate), DateTime.Parse(endDate), method);
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task EnsemblePredictionCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: ensemble-prediction [symbols] [method] [models]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var method = parts[2];
+        var models = parts[3];
+
+        PrintSectionHeader("Ensemble Prediction Generation");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Method: {method}");
+        Console.WriteLine($"Models: {models}");
+
+        var result = await _autoMLService.GenerateEnsemblePredictionAsync(symbols.Split(','), method, models.Split(','));
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task CrossValidationCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: cross-validation [model] [symbols] [folds]");
+            return;
+        }
+
+        var model = parts[1];
+        var symbols = parts[2];
+        var folds = int.Parse(parts[3]);
+
+        PrintSectionHeader("Cross-Validation Analysis");
+        Console.WriteLine($"Model: {model}");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Folds: {folds}");
+
+        var result = await _autoMLService.PerformCrossValidationAsync(model, symbols.Split(','), folds);
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task HyperparameterOptimizationCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: hyperparameter-opt [model] [symbols] [method]");
+            return;
+        }
+
+        var model = parts[1];
+        var symbols = parts[2];
+        var method = parts[3];
+
+        PrintSectionHeader("Hyperparameter Optimization");
+        Console.WriteLine($"Model: {model}");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Method: {method}");
+
+        var result = await _autoMLService.OptimizeHyperparametersAsync(model, symbols.Split(','), method);
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task SHAPAnalysisCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: shap-analysis [symbols] [start_date] [end_date]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        PrintSectionHeader("SHAP Values Analysis");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+
+        var function = _kernel.Plugins["ModelInterpretabilityPlugin"]["calculate_shap_values"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbols"] = symbols.Split(',').ToList(),
+            ["startDate"] = startDate,
+            ["endDate"] = endDate
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task PartialDependenceCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: partial-dependence [symbols] [feature] [start_date] [end_date]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var feature = parts[2];
+        var startDate = parts[3];
+        var endDate = parts[4];
+
+        PrintSectionHeader("Partial Dependence Plot Generation");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Feature: {feature}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+
+        var function = _kernel.Plugins["ModelInterpretabilityPlugin"]["generate_partial_dependence"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbols"] = symbols.Split(',').ToList(),
+            ["targetFeature"] = feature,
+            ["startDate"] = startDate,
+            ["endDate"] = endDate
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FeatureInteractionsCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: feature-interactions [symbols] [start_date] [end_date]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        PrintSectionHeader("Feature Interactions Analysis");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+
+        var function = _kernel.Plugins["ModelInterpretabilityPlugin"]["analyze_feature_interactions"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbols"] = symbols.Split(',').ToList(),
+            ["startDate"] = startDate,
+            ["endDate"] = endDate
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task ExplainPredictionCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: explain-prediction [symbol] [date]");
+            return;
+        }
+
+        var symbol = parts[1];
+        var date = parts[2];
+
+        PrintSectionHeader("Individual Prediction Explanation");
+        Console.WriteLine($"Symbol: {symbol}");
+        Console.WriteLine($"Date: {date}");
+
+        var function = _kernel.Plugins["ModelInterpretabilityPlugin"]["explain_prediction"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbol"] = symbol,
+            ["predictionDate"] = date
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task PermutationImportanceCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: permutation-importance [symbols] [start_date] [end_date]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        PrintSectionHeader("Permutation Importance Analysis");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+
+        var function = _kernel.Plugins["ModelInterpretabilityPlugin"]["calculate_permutation_importance"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbols"] = symbols.Split(',').ToList(),
+            ["startDate"] = startDate,
+            ["endDate"] = endDate
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task ModelFairnessCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: model-fairness [symbols] [start_date] [end_date] [groups]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+        var groups = parts[4];
+
+        PrintSectionHeader("Model Fairness Analysis");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+        Console.WriteLine($"Groups: {groups}");
+
+        var function = _kernel.Plugins["ModelInterpretabilityPlugin"]["analyze_model_fairness"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbols"] = symbols.Split(',').ToList(),
+            ["startDate"] = startDate,
+            ["endDate"] = endDate,
+            ["groups"] = groups.Split(',').ToList()
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task InterpretabilityReportCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: interpretability-report [symbols] [start_date] [end_date]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        PrintSectionHeader("Model Interpretability Report");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+
+        var function = _kernel.Plugins["ModelInterpretabilityPlugin"]["generate_interpretability_report"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbols"] = symbols.Split(',').ToList(),
+            ["startDate"] = startDate,
+            ["endDate"] = endDate
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task TrainQLearningCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: train-q-learning [symbols] [start_date] [end_date] [episodes]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+        var episodes = int.Parse(parts[4]);
+
+        PrintSectionHeader("Q-Learning Agent Training");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+        Console.WriteLine($"Episodes: {episodes}");
+
+        var function = _kernel.Plugins["ReinforcementLearningPlugin"]["train_q_learning_agent"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbols"] = symbols.Split(',').ToList(),
+            ["startDate"] = startDate,
+            ["endDate"] = endDate,
+            ["episodes"] = episodes
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task TrainPolicyGradientCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: train-policy-gradient [symbols] [start_date] [end_date] [episodes]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+        var episodes = int.Parse(parts[4]);
+
+        PrintSectionHeader("Policy Gradient Agent Training");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+        Console.WriteLine($"Episodes: {episodes}");
+
+        var function = _kernel.Plugins["ReinforcementLearningPlugin"]["train_policy_gradient_agent"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbols"] = symbols.Split(',').ToList(),
+            ["startDate"] = startDate,
+            ["endDate"] = endDate,
+            ["episodes"] = episodes
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task TrainActorCriticCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: train-actor-critic [symbols] [start_date] [end_date] [episodes]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+        var episodes = int.Parse(parts[4]);
+
+        PrintSectionHeader("Actor-Critic Agent Training");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+        Console.WriteLine($"Episodes: {episodes}");
+
+        var function = _kernel.Plugins["ReinforcementLearningPlugin"]["train_actor_critic_agent"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbols"] = symbols.Split(',').ToList(),
+            ["startDate"] = startDate,
+            ["endDate"] = endDate,
+            ["episodes"] = episodes
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task AdaptStrategyCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: adapt-strategy [symbol] [features] [base_params]");
+            return;
+        }
+
+        var symbol = parts[1];
+        var features = parts[2];
+        var baseParams = parts[3];
+
+        PrintSectionHeader("Strategy Adaptation with RL");
+        Console.WriteLine($"Symbol: {symbol}");
+        Console.WriteLine($"Features: {features}");
+        Console.WriteLine($"Base Parameters: {baseParams}");
+
+        var function = _kernel.Plugins["ReinforcementLearningPlugin"]["adapt_trading_strategy"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbol"] = symbol,
+            ["features"] = features.Split(',').Select(double.Parse).ToList(),
+            ["baseParameters"] = ParseBaseParameters(baseParams)
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task BanditOptimizationCommand(string[] parts)
+    {
+        if (parts.Length < 3)
+        {
+            Console.WriteLine("Usage: bandit-optimization [param_sets] [trials]");
+            return;
+        }
+
+        var paramSets = parts[1];
+        var trials = int.Parse(parts[2]);
+
+        PrintSectionHeader("Bandit Parameter Optimization");
+        Console.WriteLine($"Parameter Sets: {paramSets}");
+        Console.WriteLine($"Trials: {trials}");
+
+        var function = _kernel.Plugins["ReinforcementLearningPlugin"]["optimize_parameters_bandit"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["parameterSets"] = ParseParameterSets(paramSets),
+            ["totalTrials"] = trials
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task ContextualBanditCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: contextual-bandit [symbols] [strategies] [start_date] [end_date]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var strategies = parts[2];
+        var startDate = parts[3];
+        var endDate = parts[4];
+
+        PrintSectionHeader("Contextual Bandit Strategy Selection");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Strategies: {strategies}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+
+        var function = _kernel.Plugins["ReinforcementLearningPlugin"]["run_contextual_bandit"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbols"] = symbols.Split(',').ToList(),
+            ["strategies"] = strategies.Split(',').ToList(),
+            ["startDate"] = startDate,
+            ["endDate"] = endDate
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task EvaluateRLAgentCommand(string[] parts)
+    {
+        if (parts.Length < 5)
+        {
+            Console.WriteLine("Usage: evaluate-rl-agent [symbols] [start_date] [end_date] [episodes]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+        var episodes = int.Parse(parts[4]);
+
+        PrintSectionHeader("RL Agent Evaluation");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+        Console.WriteLine($"Episodes: {episodes}");
+
+        var function = _kernel.Plugins["ReinforcementLearningPlugin"]["evaluate_rl_agent"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbols"] = symbols.Split(',').ToList(),
+            ["startDate"] = startDate,
+            ["endDate"] = endDate,
+            ["episodes"] = episodes
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task RLStrategyReportCommand(string[] parts)
+    {
+        if (parts.Length < 4)
+        {
+            Console.WriteLine("Usage: rl-strategy-report [symbols] [start_date] [end_date]");
+            return;
+        }
+
+        var symbols = parts[1];
+        var startDate = parts[2];
+        var endDate = parts[3];
+
+        PrintSectionHeader("RL Strategy Performance Report");
+        Console.WriteLine($"Symbols: {symbols}");
+        Console.WriteLine($"Date Range: {startDate} to {endDate}");
+
+        var function = _kernel.Plugins["ReinforcementLearningPlugin"]["generate_rl_strategy_report"];
+        var result = await _kernel.InvokeAsync(function, new KernelArguments {
+            ["symbols"] = symbols.Split(',').ToList(),
+            ["startDate"] = startDate,
+            ["endDate"] = endDate
+        });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private Dictionary<string, double> ParseBaseParameters(string paramString)
+    {
+        var parameters = new Dictionary<string, double>();
+        var pairs = paramString.Split(';');
+        foreach (var pair in pairs)
+        {
+            var keyValue = pair.Split(':');
+            if (keyValue.Length == 2)
+            {
+                parameters[keyValue[0].Trim()] = double.Parse(keyValue[1].Trim());
+            }
+        }
+        return parameters;
+    }
+
+    private List<Dictionary<string, double>> ParseParameterSets(string paramSetsString)
+    {
+        var parameterSets = new List<Dictionary<string, double>>();
+        var sets = paramSetsString.Split('|');
+        foreach (var set in sets)
+        {
+            var parameters = new Dictionary<string, double>();
+            var pairs = set.Split(';');
+            foreach (var pair in pairs)
+            {
+                var keyValue = pair.Split(':');
+                if (keyValue.Length == 2)
+                {
+                    parameters[keyValue[0].Trim()] = double.Parse(keyValue[1].Trim());
+                }
+            }
+            parameterSets.Add(parameters);
+        }
+        return parameterSets;
     }
 }
