@@ -1060,4 +1060,254 @@ namespace QuantResearchAgent.Services
     }
 
     #endregion
+
+        #region Plugin Support Methods
+
+        /// <summary>
+        /// Generate comprehensive benchmark analysis report
+        /// </summary>
+        public async Task<BenchmarkPerformanceReport> GenerateBenchmarkReportAsync(
+            BenchmarkData benchmarkData,
+            PortfolioData portfolioData,
+            string reportType)
+        {
+            _logger.LogInformation($"Generating {reportType} benchmark report for {benchmarkData.Name}");
+
+            try
+            {
+                // Create benchmark returns from holdings
+                var benchmarkReturns = new BenchmarkReturns
+                {
+                    Name = benchmarkData.Name,
+                    Returns = new List<double> { 0.0 }, // Placeholder
+                    Dates = new List<DateTime> { DateTime.Now }
+                };
+
+                // Create portfolio returns from holdings
+                var portfolioReturns = new PortfolioReturns
+                {
+                    Returns = new List<double> { 0.0 }, // Placeholder
+                    Dates = new List<DateTime> { DateTime.Now }
+                };
+
+                // Generate comparison
+                var comparison = await CompareToBenchmarksAsync(
+                    portfolioReturns,
+                    new List<BenchmarkReturns> { benchmarkReturns },
+                    0.02);
+
+                return new BenchmarkPerformanceReport
+                {
+                    BenchmarkName = benchmarkData.Name,
+                    ReportType = reportType,
+                    GeneratedAt = DateTime.Now,
+                    Summary = $"Report generated for {benchmarkData.Name} vs portfolio"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating benchmark report");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Monitor benchmark composition drift over time
+        /// </summary>
+        public async Task<string> MonitorBenchmarkDriftAsync(
+            List<BenchmarkComposition> historicalCompositions,
+            double driftThreshold)
+        {
+            _logger.LogInformation($"Monitoring benchmark drift with threshold {driftThreshold:P2}");
+
+            try
+            {
+                if (historicalCompositions.Count < 2)
+                {
+                    return "Insufficient historical data for drift analysis";
+                }
+
+                // Calculate drift between consecutive compositions
+                var driftAnalysis = new List<string>();
+                for (int i = 1; i < historicalCompositions.Count; i++)
+                {
+                    var current = historicalCompositions[i];
+                    var previous = historicalCompositions[i - 1];
+
+                    var drift = CalculateCompositionDrift(previous, current);
+                    if (drift > driftThreshold)
+                    {
+                        driftAnalysis.Add($"Drift detected on {current.Date:yyyy-MM-dd}: {drift:P2} (threshold: {driftThreshold:P2})");
+                    }
+                }
+
+                return driftAnalysis.Any()
+                    ? $"Benchmark drift analysis:\n{string.Join("\n", driftAnalysis)}"
+                    : $"No significant drift detected (threshold: {driftThreshold:P2})";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error monitoring benchmark drift");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Create sector-specific benchmark
+        /// </summary>
+        public async Task<CustomBenchmark> CreateSectorBenchmarkAsync(
+            string sectorName,
+            SectorCriteria criteria,
+            WeightingMethodology weightingMethodology)
+        {
+            _logger.LogInformation($"Creating {sectorName} sector benchmark");
+
+            try
+            {
+                // Filter universe based on sector criteria
+                var universe = await GetSectorUniverseAsync(criteria);
+
+                // Create benchmark specification
+                var specification = new BenchmarkSpecification
+                {
+                    Name = $"{sectorName} Sector Benchmark",
+                    Description = $"Benchmark for {sectorName} sector",
+                    Criteria = new List<BenchmarkCriterion>
+                    {
+                        new BenchmarkCriterion
+                        {
+                            Type = "Sector",
+                            Value = sectorName,
+                            Operator = "Equals"
+                        }
+                    },
+                    WeightingMethodology = weightingMethodology
+                };
+
+                return await CreateCustomBenchmarkAsync(specification, universe);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating sector benchmark");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        private double CalculateCompositionDrift(BenchmarkComposition previous, BenchmarkComposition current)
+        {
+            // Calculate weighted difference between compositions
+            var previousWeights = previous.Holdings.ToDictionary(h => h.Symbol, h => h.Weight);
+            var currentWeights = current.Holdings.ToDictionary(h => h.Symbol, h => h.Weight);
+
+            var allSymbols = previousWeights.Keys.Union(currentWeights.Keys).ToList();
+            var totalDrift = 0.0;
+
+            foreach (var symbol in allSymbols)
+            {
+                var prevWeight = previousWeights.GetValueOrDefault(symbol, 0.0);
+                var currWeight = currentWeights.GetValueOrDefault(symbol, 0.0);
+                totalDrift += Math.Abs(prevWeight - currWeight);
+            }
+
+            return totalDrift / 2.0; // Normalize to 0-1 range
+        }
+
+        private async Task<List<SecurityData>> GetSectorUniverseAsync(SectorCriteria criteria)
+        {
+            // Placeholder implementation - in real scenario would query market data service
+            return new List<SecurityData>
+            {
+                new SecurityData
+                {
+                    Symbol = "AAPL",
+                    Name = "Apple Inc.",
+                    Sector = criteria.Sector,
+                    MarketCap = 3000000000000,
+                    Price = 150.0,
+                    Volume = 50000000
+                }
+            };
+        }
+
+        #endregion
+
+    /// </summary>
+    public class BenchmarkData
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public List<BenchmarkHolding> Holdings { get; set; } = new();
+        public BenchmarkStatistics Statistics { get; set; } = new();
+        public DateTime CreatedAt { get; set; }
+        public string Source { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Represents portfolio data for comparison with benchmarks
+    /// </summary>
+    public class PortfolioData
+    {
+        public string Name { get; set; } = string.Empty;
+        public Dictionary<string, double> Holdings { get; set; } = new();
+        public double TotalValue { get; set; }
+        public DateTime AsOfDate { get; set; }
+        public string Currency { get; set; } = "USD";
+    }
+
+    /// <summary>
+    /// Represents historical benchmark composition for drift analysis
+    /// </summary>
+    public class BenchmarkComposition
+    {
+        public DateTime Date { get; set; }
+        public List<BenchmarkHolding> Holdings { get; set; } = new();
+        public double TotalWeight { get; set; }
+        public string Version { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Represents criteria for sector benchmark creation
+    /// </summary>
+    public class SectorCriteria
+    {
+        public string Sector { get; set; } = string.Empty;
+        public List<string> Industries { get; set; } = new();
+        public double MinMarketCap { get; set; }
+        public double MaxMarketCap { get; set; }
+        public int MinVolume { get; set; }
+        public List<string> Exclusions { get; set; } = new();
+        public Dictionary<string, double> CustomFilters { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Represents universe filter criteria
+    /// </summary>
+    public class UniverseFilter
+    {
+        public List<string> Sectors { get; set; } = new();
+        public List<string> Industries { get; set; } = new();
+        public double MinMarketCap { get; set; }
+        public double MaxMarketCap { get; set; }
+        public int MinVolume { get; set; }
+        public List<string> Exclusions { get; set; } = new();
+        public Dictionary<string, object> CustomFilters { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Represents stress testing scenario
+    /// </summary>
+    public class StressScenario
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public Dictionary<string, double> MarketShocks { get; set; } = new();
+        public double Probability { get; set; }
+        public string Severity { get; set; } = string.Empty;
+    }
+
+    #endregion
 }
