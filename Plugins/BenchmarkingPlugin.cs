@@ -249,7 +249,7 @@ namespace QuantResearchAgent.Plugins
                 var driftAnalysis = await _benchmarkingService.MonitorBenchmarkDriftAsync(
                     historicalCompositions, driftThreshold);
 
-                return FormatDriftAnalysisResult(driftAnalysis);
+                return driftAnalysis;
             }
             catch (Exception ex)
             {
@@ -448,32 +448,19 @@ namespace QuantResearchAgent.Plugins
         private string FormatBenchmarkReport(BenchmarkReport report)
         {
             return $"Benchmark Report Generated: {report.Title}\n" +
-                   $"Date: {report.GeneratedDate}\n" +
-                   $"Sections: {report.ReportSections.Count}\n" +
-                   $"Key Findings: {string.Join(", ", report.KeyFindings)}";
+                   $"Date: {report.GeneratedAt}\n" +
+                   $"Summary: {report.Summary}";
         }
 
-        private string FormatDriftAnalysisResult(BenchmarkDriftAnalysis result)
-        {
-            var significantDrifts = string.Join("\n", result.SignificantDrifts
-                .Take(5)
-                .Select(sd => $"- {sd.Holding}: Drift={sd.DriftAmount:P2}"));
-
-            return $"Benchmark Drift Analysis:\n" +
-                   $"Total Drift: {result.TotalDrift:P2}\n" +
-                   $"Drift Threshold: {result.DriftThreshold:P2}\n" +
-                   $"Significant Drifts:\n{significantDrifts}";
-        }
-
-        private string FormatSectorBenchmarkResult(SectorBenchmark result)
+        private string FormatSectorBenchmarkResult(CustomBenchmark result)
         {
             var sectorHoldings = string.Join("\n", result.Holdings
                 .OrderByDescending(h => h.Weight)
                 .Take(10)
                 .Select(h => $"- {h.Symbol}: {h.Weight:P2}"));
 
-            return $"Sector Benchmark Created: {result.SectorName}\n" +
-                   $"Number of Companies: {result.NumberOfCompanies}\n" +
+            return $"Sector Benchmark Created: {result.Name}\n" +
+                   $"Number of Holdings: {result.UniverseSize}\n" +
                    $"Weighting Method: {result.WeightingMethodology}\n" +
                    $"Top Holdings:\n{sectorHoldings}";
         }

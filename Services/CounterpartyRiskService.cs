@@ -28,7 +28,7 @@ namespace QuantResearchAgent.Services
         /// Analyze counterparty exposure across portfolio
         /// </summary>
         public async Task<CounterpartyExposureAnalysis> AnalyzeCounterpartyExposureAsync(
-            List<Position> positions,
+            List<CounterpartyPosition> positions,
             Dictionary<string, CounterpartyInfo> counterparties)
         {
             _logger.LogInformation($"Analyzing counterparty exposure for {positions.Count} positions and {counterparties.Count} counterparties");
@@ -720,7 +720,7 @@ namespace QuantResearchAgent.Services
 
     #region Data Classes
 
-    public class Position
+    public class CounterpartyPosition
     {
         public string CounterpartyId { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
@@ -859,14 +859,6 @@ namespace QuantResearchAgent.Services
         public decimal MaxContagionLoss { get; set; }
         public decimal AverageContagionProbability { get; set; }
         public decimal SystemicRiskIndex { get; set; }
-    }
-
-    public class StressTestScenario
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
-        public string Severity { get; set; } = string.Empty;
-        public Dictionary<string, decimal> StressMultipliers { get; set; } = new();
     }
 
     public class StressTestResults

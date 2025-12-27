@@ -345,29 +345,29 @@ public class FinancialModelingPrepService
 // Data models for Financial Modeling Prep API responses
 public class FMPCompanyProfile
 {
-    public string Symbol { get; set; }
-    public string CompanyName { get; set; }
-    public string Industry { get; set; }
-    public string Sector { get; set; }
-    public string Website { get; set; }
-    public string Description { get; set; }
-    public string CEO { get; set; }
+    public required string Symbol { get; set; }
+    public required string CompanyName { get; set; }
+    public required string Industry { get; set; }
+    public required string Sector { get; set; }
+    public required string Website { get; set; }
+    public required string Description { get; set; }
+    public required string CEO { get; set; }
     public long FullTimeEmployees { get; set; }
-    public string Phone { get; set; }
-    public string Address { get; set; }
-    public string City { get; set; }
-    public string State { get; set; }
-    public string Zip { get; set; }
-    public string Country { get; set; }
-    public string Image { get; set; }
-    public string IpoDate { get; set; }
+    public required string Phone { get; set; }
+    public required string Address { get; set; }
+    public required string City { get; set; }
+    public required string State { get; set; }
+    public required string Zip { get; set; }
+    public required string Country { get; set; }
+    public required string Image { get; set; }
+    public required string IpoDate { get; set; }
     public bool IsActivelyTrading { get; set; }
 }
 
 public class FMPQuote
 {
-    public string Symbol { get; set; }
-    public string Name { get; set; }
+    public required string Symbol { get; set; }
+    public required string Name { get; set; }
     public decimal Price { get; set; }
     public decimal ChangesPercentage { get; set; }
     public decimal Change { get; set; }
@@ -380,21 +380,21 @@ public class FMPQuote
     public decimal PriceAvg200 { get; set; }
     public long Volume { get; set; }
     public long AvgVolume { get; set; }
-    public string Exchange { get; set; }
+    public required string Exchange { get; set; }
     public decimal Open { get; set; }
     public decimal PreviousClose { get; set; }
     public decimal Eps { get; set; }
     public decimal Pe { get; set; }
-    public string EarningsAnnouncement { get; set; }
+    public required string EarningsAnnouncement { get; set; }
     public long SharesOutstanding { get; set; }
     public long Timestamp { get; set; }
 }
 
 public class FMPIncomeStatement
 {
-    public string Date { get; set; }
-    public string Symbol { get; set; }
-    public string Period { get; set; }
+    public required string Date { get; set; }
+    public required string Symbol { get; set; }
+    public required string Period { get; set; }
     public long Revenue { get; set; }
     public long CostOfRevenue { get; set; }
     public long GrossProfit { get; set; }
@@ -425,9 +425,9 @@ public class FMPIncomeStatement
 
 public class FMPBalanceSheet
 {
-    public string Date { get; set; }
-    public string Symbol { get; set; }
-    public string Period { get; set; }
+    public required string Date { get; set; }
+    public required string Symbol { get; set; }
+    public required string Period { get; set; }
     public long CashAndCashEquivalents { get; set; }
     public long ShortTermInvestments { get; set; }
     public long CashAndShortTermInvestments { get; set; }
@@ -474,9 +474,9 @@ public class FMPBalanceSheet
 
 public class FMPCashFlow
 {
-    public string Date { get; set; }
-    public string Symbol { get; set; }
-    public string Period { get; set; }
+    public required string Date { get; set; }
+    public required string Symbol { get; set; }
+    public required string Period { get; set; }
     public long NetIncome { get; set; }
     public long DepreciationAndAmortization { get; set; }
     public long DeferredIncomeTax { get; set; }
@@ -511,9 +511,9 @@ public class FMPCashFlow
 
 public class FMPKeyMetrics
 {
-    public string Date { get; set; }
-    public string Symbol { get; set; }
-    public string Period { get; set; }
+    public required string Date { get; set; }
+    public required string Symbol { get; set; }
+    public required string Period { get; set; }
     public decimal RevenuePerShare { get; set; }
     public decimal NetIncomePerShare { get; set; }
     public decimal OperatingCashFlowPerShare { get; set; }
@@ -575,9 +575,9 @@ public class FMPKeyMetrics
 
 public class FMPFinancialRatios
 {
-    public string Date { get; set; }
-    public string Symbol { get; set; }
-    public string Period { get; set; }
+    public required string Date { get; set; }
+    public required string Symbol { get; set; }
+    public required string Period { get; set; }
     public decimal CurrentRatio { get; set; }
     public decimal QuickRatio { get; set; }
     public decimal CashRatio { get; set; }
@@ -636,7 +636,7 @@ public class FMPFinancialRatios
 
 public class FMPHistoricalPrice
 {
-    public string Date { get; set; }
+    public required string Date { get; set; }
     public decimal Open { get; set; }
     public decimal High { get; set; }
     public decimal Low { get; set; }
@@ -646,21 +646,21 @@ public class FMPHistoricalPrice
     public decimal UnadjustedVolume { get; set; }
     public decimal Change { get; set; }
     public decimal ChangePercent { get; set; }
-    public string Label { get; set; }
+    public required string Label { get; set; }
     public decimal ChangeOverTime { get; set; }
 }
 
 public class FMPHistoricalResponse
 {
-    public string Symbol { get; set; }
-    public List<FMPHistoricalPrice> Historical { get; set; }
+    public required string Symbol { get; set; }
+    public required List<FMPHistoricalPrice> Historical { get; set; }
 }
 
 public class FMPAnalystEstimates
 {
-    public string Date { get; set; }
-    public string Symbol { get; set; }
-    public string Period { get; set; }
+    public required string Date { get; set; }
+    public required string Symbol { get; set; }
+    public required string Period { get; set; }
     public decimal EstimatedRevenueLow { get; set; }
     public decimal EstimatedRevenueHigh { get; set; }
     public decimal EstimatedRevenueAvg { get; set; }
@@ -688,33 +688,33 @@ public class FMPStockScreenerCriteria
     public long VolumeMax { get; set; }
     public decimal PERatioMin { get; set; }
     public decimal PERatioMax { get; set; }
-    public string Sector { get; set; }
-    public string Industry { get; set; }
-    public string Country { get; set; }
+    public required string Sector { get; set; }
+    public required string Industry { get; set; }
+    public required string Country { get; set; }
 }
 
 public class FMPStockScreener
 {
-    public string Symbol { get; set; }
-    public string CompanyName { get; set; }
-    public string MarketCap { get; set; }
-    public string Sector { get; set; }
-    public string Industry { get; set; }
-    public string Beta { get; set; }
-    public string Price { get; set; }
-    public string LastAnnualDividend { get; set; }
-    public string Volume { get; set; }
-    public string Exchange { get; set; }
-    public string ExchangeShortName { get; set; }
-    public string Country { get; set; }
+    public required string Symbol { get; set; }
+    public required string CompanyName { get; set; }
+    public required string MarketCap { get; set; }
+    public required string Sector { get; set; }
+    public required string Industry { get; set; }
+    public required string Beta { get; set; }
+    public required string Price { get; set; }
+    public required string LastAnnualDividend { get; set; }
+    public required string Volume { get; set; }
+    public required string Exchange { get; set; }
+    public required string ExchangeShortName { get; set; }
+    public required string Country { get; set; }
     public bool IsEtf { get; set; }
     public bool IsActivelyTrading { get; set; }
 }
 
 public class FMPMarketIndex
 {
-    public string Symbol { get; set; }
-    public string Name { get; set; }
+    public required string Symbol { get; set; }
+    public required string Name { get; set; }
     public decimal Price { get; set; }
     public decimal ChangesPercentage { get; set; }
     public decimal Change { get; set; }
@@ -727,7 +727,7 @@ public class FMPMarketIndex
     public decimal PriceAvg200 { get; set; }
     public long Volume { get; set; }
     public long AvgVolume { get; set; }
-    public string Exchange { get; set; }
+    public required string Exchange { get; set; }
     public decimal Open { get; set; }
     public decimal PreviousClose { get; set; }
     public long Timestamp { get; set; }

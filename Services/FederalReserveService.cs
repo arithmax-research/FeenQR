@@ -99,6 +99,39 @@ namespace QuantResearchAgent.Services
             }
         }
 
+        public async Task<FOMCData> GetLatestFOMCDataAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Fetching latest FOMC data");
+
+                // Get recent announcements and combine with current data
+                var announcements = await GetRecentFOMCAnnouncementsAsync();
+                var rateDecisions = await GetInterestRateDecisionsAsync();
+                var projections = await GetEconomicProjectionsAsync();
+
+                return new FOMCData
+                {
+                    LatestAnnouncement = announcements.FirstOrDefault(),
+                    CurrentRate = rateDecisions.FirstOrDefault()?.CurrentRate ?? 5.25,
+                    NextMeeting = rateDecisions.FirstOrDefault()?.NextMeeting ?? DateTime.Now.AddDays(21),
+                    EconomicProjections = projections.FirstOrDefault(),
+                    RecentAnnouncements = announcements.Take(5).ToList(),
+                    LastUpdated = DateTime.Now
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching latest FOMC data");
+                return new FOMCData
+                {
+                    CurrentRate = 5.25,
+                    NextMeeting = DateTime.Now.AddDays(21),
+                    LastUpdated = DateTime.Now
+                };
+            }
+        }
+
         public async Task<List<FedSpeech>> GetRecentFedSpeechesAsync()
         {
             try
@@ -161,5 +194,15 @@ namespace QuantResearchAgent.Services
         public DateTime Date { get; set; }
         public string Content { get; set; } = string.Empty;
         public List<string> KeyPoints { get; set; } = new();
+    }
+
+    public class FOMCData
+    {
+        public FOMCAnnouncement? LatestAnnouncement { get; set; }
+        public double CurrentRate { get; set; }
+        public DateTime NextMeeting { get; set; }
+        public EconomicProjection? EconomicProjections { get; set; }
+        public List<FOMCAnnouncement> RecentAnnouncements { get; set; } = new();
+        public DateTime LastUpdated { get; set; }
     }
 }

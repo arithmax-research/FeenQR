@@ -377,19 +377,19 @@ namespace QuantResearchAgent.Services
 
     public class Factor
     {
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public FactorType Type { get; set; }
-        public List<double> Returns { get; set; }
+        public required List<double> Returns { get; set; }
         public double Volatility { get; set; }
         public double SharpeRatio { get; set; }
     }
 
     public class DynamicFactorModel
     {
-        public List<string> Symbols { get; set; }
-        public List<Factor> Factors { get; set; }
-        public Matrix<double> FactorCovariance { get; set; }
-        public Dictionary<string, Dictionary<string, double>> AssetFactorLoadings { get; set; }
-        public Dictionary<string, double> RegimeAdjustedFactors { get; set; }
+        public required List<string> Symbols { get; set; }
+        public required List<Factor> Factors { get; set; }
+        public required Matrix<double> FactorCovariance { get; set; }
+        public required Dictionary<string, Dictionary<string, double>> AssetFactorLoadings { get; set; }
+        public required Dictionary<string, double> RegimeAdjustedFactors { get; set; }
     }
 }

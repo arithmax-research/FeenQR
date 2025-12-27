@@ -223,7 +223,7 @@ namespace QuantResearchAgent.Plugins
             return sb.ToString();
         }
 
-        private string FormatStressTestResults(List<StressTestResult> results)
+        private string FormatStressTestResults(List<QuantResearchAgent.Core.StressTestResult> results)
         {
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("STRESS TEST RESULTS");

@@ -215,6 +215,51 @@ namespace QuantResearchAgent.Services
             }
         }
 
+        /// <summary>
+        /// Get sentiment-analyzed news for a specific symbol
+        /// </summary>
+        public async Task<List<NewsItem>> GetSentimentAnalyzedNewsAsync(string symbol, int limit = 10)
+        {
+            try
+            {
+                _logger.LogInformation($"Getting sentiment-analyzed news for {symbol}");
+
+                // Get news from multiple sources
+                var yahooNewsTask = _yfinanceNewsService.GetNewsAsync(symbol, limit);
+                var finvizNewsTask = _finvizNewsService.GetNewsAsync(symbol, limit);
+
+                await Task.WhenAll(yahooNewsTask, finvizNewsTask);
+
+                var yahooNews = yahooNewsTask.Result;
+                var finvizNews = finvizNewsTask.Result;
+
+                // Combine and deduplicate news
+                var allNews = yahooNews.Concat(finvizNews).ToList();
+                var uniqueNews = allNews
+                    .GroupBy(n => n.Title)
+                    .Select(g => g.First())
+                    .Take(limit)
+                    .ToList();
+
+                // Analyze sentiment for each news item
+                foreach (var newsItem in uniqueNews)
+                {
+                    var sentiment = await AnalyzeNewsItemSentimentAsync(newsItem);
+                    newsItem.SentimentScore = sentiment.Score;
+                    newsItem.SentimentLabel = sentiment.Label;
+                    newsItem.KeyTopics = sentiment.KeyTopics;
+                    newsItem.Impact = sentiment.Impact;
+                }
+
+                return uniqueNews;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting sentiment-analyzed news for {symbol}");
+                return new List<NewsItem>();
+            }
+        }
+
         private async Task<NewsItemSentiment> AnalyzeNewsItemSentimentAsync(NewsItem newsItem)
         {
             try

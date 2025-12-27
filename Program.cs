@@ -118,7 +118,7 @@ namespace QuantResearchAgent
             
             // Start the interactive CLI
             var cli = serviceProvider.GetRequiredService<InteractiveCLI>();
-            await cli.RunAsync();
+            await cli.RunAsync(args);
         }
 
     static void ConfigureServices(IServiceCollection services, IConfiguration configuration, Kernel? kernel = null)
@@ -270,7 +270,15 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<AdvancedRiskAnalyticsPlugin>(),
                     sp.GetRequiredService<CounterpartyRiskPlugin>(),
                     sp.GetRequiredService<PerformanceAttributionPlugin>(),
-                    sp.GetRequiredService<BenchmarkingPlugin>()
+                    sp.GetRequiredService<BenchmarkingPlugin>(),
+                    sp.GetRequiredService<LiveStrategyService>(),
+                    sp.GetRequiredService<EventDrivenTradingService>(),
+                    sp.GetRequiredService<RealTimeAlertingService>(),
+                    sp.GetRequiredService<ComplianceMonitoringService>(),
+                    sp.GetRequiredService<LiveStrategyPlugin>(),
+                    sp.GetRequiredService<EventDrivenTradingPlugin>(),
+                    sp.GetRequiredService<RealTimeAlertingPlugin>(),
+                    sp.GetRequiredService<ComplianceMonitoringPlugin>()
                 )
             );
 
@@ -549,38 +557,42 @@ namespace QuantResearchAgent
             // Add Phase 13 Real-Time & Live Features services
             services.AddSingleton<LiveStrategyService>(sp =>
                 new LiveStrategyService(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<LiveStrategyService>>(),
+                    sp.GetRequiredService<IConfiguration>(),
                     sp.GetRequiredService<AdvancedAlpacaService>(),
                     sp.GetRequiredService<MarketDataService>(),
-                    sp.GetRequiredService<AdvancedRiskService>(),
-                    sp.GetRequiredService<ILogger<LiveStrategyService>>(),
-                    sp.GetRequiredService<IConfiguration>()
+                    sp.GetRequiredService<AdvancedRiskService>()
                 )
             );
             services.AddSingleton<EventDrivenTradingService>(sp =>
                 new EventDrivenTradingService(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<EventDrivenTradingService>>(),
+                    sp.GetRequiredService<IConfiguration>(),
                     sp.GetRequiredService<AdvancedAlpacaService>(),
                     sp.GetRequiredService<NewsSentimentAnalysisService>(),
                     sp.GetRequiredService<FederalReserveService>(),
-                    sp.GetRequiredService<GeopoliticalRiskService>(),
-                    sp.GetRequiredService<ILogger<EventDrivenTradingService>>(),
-                    sp.GetRequiredService<IConfiguration>()
+                    sp.GetRequiredService<GeopoliticalRiskService>()
                 )
             );
             services.AddSingleton<RealTimeAlertingService>(sp =>
                 new RealTimeAlertingService(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<RealTimeAlertingService>>(),
+                    sp.GetRequiredService<IConfiguration>(),
                     sp.GetRequiredService<AdvancedAlpacaService>(),
                     sp.GetRequiredService<MarketDataService>(),
-                    sp.GetRequiredService<TechnicalAnalysisService>(),
-                    sp.GetRequiredService<ILogger<RealTimeAlertingService>>(),
-                    sp.GetRequiredService<IConfiguration>()
+                    sp.GetRequiredService<TechnicalAnalysisService>()
                 )
             );
             services.AddSingleton<ComplianceMonitoringService>(sp =>
                 new ComplianceMonitoringService(
-                    sp.GetRequiredService<AdvancedAlpacaService>(),
-                    sp.GetRequiredService<AdvancedRiskService>(),
+                    sp.GetRequiredService<HttpClient>(),
                     sp.GetRequiredService<ILogger<ComplianceMonitoringService>>(),
-                    sp.GetRequiredService<IConfiguration>()
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetRequiredService<AdvancedAlpacaService>(),
+                    sp.GetRequiredService<AdvancedRiskService>()
                 )
             );
 

@@ -459,7 +459,7 @@ namespace QuantResearchAgent.Services
             {
                 for (int j = 0; j < symbols.Count; j++)
                 {
-                    matrix[i, j] = returnsData[symbols[i]].Correlation(returnsData[symbols[j]]);
+                    matrix[i, j] = Statistics.Correlation(returnsData[symbols[i]], returnsData[symbols[j]]);
                 }
             }
 

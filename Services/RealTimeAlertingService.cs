@@ -38,12 +38,12 @@ namespace QuantResearchAgent.Services
 
         public class AlertRule
         {
-            public string AlertId { get; set; }
-            public string AlertType { get; set; } // "price", "technical", "portfolio", "news"
-            public string Symbol { get; set; }
-            public string Condition { get; set; } // "above", "below", "crosses_above", "crosses_below"
+            public required string AlertId { get; set; }
+            public required string AlertType { get; set; } // "price", "technical", "portfolio", "news"
+            public required string Symbol { get; set; }
+            public required string Condition { get; set; } // "above", "below", "crosses_above", "crosses_below"
             public decimal Threshold { get; set; }
-            public string Message { get; set; }
+            public required string Message { get; set; }
             public bool IsActive { get; set; }
             public DateTime CreatedAt { get; set; }
             public int TriggerCount { get; set; }
@@ -51,10 +51,10 @@ namespace QuantResearchAgent.Services
 
         public class AlertNotification
         {
-            public string NotificationId { get; set; }
-            public string AlertId { get; set; }
-            public string Symbol { get; set; }
-            public string Message { get; set; }
+            public required string NotificationId { get; set; }
+            public required string AlertId { get; set; }
+            public required string Symbol { get; set; }
+            public required string Message { get; set; }
             public decimal TriggerValue { get; set; }
             public DateTime TriggeredAt { get; set; }
             public bool IsRead { get; set; }

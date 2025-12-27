@@ -349,14 +349,14 @@ namespace QuantResearchAgent.Services
         public double ExpectedValue { get; set; }
         public double ZScore { get; set; }
         public AnomalySeverity Severity { get; set; }
-        public string Description { get; set; }
+        public required string Description { get; set; }
     }
 
     public class AnomalyCluster
     {
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public List<Anomaly> Anomalies { get; set; }
+        public required List<Anomaly> Anomalies { get; set; }
         public AnomalySeverity Severity { get; set; }
     }
 }

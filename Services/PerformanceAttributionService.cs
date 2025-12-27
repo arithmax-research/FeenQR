@@ -959,12 +959,6 @@ namespace QuantResearchAgent.Services
         public Dictionary<string, double> SummaryMetrics { get; set; } = new();
     }
 
-    public class ReportSection
-    {
-        public string Title { get; set; } = string.Empty;
-        public string Content { get; set; } = string.Empty;
-        public List<string> Charts { get; set; } = new();
-    }
 
     #endregion
 }

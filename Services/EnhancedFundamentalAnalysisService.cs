@@ -276,25 +276,25 @@ public class EnhancedFundamentalAnalysisService
                 DayChangePercent = quote.ChangesPercentage,
 
                 // Moving averages
-                SMA20 = sma?.LastRefreshed == null ? 0 : GetLatestValue(sma.TechnicalAnalysis),
-                EMA20 = ema?.LastRefreshed == null ? 0 : GetLatestValue(ema.TechnicalAnalysis),
+                SMA20 = sma == null || !sma.Any() ? 0 : GetLatestValue(sma, "SMA"),
+                EMA20 = ema == null || !ema.Any() ? 0 : GetLatestValue(ema, "EMA"),
 
                 // Momentum indicators
-                RSI14 = rsi?.LastRefreshed == null ? 0 : GetLatestValue(rsi.TechnicalAnalysis),
+                RSI14 = rsi == null || !rsi.Any() ? 0 : GetLatestValue(rsi, "RSI"),
 
                 // MACD
-                MACD = macd?.LastRefreshed == null ? 0 : GetLatestValue(macd.TechnicalAnalysis, "MACD"),
-                MACDSignalValue = macd?.LastRefreshed == null ? 0 : GetLatestValue(macd.TechnicalAnalysis, "MACD_Signal"),
-                MACDHist = macd?.LastRefreshed == null ? 0 : GetLatestValue(macd.TechnicalAnalysis, "MACD_Hist"),
+                MACD = macd == null || !macd.Any() ? 0 : GetLatestValue(macd, "MACD"),
+                MACDSignalValue = macd == null || !macd.Any() ? 0 : GetLatestValue(macd, "MACD_Signal"),
+                MACDHist = macd == null || !macd.Any() ? 0 : GetLatestValue(macd, "MACD_Hist"),
 
                 // Bollinger Bands
-                BBUpper = bbands?.LastRefreshed == null ? 0 : GetLatestValue(bbands.TechnicalAnalysis, "Real Upper Band"),
-                BBLower = bbands?.LastRefreshed == null ? 0 : GetLatestValue(bbands.TechnicalAnalysis, "Real Lower Band"),
-                BBMiddle = bbands?.LastRefreshed == null ? 0 : GetLatestValue(bbands.TechnicalAnalysis, "Real Middle Band"),
+                BBUpper = bbands == null || !bbands.Any() ? 0 : GetLatestValue(bbands, "Real Upper Band"),
+                BBLower = bbands == null || !bbands.Any() ? 0 : GetLatestValue(bbands, "Real Lower Band"),
+                BBMiddle = bbands == null || !bbands.Any() ? 0 : GetLatestValue(bbands, "Real Middle Band"),
 
                 // Stochastic
-                StochK = stoch?.LastRefreshed == null ? 0 : GetLatestValue(stoch.TechnicalAnalysis, "SlowK"),
-                StochD = stoch?.LastRefreshed == null ? 0 : GetLatestValue(stoch.TechnicalAnalysis, "SlowD"),
+                StochK = stoch == null || !stoch.Any() ? 0 : GetLatestValue(stoch, "SlowK"),
+                StochD = stoch == null || !stoch.Any() ? 0 : GetLatestValue(stoch, "SlowD"),
 
                 // Volume and volatility
                 Volume = quote.Volume,
@@ -488,6 +488,18 @@ public class EnhancedFundamentalAnalysisService
         return 0;
     }
 
+    private double GetLatestValue(List<AlphaVantageTechnicalData> data, string key)
+    {
+        if (data == null || !data.Any()) return 0;
+
+        var latest = data.First();
+        if (latest.Indicators.TryGetValue(key, out var value))
+        {
+            return (double)(decimal)value;
+        }
+        return 0;
+    }
+
     private EnhancedTechnicalAnalysis CalculateTechnicalSignals(EnhancedTechnicalAnalysis analysis)
     {
         // RSI signals
@@ -607,15 +619,15 @@ public class EnhancedFundamentalAnalysisService
 // Data models for enhanced analysis
 public class EnhancedCompanyOverview
 {
-    public string Symbol { get; set; }
-    public string CompanyName { get; set; }
-    public string Description { get; set; }
-    public string Industry { get; set; }
-    public string Sector { get; set; }
-    public string Exchange { get; set; }
-    public string Country { get; set; }
-    public string Website { get; set; }
-    public string CEO { get; set; }
+    public required string Symbol { get; set; }
+    public required string CompanyName { get; set; }
+    public required string Description { get; set; }
+    public required string Industry { get; set; }
+    public required string Sector { get; set; }
+    public required string Exchange { get; set; }
+    public required string Country { get; set; }
+    public required string Website { get; set; }
+    public required string CEO { get; set; }
     public long Employees { get; set; }
     public long MarketCap { get; set; }
     public decimal PERatio { get; set; }
@@ -644,27 +656,27 @@ public class EnhancedCompanyOverview
     public decimal FiftyDayMovingAverage { get; set; }
     public decimal TwoHundredDayMovingAverage { get; set; }
     public long SharesOutstanding { get; set; }
-    public string DividendDate { get; set; }
-    public string ExDividendDate { get; set; }
-    public string LastSplitFactor { get; set; }
-    public string LastSplitDate { get; set; }
-    public string IpoDate { get; set; }
+    public required string DividendDate { get; set; }
+    public required string ExDividendDate { get; set; }
+    public required string LastSplitFactor { get; set; }
+    public required string LastSplitDate { get; set; }
+    public required string IpoDate { get; set; }
     public bool IsActivelyTrading { get; set; }
 }
 
 public class EnhancedFinancialStatements
 {
-    public string Symbol { get; set; }
-    public List<EnhancedIncomeStatement> IncomeStatements { get; set; }
-    public List<EnhancedBalanceSheet> BalanceSheets { get; set; }
-    public List<EnhancedCashFlow> CashFlowStatements { get; set; }
+    public required string Symbol { get; set; }
+    public required List<EnhancedIncomeStatement> IncomeStatements { get; set; }
+    public required List<EnhancedBalanceSheet> BalanceSheets { get; set; }
+    public required List<EnhancedCashFlow> CashFlowStatements { get; set; }
     public DateTime LastUpdated { get; set; }
 }
 
 public class EnhancedIncomeStatement
 {
-    public string Date { get; set; }
-    public string Period { get; set; }
+    public required string Date { get; set; }
+    public required string Period { get; set; }
     public long Revenue { get; set; }
     public long CostOfRevenue { get; set; }
     public long GrossProfit { get; set; }
@@ -677,8 +689,8 @@ public class EnhancedIncomeStatement
 
 public class EnhancedBalanceSheet
 {
-    public string Date { get; set; }
-    public string Period { get; set; }
+    public required string Date { get; set; }
+    public required string Period { get; set; }
     public long TotalAssets { get; set; }
     public long TotalLiabilities { get; set; }
     public long TotalEquity { get; set; }
@@ -691,8 +703,8 @@ public class EnhancedBalanceSheet
 
 public class EnhancedCashFlow
 {
-    public string Date { get; set; }
-    public string Period { get; set; }
+    public required string Date { get; set; }
+    public required string Period { get; set; }
     public long OperatingCashFlow { get; set; }
     public long InvestingCashFlow { get; set; }
     public long FinancingCashFlow { get; set; }
@@ -703,7 +715,7 @@ public class EnhancedCashFlow
 
 public class EnhancedValuationAnalysis
 {
-    public string Symbol { get; set; }
+    public required string Symbol { get; set; }
     public decimal CurrentPrice { get; set; }
     public decimal MarketCap { get; set; }
     public long SharesOutstanding { get; set; }
@@ -734,7 +746,7 @@ public class EnhancedValuationAnalysis
 
 public class EnhancedTechnicalAnalysis
 {
-    public string Symbol { get; set; }
+    public required string Symbol { get; set; }
     public decimal CurrentPrice { get; set; }
     public decimal PreviousClose { get; set; }
     public decimal DayChange { get; set; }
@@ -742,19 +754,19 @@ public class EnhancedTechnicalAnalysis
     public decimal SMA20 { get; set; }
     public decimal EMA20 { get; set; }
     public decimal RSI14 { get; set; }
-    public string RSISignal { get; set; }
+    public required string RSISignal { get; set; }
     public decimal MACD { get; set; }
     public decimal MACDSignalValue { get; set; }
     public decimal MACDHist { get; set; }
-    public string MACDSignal { get; set; }
+    public required string MACDSignal { get; set; }
     public decimal BBUpper { get; set; }
     public decimal BBLower { get; set; }
     public decimal BBMiddle { get; set; }
-    public string BollingerSignal { get; set; }
+    public required string BollingerSignal { get; set; }
     public decimal StochK { get; set; }
     public decimal StochD { get; set; }
-    public string StochasticSignal { get; set; }
-    public string MovingAverageSignal { get; set; }
+    public required string StochasticSignal { get; set; }
+    public required string MovingAverageSignal { get; set; }
     public long Volume { get; set; }
     public long AverageVolume { get; set; }
     public decimal FiftyTwoWeekHigh { get; set; }
@@ -764,7 +776,7 @@ public class EnhancedTechnicalAnalysis
 
 public class EnhancedAnalystAnalysis
 {
-    public string Symbol { get; set; }
+    public required string Symbol { get; set; }
     public decimal AnalystTargetPrice { get; set; }
     public int AnalystRatingStrongBuy { get; set; }
     public int AnalystRatingBuy { get; set; }
@@ -772,22 +784,22 @@ public class EnhancedAnalystAnalysis
     public int AnalystRatingSell { get; set; }
     public int AnalystRatingStrongSell { get; set; }
     public int NumberOfAnalystOpinions { get; set; }
-    public FMPAnalystEstimates LatestEstimates { get; set; }
-    public List<FMPAnalystEstimates> AllEstimates { get; set; }
+    public required FMPAnalystEstimates LatestEstimates { get; set; }
+    public required List<FMPAnalystEstimates> AllEstimates { get; set; }
     public DateTime AnalysisDate { get; set; }
 }
 
 public class EnhancedFundamentalReport
 {
-    public string Symbol { get; set; }
-    public EnhancedCompanyOverview CompanyOverview { get; set; }
-    public EnhancedFinancialStatements FinancialStatements { get; set; }
-    public EnhancedValuationAnalysis ValuationAnalysis { get; set; }
-    public EnhancedTechnicalAnalysis TechnicalAnalysis { get; set; }
-    public EnhancedAnalystAnalysis AnalystAnalysis { get; set; }
-    public string InvestmentRecommendation { get; set; }
-    public string RiskAssessment { get; set; }
-    public List<string> KeyStrengths { get; set; }
-    public List<string> KeyConcerns { get; set; }
+    public required string Symbol { get; set; }
+    public required EnhancedCompanyOverview CompanyOverview { get; set; }
+    public required EnhancedFinancialStatements FinancialStatements { get; set; }
+    public required EnhancedValuationAnalysis ValuationAnalysis { get; set; }
+    public required EnhancedTechnicalAnalysis TechnicalAnalysis { get; set; }
+    public required EnhancedAnalystAnalysis AnalystAnalysis { get; set; }
+    public required string InvestmentRecommendation { get; set; }
+    public required string RiskAssessment { get; set; }
+    public required List<string> KeyStrengths { get; set; }
+    public required List<string> KeyConcerns { get; set; }
     public DateTime ReportGenerated { get; set; }
 }

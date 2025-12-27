@@ -8,6 +8,7 @@ using QuantResearchAgent.Services;
 using QuantResearchAgent.Services.ResearchAgents;
 using Feen.Plugins;
 using QuantResearchAgent.Plugins;
+using CoreModels = QuantResearchAgent.Core;
 using MathNet.Numerics.LinearAlgebra;
 using System.Linq;
 using System.Text.Json;
@@ -327,7 +328,7 @@ public class InteractiveCLI
         _complianceMonitoringPlugin = complianceMonitoringPlugin;
     }
 
-    public async Task RunAsync()
+    public async Task RunAsync(string[]? args = null)
     {
         Console.WriteLine("FeenQR : Quantitative Research Agent");
         Console.WriteLine("=========================================");
@@ -554,6 +555,17 @@ public class InteractiveCLI
         Console.WriteLine("219. counterparty-risk [command] [parameters] - Counterparty risk analysis and monitoring");
         Console.WriteLine("220. performance-attribution [command] [parameters] - Performance attribution and factor analysis");
         Console.WriteLine("221. benchmarking [command] [parameters] - Benchmarking and replication analysis");
+
+        // Check if command line arguments were provided
+        if (args != null && args.Length > 0)
+        {
+            // Join all args into a single command string
+            var commandInput = string.Join(" ", args);
+            Console.WriteLine($"Executing command: {commandInput}");
+            Console.WriteLine();
+            await ProcessCommandAsync(commandInput);
+            return; // Exit after processing the command
+        }
 
         while (true)
         {
@@ -811,9 +823,6 @@ public class InteractiveCLI
                     break;
                 case "stress-test":
                     await StressTestCommand(parts);
-                    break;
-                case "compliance-check":
-                    await ComplianceCheckCommand(parts);
                     break;
                 case "geo-satellite":
                     await GeoSatelliteCommand(parts);
@@ -1456,6 +1465,42 @@ public class InteractiveCLI
         PrintSectionFooter();
     }
 
+    private async Task AdvancedRiskCommand(string[] parts)
+    {
+        PrintSectionHeader("Advanced Risk Analytics");
+        var function = _kernel.Plugins["AdvancedRiskAnalyticsPlugin"]["RunAdvancedRiskAnalysis"];
+        var result = await _kernel.InvokeAsync(function);
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task CounterpartyRiskCommand(string[] parts)
+    {
+        PrintSectionHeader("Counterparty Risk Analysis");
+        var function = _kernel.Plugins["CounterpartyRiskPlugin"]["AnalyzeCounterpartyRisk"];
+        var result = await _kernel.InvokeAsync(function);
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task PerformanceAttributionCommand(string[] parts)
+    {
+        PrintSectionHeader("Performance Attribution Analysis");
+        var function = _kernel.Plugins["PerformanceAttributionPlugin"]["RunPerformanceAttribution"];
+        var result = await _kernel.InvokeAsync(function);
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task BenchmarkingCommand(string[] parts)
+    {
+        PrintSectionHeader("Benchmarking Analysis");
+        var function = _kernel.Plugins["BenchmarkingPlugin"]["RunBenchmarkingAnalysis"];
+        var result = await _kernel.InvokeAsync(function);
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
     private async Task ShowAvailableFunctions()
     {
         Console.WriteLine("Available Semantic Kernel Functions:");
@@ -1976,7 +2021,38 @@ public class InteractiveCLI
         var anomalyDetectionPlugin = serviceProvider.GetRequiredService<AnomalyDetectionPlugin>();
         var dynamicFactorPlugin = serviceProvider.GetRequiredService<DynamicFactorPlugin>();
         var tradingTemplateGeneratorPlugin = serviceProvider.GetRequiredService<TradingTemplateGeneratorPlugin>();
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, geopoliticalRiskPlugin, optionsFlowService, volatilityTradingService, advancedMicrostructureService, latencyArbitrageService, optionsFlowPlugin, volatilityTradingPlugin, advancedMicrostructurePlugin, latencyArbitragePlugin, conversationalResearchPlugin, automatedReportingPlugin, marketRegimePlugin, anomalyDetectionPlugin, dynamicFactorPlugin, tradingTemplateGeneratorPlugin));
+        
+        // Phase 11 services and plugins
+        var alphaVantageService = serviceProvider.GetRequiredService<AlphaVantageService>();
+        var iexCloudService = serviceProvider.GetRequiredService<IEXCloudService>();
+        var financialModelingPrepService = serviceProvider.GetRequiredService<FinancialModelingPrepService>();
+        var enhancedFundamentalAnalysisService = serviceProvider.GetRequiredService<EnhancedFundamentalAnalysisService>();
+        var alphaVantagePlugin = serviceProvider.GetRequiredService<AlphaVantagePlugin>();
+        var iexCloudPlugin = serviceProvider.GetRequiredService<IEXCloudPlugin>();
+        var financialModelingPrepPlugin = serviceProvider.GetRequiredService<FinancialModelingPrepPlugin>();
+        var enhancedFundamentalAnalysisPlugin = serviceProvider.GetRequiredService<EnhancedFundamentalAnalysisPlugin>();
+        
+        // Phase 12 services and plugins
+        var advancedRiskAnalyticsService = serviceProvider.GetRequiredService<AdvancedRiskAnalyticsService>();
+        var counterpartyRiskService = serviceProvider.GetRequiredService<CounterpartyRiskService>();
+        var performanceAttributionService = serviceProvider.GetRequiredService<PerformanceAttributionService>();
+        var benchmarkingService = serviceProvider.GetRequiredService<BenchmarkingService>();
+        var advancedRiskAnalyticsPlugin = serviceProvider.GetRequiredService<AdvancedRiskAnalyticsPlugin>();
+        var counterpartyRiskPlugin = serviceProvider.GetRequiredService<CounterpartyRiskPlugin>();
+        var performanceAttributionPlugin = serviceProvider.GetRequiredService<PerformanceAttributionPlugin>();
+        var benchmarkingPlugin = serviceProvider.GetRequiredService<BenchmarkingPlugin>();
+        
+        // Phase 13 services and plugins
+        var liveStrategyService = serviceProvider.GetRequiredService<LiveStrategyService>();
+        var eventDrivenTradingService = serviceProvider.GetRequiredService<EventDrivenTradingService>();
+        var realTimeAlertingService = serviceProvider.GetRequiredService<RealTimeAlertingService>();
+        var complianceMonitoringService = serviceProvider.GetRequiredService<ComplianceMonitoringService>();
+        var liveStrategyPlugin = serviceProvider.GetRequiredService<LiveStrategyPlugin>();
+        var eventDrivenTradingPlugin = serviceProvider.GetRequiredService<EventDrivenTradingPlugin>();
+        var realTimeAlertingPlugin = serviceProvider.GetRequiredService<RealTimeAlertingPlugin>();
+        var complianceMonitoringPlugin = serviceProvider.GetRequiredService<ComplianceMonitoringPlugin>();
+        
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, geopoliticalRiskPlugin, optionsFlowService, volatilityTradingService, advancedMicrostructureService, latencyArbitrageService, optionsFlowPlugin, volatilityTradingPlugin, advancedMicrostructurePlugin, latencyArbitragePlugin, conversationalResearchPlugin, automatedReportingPlugin, marketRegimePlugin, anomalyDetectionPlugin, dynamicFactorPlugin, tradingTemplateGeneratorPlugin, alphaVantageService, iexCloudService, financialModelingPrepService, enhancedFundamentalAnalysisService, alphaVantagePlugin, iexCloudPlugin, financialModelingPrepPlugin, enhancedFundamentalAnalysisPlugin, advancedRiskAnalyticsService, counterpartyRiskService, performanceAttributionService, benchmarkingService, advancedRiskAnalyticsPlugin, counterpartyRiskPlugin, performanceAttributionPlugin, benchmarkingPlugin, liveStrategyService, eventDrivenTradingService, realTimeAlertingService, complianceMonitoringService, liveStrategyPlugin, eventDrivenTradingPlugin, realTimeAlertingPlugin, complianceMonitoringPlugin));
     }
 
     // Alpaca Commands
@@ -6543,7 +6619,7 @@ public class InteractiveCLI
         try
         {
             var views = ParseViews(viewsJson);
-            var constraints = new OptimizationConstraints();
+            var constraints = new CoreModels.OptimizationConstraints();
             var result = await _advancedOptimizationService.RunBlackLittermanOptimizationAsync(
                 assets, views, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
 
@@ -6616,7 +6692,7 @@ public class InteractiveCLI
 
         try
         {
-            var constraints = new OptimizationConstraints();
+            var constraints = new CoreModels.OptimizationConstraints();
             var result = await _advancedOptimizationService.OptimizeRiskParityAsync(
                 assets, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
 
@@ -6683,7 +6759,7 @@ public class InteractiveCLI
 
         try
         {
-            var constraints = new OptimizationConstraints();
+            var constraints = new CoreModels.OptimizationConstraints();
             var result = await _advancedOptimizationService.OptimizeHierarchicalRiskParityAsync(
                 assets, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
 
@@ -6747,7 +6823,7 @@ public class InteractiveCLI
 
         try
         {
-            var constraints = new OptimizationConstraints();
+            var constraints = new CoreModels.OptimizationConstraints();
             var result = await _advancedOptimizationService.OptimizeMinimumVarianceAsync(
                 assets, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
 
@@ -6812,7 +6888,7 @@ public class InteractiveCLI
 
         try
         {
-            var constraints = new OptimizationConstraints();
+            var constraints = new CoreModels.OptimizationConstraints();
 
             // Run all optimization methods
             var riskParity = await _advancedOptimizationService.OptimizeRiskParityAsync(

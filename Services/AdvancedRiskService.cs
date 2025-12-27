@@ -6,6 +6,7 @@ using MathNet.Numerics.Distributions;
 using MathNet.Numerics.Statistics;
 using QuantResearchAgent.Core;
 using QuantResearchAgent.Services;
+using CoreModels = QuantResearchAgent.Core;
 
 namespace QuantResearchAgent.Services
 {
@@ -87,7 +88,7 @@ namespace QuantResearchAgent.Services
         }
 
         // Stress Testing Framework
-        public async Task<List<StressTestResult>> RunStressTestsAsync(
+        public async Task<List<CoreModels.StressTestResult>> RunStressTestsAsync(
             Dictionary<string, double> portfolioWeights,
             List<Dictionary<string, double>> stressScenarios,
             List<string> scenarioNames,
@@ -95,7 +96,7 @@ namespace QuantResearchAgent.Services
             DateTime startDate,
             DateTime endDate)
         {
-            var results = new List<StressTestResult>();
+            var results = new List<CoreModels.StressTestResult>();
 
             // Get current market data for baseline
             var assetReturns = new Dictionary<string, List<double>>();
@@ -113,7 +114,7 @@ namespace QuantResearchAgent.Services
                 var scenario = stressScenarios[i];
                 var scenarioName = scenarioNames[i];
 
-                var result = new StressTestResult
+                var result = new CoreModels.StressTestResult
                 {
                     AnalysisDate = DateTime.Now,
                     ScenarioName = scenarioName,

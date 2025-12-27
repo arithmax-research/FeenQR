@@ -274,8 +274,8 @@ Risk Assessment for {symbol}:
 
         private class QueryIntent
         {
-            public string Type { get; set; }
-            public Dictionary<string, string> Parameters { get; set; }
+            public required string Type { get; set; }
+            public required Dictionary<string, string> Parameters { get; set; }
             public double Confidence { get; set; }
         }
     }

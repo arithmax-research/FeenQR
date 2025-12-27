@@ -325,6 +325,27 @@ namespace QuantResearchAgent.Services
                 throw;
             }
         }
+
+        // Wrapper methods for compatibility
+        public async Task<object> GetPortfolioPositionsAsync()
+        {
+            return await _baseAlpacaService.GetPositionsAsync();
+        }
+
+        public async Task<object> GetAccountAsync()
+        {
+            return await _baseAlpacaService.GetAccountInfoAsync();
+        }
+
+        public async Task<object> PlaceMarketOrderAsync(string symbol, int quantity, string side)
+        {
+            return await _baseAlpacaService.PlaceMarketOrderAsync(symbol, quantity, side);
+        }
+
+        public async Task<object> GetPositionAsync(string symbol)
+        {
+            return await _baseAlpacaService.GetPositionAsync(symbol);
+        }
     }
 
     // Data Models

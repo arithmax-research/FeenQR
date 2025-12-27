@@ -82,7 +82,8 @@ namespace QuantResearchAgent.Plugins
                     Headline = eventDetails,
                     SentimentScore = 0.8m, // Would analyze
                     ImpactScore = 0.6m,
-                    Timestamp = DateTime.UtcNow
+                    Timestamp = DateTime.UtcNow,
+                    Metadata = new Dictionary<string, string>() // Initialize required property
                 };
 
                 // Get the rule (simplified - would load by ID)

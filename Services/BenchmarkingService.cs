@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using QuantResearchAgent.Core;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.Optimization;
+using MathNet.Numerics.Statistics;
 
 namespace QuantResearchAgent.Services
 {
@@ -421,7 +422,7 @@ namespace QuantResearchAgent.Services
 
                 case WeightingType.MarketCapWeight:
                     var totalMarketCap = securities.Sum(s => s.MarketCap ?? 0);
-                    return securities.Select(s => (s.MarketCap ?? 0) / totalMarketCap).ToList();
+                    return securities.Select(s => (double)((s.MarketCap ?? 0) / totalMarketCap)).ToList();
 
                 case WeightingType.FundamentalWeight:
                     return await CalculateFundamentalWeightsAsync(securities, methodology);
@@ -481,13 +482,13 @@ namespace QuantResearchAgent.Services
             switch (factor.Type)
             {
                 case FundamentalType.Revenue:
-                    return security.Revenue;
+                    return (double?)security.Revenue;
                 case FundamentalType.Earnings:
-                    return security.Earnings;
+                    return (double?)security.Earnings;
                 case FundamentalType.BookValue:
-                    return security.BookValue;
+                    return (double?)security.BookValue;
                 case FundamentalType.DividendYield:
-                    return security.DividendYield;
+                    return (double?)security.DividendYield;
                 default:
                     return null;
             }
@@ -774,8 +775,297 @@ namespace QuantResearchAgent.Services
             return turnover / 2.0; // Divide by 2 because each trade affects two sides
         }
 
-        #endregion
+    #endregion
+
+    #region Plugin Support Methods
+
+    /// <summary>
+    /// Generate comprehensive benchmark analysis report
+    /// </summary>
+    public async Task<BenchmarkPerformanceReport> GenerateBenchmarkReportAsync(
+        BenchmarkData benchmarkData,
+        PortfolioData portfolioData,
+        string reportType)
+    {
+        _logger.LogInformation($"Generating {reportType} benchmark report for {benchmarkData.Name}");
+
+        try
+        {
+            // Create benchmark returns from holdings
+            var benchmarkReturns = new BenchmarkReturns
+            {
+                Name = benchmarkData.Name,
+                Returns = new List<double> { 0.0 }, // Placeholder
+                Dates = new List<DateTime> { DateTime.Now }
+            };
+
+            // Create portfolio returns from holdings
+            var portfolioReturns = new PortfolioReturns
+            {
+                Returns = new List<double> { 0.0 }, // Placeholder
+                Dates = new List<DateTime> { DateTime.Now }
+            };
+
+            // Generate comparison
+            var comparison = await CompareToBenchmarksAsync(
+                portfolioReturns,
+                new List<BenchmarkReturns> { benchmarkReturns },
+                0.02);
+
+            return new BenchmarkPerformanceReport
+            {
+                BenchmarkName = benchmarkData.Name,
+                ReportType = reportType,
+                GeneratedAt = DateTime.Now,
+                Summary = $"Report generated for {benchmarkData.Name} vs portfolio"
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating benchmark report");
+            throw;
+        }
     }
+
+    /// <summary>
+    /// Monitor benchmark composition drift over time
+    /// </summary>
+    public async Task<string> MonitorBenchmarkDriftAsync(
+        List<BenchmarkComposition> historicalCompositions,
+        double driftThreshold)
+    {
+        _logger.LogInformation($"Monitoring benchmark drift with threshold {driftThreshold:P2}");
+
+        try
+        {
+            if (historicalCompositions.Count < 2)
+            {
+                return "Insufficient historical data for drift analysis";
+            }
+
+            // Calculate drift between consecutive compositions
+            var driftAnalysis = new List<string>();
+            for (int i = 1; i < historicalCompositions.Count; i++)
+            {
+                var current = historicalCompositions[i];
+                var previous = historicalCompositions[i - 1];
+
+                var drift = CalculateCompositionDrift(previous, current);
+                if (drift > driftThreshold)
+                {
+                    driftAnalysis.Add($"Drift detected on {current.Date:yyyy-MM-dd}: {drift:P2} (threshold: {driftThreshold:P2})");
+                }
+            }
+
+            return driftAnalysis.Any()
+                ? $"Benchmark drift analysis:\n{string.Join("\n", driftAnalysis)}"
+                : $"No significant drift detected (threshold: {driftThreshold:P2})";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error monitoring benchmark drift");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Create sector-specific benchmark
+    /// </summary>
+    public async Task<CustomBenchmark> CreateSectorBenchmarkAsync(
+        string sectorName,
+        SectorCriteria criteria,
+        WeightingMethodology weightingMethodology)
+    {
+        _logger.LogInformation($"Creating {sectorName} sector benchmark");
+
+        try
+        {
+            // Filter universe based on sector criteria
+            var universe = await GetSectorUniverseAsync(criteria);
+
+            // Create benchmark specification
+            var specification = new BenchmarkSpecification
+            {
+                Name = $"{sectorName} Sector Benchmark",
+                Description = $"Benchmark for {sectorName} sector",
+                Criteria = new List<BenchmarkCriterion>
+                {
+                    new BenchmarkCriterion
+                    {
+                        Type = "Sector",
+                        Value = sectorName,
+                        Operator = "Equals"
+                    }
+                },
+                WeightingMethodology = weightingMethodology
+            };
+
+            return await CreateCustomBenchmarkAsync(specification, universe);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating sector benchmark");
+            throw;
+        }
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    private double CalculateCompositionDrift(BenchmarkComposition previous, BenchmarkComposition current)
+    {
+        // Calculate weighted difference between compositions
+        var previousWeights = previous.Holdings.ToDictionary(h => h.Symbol, h => h.Weight);
+        var currentWeights = current.Holdings.ToDictionary(h => h.Symbol, h => h.Weight);
+
+        var allSymbols = previousWeights.Keys.Union(currentWeights.Keys).ToList();
+        var totalDrift = 0.0;
+
+        foreach (var symbol in allSymbols)
+        {
+            var prevWeight = previousWeights.GetValueOrDefault(symbol, 0.0);
+            var currWeight = currentWeights.GetValueOrDefault(symbol, 0.0);
+            totalDrift += Math.Abs(prevWeight - currWeight);
+        }
+
+        return totalDrift / 2.0; // Normalize to 0-1 range
+    }
+
+    private async Task<List<SecurityData>> GetSectorUniverseAsync(SectorCriteria criteria)
+    {
+        // Placeholder implementation - in real scenario would query market data service
+        return new List<SecurityData>
+        {
+            new SecurityData
+            {
+                Symbol = "AAPL",
+                Name = "Apple Inc.",
+                Sector = criteria.Sector,
+                MarketCap = 3000000000000,
+                Price = 150.0,
+                Volume = 50000000
+            }
+        };
+    }
+
+    #endregion
+
+    #region Additional Methods
+
+    /// <summary>
+    /// Analyze benchmark composition and characteristics
+    /// </summary>
+    public async Task<BenchmarkCompositionAnalysis> AnalyzeBenchmarkCompositionAsync(CustomBenchmark benchmark)
+    {
+        _logger.LogInformation($"Analyzing composition for benchmark {benchmark.Name}");
+
+        try
+        {
+            var analysis = new BenchmarkCompositionAnalysis
+            {
+                BenchmarkName = benchmark.Name,
+                TotalHoldings = benchmark.Composition.Count,
+                MarketCapWeighted = benchmark.Specification.WeightingMethodology == WeightingMethodology.MarketCapWeighted,
+                EqualWeighted = benchmark.Specification.WeightingMethodology == WeightingMethodology.EqualWeighted,
+                SectorDiversification = benchmark.Composition.GroupBy(h => h.Sector).Count(),
+                ConcentrationIndex = benchmark.Composition.Max(h => h.Weight)
+            };
+
+            // Calculate sector breakdown
+            analysis.SectorBreakdown = benchmark.Composition
+                .GroupBy(h => h.Sector)
+                .Select(g => new SectorBreakdown
+                {
+                    Sector = g.Key ?? "Unknown",
+                    Weight = g.Sum(h => h.Weight),
+                    NumberOfHoldings = g.Count()
+                })
+                .OrderByDescending(sb => sb.Weight)
+                .ToList();
+
+            return analysis;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error analyzing benchmark composition for {benchmark.Name}");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Calculate comprehensive benchmark metrics
+    /// </summary>
+    public async Task<BenchmarkMetricsResult> CalculateBenchmarkMetricsAsync(
+        CustomBenchmark benchmark,
+        DateTime startDate,
+        DateTime endDate)
+    {
+        _logger.LogInformation($"Calculating metrics for benchmark {benchmark.Name}");
+
+        try
+        {
+            // Get historical returns for benchmark holdings
+            var symbols = benchmark.Composition.Select(h => h.SecurityId).ToList();
+            var historicalData = new List<List<MarketData>>();
+
+            foreach (var symbol in symbols)
+            {
+                var data = await _marketDataService.GetHistoricalDataAsync(symbol, 252); // 1 year
+                historicalData.Add(data ?? new List<MarketData>());
+            }
+
+            // Calculate benchmark returns
+            var benchmarkReturns = CalculateBenchmarkReturns(historicalData, benchmark.Composition);
+
+            if (!benchmarkReturns.Any())
+            {
+                return new BenchmarkMetricsResult();
+            }
+
+            // Calculate metrics
+            var totalReturn = benchmarkReturns.Last() - benchmarkReturns.First();
+            var annualizedReturn = Math.Pow(1 + totalReturn, 252.0 / benchmarkReturns.Count) - 1;
+            var volatility = benchmarkReturns.StandardDeviation();
+            var sharpeRatio = volatility > 0 ? annualizedReturn / volatility : 0;
+
+            // Calculate drawdowns
+            var maxDrawdown = 0.0;
+            var peak = benchmarkReturns.First();
+            foreach (var ret in benchmarkReturns)
+            {
+                if (ret > peak) peak = ret;
+                var drawdown = (peak - ret) / peak;
+                if (drawdown > maxDrawdown) maxDrawdown = drawdown;
+            }
+
+            // Calculate Sortino ratio (downside deviation)
+            var downsideReturns = benchmarkReturns.Where(r => r < 0).ToList();
+            var downsideDeviation = downsideReturns.Any() ? downsideReturns.StandardDeviation() : 0;
+            var sortinoRatio = downsideDeviation > 0 ? annualizedReturn / downsideDeviation : 0;
+
+            var calmarRatio = maxDrawdown > 0 ? annualizedReturn / maxDrawdown : 0;
+
+            return new BenchmarkMetricsResult
+            {
+                TotalReturn = totalReturn,
+                AnnualizedReturn = annualizedReturn,
+                Volatility = volatility,
+                SharpeRatio = sharpeRatio,
+                MaxDrawdown = maxDrawdown,
+                SortinoRatio = sortinoRatio,
+                CalmarRatio = calmarRatio
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error calculating benchmark metrics for {benchmark.Name}");
+            throw;
+        }
+    }
+
+    #endregion
+}
 
     #region Data Classes
 
@@ -1019,14 +1309,6 @@ namespace QuantResearchAgent.Services
         public Dictionary<string, double> StressMultipliers { get; set; } = new();
     }
 
-    public class BenchmarkStressTestResult
-    {
-        public CustomBenchmark Benchmark { get; set; } = new();
-        public List<BenchmarkStressTest> StressTestResults { get; set; } = new();
-        public BenchmarkStressTest WorstCaseScenario { get; set; } = new();
-        public DateTime Timestamp { get; set; }
-    }
-
     public class BenchmarkStressTest
     {
         public StressTestScenario Scenario { get; set; } = new();
@@ -1061,180 +1343,10 @@ namespace QuantResearchAgent.Services
 
     #endregion
 
-        #region Plugin Support Methods
+    #region Plugin Support Types
 
-        /// <summary>
-        /// Generate comprehensive benchmark analysis report
-        /// </summary>
-        public async Task<BenchmarkPerformanceReport> GenerateBenchmarkReportAsync(
-            BenchmarkData benchmarkData,
-            PortfolioData portfolioData,
-            string reportType)
-        {
-            _logger.LogInformation($"Generating {reportType} benchmark report for {benchmarkData.Name}");
-
-            try
-            {
-                // Create benchmark returns from holdings
-                var benchmarkReturns = new BenchmarkReturns
-                {
-                    Name = benchmarkData.Name,
-                    Returns = new List<double> { 0.0 }, // Placeholder
-                    Dates = new List<DateTime> { DateTime.Now }
-                };
-
-                // Create portfolio returns from holdings
-                var portfolioReturns = new PortfolioReturns
-                {
-                    Returns = new List<double> { 0.0 }, // Placeholder
-                    Dates = new List<DateTime> { DateTime.Now }
-                };
-
-                // Generate comparison
-                var comparison = await CompareToBenchmarksAsync(
-                    portfolioReturns,
-                    new List<BenchmarkReturns> { benchmarkReturns },
-                    0.02);
-
-                return new BenchmarkPerformanceReport
-                {
-                    BenchmarkName = benchmarkData.Name,
-                    ReportType = reportType,
-                    GeneratedAt = DateTime.Now,
-                    Summary = $"Report generated for {benchmarkData.Name} vs portfolio"
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error generating benchmark report");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Monitor benchmark composition drift over time
-        /// </summary>
-        public async Task<string> MonitorBenchmarkDriftAsync(
-            List<BenchmarkComposition> historicalCompositions,
-            double driftThreshold)
-        {
-            _logger.LogInformation($"Monitoring benchmark drift with threshold {driftThreshold:P2}");
-
-            try
-            {
-                if (historicalCompositions.Count < 2)
-                {
-                    return "Insufficient historical data for drift analysis";
-                }
-
-                // Calculate drift between consecutive compositions
-                var driftAnalysis = new List<string>();
-                for (int i = 1; i < historicalCompositions.Count; i++)
-                {
-                    var current = historicalCompositions[i];
-                    var previous = historicalCompositions[i - 1];
-
-                    var drift = CalculateCompositionDrift(previous, current);
-                    if (drift > driftThreshold)
-                    {
-                        driftAnalysis.Add($"Drift detected on {current.Date:yyyy-MM-dd}: {drift:P2} (threshold: {driftThreshold:P2})");
-                    }
-                }
-
-                return driftAnalysis.Any()
-                    ? $"Benchmark drift analysis:\n{string.Join("\n", driftAnalysis)}"
-                    : $"No significant drift detected (threshold: {driftThreshold:P2})";
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error monitoring benchmark drift");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Create sector-specific benchmark
-        /// </summary>
-        public async Task<CustomBenchmark> CreateSectorBenchmarkAsync(
-            string sectorName,
-            SectorCriteria criteria,
-            WeightingMethodology weightingMethodology)
-        {
-            _logger.LogInformation($"Creating {sectorName} sector benchmark");
-
-            try
-            {
-                // Filter universe based on sector criteria
-                var universe = await GetSectorUniverseAsync(criteria);
-
-                // Create benchmark specification
-                var specification = new BenchmarkSpecification
-                {
-                    Name = $"{sectorName} Sector Benchmark",
-                    Description = $"Benchmark for {sectorName} sector",
-                    Criteria = new List<BenchmarkCriterion>
-                    {
-                        new BenchmarkCriterion
-                        {
-                            Type = "Sector",
-                            Value = sectorName,
-                            Operator = "Equals"
-                        }
-                    },
-                    WeightingMethodology = weightingMethodology
-                };
-
-                return await CreateCustomBenchmarkAsync(specification, universe);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating sector benchmark");
-                throw;
-            }
-        }
-
-        #endregion
-
-        #region Helper Methods
-
-        private double CalculateCompositionDrift(BenchmarkComposition previous, BenchmarkComposition current)
-        {
-            // Calculate weighted difference between compositions
-            var previousWeights = previous.Holdings.ToDictionary(h => h.Symbol, h => h.Weight);
-            var currentWeights = current.Holdings.ToDictionary(h => h.Symbol, h => h.Weight);
-
-            var allSymbols = previousWeights.Keys.Union(currentWeights.Keys).ToList();
-            var totalDrift = 0.0;
-
-            foreach (var symbol in allSymbols)
-            {
-                var prevWeight = previousWeights.GetValueOrDefault(symbol, 0.0);
-                var currWeight = currentWeights.GetValueOrDefault(symbol, 0.0);
-                totalDrift += Math.Abs(prevWeight - currWeight);
-            }
-
-            return totalDrift / 2.0; // Normalize to 0-1 range
-        }
-
-        private async Task<List<SecurityData>> GetSectorUniverseAsync(SectorCriteria criteria)
-        {
-            // Placeholder implementation - in real scenario would query market data service
-            return new List<SecurityData>
-            {
-                new SecurityData
-                {
-                    Symbol = "AAPL",
-                    Name = "Apple Inc.",
-                    Sector = criteria.Sector,
-                    MarketCap = 3000000000000,
-                    Price = 150.0,
-                    Volume = 50000000
-                }
-            };
-        }
-
-        #endregion
-
+    /// <summary>
+    /// Represents benchmark data for reporting and analysis
     /// </summary>
     public class BenchmarkData
     {
@@ -1298,15 +1410,110 @@ namespace QuantResearchAgent.Services
     }
 
     /// <summary>
-    /// Represents stress testing scenario
+    /// Result of benchmark replication analysis
+    /// </summary>
+    public class BenchmarkReplicationAnalysis
+    {
+        public double TrackingError { get; set; }
+        public double RSquared { get; set; }
+        public double Beta { get; set; }
+        public double InformationRatio { get; set; }
+        public string ReplicationQuality { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Result of benchmark replication optimization
+    /// </summary>
+    public class BenchmarkReplicationOptimization
+    {
+        public double ExpectedTrackingError { get; set; }
+        public List<ReplicationHolding> OptimizedHoldings { get; set; } = new();
+        public double OptimizationTime { get; set; }
+        public string OptimizationMethod { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Result of benchmark stress testing
+    /// </summary>
+    public class BenchmarkStressTestResult
+    {
+        public required BenchmarkData Benchmark { get; set; }
+        public List<StressTestResult> StressTestResults { get; set; } = new();
+        public DateTime Timestamp { get; set; }
+        public string WorstCaseScenario { get; set; } = string.Empty;
+        public TimeSpan StressTestDuration { get; set; }
+        public List<StressTestScenarioResult> ScenarioResults { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Individual scenario result in stress testing
+    /// </summary>
+    public class StressTestScenarioResult
+    {
+        public string ScenarioName { get; set; } = string.Empty;
+        public double PortfolioReturn { get; set; }
+        public double ValueAtRisk { get; set; }
+        public double ExpectedShortfall { get; set; }
+    }
+
+    /// <summary>
+    /// Result of benchmark composition analysis
+    /// </summary>
+    public class BenchmarkCompositionAnalysis
+    {
+        public int NumberOfHoldings { get; set; }
+        public double AverageMarketCap { get; set; }
+        public double SectorDiversification { get; set; }
+        public List<SectorBreakdown> SectorBreakdown { get; set; } = new();
+        public double ConcentrationIndex { get; set; }
+    }
+
+    /// <summary>
+    /// Sector breakdown in composition analysis
+    /// </summary>
+    public class SectorBreakdown
+    {
+        public string Sector { get; set; } = string.Empty;
+        public double Weight { get; set; }
+        public int NumberOfHoldings { get; set; }
+    }
+
+    /// <summary>
+    /// Result of benchmark metrics calculation
+    /// </summary>
+    public class BenchmarkMetricsResult
+    {
+        public double TotalReturn { get; set; }
+        public double AnnualizedReturn { get; set; }
+        public double Volatility { get; set; }
+        public double SharpeRatio { get; set; }
+        public double MaxDrawdown { get; set; }
+        public double SortinoRatio { get; set; }
+        public double CalmarRatio { get; set; }
+    }
+
+    /// <summary>
+    /// Benchmark report for comprehensive analysis
+    /// </summary>
+    public class BenchmarkReport
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Summary { get; set; } = string.Empty;
+        public BenchmarkData BenchmarkData { get; set; } = new();
+        public PortfolioData PortfolioData { get; set; } = new();
+        public BenchmarkMetricsResult Metrics { get; set; } = new();
+        public DateTime GeneratedAt { get; set; }
+    }
+
+    /// <summary>
+    /// Stress scenario for testing
     /// </summary>
     public class StressScenario
     {
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public Dictionary<string, double> MarketShocks { get; set; } = new();
-        public double Probability { get; set; }
-        public string Severity { get; set; } = string.Empty;
+        public Dictionary<string, double> StressFactors { get; set; } = new();
+        public double Severity { get; set; }
     }
 
     #endregion

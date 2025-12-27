@@ -220,7 +220,7 @@ public class AlphaVantageService
             var content = await response.Content.ReadAsStringAsync();
             var data = JsonSerializer.Deserialize<AlphaVantageTechnicalResponse>(content);
 
-            return data?.TechnicalAnalysis ?? new List<AlphaVantageTechnicalData>();
+            return data?.TechnicalAnalysis?.Values.ToList() ?? new List<AlphaVantageTechnicalData>();
         }
         catch (Exception ex)
         {
@@ -256,13 +256,153 @@ public class AlphaVantageService
             return null;
         }
     }
+
+    /// <summary>
+    /// Get technical indicator (EMA)
+    /// </summary>
+    public async Task<List<AlphaVantageTechnicalData>> GetEMAAsync(string symbol, int period = 20, string interval = "daily")
+    {
+        try
+        {
+            var url = $"https://www.alphavantage.co/query?function=EMA&symbol={symbol}&interval={interval}&time_period={period}&series_type=close&apikey={_apiKey}";
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning($"Alpha Vantage API error: {response.StatusCode}");
+                return new List<AlphaVantageTechnicalData>();
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<AlphaVantageTechnicalResponse>(content);
+
+            return data?.TechnicalAnalysis?.Values.ToList() ?? new List<AlphaVantageTechnicalData>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting EMA for {symbol}");
+            return new List<AlphaVantageTechnicalData>();
+        }
+    }
+
+    /// <summary>
+    /// Get technical indicator (RSI)
+    /// </summary>
+    public async Task<List<AlphaVantageTechnicalData>> GetRSIAsync(string symbol, int period = 14, string interval = "daily")
+    {
+        try
+        {
+            var url = $"https://www.alphavantage.co/query?function=RSI&symbol={symbol}&interval={interval}&time_period={period}&series_type=close&apikey={_apiKey}";
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning($"Alpha Vantage API error: {response.StatusCode}");
+                return new List<AlphaVantageTechnicalData>();
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<AlphaVantageTechnicalResponse>(content);
+
+            return data?.TechnicalAnalysis?.Values.ToList() ?? new List<AlphaVantageTechnicalData>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting RSI for {symbol}");
+            return new List<AlphaVantageTechnicalData>();
+        }
+    }
+
+    /// <summary>
+    /// Get technical indicator (MACD)
+    /// </summary>
+    public async Task<List<AlphaVantageTechnicalData>> GetMACDAsync(string symbol, string interval = "daily")
+    {
+        try
+        {
+            var url = $"https://www.alphavantage.co/query?function=MACD&symbol={symbol}&interval={interval}&series_type=close&apikey={_apiKey}";
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning($"Alpha Vantage API error: {response.StatusCode}");
+                return new List<AlphaVantageTechnicalData>();
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<AlphaVantageTechnicalResponse>(content);
+
+            return data?.TechnicalAnalysis?.Values.ToList() ?? new List<AlphaVantageTechnicalData>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting MACD for {symbol}");
+            return new List<AlphaVantageTechnicalData>();
+        }
+    }
+
+    /// <summary>
+    /// Get technical indicator (Bollinger Bands)
+    /// </summary>
+    public async Task<List<AlphaVantageTechnicalData>> GetBollingerBandsAsync(string symbol, int period = 20, string interval = "daily")
+    {
+        try
+        {
+            var url = $"https://www.alphavantage.co/query?function=BBANDS&symbol={symbol}&interval={interval}&time_period={period}&series_type=close&apikey={_apiKey}";
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning($"Alpha Vantage API error: {response.StatusCode}");
+                return new List<AlphaVantageTechnicalData>();
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<AlphaVantageTechnicalResponse>(content);
+
+            return data?.TechnicalAnalysis?.Values.ToList() ?? new List<AlphaVantageTechnicalData>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting Bollinger Bands for {symbol}");
+            return new List<AlphaVantageTechnicalData>();
+        }
+    }
+
+    /// <summary>
+    /// Get technical indicator (Stochastic)
+    /// </summary>
+    public async Task<List<AlphaVantageTechnicalData>> GetStochasticAsync(string symbol, string interval = "daily")
+    {
+        try
+        {
+            var url = $"https://www.alphavantage.co/query?function=STOCH&symbol={symbol}&interval={interval}&apikey={_apiKey}";
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning($"Alpha Vantage API error: {response.StatusCode}");
+                return new List<AlphaVantageTechnicalData>();
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<AlphaVantageTechnicalResponse>(content);
+
+            return data?.TechnicalAnalysis?.Values.ToList() ?? new List<AlphaVantageTechnicalData>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting Stochastic for {symbol}");
+            return new List<AlphaVantageTechnicalData>();
+        }
+    }
 }
 
 // Data models for Alpha Vantage API responses
 public class AlphaVantageQuote
 {
     [JsonPropertyName("01. symbol")]
-    public string Symbol { get; set; }
+    public string? Symbol { get; set; }
 
     [JsonPropertyName("05. price")]
     public decimal Price { get; set; }
@@ -271,34 +411,49 @@ public class AlphaVantageQuote
     public decimal Change { get; set; }
 
     [JsonPropertyName("10. change percent")]
-    public string ChangePercent { get; set; }
+    public string? ChangePercent { get; set; }
 
     [JsonPropertyName("06. volume")]
     public long Volume { get; set; }
+
+    [JsonPropertyName("03. high")]
+    public decimal High { get; set; }
+
+    [JsonPropertyName("04. low")]
+    public decimal Low { get; set; }
 }
 
 public class AlphaVantageQuoteResponse
 {
     [JsonPropertyName("Global Quote")]
-    public AlphaVantageQuote GlobalQuote { get; set; }
+    public AlphaVantageQuote? GlobalQuote { get; set; }
 }
 
 public class AlphaVantageCompanyOverview
 {
     [JsonPropertyName("Symbol")]
-    public string Symbol { get; set; }
+    public string? Symbol { get; set; }
 
     [JsonPropertyName("Name")]
-    public string Name { get; set; }
+    public string? Name { get; set; }
 
     [JsonPropertyName("Description")]
-    public string Description { get; set; }
+    public string? Description { get; set; }
 
     [JsonPropertyName("Sector")]
-    public string Sector { get; set; }
+    public string? Sector { get; set; }
 
     [JsonPropertyName("Industry")]
-    public string Industry { get; set; }
+    public string? Industry { get; set; }
+
+    [JsonPropertyName("Exchange")]
+    public string? Exchange { get; set; }
+
+    [JsonPropertyName("Country")]
+    public string? Country { get; set; }
+
+    [JsonPropertyName("Website")]
+    public string? Website { get; set; }
 
     [JsonPropertyName("MarketCapitalization")]
     public long MarketCapitalization { get; set; }
@@ -336,14 +491,68 @@ public class AlphaVantageCompanyOverview
     [JsonPropertyName("ReturnOnEquityTTM")]
     public decimal ReturnOnEquityTTM { get; set; }
 
+    [JsonPropertyName("QuarterlyEarningsGrowthYOY")]
+    public decimal QuarterlyEarningsGrowthYOY { get; set; }
+
+    [JsonPropertyName("QuarterlyRevenueGrowthYOY")]
+    public decimal QuarterlyRevenueGrowthYOY { get; set; }
+
     [JsonPropertyName("AnalystTargetPrice")]
     public decimal AnalystTargetPrice { get; set; }
+
+    [JsonPropertyName("TrailingPE")]
+    public decimal TrailingPE { get; set; }
+
+    [JsonPropertyName("ForwardPE")]
+    public decimal ForwardPE { get; set; }
+
+    [JsonPropertyName("PriceToSalesRatioTTM")]
+    public decimal PriceToSalesRatioTTM { get; set; }
+
+    [JsonPropertyName("PriceToBookRatio")]
+    public decimal PriceToBookRatio { get; set; }
+
+    [JsonPropertyName("EVToRevenue")]
+    public decimal EVToRevenue { get; set; }
+
+    [JsonPropertyName("EVToEBITDA")]
+    public decimal EVToEBITDA { get; set; }
+
+    [JsonPropertyName("Beta")]
+    public decimal Beta { get; set; }
+
+    [JsonPropertyName("FiftyTwoWeekHigh")]
+    public decimal FiftyTwoWeekHigh { get; set; }
+
+    [JsonPropertyName("FiftyTwoWeekLow")]
+    public decimal FiftyTwoWeekLow { get; set; }
+
+    [JsonPropertyName("FiftyDayMovingAverage")]
+    public decimal FiftyDayMovingAverage { get; set; }
+
+    [JsonPropertyName("TwoHundredDayMovingAverage")]
+    public decimal TwoHundredDayMovingAverage { get; set; }
+
+    [JsonPropertyName("SharesOutstanding")]
+    public long SharesOutstanding { get; set; }
+
+    [JsonPropertyName("DividendDate")]
+    public string? DividendDate { get; set; }
+
+    [JsonPropertyName("ExDividendDate")]
+    public string? ExDividendDate { get; set; }
+
+    [JsonPropertyName("LastSplitFactor")]
+    public string? LastSplitFactor { get; set; }
+
+    [JsonPropertyName("LastSplitDate")]
+    public string? LastSplitDate { get; set; }
 }
 
 public class AlphaVantageIncomeStatement
 {
     [JsonPropertyName("fiscalDateEnding")]
-    public string FiscalDateEnding { get; set; }
+    public string? FiscalDateEnding { get; set; }
 
     [JsonPropertyName("totalRevenue")]
     public long TotalRevenue { get; set; }
@@ -364,13 +573,13 @@ public class AlphaVantageIncomeStatement
 public class AlphaVantageIncomeResponse
 {
     [JsonPropertyName("annualReports")]
-    public List<AlphaVantageIncomeStatement> AnnualReports { get; set; }
+    public List<AlphaVantageIncomeStatement>? AnnualReports { get; set; }
 }
 
 public class AlphaVantageBalanceSheet
 {
     [JsonPropertyName("fiscalDateEnding")]
-    public string FiscalDateEnding { get; set; }
+    public string? FiscalDateEnding { get; set; }
 
     [JsonPropertyName("totalAssets")]
     public long TotalAssets { get; set; }
@@ -394,13 +603,13 @@ public class AlphaVantageBalanceSheet
 public class AlphaVantageBalanceResponse
 {
     [JsonPropertyName("annualReports")]
-    public List<AlphaVantageBalanceSheet> AnnualReports { get; set; }
+    public List<AlphaVantageBalanceSheet>? AnnualReports { get; set; }
 }
 
 public class AlphaVantageCashFlow
 {
     [JsonPropertyName("fiscalDateEnding")]
-    public string FiscalDateEnding { get; set; }
+    public required string FiscalDateEnding { get; set; }
 
     [JsonPropertyName("operatingCashflow")]
     public long OperatingCashflow { get; set; }
@@ -418,13 +627,13 @@ public class AlphaVantageCashFlow
 public class AlphaVantageCashFlowResponse
 {
     [JsonPropertyName("annualReports")]
-    public List<AlphaVantageCashFlow> AnnualReports { get; set; }
+    public required List<AlphaVantageCashFlow> AnnualReports { get; set; }
 }
 
 public class AlphaVantageEarnings
 {
     [JsonPropertyName("fiscalDateEnding")]
-    public string FiscalDateEnding { get; set; }
+    public required string FiscalDateEnding { get; set; }
 
     [JsonPropertyName("reportedEPS")]
     public decimal ReportedEPS { get; set; }
@@ -433,41 +642,44 @@ public class AlphaVantageEarnings
 public class AlphaVantageEarningsResponse
 {
     [JsonPropertyName("annualEarnings")]
-    public List<AlphaVantageEarnings> AnnualEarnings { get; set; }
+    public required List<AlphaVantageEarnings> AnnualEarnings { get; set; }
 }
 
 public class AlphaVantageTechnicalData
 {
     [JsonPropertyName("date")]
-    public string Date { get; set; }
+    public required string Date { get; set; }
 
-    [JsonPropertyName("SMA")]
-    public decimal SMA { get; set; }
+    [JsonExtensionData]
+    public Dictionary<string, object> Indicators { get; set; } = new();
 }
 
 public class AlphaVantageTechnicalResponse
 {
     [JsonPropertyName("Technical Analysis: SMA")]
-    public Dictionary<string, AlphaVantageTechnicalData> TechnicalAnalysis { get; set; }
+    public required Dictionary<string, AlphaVantageTechnicalData> TechnicalAnalysis { get; set; }
 }
 
 public class AlphaVantageForexRate
 {
     [JsonPropertyName("1. From_Currency Code")]
-    public string FromCurrency { get; set; }
+    public required string FromCurrency { get; set; }
 
     [JsonPropertyName("3. To_Currency Code")]
-    public string ToCurrency { get; set; }
+    public required string ToCurrency { get; set; }
 
     [JsonPropertyName("5. Exchange Rate")]
     public decimal ExchangeRate { get; set; }
 
     [JsonPropertyName("6. Last Refreshed")]
-    public string LastRefreshed { get; set; }
+    public required string LastRefreshed { get; set; }
+
+    [JsonPropertyName("Realtime Currency Exchange Rate")]
+    public required AlphaVantageForexRate RealtimeCurrencyExchangeRate { get; set; }
 }
 
 public class AlphaVantageForexResponse
 {
     [JsonPropertyName("Realtime Currency Exchange Rate")]
-    public AlphaVantageForexRate RealtimeCurrencyExchangeRate { get; set; }
+    public required AlphaVantageForexRate RealtimeCurrencyExchangeRate { get; set; }
 }

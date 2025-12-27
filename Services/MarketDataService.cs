@@ -88,6 +88,50 @@ public class MarketDataService
         return historicalData;
     }
 
+    public async Task<List<double>?> GetHistoricalReturnsAsync(string symbol, DateTime startDate, DateTime endDate)
+    {
+        try
+        {
+            var historicalData = await GetHistoricalDataAsync(symbol, 1000); // Get plenty of data
+            if (historicalData == null || historicalData.Count < 2)
+                return null;
+
+            // Filter data by date range
+            var filteredData = historicalData
+                .Where(d => d.Timestamp >= startDate && d.Timestamp <= endDate)
+                .OrderBy(d => d.Timestamp)
+                .ToList();
+
+            if (filteredData.Count < 2)
+                return null;
+
+            // Calculate daily returns
+            var returns = new List<double>();
+            for (int i = 1; i < filteredData.Count; i++)
+            {
+                var prevPrice = filteredData[i - 1].Close;
+                var currPrice = filteredData[i].Close;
+                if (prevPrice > 0)
+                {
+                    var dailyReturn = (currPrice - prevPrice) / prevPrice;
+                    returns.Add(dailyReturn);
+                }
+            }
+
+            return returns;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error calculating historical returns for {symbol}");
+            return null;
+        }
+    }
+
+    public async Task<MarketData?> GetRealTimeQuoteAsync(string symbol)
+    {
+        return await GetMarketDataAsync(symbol);
+    }
+
     private async Task RefreshSymbolDataAsync(string symbol)
     {
         try

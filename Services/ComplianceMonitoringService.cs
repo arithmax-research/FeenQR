@@ -35,19 +35,19 @@ namespace QuantResearchAgent.Services
 
         public class ComplianceRule
         {
-            public string RuleId { get; set; }
-            public string RuleType { get; set; } // "position_limit", "concentration", "wash_sale", "pattern_day_trading"
-            public string Description { get; set; }
+            public required string RuleId { get; set; }
+            public required string RuleType { get; set; } // "position_limit", "concentration", "wash_sale", "pattern_day_trading"
+            public required string Description { get; set; }
             public decimal Threshold { get; set; }
             public bool IsActive { get; set; }
         }
 
         public class ComplianceViolation
         {
-            public string ViolationId { get; set; }
-            public string RuleId { get; set; }
-            public string Description { get; set; }
-            public string Severity { get; set; } // "low", "medium", "high", "critical"
+            public required string ViolationId { get; set; }
+            public required string RuleId { get; set; }
+            public required string Description { get; set; }
+            public required string Severity { get; set; } // "low", "medium", "high", "critical"
             public decimal CurrentValue { get; set; }
             public decimal Threshold { get; set; }
             public DateTime DetectedAt { get; set; }

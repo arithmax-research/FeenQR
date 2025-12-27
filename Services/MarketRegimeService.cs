@@ -293,7 +293,7 @@ namespace QuantResearchAgent.Services
         public MarketRegimeType TrendRegime { get; set; }
         public MarketRegimeType VolumeRegime { get; set; }
         public MarketRegimeType MLRegime { get; set; }
-        public Dictionary<string, double> Indicators { get; set; }
+        public required Dictionary<string, double> Indicators { get; set; }
     }
 
     public class RegimeTransition

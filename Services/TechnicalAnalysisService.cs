@@ -438,6 +438,13 @@ public class TechnicalAnalysisService
 
         return string.Join(" ", reasoning);
     }
+
+    // Wrapper method for compatibility
+    public async Task<Dictionary<string, object>> GetTechnicalIndicatorsAsync(string symbol)
+    {
+        var result = await PerformFullAnalysisAsync(symbol);
+        return result.Indicators;
+    }
 }
 
 public class TechnicalAnalysisResult

@@ -468,6 +468,49 @@ public class AlpacaService
             return null;
         }
     }
+
+    public async Task<object> PlaceMarketOrderAsync(string symbol, int quantity, string side)
+    {
+        try
+        {
+            if (_tradingClient == null)
+            {
+                _logger.LogWarning("Alpaca trading client not initialized");
+                return null!;
+            }
+
+            var orderSide = side.ToLower() == "buy" ? OrderSide.Buy : OrderSide.Sell;
+            var orderQuantity = OrderQuantity.Fractional(quantity);
+            var order = await PlaceOrderAsync(symbol, orderQuantity, orderSide, OrderType.Market, TimeInForce.Day);
+            
+            return order ?? null!;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error placing market order for {Symbol}", symbol);
+            return null!;
+        }
+    }
+
+    public async Task<object> GetPositionAsync(string symbol)
+    {
+        try
+        {
+            if (_tradingClient == null)
+            {
+                _logger.LogWarning("Alpaca trading client not initialized");
+                return null!;
+            }
+
+            var position = await _tradingClient.GetPositionAsync(symbol);
+            return position ?? null!;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching position for {Symbol}", symbol);
+            return null!;
+        }
+    }
 }
 
 // Simple implementation of IBar for Lean data

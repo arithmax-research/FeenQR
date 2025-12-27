@@ -239,7 +239,7 @@ namespace QuantResearchAgent.Plugins
 
         #region Helper Methods
 
-        private List<Position> ParsePositionsJson(string positionsJson)
+        private List<QuantResearchAgent.Core.Position> ParsePositionsJson(string positionsJson)
         {
             // Parse JSON positions
             return new List<Position>(); // Placeholder

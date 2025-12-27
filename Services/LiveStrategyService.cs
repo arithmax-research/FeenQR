@@ -38,19 +38,19 @@ namespace QuantResearchAgent.Services
 
         public class LiveStrategyConfig
         {
-            public string StrategyName { get; set; }
-            public string Symbol { get; set; }
+            public required string StrategyName { get; set; }
+            public required string Symbol { get; set; }
             public decimal MaxPositionSize { get; set; }
             public decimal StopLossPercent { get; set; }
             public decimal TakeProfitPercent { get; set; }
             public int RebalanceFrequencyMinutes { get; set; }
             public bool EnableAutoRebalancing { get; set; }
-            public Dictionary<string, object> StrategyParameters { get; set; }
+            public required Dictionary<string, object> StrategyParameters { get; set; }
         }
 
         public class StrategyPerformance
         {
-            public string StrategyId { get; set; }
+            public required string StrategyId { get; set; }
             public decimal CurrentPnL { get; set; }
             public decimal DailyPnL { get; set; }
             public decimal SharpeRatio { get; set; }

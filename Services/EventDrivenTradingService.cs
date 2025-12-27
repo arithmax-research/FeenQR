@@ -41,25 +41,25 @@ namespace QuantResearchAgent.Services
 
         public class TradingRule
         {
-            public string RuleId { get; set; }
-            public string EventType { get; set; } // "news", "economic", "geopolitical"
-            public string Symbol { get; set; }
+            public required string RuleId { get; set; }
+            public required string EventType { get; set; } // "news", "economic", "geopolitical"
+            public required string Symbol { get; set; }
             public decimal SentimentThreshold { get; set; }
-            public string Action { get; set; } // "buy", "sell", "hold"
+            public required string Action { get; set; } // "buy", "sell", "hold"
             public int Quantity { get; set; }
             public bool IsActive { get; set; }
         }
 
         public class MarketEvent
         {
-            public string EventId { get; set; }
-            public string EventType { get; set; }
-            public string Symbol { get; set; }
-            public string Headline { get; set; }
+            public required string EventId { get; set; }
+            public required string EventType { get; set; }
+            public required string Symbol { get; set; }
+            public required string Headline { get; set; }
             public decimal SentimentScore { get; set; }
             public decimal ImpactScore { get; set; }
             public DateTime Timestamp { get; set; }
-            public Dictionary<string, object> Metadata { get; set; }
+            public required Dictionary<string, object> Metadata { get; set; }
         }
 
         public async Task<List<TradingRule>> GetActiveRulesAsync()

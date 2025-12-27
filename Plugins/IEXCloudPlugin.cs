@@ -112,11 +112,11 @@ public class IEXCloudPlugin
         {
             var earnings = await _service.GetEarningsAsync(symbol);
 
-            if (earnings?.Earnings?.Any() == true)
+            if (earnings?.Any() == true)
             {
-                var result = $"Earnings Data for {symbol}:\n\n";
+                var result = $"Earnings Data for {symbol}:\\n\\n";
 
-                foreach (var earning in earnings.Earnings.OrderByDescending(e => e.FiscalEndDate))
+                foreach (var earning in earnings.OrderByDescending(e => e.FiscalEndDate))
                 {
                     result += $"Fiscal Period: {earning.FiscalPeriod}\n";
                     result += $"End Date: {earning.FiscalEndDate:yyyy-MM-dd}\n";

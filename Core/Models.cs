@@ -63,6 +63,7 @@ public class MarketData
     public string Symbol { get; set; } = string.Empty;
     public string Source { get; set; } = string.Empty; // e.g. "local", "yahoo", "binance", etc.
     public double Price { get; set; }
+    public double Close { get; set; } // Closing price
     public double Volume { get; set; }
     public double Change24h { get; set; }
     public double ChangePercent24h { get; set; }
