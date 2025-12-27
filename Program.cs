@@ -255,6 +255,14 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<AnomalyDetectionPlugin>(),
                     sp.GetRequiredService<DynamicFactorPlugin>(),
                     sp.GetRequiredService<TradingTemplateGeneratorPlugin>(),
+                    sp.GetRequiredService<AlphaVantageService>(),
+                    sp.GetRequiredService<IEXCloudService>(),
+                    sp.GetRequiredService<FinancialModelingPrepService>(),
+                    sp.GetRequiredService<EnhancedFundamentalAnalysisService>(),
+                    sp.GetRequiredService<AlphaVantagePlugin>(),
+                    sp.GetRequiredService<IEXCloudPlugin>(),
+                    sp.GetRequiredService<FinancialModelingPrepPlugin>(),
+                    sp.GetRequiredService<EnhancedFundamentalAnalysisPlugin>(),
                     sp.GetRequiredService<AdvancedRiskAnalyticsService>(),
                     sp.GetRequiredService<CounterpartyRiskService>(),
                     sp.GetRequiredService<PerformanceAttributionService>(),
@@ -500,6 +508,87 @@ namespace QuantResearchAgent
             services.AddSingleton<CounterpartyRiskPlugin>();
             services.AddSingleton<PerformanceAttributionPlugin>();
             services.AddSingleton<BenchmarkingPlugin>();
+
+            // Add Phase 12 Research Platforms Integration services (Free Alternatives)
+            services.AddSingleton<AlphaVantageService>(sp =>
+                new AlphaVantageService(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<AlphaVantageService>>(),
+                    sp.GetRequiredService<IConfiguration>()
+                )
+            );
+            services.AddSingleton<IEXCloudService>(sp =>
+                new IEXCloudService(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<IEXCloudService>>(),
+                    sp.GetRequiredService<IConfiguration>()
+                )
+            );
+            services.AddSingleton<FinancialModelingPrepService>(sp =>
+                new FinancialModelingPrepService(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<FinancialModelingPrepService>>(),
+                    sp.GetRequiredService<IConfiguration>()
+                )
+            );
+            services.AddSingleton<EnhancedFundamentalAnalysisService>(sp =>
+                new EnhancedFundamentalAnalysisService(
+                    sp.GetRequiredService<AlphaVantageService>(),
+                    sp.GetRequiredService<IEXCloudService>(),
+                    sp.GetRequiredService<FinancialModelingPrepService>(),
+                    sp.GetRequiredService<ILogger<EnhancedFundamentalAnalysisService>>()
+                )
+            );
+
+            // Add Phase 12 Research Platforms Integration plugins
+            services.AddSingleton<AlphaVantagePlugin>();
+            services.AddSingleton<IEXCloudPlugin>();
+            services.AddSingleton<FinancialModelingPrepPlugin>();
+            services.AddSingleton<EnhancedFundamentalAnalysisPlugin>();
+
+            // Add Phase 13 Real-Time & Live Features services
+            services.AddSingleton<LiveStrategyService>(sp =>
+                new LiveStrategyService(
+                    sp.GetRequiredService<AdvancedAlpacaService>(),
+                    sp.GetRequiredService<MarketDataService>(),
+                    sp.GetRequiredService<AdvancedRiskService>(),
+                    sp.GetRequiredService<ILogger<LiveStrategyService>>(),
+                    sp.GetRequiredService<IConfiguration>()
+                )
+            );
+            services.AddSingleton<EventDrivenTradingService>(sp =>
+                new EventDrivenTradingService(
+                    sp.GetRequiredService<AdvancedAlpacaService>(),
+                    sp.GetRequiredService<NewsSentimentAnalysisService>(),
+                    sp.GetRequiredService<FederalReserveService>(),
+                    sp.GetRequiredService<GeopoliticalRiskService>(),
+                    sp.GetRequiredService<ILogger<EventDrivenTradingService>>(),
+                    sp.GetRequiredService<IConfiguration>()
+                )
+            );
+            services.AddSingleton<RealTimeAlertingService>(sp =>
+                new RealTimeAlertingService(
+                    sp.GetRequiredService<AdvancedAlpacaService>(),
+                    sp.GetRequiredService<MarketDataService>(),
+                    sp.GetRequiredService<TechnicalAnalysisService>(),
+                    sp.GetRequiredService<ILogger<RealTimeAlertingService>>(),
+                    sp.GetRequiredService<IConfiguration>()
+                )
+            );
+            services.AddSingleton<ComplianceMonitoringService>(sp =>
+                new ComplianceMonitoringService(
+                    sp.GetRequiredService<AdvancedAlpacaService>(),
+                    sp.GetRequiredService<AdvancedRiskService>(),
+                    sp.GetRequiredService<ILogger<ComplianceMonitoringService>>(),
+                    sp.GetRequiredService<IConfiguration>()
+                )
+            );
+
+            // Add Phase 13 Real-Time & Live Features plugins
+            services.AddSingleton<LiveStrategyPlugin>();
+            services.AddSingleton<EventDrivenTradingPlugin>();
+            services.AddSingleton<RealTimeAlertingPlugin>();
+            services.AddSingleton<ComplianceMonitoringPlugin>();
 
             // Add research agents
             services.AddSingleton<NewsScrapingService>();

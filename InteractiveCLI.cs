@@ -96,6 +96,14 @@ public class InteractiveCLI
     private readonly AnomalyDetectionPlugin _anomalyDetectionPlugin;
     private readonly DynamicFactorPlugin _dynamicFactorPlugin;
     private readonly TradingTemplateGeneratorPlugin _tradingTemplateGeneratorPlugin;
+    private readonly AlphaVantageService _alphaVantageService;
+    private readonly IEXCloudService _iexCloudService;
+    private readonly FinancialModelingPrepService _financialModelingPrepService;
+    private readonly EnhancedFundamentalAnalysisService _enhancedFundamentalAnalysisService;
+    private readonly AlphaVantagePlugin _alphaVantagePlugin;
+    private readonly IEXCloudPlugin _iexCloudPlugin;
+    private readonly FinancialModelingPrepPlugin _financialModelingPrepPlugin;
+    private readonly EnhancedFundamentalAnalysisPlugin _enhancedFundamentalAnalysisPlugin;
     private readonly AdvancedRiskAnalyticsService _advancedRiskAnalyticsService;
     private readonly CounterpartyRiskService _counterpartyRiskService;
     private readonly PerformanceAttributionService _performanceAttributionService;
@@ -104,6 +112,14 @@ public class InteractiveCLI
     private readonly CounterpartyRiskPlugin _counterpartyRiskPlugin;
     private readonly PerformanceAttributionPlugin _performanceAttributionPlugin;
     private readonly BenchmarkingPlugin _benchmarkingPlugin;
+    private readonly LiveStrategyService _liveStrategyService;
+    private readonly EventDrivenTradingService _eventDrivenTradingService;
+    private readonly RealTimeAlertingService _realTimeAlertingService;
+    private readonly ComplianceMonitoringService _complianceMonitoringService;
+    private readonly LiveStrategyPlugin _liveStrategyPlugin;
+    private readonly EventDrivenTradingPlugin _eventDrivenTradingPlugin;
+    private readonly RealTimeAlertingPlugin _realTimeAlertingPlugin;
+    private readonly ComplianceMonitoringPlugin _complianceMonitoringPlugin;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -183,6 +199,14 @@ public class InteractiveCLI
         AnomalyDetectionPlugin anomalyDetectionPlugin,
         DynamicFactorPlugin dynamicFactorPlugin,
         TradingTemplateGeneratorPlugin tradingTemplateGeneratorPlugin,
+        AlphaVantageService alphaVantageService,
+        IEXCloudService iexCloudService,
+        FinancialModelingPrepService financialModelingPrepService,
+        EnhancedFundamentalAnalysisService enhancedFundamentalAnalysisService,
+        AlphaVantagePlugin alphaVantagePlugin,
+        IEXCloudPlugin iexCloudPlugin,
+        FinancialModelingPrepPlugin financialModelingPrepPlugin,
+        EnhancedFundamentalAnalysisPlugin enhancedFundamentalAnalysisPlugin,
         AdvancedRiskAnalyticsService advancedRiskAnalyticsService,
         CounterpartyRiskService counterpartyRiskService,
         PerformanceAttributionService performanceAttributionService,
@@ -190,7 +214,15 @@ public class InteractiveCLI
         AdvancedRiskAnalyticsPlugin advancedRiskAnalyticsPlugin,
         CounterpartyRiskPlugin counterpartyRiskPlugin,
         PerformanceAttributionPlugin performanceAttributionPlugin,
-        BenchmarkingPlugin benchmarkingPlugin)
+        BenchmarkingPlugin benchmarkingPlugin,
+        LiveStrategyService liveStrategyService,
+        EventDrivenTradingService eventDrivenTradingService,
+        RealTimeAlertingService realTimeAlertingService,
+        ComplianceMonitoringService complianceMonitoringService,
+        LiveStrategyPlugin liveStrategyPlugin,
+        EventDrivenTradingPlugin eventDrivenTradingPlugin,
+        RealTimeAlertingPlugin realTimeAlertingPlugin,
+        ComplianceMonitoringPlugin complianceMonitoringPlugin)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -269,6 +301,14 @@ public class InteractiveCLI
         _anomalyDetectionPlugin = anomalyDetectionPlugin;
         _dynamicFactorPlugin = dynamicFactorPlugin;
         _tradingTemplateGeneratorPlugin = tradingTemplateGeneratorPlugin;
+        _alphaVantageService = alphaVantageService;
+        _iexCloudService = iexCloudService;
+        _financialModelingPrepService = financialModelingPrepService;
+        _enhancedFundamentalAnalysisService = enhancedFundamentalAnalysisService;
+        _alphaVantagePlugin = alphaVantagePlugin;
+        _iexCloudPlugin = iexCloudPlugin;
+        _financialModelingPrepPlugin = financialModelingPrepPlugin;
+        _enhancedFundamentalAnalysisPlugin = enhancedFundamentalAnalysisPlugin;
         _advancedRiskAnalyticsService = advancedRiskAnalyticsService;
         _counterpartyRiskService = counterpartyRiskService;
         _performanceAttributionService = performanceAttributionService;
@@ -277,6 +317,14 @@ public class InteractiveCLI
         _counterpartyRiskPlugin = counterpartyRiskPlugin;
         _performanceAttributionPlugin = performanceAttributionPlugin;
         _benchmarkingPlugin = benchmarkingPlugin;
+        _liveStrategyService = liveStrategyService;
+        _eventDrivenTradingService = eventDrivenTradingService;
+        _realTimeAlertingService = realTimeAlertingService;
+        _complianceMonitoringService = complianceMonitoringService;
+        _liveStrategyPlugin = liveStrategyPlugin;
+        _eventDrivenTradingPlugin = eventDrivenTradingPlugin;
+        _realTimeAlertingPlugin = realTimeAlertingPlugin;
+        _complianceMonitoringPlugin = complianceMonitoringPlugin;
     }
 
     public async Task RunAsync()
@@ -415,9 +463,6 @@ public class InteractiveCLI
         Console.WriteLine("128. clear - Clear terminal and show menu");
         Console.WriteLine("129. help - Show available functions");
         Console.WriteLine("130. quit - Exit the application");
-        Console.WriteLine();
-        Console.WriteLine("Phase 9: Advanced Research Tools");
-        Console.WriteLine("================================");
         Console.WriteLine("131. factor-research [symbols] [start_date] [end_date] - Advanced factor research and analysis");
         Console.WriteLine("132. factor-portfolio [factors] [start_date] [end_date] - Create factor-based portfolio");
         Console.WriteLine("133. factor-efficacy [factor] [symbols] [start_date] [end_date] - Test factor efficacy");
@@ -447,9 +492,6 @@ public class InteractiveCLI
         Console.WriteLine("157. contextual-bandit [symbols] [strategies] [start_date] [end_date] - Run contextual bandit");
         Console.WriteLine("158. evaluate-rl-agent [symbols] [start_date] [end_date] [episodes] - Evaluate RL agent");
         Console.WriteLine("159. rl-strategy-report [symbols] [start_date] [end_date] - Generate RL strategy report");
-        Console.WriteLine();
-        Console.WriteLine("Phase 8.3: FIX Protocol Integration");
-        Console.WriteLine("===================================");
         Console.WriteLine("160. fix-connect [host] [port] [sender_id] [target_id] - Connect to FIX server");
         Console.WriteLine("161. fix-disconnect - Disconnect from FIX server");
         Console.WriteLine("162. fix-order [symbol] [side] [type] [quantity] [price] - Send FIX order");
@@ -458,9 +500,6 @@ public class InteractiveCLI
         Console.WriteLine("165. fix-heartbeat - Send FIX heartbeat");
         Console.WriteLine("166. fix-status - Get FIX connection status");
         Console.WriteLine("167. fix-info - Get FIX protocol information");
-        Console.WriteLine();
-        Console.WriteLine("Phase 10: Web & Alternative Data Integration");
-        Console.WriteLine("===========================================");
         Console.WriteLine("168. web-scrape-earnings [symbol] - Scrape earnings presentations and reports");
         Console.WriteLine("169. web-monitor-communications [symbol] - Monitor corporate communications");
         Console.WriteLine("170. web-analyze-sentiment [symbol] [sources] - Analyze web sentiment for symbol");
@@ -484,10 +523,6 @@ public class InteractiveCLI
         Console.WriteLine("188. geo-risk-index [regions] - Calculate geopolitical risk index");
         Console.WriteLine("189. geo-conflicts [regions] - Monitor ongoing conflicts");
         Console.WriteLine("190. geo-stability [countries] - Analyze political stability");
-
-        Console.WriteLine();
-        Console.WriteLine("Phase 11: Derivatives & Options Analytics");
-        Console.WriteLine("==========================================");
         Console.WriteLine("191. options-flow [symbol] [minutes] - Analyze options order flow");
         Console.WriteLine("192. unusual-options [symbol] [threshold] - Detect unusual options activity");
         Console.WriteLine("193. gamma-exposure [symbol] - Analyze options gamma exposure");
@@ -505,24 +540,20 @@ public class InteractiveCLI
         Console.WriteLine("205. order-routing [symbol] [order_type] - Analyze order routing latency");
         Console.WriteLine("206. market-data-feeds [symbol] - Analyze market data feed quality");
         Console.WriteLine("207. arbitrage-profitability [symbol] [capital] - Calculate arbitrage profitability");
-
-        Console.WriteLine();
-        Console.WriteLine("Phase 14: AI-Enhanced Research");
-        Console.WriteLine("==============================");
-        Console.WriteLine("208. research-query [query] - Natural language research queries");
-        Console.WriteLine("209. research-report [symbol] [report_type] - Generate automated research reports");
-        Console.WriteLine("210. detect-market-regime [symbol] - Detect current market regime");
-        Console.WriteLine("211. detect-anomalies [symbol] [anomaly_type] - Detect market anomalies");
-        Console.WriteLine("212. dynamic-factors [symbol] - Analyze dynamic factor models");
-        Console.WriteLine("213. trading-template [symbol] [strategy_type] - Generate trading strategy template");
-
-        Console.WriteLine();
-        Console.WriteLine("Phase 15: Specialized Quantitative Tools");
-        Console.WriteLine("========================================");
-        Console.WriteLine("214. advanced-risk [command] [parameters] - Advanced risk analytics (cvar, black-litterman, risk-parity)");
-        Console.WriteLine("215. counterparty-risk [command] [parameters] - Counterparty risk analysis and monitoring");
-        Console.WriteLine("216. performance-attribution [command] [parameters] - Performance attribution and factor analysis");
-        Console.WriteLine("217. benchmarking [command] [parameters] - Benchmarking and replication analysis");
+        Console.WriteLine("208. alpha-vantage [symbol] - Get comprehensive financial data from Alpha Vantage");
+        Console.WriteLine("209. iex-data [symbol] - Get market data from IEX Cloud");
+        Console.WriteLine("210. fmp-data [symbol] - Get financial data from Financial Modeling Prep");
+        Console.WriteLine("211. enhanced-analysis [symbol] - Get comprehensive fundamental analysis");
+        Console.WriteLine("212. research-query [query] - Natural language research queries");
+        Console.WriteLine("213. research-report [symbol] [report_type] - Generate automated research reports");
+        Console.WriteLine("214. detect-market-regime [symbol] - Detect current market regime");
+        Console.WriteLine("215. detect-anomalies [symbol] [anomaly_type] - Detect market anomalies");
+        Console.WriteLine("216. dynamic-factors [symbol] - Analyze dynamic factor models");
+        Console.WriteLine("217. trading-template [symbol] [strategy_type] - Generate trading strategy template");
+        Console.WriteLine("218. advanced-risk [command] [parameters] - Advanced risk analytics (cvar, black-litterman, risk-parity)");
+        Console.WriteLine("219. counterparty-risk [command] [parameters] - Counterparty risk analysis and monitoring");
+        Console.WriteLine("220. performance-attribution [command] [parameters] - Performance attribution and factor analysis");
+        Console.WriteLine("221. benchmarking [command] [parameters] - Benchmarking and replication analysis");
 
         while (true)
         {
@@ -1285,6 +1316,19 @@ public class InteractiveCLI
                 case "arbitrage-profitability":
                     await ArbitrageProfitabilityCommand(parts);
                     break;
+                // Phase 12: Research Platforms Integration (Free Alternatives)
+                case "alpha-vantage":
+                    await AlphaVantageCommand(parts);
+                    break;
+                case "iex-data":
+                    await IEXDataCommand(parts);
+                    break;
+                case "fmp-data":
+                    await FMPDataCommand(parts);
+                    break;
+                case "enhanced-analysis":
+                    await EnhancedAnalysisCommand(parts);
+                    break;
                 // Phase 14: AI-Enhanced Research
                 case "research-query":
                     await ResearchQueryCommand(parts);
@@ -1316,6 +1360,22 @@ public class InteractiveCLI
                     break;
                 case "benchmarking":
                     await BenchmarkingCommand(parts);
+                    break;
+                case "live-strategy":
+                case "deploy-strategy":
+                    await LiveStrategyCommand(parts);
+                    break;
+                case "event-trading":
+                case "event-driven":
+                    await EventDrivenTradingCommand(parts);
+                    break;
+                case "alerts":
+                case "check-alerts":
+                    await RealTimeAlertsCommand(parts);
+                    break;
+                case "compliance":
+                case "compliance-check":
+                    await ComplianceMonitoringCommand(parts);
                     break;
                 default:
                     await ExecuteSemanticFunction(input);
@@ -1971,6 +2031,55 @@ public class InteractiveCLI
         Console.WriteLine($"Symbols: {symbols}");
         var function = _kernel.Plugins["AlpacaPlugin"]["GetMultipleQuotes"];
         var result = await _kernel.InvokeAsync(function, new() { ["symbols"] = symbols });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    // Phase 12: Research Platforms Integration (Free Alternatives)
+    private async Task AlphaVantageCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        
+        PrintSectionHeader("Alpha Vantage Financial Data");
+        Console.WriteLine($"Symbol: {symbol}");
+        var function = _kernel.Plugins["AlphaVantagePlugin"]["GetComprehensiveQuote"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task IEXDataCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        
+        PrintSectionHeader("IEX Cloud Market Data");
+        Console.WriteLine($"Symbol: {symbol}");
+        var function = _kernel.Plugins["IEXCloudPlugin"]["GetQuote"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task FMPDataCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        
+        PrintSectionHeader("Financial Modeling Prep Data");
+        Console.WriteLine($"Symbol: {symbol}");
+        var function = _kernel.Plugins["FinancialModelingPrepPlugin"]["GetCompanyProfile"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
+        Console.WriteLine(result.ToString());
+        PrintSectionFooter();
+    }
+
+    private async Task EnhancedAnalysisCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
+        
+        PrintSectionHeader("Enhanced Fundamental Analysis");
+        Console.WriteLine($"Symbol: {symbol}");
+        var function = _kernel.Plugins["EnhancedFundamentalAnalysisPlugin"]["GetComprehensiveCompanyOverview"];
+        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
         Console.WriteLine(result.ToString());
         PrintSectionFooter();
     }
@@ -10407,6 +10516,300 @@ public class InteractiveCLI
 
         var result = _tradingTemplateGeneratorPlugin.GenerateTradingTemplate(symbol, strategyType);
         Console.WriteLine(result);
+        PrintSectionFooter();
+    }
+
+    private async Task LiveStrategyCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: live-strategy [action: deploy/status/stop/adjust] [symbol] [config]");
+            Console.WriteLine("Examples:");
+            Console.WriteLine("  live-strategy deploy AAPL \"{\\\"initialCapital\\\":10000,\\\"maxDrawdown\\\":0.1,\\\"riskPerTrade\\\":0.02}\"");
+            Console.WriteLine("  live-strategy status AAPL");
+            Console.WriteLine("  live-strategy stop AAPL");
+            Console.WriteLine("  live-strategy adjust AAPL \"{\\\"riskPerTrade\\\":0.03}\"");
+            return;
+        }
+
+        var action = parts[1].ToLower();
+        var symbol = parts.Length > 2 ? parts[2] : "SPY";
+
+        PrintSectionHeader($"Live Strategy Management - {symbol}");
+
+        try
+        {
+            switch (action)
+            {
+                case "deploy":
+                    var configJson = parts.Length > 3 ? parts[3] : "{\"initialCapital\":10000,\"maxDrawdown\":0.1,\"riskPerTrade\":0.02}";
+                    var config = System.Text.Json.JsonSerializer.Deserialize<LiveStrategyConfig>(configJson);
+                    var result = await _liveStrategyService.DeployLiveStrategyAsync(symbol, config);
+                    Console.WriteLine($"Strategy deployed: {result.IsSuccess}");
+                    if (!result.IsSuccess) Console.WriteLine($"Error: {result.ErrorMessage}");
+                    break;
+
+                case "status":
+                    var status = await _liveStrategyService.GetStrategyStatusAsync(symbol);
+                    Console.WriteLine($"Status: {status.Status}");
+                    Console.WriteLine($"PnL: {status.TotalPnL:C}");
+                    Console.WriteLine($"Drawdown: {status.CurrentDrawdown:P}");
+                    break;
+
+                case "stop":
+                    var stopResult = await _liveStrategyService.StopLiveStrategyAsync(symbol);
+                    Console.WriteLine($"Strategy stopped: {stopResult.IsSuccess}");
+                    break;
+
+                case "adjust":
+                    var adjustConfigJson = parts.Length > 3 ? parts[3] : "{\"riskPerTrade\":0.03}";
+                    var adjustConfig = System.Text.Json.JsonSerializer.Deserialize<LiveStrategyConfig>(adjustConfigJson);
+                    var adjustResult = await _liveStrategyService.AdjustStrategyParametersAsync(symbol, adjustConfig);
+                    Console.WriteLine($"Strategy adjusted: {adjustResult.IsSuccess}");
+                    break;
+
+                default:
+                    Console.WriteLine("Invalid action. Use: deploy, status, stop, or adjust");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task EventDrivenTradingCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: event-trading [action: setup/execute/status] [symbol] [event_type]");
+            Console.WriteLine("Examples:");
+            Console.WriteLine("  event-trading setup AAPL earnings");
+            Console.WriteLine("  event-trading execute AAPL");
+            Console.WriteLine("  event-trading status");
+            return;
+        }
+
+        var action = parts[1].ToLower();
+        var symbol = parts.Length > 2 ? parts[2] : "SPY";
+
+        PrintSectionHeader($"Event-Driven Trading - {symbol}");
+
+        try
+        {
+            switch (action)
+            {
+                case "setup":
+                    var eventType = parts.Length > 3 ? parts[3] : "news";
+                    var rules = new List<TradingRule>
+                    {
+                        new TradingRule
+                        {
+                            Symbol = symbol,
+                            EventType = eventType,
+                            Condition = "sentiment_score > 0.7",
+                            Action = "buy",
+                            Quantity = 100,
+                            IsActive = true
+                        }
+                    };
+                    var setupResult = await _eventDrivenTradingService.SetupTradingRulesAsync(rules);
+                    Console.WriteLine($"Rules setup: {setupResult.IsSuccess}");
+                    break;
+
+                case "execute":
+                    var executeResult = await _eventDrivenTradingService.ExecuteEventDrivenTradesAsync();
+                    Console.WriteLine($"Trades executed: {executeResult.Count}");
+                    foreach (var trade in executeResult)
+                    {
+                        Console.WriteLine($"  {trade.Symbol}: {trade.Action} {trade.Quantity} @ {trade.Price:C}");
+                    }
+                    break;
+
+                case "status":
+                    var events = await _eventDrivenTradingService.DetectMarketEventsAsync();
+                    Console.WriteLine($"Active events: {events.Count}");
+                    foreach (var evt in events)
+                    {
+                        Console.WriteLine($"  {evt.Type}: {evt.Description} (Impact: {evt.ImpactScore})");
+                    }
+                    break;
+
+                default:
+                    Console.WriteLine("Invalid action. Use: setup, execute, or status");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task RealTimeAlertsCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: alerts [action: create/check/list/delete] [symbol] [alert_config]");
+            Console.WriteLine("Examples:");
+            Console.WriteLine("  alerts create AAPL \"{\\\"type\\\":\\\"price\\\",\\\"condition\\\":\\\"above\\\",\\\"value\\\":150.0}\"");
+            Console.WriteLine("  alerts check AAPL");
+            Console.WriteLine("  alerts list");
+            Console.WriteLine("  alerts delete AAPL price");
+            return;
+        }
+
+        var action = parts[1].ToLower();
+
+        PrintSectionHeader("Real-Time Alerting System");
+
+        try
+        {
+            switch (action)
+            {
+                case "create":
+                    if (parts.Length < 4)
+                    {
+                        Console.WriteLine("Usage: alerts create [symbol] [alert_json]");
+                        return;
+                    }
+                    var symbol = parts[2];
+                    var alertJson = parts[3];
+                    var alertRule = System.Text.Json.JsonSerializer.Deserialize<AlertRule>(alertJson);
+                    var createResult = await _realTimeAlertingService.CreateAlertAsync(symbol, alertRule);
+                    Console.WriteLine($"Alert created: {createResult.IsSuccess}");
+                    break;
+
+                case "check":
+                    var checkSymbol = parts.Length > 2 ? parts[2] : null;
+                    var triggeredAlerts = await _realTimeAlertingService.CheckAlertsAsync(checkSymbol);
+                    Console.WriteLine($"Triggered alerts: {triggeredAlerts.Count}");
+                    foreach (var alert in triggeredAlerts)
+                    {
+                        Console.WriteLine($"  {alert.Symbol}: {alert.Type} alert - {alert.Message}");
+                    }
+                    break;
+
+                case "list":
+                    var allAlerts = await _realTimeAlertingService.GetActiveAlertsAsync();
+                    Console.WriteLine($"Active alerts: {allAlerts.Count}");
+                    foreach (var alert in allAlerts)
+                    {
+                        Console.WriteLine($"  {alert.Symbol}: {alert.Type} - {alert.Condition} {alert.Value}");
+                    }
+                    break;
+
+                case "delete":
+                    if (parts.Length < 4)
+                    {
+                        Console.WriteLine("Usage: alerts delete [symbol] [alert_type]");
+                        return;
+                    }
+                    var deleteSymbol = parts[2];
+                    var alertType = parts[3];
+                    var deleteResult = await _realTimeAlertingService.DeleteAlertAsync(deleteSymbol, alertType);
+                    Console.WriteLine($"Alert deleted: {deleteResult.IsSuccess}");
+                    break;
+
+                default:
+                    Console.WriteLine("Invalid action. Use: create, check, list, or delete");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+        PrintSectionFooter();
+    }
+
+    private async Task ComplianceMonitoringCommand(string[] parts)
+    {
+        if (parts.Length < 2)
+        {
+            Console.WriteLine("Usage: compliance [action: check/rules/violations/resolve] [symbol]");
+            Console.WriteLine("Examples:");
+            Console.WriteLine("  compliance check AAPL");
+            Console.WriteLine("  compliance rules");
+            Console.WriteLine("  compliance violations");
+            Console.WriteLine("  compliance resolve AAPL position_limit");
+            return;
+        }
+
+        var action = parts[1].ToLower();
+        var symbol = parts.Length > 2 ? parts[2] : null;
+
+        PrintSectionHeader("Compliance Monitoring System");
+
+        try
+        {
+            switch (action)
+            {
+                case "check":
+                    if (string.IsNullOrEmpty(symbol))
+                    {
+                        Console.WriteLine("Symbol required for compliance check");
+                        return;
+                    }
+                    var checkResult = await _complianceMonitoringService.CheckComplianceAsync(symbol);
+                    Console.WriteLine($"Compliance check for {symbol}:");
+                    Console.WriteLine($"  Status: {(checkResult.IsCompliant ? "COMPLIANT" : "VIOLATIONS FOUND")}");
+                    if (!checkResult.IsCompliant)
+                    {
+                        foreach (var violation in checkResult.Violations)
+                        {
+                            Console.WriteLine($"  VIOLATION: {violation.RuleType} - {violation.Description}");
+                        }
+                    }
+                    break;
+
+                case "rules":
+                    var rules = await _complianceMonitoringService.GetComplianceRulesAsync();
+                    Console.WriteLine($"Active compliance rules: {rules.Count}");
+                    foreach (var rule in rules)
+                    {
+                        Console.WriteLine($"  {rule.RuleType}: {rule.Description} (Threshold: {rule.Threshold})");
+                    }
+                    break;
+
+                case "violations":
+                    var violations = await _complianceMonitoringService.GetComplianceViolationsAsync();
+                    Console.WriteLine($"Recent violations: {violations.Count}");
+                    foreach (var violation in violations)
+                    {
+                        Console.WriteLine($"  {violation.Symbol}: {violation.RuleType} - {violation.Description} ({violation.Timestamp})");
+                    }
+                    break;
+
+                case "resolve":
+                    if (parts.Length < 4)
+                    {
+                        Console.WriteLine("Usage: compliance resolve [symbol] [violation_type]");
+                        return;
+                    }
+                    var resolveSymbol = parts[2];
+                    var violationType = parts[3];
+                    var resolveResult = await _complianceMonitoringService.ResolveComplianceViolationAsync(resolveSymbol, violationType);
+                    Console.WriteLine($"Violation resolved: {resolveResult.IsSuccess}");
+                    if (!resolveResult.IsSuccess) Console.WriteLine($"Error: {resolveResult.ErrorMessage}");
+                    break;
+
+                default:
+                    Console.WriteLine("Invalid action. Use: check, rules, violations, or resolve");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
         PrintSectionFooter();
     }
 }
