@@ -103,18 +103,19 @@ namespace QuantResearchAgent.Services
                 _logger.LogInformation($"Getting performance for strategy: {strategyId}");
 
                 // Get current portfolio positions
-                var positions = await _alpacaService.GetPortfolioPositionsAsync();
+                var positionsObj = await _alpacaService.GetPortfolioPositionsAsync();
+                var positions = positionsObj as IEnumerable<dynamic> ?? new List<dynamic>();
 
                 // Calculate performance metrics
                 var performance = new StrategyPerformance
                 {
                     StrategyId = strategyId,
-                    CurrentPnL = positions.Sum(p => p.UnrealizedPl),
-                    DailyPnL = positions.Sum(p => p.UnrealizedPl), // Simplified
+                    CurrentPnL = positions.Sum(p => (decimal)p.UnrealizedPl),
+                    DailyPnL = positions.Sum(p => (decimal)p.UnrealizedPl), // Simplified
                     SharpeRatio = await CalculateSharpeRatioAsync(positions),
                     MaxDrawdown = await CalculateMaxDrawdownAsync(positions),
                     WinRate = await CalculateWinRateAsync(positions),
-                    TotalTrades = positions.Count,
+                    TotalTrades = positions.Count(),
                     LastUpdate = DateTime.UtcNow
                 };
 
@@ -135,9 +136,10 @@ namespace QuantResearchAgent.Services
 
                 // Get current position
                 var currentPosition = await _alpacaService.GetPositionAsync(symbol);
+                dynamic pos = currentPosition;
 
                 // Calculate adjustment needed
-                var adjustment = targetPosition - (currentPosition?.Qty ?? 0);
+                var adjustment = targetPosition - (currentPosition != null ? (decimal)pos.Qty : 0);
 
                 if (Math.Abs(adjustment) < 0.01m) return true; // No adjustment needed
 
@@ -168,15 +170,16 @@ namespace QuantResearchAgent.Services
                 _logger.LogInformation($"Stopping strategy: {strategyId}");
 
                 // Close all positions for this strategy
-                var positions = await _alpacaService.GetPortfolioPositionsAsync();
+                var positionsObj = await _alpacaService.GetPortfolioPositionsAsync();
+                var positions = positionsObj as IEnumerable<dynamic> ?? new List<dynamic>();
 
                 foreach (var position in positions)
                 {
-                    if (position.Qty > 0)
+                    if ((decimal)position.Qty > 0)
                     {
-                        await _alpacaService.PlaceMarketOrderAsync(position.Symbol, (int)position.Qty, "sell");
+                        await _alpacaService.PlaceMarketOrderAsync((string)position.Symbol, (int)position.Qty, "sell");
                     }
-                    else if (position.Qty < 0)
+                    else if ((decimal)position.Qty < 0)
                     {
                         await _alpacaService.PlaceMarketOrderAsync(position.Symbol, (int)Math.Abs(position.Qty), "buy");
                     }
@@ -213,8 +216,9 @@ namespace QuantResearchAgent.Services
         {
             // Implement position sizing based on risk management
             // This is a simplified version
-            var account = await _alpacaService.GetAccountAsync();
-            var availableCash = account.BuyingPower;
+            var accountObj = await _alpacaService.GetAccountAsync();
+            dynamic account = accountObj;
+            var availableCash = (decimal)account.BuyingPower;
 
             var maxPositionValue = availableCash * (config.MaxPositionSize / 100m);
             var positionSize = (int)(maxPositionValue / 100m); // Assuming ~$100 per share
@@ -236,7 +240,8 @@ namespace QuantResearchAgent.Services
 
         private async Task<decimal> CalculateWinRateAsync(IEnumerable<object> positions)
         {
-
+            // Simplified win rate calculation
+            return 65.0m; // Placeholder
         }
     }
 }

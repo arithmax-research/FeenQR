@@ -233,8 +233,29 @@ namespace QuantResearchAgent.Services
                 var yahooNews = yahooNewsTask.Result;
                 var finvizNews = finvizNewsTask.Result;
 
+                // Convert to common NewsItem type and combine
+                var yahooNewsItems = yahooNews.Select(yn => new NewsItem
+                {
+                    Title = yn.Title,
+                    Summary = yn.Summary,
+                    Publisher = yn.Publisher,
+                    Link = yn.Link,
+                    PublishedDate = yn.PublishedDate,
+                    Source = "Yahoo Finance"
+                }).ToList();
+
+                var finvizNewsItems = finvizNews.Select(fn => new NewsItem
+                {
+                    Title = fn.Title,
+                    Summary = fn.Summary,
+                    Publisher = fn.Publisher,
+                    Link = fn.Link,
+                    PublishedDate = fn.PublishedDate,
+                    Source = "Finviz"
+                }).ToList();
+
                 // Combine and deduplicate news
-                var allNews = yahooNews.Concat(finvizNews).ToList();
+                var allNews = yahooNewsItems.Concat(finvizNewsItems).ToList();
                 var uniqueNews = allNews
                     .GroupBy(n => n.Title)
                     .Select(g => g.First())

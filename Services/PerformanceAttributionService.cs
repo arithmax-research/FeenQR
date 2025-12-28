@@ -101,23 +101,27 @@ namespace QuantResearchAgent.Services
                     var sectorWeight = sectorWeights.GetValueOrDefault(sector.Key, 0.0);
                     var sectorBenchmarkWeight = benchmarkReturns.SectorWeights.GetValueOrDefault(sector.Key, 0.0);
 
+                    var benchmarkReturnValue = benchmarkReturns.ReturnsByPeriod.Values.FirstOrDefault();
+                    var sectorReturnValueObj = sector.Value.ReturnsByPeriod.Values.FirstOrDefault();
+                    var sectorReturnValue = sectorReturnValueObj?.PortfolioReturn ?? 0.0;
+
                     // Calculate allocation effect
-                    var allocationEffect = (sectorWeight - sectorBenchmarkWeight) * benchmarkReturns.ReturnsByPeriod.First().Value;
+                    var allocationEffect = (sectorWeight - sectorBenchmarkWeight) * benchmarkReturnValue;
 
                     // Calculate selection effect
-                    var selectionEffect = sectorWeight * (sector.Value.ReturnsByPeriod.First().Value - benchmarkReturns.ReturnsByPeriod.First().Value);
+                    var selectionEffect = sectorWeight * (sectorReturnValue - benchmarkReturnValue);
 
                     // Calculate interaction effect
                     var interactionEffect = (sectorWeight - sectorBenchmarkWeight) *
-                        (sector.Value.ReturnsByPeriod.First().Value - benchmarkReturns.ReturnsByPeriod.First().Value);
+                        (sectorReturnValue - benchmarkReturnValue);
 
                     sectorAttributions.Add(new SectorAttribution
                     {
                         SectorName = sector.Key,
                         PortfolioWeight = sectorWeight,
                         BenchmarkWeight = sectorBenchmarkWeight,
-                        SectorReturn = sector.Value.ReturnsByPeriod.First().Value,
-                        BenchmarkSectorReturn = benchmarkReturns.ReturnsByPeriod.First().Value,
+                        SectorReturn = sectorReturnValue,
+                        BenchmarkSectorReturn = benchmarkReturnValue,
                         AllocationEffect = allocationEffect,
                         SelectionEffect = selectionEffect,
                         InteractionEffect = interactionEffect,
@@ -227,7 +231,9 @@ namespace QuantResearchAgent.Services
                     foreach (var factor in period.Attribution.FactorContributions)
                     {
                         // Calculate risk-adjusted contribution
-                        var factorVolatility = riskMetrics.FactorVolatilities.GetValueOrDefault(factor.Key, 1.0);
+                        var factorVolatility = (double)(riskMetrics.FactorVolatilities.ContainsKey(factor.Key) 
+                            ? riskMetrics.FactorVolatilities[factor.Key] 
+                            : 1.0m);
                         var riskAdjustedContribution = factor.Value / factorVolatility;
 
                         riskAdjustedFactors[factor.Key] = riskAdjustedContribution;
@@ -238,8 +244,8 @@ namespace QuantResearchAgent.Services
                         Period = period.Period,
                         RiskAdjustedFactors = riskAdjustedFactors,
                         TotalRiskAdjustedAttribution = riskAdjustedFactors.Values.Sum(),
-                        SharpeRatio = period.ExcessReturn / riskMetrics.PortfolioVolatility,
-                        InformationRatio = period.ExcessReturn / riskMetrics.TrackingError
+                        SharpeRatio = (double)period.ExcessReturn / (double)riskMetrics.PortfolioVolatility,
+                        InformationRatio = (double)period.ExcessReturn / (double)riskMetrics.TrackingError
                     });
                 }
 
@@ -350,7 +356,7 @@ namespace QuantResearchAgent.Services
                 {
                     Title = "Executive Summary",
                     Content = GenerateExecutiveSummary(attributionResult, sectorResult, styleResult),
-                    Charts = new List<string> { "total_attribution_chart", "factor_contribution_chart" }
+                    Charts = new List<ChartData>()
                 });
 
                 // Factor Attribution
@@ -358,7 +364,7 @@ namespace QuantResearchAgent.Services
                 {
                     Title = "Factor Attribution Analysis",
                     Content = GenerateFactorAttributionContent(attributionResult),
-                    Charts = new List<string> { "factor_contribution_timeline", "factor_exposure_chart" }
+                    Charts = new List<ChartData>()
                 });
 
                 // Sector Attribution
@@ -366,7 +372,7 @@ namespace QuantResearchAgent.Services
                 {
                     Title = "Sector Attribution Analysis",
                     Content = GenerateSectorAttributionContent(sectorResult),
-                    Charts = new List<string> { "sector_attribution_chart", "sector_allocation_chart" }
+                    Charts = new List<ChartData>()
                 });
 
                 // Style Analysis
@@ -374,7 +380,7 @@ namespace QuantResearchAgent.Services
                 {
                     Title = "Style Analysis",
                     Content = GenerateStyleAnalysisContent(styleResult),
-                    Charts = new List<string> { "style_exposure_chart", "rolling_style_chart" }
+                    Charts = new List<ChartData>()
                 });
 
                 // Risk-Adjusted Performance
@@ -382,7 +388,7 @@ namespace QuantResearchAgent.Services
                 {
                     Title = "Risk-Adjusted Performance",
                     Content = GenerateRiskAdjustedContent(attributionResult),
-                    Charts = new List<string> { "sharpe_ratio_chart", "information_ratio_chart" }
+                    Charts = new List<ChartData>()
                 });
 
                 return new AttributionReport
@@ -606,7 +612,7 @@ namespace QuantResearchAgent.Services
                 var regression = MathNet.Numerics.LinearRegression.MultipleRegression.QR(x, y);
 
                 // Extract style weights (skip intercept)
-                for (int i = 1; i < regression.Length; i++)
+                for (int i = 1; i < regression.Count; i++)
                 {
                     var weight = Math.Max(0.0, Math.Min(1.0, regression[i])); // Constrain to [0,1]
                     weights[factors[i - 1].Name] = weight;
@@ -755,8 +761,8 @@ namespace QuantResearchAgent.Services
 
         private string GenerateRiskAdjustedContent(PerformanceAttributionResult result)
         {
-            return $"Risk-adjusted analysis shows Sharpe ratio of {result.Statistics.MeanExcessReturn / result.Statistics.ExcessReturnVolatility:F4} " +
-                   $"and information ratio of {result.Statistics.MeanExcessReturn / result.Statistics.AttributionVolatility:F4}.";
+            return $"Risk-adjusted analysis shows Sharpe ratio of {(double)result.Statistics.MeanExcessReturn / (double)result.Statistics.ExcessReturnVolatility:F4} " +
+                   $"and information ratio of {(double)result.Statistics.MeanExcessReturn / (double)result.Statistics.AttributionVolatility:F4}.";
         }
 
         private Dictionary<string, double> GenerateSummaryMetrics(
@@ -767,7 +773,7 @@ namespace QuantResearchAgent.Services
             return new Dictionary<string, double>
             {
                 ["Total Attribution"] = attributionResult.TotalAttribution.TotalAttribution,
-                ["Attribution Accuracy"] = result.Statistics.AttributionAccuracy,
+                ["Attribution Accuracy"] = attributionResult.Statistics.AttributionAccuracy,
                 ["Average R-Squared"] = styleResult.AverageRSquared,
                 ["Average Tracking Error"] = styleResult.AverageTrackingError,
                 ["Sector Attribution"] = sectorResult.TotalAttribution
