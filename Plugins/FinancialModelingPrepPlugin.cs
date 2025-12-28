@@ -296,9 +296,9 @@ Number of Analysts: Revenue: {estimate.NumberAnalystEstimatedRevenue}, EPS: {est
         [Description("Maximum market capitalization")] long marketCapMax = 0,
         [Description("Minimum P/E ratio")] decimal peRatioMin = 0,
         [Description("Maximum P/E ratio")] decimal peRatioMax = 0,
-        [Description("Sector filter")] string sector = null,
-        [Description("Industry filter")] string industry = null,
-        [Description("Country filter")] string country = null)
+        [Description("Sector filter")] string? sector = null,
+        [Description("Industry filter")] string? industry = null,
+        [Description("Country filter")] string? country = null)
     {
         var criteria = new FMPStockScreenerCriteria
         {

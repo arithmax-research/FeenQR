@@ -34,7 +34,7 @@ public class EnhancedFundamentalAnalysisService
     /// <summary>
     /// Get comprehensive company overview combining multiple data sources
     /// </summary>
-    public async Task<EnhancedCompanyOverview> GetComprehensiveCompanyOverviewAsync(string symbol)
+    public async Task<EnhancedCompanyOverview?> GetComprehensiveCompanyOverviewAsync(string symbol)
     {
         try
         {
@@ -53,14 +53,14 @@ public class EnhancedFundamentalAnalysisService
             var overview = new EnhancedCompanyOverview
             {
                 Symbol = symbol,
-                CompanyName = alphaOverview?.Name ?? iexCompany?.CompanyName ?? fmpProfile?.CompanyName,
-                Description = alphaOverview?.Description ?? fmpProfile?.Description,
-                Industry = alphaOverview?.Industry ?? fmpProfile?.Industry,
-                Sector = alphaOverview?.Sector ?? fmpProfile?.Sector,
-                Exchange = alphaOverview?.Exchange ?? iexCompany?.Exchange,
-                Country = alphaOverview?.Country ?? fmpProfile?.Country,
-                Website = alphaOverview?.Website ?? fmpProfile?.Website,
-                CEO = fmpProfile?.CEO,
+                CompanyName = alphaOverview?.Name ?? iexCompany?.CompanyName ?? fmpProfile?.CompanyName ?? string.Empty,
+                Description = alphaOverview?.Description ?? fmpProfile?.Description ?? string.Empty,
+                Industry = alphaOverview?.Industry ?? fmpProfile?.Industry ?? string.Empty,
+                Sector = alphaOverview?.Sector ?? fmpProfile?.Sector ?? string.Empty,
+                Exchange = alphaOverview?.Exchange ?? iexCompany?.Exchange ?? string.Empty,
+                Country = alphaOverview?.Country ?? fmpProfile?.Country ?? string.Empty,
+                Website = alphaOverview?.Website ?? fmpProfile?.Website ?? string.Empty,
+                CEO = fmpProfile?.CEO ?? string.Empty,
                 Employees = fmpProfile?.FullTimeEmployees ?? 0,
                 MarketCap = alphaOverview?.MarketCapitalization ?? 0,
                 PERatio = alphaOverview?.PERatio ?? 0,
@@ -89,11 +89,11 @@ public class EnhancedFundamentalAnalysisService
                 FiftyDayMovingAverage = alphaOverview?.FiftyDayMovingAverage ?? 0,
                 TwoHundredDayMovingAverage = alphaOverview?.TwoHundredDayMovingAverage ?? 0,
                 SharesOutstanding = alphaOverview?.SharesOutstanding ?? 0,
-                DividendDate = alphaOverview?.DividendDate,
-                ExDividendDate = alphaOverview?.ExDividendDate,
-                LastSplitFactor = alphaOverview?.LastSplitFactor,
-                LastSplitDate = alphaOverview?.LastSplitDate,
-                IpoDate = fmpProfile?.IpoDate,
+                DividendDate = alphaOverview?.DividendDate ?? string.Empty,
+                ExDividendDate = alphaOverview?.ExDividendDate ?? string.Empty,
+                LastSplitFactor = alphaOverview?.LastSplitFactor ?? string.Empty,
+                LastSplitDate = alphaOverview?.LastSplitDate ?? string.Empty,
+                IpoDate = fmpProfile?.IpoDate ?? string.Empty,
                 IsActivelyTrading = fmpProfile?.IsActivelyTrading ?? false
             };
 
@@ -109,7 +109,7 @@ public class EnhancedFundamentalAnalysisService
     /// <summary>
     /// Get comprehensive financial statements analysis
     /// </summary>
-    public async Task<EnhancedFinancialStatements> GetComprehensiveFinancialStatementsAsync(string symbol)
+    public async Task<EnhancedFinancialStatements?> GetComprehensiveFinancialStatementsAsync(string symbol)
     {
         try
         {
@@ -135,9 +135,9 @@ public class EnhancedFundamentalAnalysisService
             var statements = new EnhancedFinancialStatements
             {
                 Symbol = symbol,
-                IncomeStatements = CombineIncomeStatements(alphaIncome, fmpIncome),
-                BalanceSheets = CombineBalanceSheets(alphaBalance, fmpBalance),
-                CashFlowStatements = CombineCashFlowStatements(alphaCashFlow, fmpCashFlow),
+                IncomeStatements = alphaIncome?.FirstOrDefault() != null || fmpIncome != null ? CombineIncomeStatements(alphaIncome?.FirstOrDefault(), fmpIncome) : new List<EnhancedIncomeStatement>(),
+                BalanceSheets = alphaBalance?.FirstOrDefault() != null || fmpBalance != null ? CombineBalanceSheets(alphaBalance?.FirstOrDefault(), fmpBalance) : new List<EnhancedBalanceSheet>(),
+                CashFlowStatements = alphaCashFlow?.FirstOrDefault() != null || fmpCashFlow != null ? CombineCashFlowStatements(alphaCashFlow?.FirstOrDefault(), fmpCashFlow) : new List<EnhancedCashFlow>(),
                 LastUpdated = DateTime.UtcNow
             };
 
@@ -153,7 +153,7 @@ public class EnhancedFundamentalAnalysisService
     /// <summary>
     /// Get comprehensive valuation analysis
     /// </summary>
-    public async Task<EnhancedValuationAnalysis> GetComprehensiveValuationAnalysisAsync(string symbol)
+    public async Task<EnhancedValuationAnalysis?> GetComprehensiveValuationAnalysisAsync(string symbol)
     {
         try
         {
@@ -237,7 +237,7 @@ public class EnhancedFundamentalAnalysisService
     /// <summary>
     /// Get comprehensive technical analysis indicators
     /// </summary>
-    public async Task<EnhancedTechnicalAnalysis> GetComprehensiveTechnicalAnalysisAsync(string symbol)
+    public async Task<EnhancedTechnicalAnalysis?> GetComprehensiveTechnicalAnalysisAsync(string symbol)
     {
         try
         {
@@ -276,31 +276,38 @@ public class EnhancedFundamentalAnalysisService
                 DayChangePercent = quote.ChangesPercentage,
 
                 // Moving averages
-                SMA20 = sma == null || !sma.Any() ? 0 : GetLatestValue(sma, "SMA"),
-                EMA20 = ema == null || !ema.Any() ? 0 : GetLatestValue(ema, "EMA"),
+                SMA20 = (decimal)(sma == null || !sma.Any() ? 0 : GetLatestValue(sma, "SMA")),
+                EMA20 = (decimal)(ema == null || !ema.Any() ? 0 : GetLatestValue(ema, "EMA")),
 
                 // Momentum indicators
-                RSI14 = rsi == null || !rsi.Any() ? 0 : GetLatestValue(rsi, "RSI"),
+                RSI14 = (decimal)(rsi == null || !rsi.Any() ? 0 : GetLatestValue(rsi, "RSI")),
 
                 // MACD
-                MACD = macd == null || !macd.Any() ? 0 : GetLatestValue(macd, "MACD"),
-                MACDSignalValue = macd == null || !macd.Any() ? 0 : GetLatestValue(macd, "MACD_Signal"),
-                MACDHist = macd == null || !macd.Any() ? 0 : GetLatestValue(macd, "MACD_Hist"),
+                MACD = (decimal)(macd == null || !macd.Any() ? 0 : GetLatestValue(macd, "MACD")),
+                MACDSignalValue = (decimal)(macd == null || !macd.Any() ? 0 : GetLatestValue(macd, "MACD_Signal")),
+                MACDHist = (decimal)(macd == null || !macd.Any() ? 0 : GetLatestValue(macd, "MACD_Hist")),
 
                 // Bollinger Bands
-                BBUpper = bbands == null || !bbands.Any() ? 0 : GetLatestValue(bbands, "Real Upper Band"),
-                BBLower = bbands == null || !bbands.Any() ? 0 : GetLatestValue(bbands, "Real Lower Band"),
-                BBMiddle = bbands == null || !bbands.Any() ? 0 : GetLatestValue(bbands, "Real Middle Band"),
+                BBUpper = (decimal)(bbands == null || !bbands.Any() ? 0 : GetLatestValue(bbands, "Real Upper Band")),
+                BBLower = (decimal)(bbands == null || !bbands.Any() ? 0 : GetLatestValue(bbands, "Real Lower Band")),
+                BBMiddle = (decimal)(bbands == null || !bbands.Any() ? 0 : GetLatestValue(bbands, "Real Middle Band")),
 
                 // Stochastic
-                StochK = stoch == null || !stoch.Any() ? 0 : GetLatestValue(stoch, "SlowK"),
-                StochD = stoch == null || !stoch.Any() ? 0 : GetLatestValue(stoch, "SlowD"),
+                StochK = (decimal)(stoch == null || !stoch.Any() ? 0 : GetLatestValue(stoch, "SlowK")),
+                StochD = (decimal)(stoch == null || !stoch.Any() ? 0 : GetLatestValue(stoch, "SlowD")),
 
                 // Volume and volatility
                 Volume = quote.Volume,
                 AverageVolume = quote.AvgVolume,
                 FiftyTwoWeekHigh = quote.YearHigh,
                 FiftyTwoWeekLow = quote.YearLow,
+
+                // Required signal properties (will be populated by CalculateTechnicalSignals)
+                RSISignal = string.Empty,
+                MACDSignal = string.Empty,
+                BollingerSignal = string.Empty,
+                StochasticSignal = string.Empty,
+                MovingAverageSignal = string.Empty,
 
                 AnalysisDate = DateTime.UtcNow
             };
@@ -320,7 +327,7 @@ public class EnhancedFundamentalAnalysisService
     /// <summary>
     /// Get analyst recommendations and estimates
     /// </summary>
-    public async Task<EnhancedAnalystAnalysis> GetComprehensiveAnalystAnalysisAsync(string symbol)
+    public async Task<EnhancedAnalystAnalysis?> GetComprehensiveAnalystAnalysisAsync(string symbol)
     {
         try
         {
@@ -352,7 +359,7 @@ public class EnhancedFundamentalAnalysisService
                 NumberOfAnalystOpinions = 0,
 
                 // Use latest estimates
-                LatestEstimates = estimates.FirstOrDefault(),
+                LatestEstimates = estimates.FirstOrDefault() ?? new EarningsEstimates { Symbol = symbol },
                 AllEstimates = estimates,
 
                 AnalysisDate = DateTime.UtcNow
@@ -370,7 +377,7 @@ public class EnhancedFundamentalAnalysisService
     /// <summary>
     /// Generate comprehensive fundamental analysis report
     /// </summary>
-    public async Task<EnhancedFundamentalReport> GenerateComprehensiveReportAsync(string symbol)
+    public async Task<EnhancedFundamentalReport?> GenerateComprehensiveReportAsync(string symbol)
     {
         try
         {
@@ -471,7 +478,7 @@ public class EnhancedFundamentalAnalysisService
         }).ToList() ?? new List<EnhancedCashFlow>();
     }
 
-    private decimal GetLatestValue(Dictionary<string, Dictionary<string, string>> data, string key = null)
+    private decimal GetLatestValue(Dictionary<string, Dictionary<string, string>> data, string? key = null)
     {
         if (data == null || data.Count == 0)
             return 0;
@@ -771,6 +778,7 @@ public class EnhancedTechnicalAnalysis
     public long AverageVolume { get; set; }
     public decimal FiftyTwoWeekHigh { get; set; }
     public decimal FiftyTwoWeekLow { get; set; }
+    public decimal DistanceFrom52WeekHigh => FiftyTwoWeekHigh > 0 ? ((CurrentPrice - FiftyTwoWeekHigh) / FiftyTwoWeekHigh * 100) : 0;
     public DateTime AnalysisDate { get; set; }
 }
 

@@ -657,8 +657,8 @@ namespace QuantResearchAgent.Services
 
             foreach (var kvp in analysis.ExposureByCounterparty)
             {
-                var stressMultiplier = scenario.StressMultipliers.GetValueOrDefault(kvp.Key, 1.0m);
-                stressedExposures[kvp.Key] = kvp.Value * stressMultiplier;
+                var stressMultiplier = scenario.StressMultipliers.GetValueOrDefault<string, double>(kvp.Key, 1.0);
+                stressedExposures[kvp.Key] = kvp.Value * (decimal)stressMultiplier;
             }
 
             return stressedExposures;
@@ -694,8 +694,8 @@ namespace QuantResearchAgent.Services
 
             foreach (var kvp in exposures)
             {
-                // Assume loss rate based on scenario severity
-                var lossRate = scenario.Severity switch
+                // Assume loss rate based on scenario type
+                var lossRate = scenario.Type switch
                 {
                     "Mild" => 0.05m,
                     "Moderate" => 0.15m,
