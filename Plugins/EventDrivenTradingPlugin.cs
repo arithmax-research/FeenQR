@@ -83,7 +83,7 @@ namespace QuantResearchAgent.Plugins
                     SentimentScore = 0.8m, // Would analyze
                     ImpactScore = 0.6m,
                     Timestamp = DateTime.UtcNow,
-                    Metadata = new Dictionary<string, string>() // Initialize required property
+                    Metadata = new Dictionary<string, object>() // Initialize required property
                 };
 
                 // Get the rule (simplified - would load by ID)

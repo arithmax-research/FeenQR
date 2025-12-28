@@ -40,8 +40,14 @@ namespace QuantResearchAgent.Plugins
 
                 var positions = ParsePositionsJson(positionsJson);
                 var counterparties = ParseCounterpartiesJson(counterpartiesJson);
+                var counterpartyPositions = positions.Select(p => new CounterpartyPosition
+                {
+                    CounterpartyId = p.Symbol,
+                    Quantity = (decimal)p.Quantity,
+                    AveragePrice = (decimal)p.AveragePrice
+                }).ToList();
 
-                var analysis = await _counterpartyRiskService.AnalyzeCounterpartyExposureAsync(positions, counterparties);
+                var analysis = await _counterpartyRiskService.AnalyzeCounterpartyExposureAsync(counterpartyPositions, counterparties);
 
                 return FormatCounterpartyExposureAnalysis(analysis);
             }
@@ -166,8 +172,16 @@ namespace QuantResearchAgent.Plugins
                 var positions = ParsePositionsJson(positionsJson);
                 var counterparties = ParseCounterpartiesJson(counterpartiesJson);
 
+                // Convert Core.Position to Services.CounterpartyPosition
+                var counterpartyPositions = positions.Select(p => new CounterpartyPosition
+                {
+                    CounterpartyId = p.Symbol,
+                    Quantity = (decimal)p.Quantity,
+                    AveragePrice = (decimal)p.AveragePrice
+                }).ToList();
+
                 // Perform exposure analysis
-                var exposureAnalysis = await _counterpartyRiskService.AnalyzeCounterpartyExposureAsync(positions, counterparties);
+                var exposureAnalysis = await _counterpartyRiskService.AnalyzeCounterpartyExposureAsync(counterpartyPositions, counterparties);
 
                 // Calculate credit risks for major counterparties
                 var majorCounterparties = exposureAnalysis.ExposureByCounterparty

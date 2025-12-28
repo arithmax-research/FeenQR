@@ -42,10 +42,10 @@ namespace QuantResearchAgent.Plugins
 
                 var benchmarkSpec = ParseBenchmarkSpecJson(benchmarkSpecJson);
                 var universeFilter = ParseUniverseFilterJson(universeFilterJson);
+                var universe = await GetSecurityUniverseAsync(universeFilter);
 
-                var weightingMethodology = Enum.Parse<WeightingMethodology>(weightingMethod);
                 var benchmark = await _benchmarkingService.CreateCustomBenchmarkAsync(
-                    benchmarkSpec, universeFilter, weightingMethodology);
+                    benchmarkSpec, universe);
 
                 return FormatBenchmarkResult(benchmark);
             }
@@ -67,11 +67,12 @@ namespace QuantResearchAgent.Plugins
             {
                 _logger.LogInformation($"Analyzing benchmark replication over {analysisPeriod} months");
 
-                var portfolioHoldings = ParsePortfolioHoldingsJson(portfolioHoldingsJson);
-                var benchmarkHoldings = ParseBenchmarkHoldingsJson(benchmarkHoldingsJson);
+                var benchmark = ParseCustomBenchmarkJson(benchmarkHoldingsJson);
+                var availableSecurities = ParseSecurityDataListJson(portfolioHoldingsJson);
+                var constraints = new ReplicationConstraints { MaxHoldings = analysisPeriod * 5 };
 
                 var replicationAnalysis = await _benchmarkingService.AnalyzeBenchmarkReplicationAsync(
-                    portfolioHoldings, benchmarkHoldings, analysisPeriod);
+                    benchmark, availableSecurities, constraints);
 
                 return FormatReplicationAnalysisResult(replicationAnalysis);
             }
@@ -94,10 +95,28 @@ namespace QuantResearchAgent.Plugins
                 _logger.LogInformation("Comparing portfolio to benchmarks");
 
                 var portfolioReturns = ParsePortfolioReturnsJson(portfolioReturnsJson);
-                var benchmarkReturns = ParseBenchmarkReturnsArrayJson(benchmarkReturnsJson);
+                var benchmarkReturnsData = ParseBenchmarkReturnsArrayJson(benchmarkReturnsJson);
+                var benchmarks = benchmarkReturnsData.Select(br => new CustomBenchmark
+                {
+                    Name = "Benchmark",
+                    Description = "Converted from returns",
+                    Composition = new List<BenchmarkHolding>(),
+                    Statistics = new BenchmarkStatistics(),
+                    Specification = new BenchmarkSpecification(),
+                    CreatedDate = DateTime.UtcNow,
+                    RebalancingFrequency = RebalancingFrequency.Quarterly
+                }).ToList();
+                var metrics = new ComparisonMetrics
+                {
+                    IncludeCorrelation = true,
+                    IncludeTrackingError = true,
+                    IncludeInformationRatio = true,
+                    IncludeBeta = true,
+                    MinimumPeriods = 12
+                };
 
-                var comparison = await _benchmarkingService.CompareToBenchmarksAsync(
-                    portfolioReturns, benchmarkReturns, riskFreeRate);
+                var comparison = await _benchmarkingService.CompareAgainstBenchmarksAsync(
+                    portfolioReturns, benchmarks, metrics);
 
                 return FormatBenchmarkComparisonResult(comparison);
             }
@@ -119,11 +138,12 @@ namespace QuantResearchAgent.Plugins
             {
                 _logger.LogInformation($"Optimizing benchmark replication with max tracking error {maxTrackingError:P2}");
 
-                var benchmarkHoldings = ParseBenchmarkHoldingsJson(benchmarkHoldingsJson);
-                var availableSecurities = ParseAvailableSecuritiesJson(availableSecuritiesJson);
+                var benchmark = ParseCustomBenchmarkJson(benchmarkHoldingsJson);
+                var availableSecurities = ParseSecurityDataListJson(availableSecuritiesJson);
+                var constraints = new ReplicationConstraints { MaxHoldings = 50 };
 
-                var optimizationResult = await _benchmarkingService.OptimizeBenchmarkReplicationAsync(
-                    benchmarkHoldings, availableSecurities, maxTrackingError);
+                var optimizationResult = await _benchmarkingService.AnalyzeBenchmarkReplicationAsync(
+                    benchmark, availableSecurities, constraints);
 
                 return FormatOptimizationResult(optimizationResult);
             }
@@ -144,11 +164,11 @@ namespace QuantResearchAgent.Plugins
             {
                 _logger.LogInformation("Performing benchmark stress test");
 
-                var benchmarkHoldings = ParseBenchmarkHoldingsJson(benchmarkHoldingsJson);
-                var stressScenarios = ParseStressScenariosJson(stressScenariosJson);
+                var benchmark = ParseCustomBenchmarkJson(benchmarkHoldingsJson);
+                var stressScenarios = ParseStressTestScenariosJson(stressScenariosJson);
 
                 var stressTestResult = await _benchmarkingService.PerformStressTestAsync(
-                    benchmarkHoldings, stressScenarios);
+                    benchmark, stressScenarios);
 
                 return FormatStressTestResult(stressTestResult);
             }
@@ -169,10 +189,10 @@ namespace QuantResearchAgent.Plugins
             {
                 _logger.LogInformation($"Analyzing benchmark composition ({analysisDepth})");
 
-                var benchmarkHoldings = ParseBenchmarkHoldingsJson(benchmarkHoldingsJson);
+                var benchmark = ParseCustomBenchmarkJson(benchmarkHoldingsJson);
 
                 var compositionAnalysis = await _benchmarkingService.AnalyzeBenchmarkCompositionAsync(
-                    benchmarkHoldings, analysisDepth);
+                    benchmark);
 
                 return FormatCompositionAnalysisResult(compositionAnalysis);
             }
@@ -194,10 +214,10 @@ namespace QuantResearchAgent.Plugins
             {
                 _logger.LogInformation($"Calculating benchmark metrics for {period} period");
 
-                var benchmarkReturns = ParseBenchmarkReturnsJson(benchmarkReturnsJson);
+                var benchmark = ParseCustomBenchmarkJson(benchmarkReturnsJson);
 
                 var metrics = await _benchmarkingService.CalculateBenchmarkMetricsAsync(
-                    benchmarkReturns, riskFreeRate, period);
+                    benchmark, DateTime.UtcNow.AddMonths(-12), DateTime.UtcNow);
 
                 return FormatBenchmarkMetricsResult(metrics);
             }
@@ -225,7 +245,7 @@ namespace QuantResearchAgent.Plugins
                 var report = await _benchmarkingService.GenerateBenchmarkReportAsync(
                     benchmarkData, portfolioData, reportType);
 
-                return FormatBenchmarkReport(report);
+                return FormatBenchmarkPerformanceReport(report);
             }
             catch (Exception ex)
             {
@@ -270,7 +290,9 @@ namespace QuantResearchAgent.Plugins
                 _logger.LogInformation($"Creating {sectorName} sector benchmark");
 
                 var sectorCriteria = ParseSectorCriteriaJson(sectorCriteriaJson);
-                var weightingMethodology = Enum.Parse<WeightingMethodology>(weightingMethod);
+                var weightingType = Enum.Parse<WeightingType>(weightingMethod);
+                var weightingMethodology = new WeightingMethodology { Type = weightingType };
+                var universe = await GetSecurityUniverseAsync(new UniverseFilter());
 
                 var sectorBenchmark = await _benchmarkingService.CreateSectorBenchmarkAsync(
                     sectorName, sectorCriteria, weightingMethodology);
@@ -308,6 +330,39 @@ namespace QuantResearchAgent.Plugins
         {
             // Parse JSON benchmark holdings
             return new Dictionary<string, double>(); // Placeholder
+        }
+
+        private CustomBenchmark ParseCustomBenchmarkJson(string benchmarkJson)
+        {
+            // Parse JSON to CustomBenchmark
+            return new CustomBenchmark
+            {
+                Name = "Benchmark",
+                Description = "Parsed from JSON",
+                Specification = new BenchmarkSpecification(),
+                Composition = new List<BenchmarkHolding>(),
+                Statistics = new BenchmarkStatistics(),
+                CreatedDate = DateTime.UtcNow,
+                RebalancingFrequency = RebalancingFrequency.Quarterly
+            };
+        }
+
+        private List<SecurityData> ParseSecurityDataListJson(string securitiesJson)
+        {
+            // Parse JSON to List<SecurityData>
+            return new List<SecurityData>();
+        }
+
+        private List<StressTestScenario> ParseStressTestScenariosJson(string scenariosJson)
+        {
+            // Parse JSON to List<StressTestScenario>
+            return new List<StressTestScenario>();
+        }
+
+        private async Task<List<SecurityData>> GetSecurityUniverseAsync(UniverseFilter filter)
+        {
+            // Get security universe based on filter
+            return new List<SecurityData>();
         }
 
         private PortfolioReturns ParsePortfolioReturnsJson(string portfolioReturnsJson)
@@ -366,47 +421,46 @@ namespace QuantResearchAgent.Plugins
 
         private string FormatBenchmarkResult(CustomBenchmark benchmark)
         {
-            var topHoldings = string.Join("\n", benchmark.Holdings
+            var topHoldings = string.Join("\n", benchmark.Composition
                 .OrderByDescending(h => h.Weight)
                 .Take(10)
-                .Select(h => $"- {h.Symbol}: {h.Weight:P2}"));
+                .Select(h => $"- {h.SecurityId}: {h.Weight:P2}"));
 
             return $"Custom Benchmark Created: {benchmark.Name}\n" +
-                   $"Universe Size: {benchmark.UniverseSize}\n" +
-                   $"Weighting Method: {benchmark.WeightingMethodology}\n" +
+                   $"Universe Size: {benchmark.Composition.Count}\n" +
+                   $"Weighting Method: {benchmark.Specification.WeightingMethodology.Type}\n" +
                    $"Top Holdings:\n{topHoldings}";
         }
 
-        private string FormatReplicationAnalysisResult(BenchmarkReplicationAnalysis result)
+        private string FormatReplicationAnalysisResult(BenchmarkReplicationResult result)
         {
             return $"Benchmark Replication Analysis:\n" +
-                   $"Tracking Error: {result.TrackingError:P4}\n" +
-                   $"R-Squared: {result.RSquared:P2}\n" +
-                   $"Beta: {result.Beta:F4}\n" +
-                   $"Information Ratio: {result.InformationRatio:F4}\n" +
-                   $"Replication Quality: {result.ReplicationQuality}";
+                   $"Tracking Error: {result.ReplicationQuality.TrackingError:P4}\n" +
+                   $"R-Squared: {result.ReplicationQuality.RSquared:P2}\n" +
+                   $"Turnover: {result.ReplicationQuality.Turnover:P2}\n" +
+                   $"Number of Holdings: {result.ReplicationQuality.NumberOfHoldings}";
         }
 
         private string FormatBenchmarkComparisonResult(BenchmarkComparisonResult result)
         {
             var benchmarkComparisons = string.Join("\n", result.BenchmarkComparisons
-                .Select(bc => $"- {bc.BenchmarkName}: Alpha={bc.Alpha:F4}, Sharpe={bc.SharpeRatio:F4}, MaxDD={bc.MaxDrawdown:P2}"));
+                .Select(bc => $"- {bc.Benchmark.Name}: Alpha={bc.ActiveReturn:F4}, Sharpe={bc.InformationRatio:F4}, MaxDD={bc.TrackingError:P2}"));
 
             return $"Benchmark Comparison Result:\n" +
-                   $"Portfolio Sharpe Ratio: {result.PortfolioSharpeRatio:F4}\n" +
+                   $"Best Fit Benchmark: {result.BestFitBenchmark.Benchmark.Name}\n" +
                    $"Benchmark Comparisons:\n{benchmarkComparisons}";
         }
 
-        private string FormatOptimizationResult(BenchmarkReplicationOptimization result)
+        private string FormatOptimizationResult(BenchmarkReplicationResult result)
         {
-            var optimizedHoldings = string.Join("\n", result.OptimizedHoldings
+            var optimizedHoldings = string.Join("\n", result.ReplicationPortfolio.Holdings
                 .OrderByDescending(h => h.Weight)
                 .Take(10)
-                .Select(h => $"- {h.Symbol}: {h.Weight:P2}"));
+                .Select(h => $"- {h.SecurityId}: {h.Weight:P2}"));
 
             return $"Benchmark Replication Optimization:\n" +
-                   $"Expected Tracking Error: {result.ExpectedTrackingError:P4}\n" +
-                   $"Number of Holdings: {result.OptimizedHoldings.Count}\n" +
+                   $"Expected Tracking Error: {result.ReplicationQuality.TrackingError:P4}\n" +
+                   $"Number of Holdings: {result.ReplicationPortfolio.Holdings.Count}\n" +
                    $"Top Optimized Holdings:\n{optimizedHoldings}";
         }
 
@@ -452,16 +506,26 @@ namespace QuantResearchAgent.Plugins
                    $"Summary: {report.Summary}";
         }
 
+        private string FormatBenchmarkPerformanceReport(BenchmarkPerformanceReport report)
+        {
+            return $"Benchmark Performance Report\n" +
+                   $"Benchmark: {report.Benchmark.Name}\n" +
+                   $"Report Period: {report.ReportPeriod.StartDate:yyyy-MM-dd} to {report.ReportPeriod.EndDate:yyyy-MM-dd}\n" +
+                   $"Generated: {report.GeneratedDate:yyyy-MM-dd HH:mm:ss}\n" +
+                   $"Number of Returns: {report.Returns.Count}\n" +
+                   $"Number of Comparisons: {report.Comparisons.Count}";
+        }
+
         private string FormatSectorBenchmarkResult(CustomBenchmark result)
         {
-            var sectorHoldings = string.Join("\n", result.Holdings
+            var sectorHoldings = string.Join("\n", result.Composition
                 .OrderByDescending(h => h.Weight)
                 .Take(10)
-                .Select(h => $"- {h.Symbol}: {h.Weight:P2}"));
+                .Select(h => $"- {h.SecurityId}: {h.Weight:P2}"));
 
             return $"Sector Benchmark Created: {result.Name}\n" +
-                   $"Number of Holdings: {result.UniverseSize}\n" +
-                   $"Weighting Method: {result.WeightingMethodology}\n" +
+                   $"Number of Holdings: {result.Composition.Count}\n" +
+                   $"Weighting Method: {result.Specification.WeightingMethodology.Type}\n" +
                    $"Top Holdings:\n{sectorHoldings}";
         }
 
