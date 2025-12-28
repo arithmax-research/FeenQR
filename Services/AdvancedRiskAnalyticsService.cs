@@ -49,7 +49,7 @@ namespace QuantResearchAgent.Services
                         var prices = historicalData.Select(d => (double)d.Close).ToList();
                         var returns = CalculateReturns(prices);
                         returnsData[symbol] = returns;
-                        currentPrices[symbol] = historicalData.Last().Close;
+                        currentPrices[symbol] = (decimal)historicalData.Last().Close;
                     }
                 }
 
@@ -71,8 +71,8 @@ namespace QuantResearchAgent.Services
                 return new CVaRResult
                 {
                     ConfidenceLevel = confidenceLevel,
-                    VaR = (decimal)varValue,
-                    CVaR = (decimal)cvar,
+                    VaR = Convert.ToDecimal(varValue),
+                    CVaR = Convert.ToDecimal(cvar),
                     ExpectedShortfall = (decimal)cvar,
                     SampleSize = portfolioReturns.Count,
                     CalculationMethod = "Historical Simulation",
@@ -109,7 +109,7 @@ namespace QuantResearchAgent.Services
                         var returns = CalculateReturns(prices);
                         returnsData[symbol] = returns;
                         meanReturns[symbol] = returns.Average();
-                        currentPrices[symbol] = historicalData.Last().Close;
+                        currentPrices[symbol] = (decimal)historicalData.Last().Close;
                     }
                 }
 
@@ -142,7 +142,7 @@ namespace QuantResearchAgent.Services
                 return new ExpectedShortfallResult
                 {
                     ConfidenceLevel = confidenceLevel,
-                    ExpectedShortfall = (decimal)expectedShortfall,
+                    ExpectedShortfall = Convert.ToDecimal(expectedShortfall),
                     Simulations = simulations,
                     Method = "Monte Carlo Simulation",
                     Timestamp = DateTime.UtcNow
@@ -186,11 +186,11 @@ namespace QuantResearchAgent.Services
 
                 // Calculate covariance matrix
                 var covarianceMatrix = CalculateCovarianceMatrix(returnsData);
-                var covArray = covarianceMatrix.ToArray();
+                var covMatrix = covarianceMatrix;
 
                 // Calculate market equilibrium returns
                 var marketWeightsVector = Vector<double>.Build.Dense(symbols.Select(s => marketWeights.GetValueOrDefault(s, 0)).ToArray());
-                var equilibriumReturns = tau * covArray * marketWeightsVector * riskAversion;
+                var equilibriumReturns = tau * covMatrix * marketWeightsVector * riskAversion;
 
                 // Process views and create P matrix and Q vector
                 var P = Matrix<double>.Build.Dense(views.Count, symbols.Count);
@@ -211,7 +211,7 @@ namespace QuantResearchAgent.Services
                 }
 
                 // Black-Litterman formula
-                var tauSigma = tau * covArray;
+                var tauSigma = tau * covMatrix;
                 var omegaInv = omega.Inverse();
                 var tempMatrix = P.Transpose() * omegaInv * P + tauSigma.Inverse();
                 var posteriorCovariance = tempMatrix.Inverse();
@@ -264,7 +264,7 @@ namespace QuantResearchAgent.Services
 
                 // Calculate covariance matrix
                 var covarianceMatrix = CalculateCovarianceMatrix(returnsData);
-                var covArray = covarianceMatrix.ToArray();
+                var covMatrix = covarianceMatrix;
 
                 // Initialize equal weights
                 var weights = Vector<double>.Build.Dense(symbols.Count, 1.0 / symbols.Count);
@@ -273,8 +273,8 @@ namespace QuantResearchAgent.Services
                 for (int iteration = 0; iteration < maxIterations; iteration++)
                 {
                     // Calculate portfolio volatility contribution of each asset
-                    var portfolioVolatility = Math.Sqrt(weights.DotProduct(covArray * weights));
-                    var marginalRiskContributions = covArray * weights / portfolioVolatility;
+                    var portfolioVolatility = Math.Sqrt(weights.DotProduct(covMatrix * weights));
+                    var marginalRiskContributions = (covMatrix * weights) / portfolioVolatility;
                     var totalRiskContributions = weights.PointwiseMultiply(marginalRiskContributions);
 
                     // Calculate target risk contribution (equal for all assets)
@@ -303,8 +303,8 @@ namespace QuantResearchAgent.Services
                 }
 
                 // Calculate risk contributions
-                var portfolioVol = Math.Sqrt(weights.DotProduct(covArray * weights));
-                var marginalRisks = covArray * weights / portfolioVol;
+                var portfolioVol = Math.Sqrt(weights.DotProduct(covMatrix * weights));
+                var marginalRisks = (covMatrix * weights) / portfolioVol;
                 var riskContributions = weights.PointwiseMultiply(marginalRisks);
 
                 return new RiskParityResult
@@ -459,7 +459,7 @@ namespace QuantResearchAgent.Services
             {
                 for (int j = 0; j < symbols.Count; j++)
                 {
-                    matrix[i, j] = Statistics.Correlation(returnsData[symbols[i]], returnsData[symbols[j]]);
+                    matrix[i, j] = Correlation.Pearson(returnsData[symbols[i]], returnsData[symbols[j]]);
                 }
             }
 
@@ -484,8 +484,7 @@ namespace QuantResearchAgent.Services
             }
 
             // Transform to multivariate normal
-            var returnsVector = Vector<double>.Build.Dense(symbols.Select(s => meanReturns[s]).ToArray()) + cholesky * z;
-
+    var returnsVector = Vector<double>.Build.Dense(symbols.Select(s => meanReturns[s]).ToArray()) + cholesky.Factor * z;
             for (int i = 0; i < symbols.Count; i++)
             {
                 result[symbols[i]] = returnsVector[i];

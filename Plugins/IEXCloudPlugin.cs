@@ -120,11 +120,11 @@ public class IEXCloudPlugin
                 {
                     result += $"Fiscal Period: {earning.FiscalPeriod}\n";
                     result += $"End Date: {earning.FiscalEndDate:yyyy-MM-dd}\n";
-                    result += $"EPS: ${earning.ActualEPS:F2}\n";
-                    result += $"Estimated EPS: ${earning.EstimatedEPS:F2}\n";
-                    result += $"Revenue: ${earning.Revenue:N0}\n";
-                    result += $"Estimated Revenue: ${earning.EstimatedRevenue:N0}\n";
-                    result += $"EPS Surprise: {earning.EPSSurpriseDollar:F2}\n";
+                    result += $"EPS: ${earning.ActualEPS}\n";
+                    result += $"Estimated EPS: ${earning.EstimatedEPS}\n";
+                    // result += $"Revenue: ${earning.Revenue:N0}\n";
+                    // result += $"Estimated Revenue: ${earning.EstimatedRevenue:N0}\n";
+                    result += $"EPS Surprise: {earning.EPSSurpriseDollar}\n";
                     result += "---\n";
                 }
 

@@ -27,7 +27,7 @@ namespace QuantResearchAgent.Services
         public async Task<BlackLittermanModel> RunBlackLittermanOptimizationAsync(
             List<string> assets,
             BlackLittermanViews views,
-            OptimizationConstraints constraints,
+            Core.OptimizationConstraints constraints,
             DateTime startDate,
             DateTime endDate)
         {
@@ -73,7 +73,7 @@ namespace QuantResearchAgent.Services
         // Risk Parity Optimization
         public async Task<RiskParityPortfolio> OptimizeRiskParityAsync(
             List<string> assets,
-            OptimizationConstraints constraints,
+            Core.OptimizationConstraints constraints,
             DateTime startDate,
             DateTime endDate)
         {
@@ -147,7 +147,7 @@ namespace QuantResearchAgent.Services
         // Hierarchical Risk Parity
         public async Task<HierarchicalRiskParity> OptimizeHierarchicalRiskParityAsync(
             List<string> assets,
-            OptimizationConstraints constraints,
+            Core.OptimizationConstraints constraints,
             DateTime startDate,
             DateTime endDate)
         {
@@ -185,7 +185,7 @@ namespace QuantResearchAgent.Services
         // Minimum Variance Portfolio
         public async Task<MinimumVariancePortfolio> OptimizeMinimumVarianceAsync(
             List<string> assets,
-            OptimizationConstraints constraints,
+            Core.OptimizationConstraints constraints,
             DateTime startDate,
             DateTime endDate)
         {
@@ -289,7 +289,7 @@ namespace QuantResearchAgent.Services
         private Dictionary<string, double> OptimizePortfolio(
             Dictionary<string, double> expectedReturns,
             double[,] covarianceMatrix,
-            OptimizationConstraints constraints)
+            Core.OptimizationConstraints constraints)
         {
             // Simplified mean-variance optimization
             var assets = expectedReturns.Keys.ToList();
@@ -415,7 +415,7 @@ namespace QuantResearchAgent.Services
             return combinedReturns.Variance();
         }
 
-        private double[] MinimizeVariance(double[,] covarianceMatrix, OptimizationConstraints constraints, List<string> assets)
+        private double[] MinimizeVariance(double[,] covarianceMatrix, Core.OptimizationConstraints constraints, List<string> assets)
         {
             // Simplified minimum variance optimization
             var n = assets.Count;
@@ -428,7 +428,7 @@ namespace QuantResearchAgent.Services
             return ApplyConstraints(weights, constraints, assets);
         }
 
-        private double[] ApplyConstraints(double[] weights, OptimizationConstraints constraints, List<string> assets)
+        private double[] ApplyConstraints(double[] weights, Core.OptimizationConstraints constraints, List<string> assets)
         {
             // Apply minimum and maximum weight constraints
             for (int i = 0; i < weights.Length; i++)
