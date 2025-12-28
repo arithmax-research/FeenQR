@@ -70,7 +70,7 @@ namespace QuantResearchAgent.Services
 
                 var orderResponse = await response.Content.ReadFromJsonAsync<AlpacaOrderResponse>();
                 _logger.LogInformation($"Bracket order placed successfully: {orderResponse?.Id}");
-                return orderResponse;
+                return orderResponse ?? throw new InvalidOperationException("Failed to deserialize order response");
             }
             catch (Exception ex)
             {
@@ -112,7 +112,7 @@ namespace QuantResearchAgent.Services
 
                 var orderResponse = await response.Content.ReadFromJsonAsync<AlpacaOrderResponse>();
                 _logger.LogInformation($"OCO order placed successfully: {orderResponse?.Id}");
-                return orderResponse;
+                return orderResponse ?? throw new InvalidOperationException("Failed to deserialize order response");
             }
             catch (Exception ex)
             {
@@ -151,7 +151,7 @@ namespace QuantResearchAgent.Services
 
                 var orderResponse = await response.Content.ReadFromJsonAsync<AlpacaOrderResponse>();
                 _logger.LogInformation($"Trailing stop order placed successfully: {orderResponse?.Id}");
-                return orderResponse;
+                return orderResponse ?? throw new InvalidOperationException("Failed to deserialize order response");
             }
             catch (Exception ex)
             {

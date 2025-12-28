@@ -76,16 +76,17 @@ public class AlphaVantageService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning($"Alpha Vantage API error: {response.StatusCode}");
-                return null;
+                throw new HttpRequestException($"Alpha Vantage API error: {response.StatusCode}");
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<AlphaVantageCompanyOverview>(content);
+            return JsonSerializer.Deserialize<AlphaVantageCompanyOverview>(content) 
+                ?? throw new InvalidOperationException("Failed to deserialize company overview");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error getting company overview for {symbol}");
-            return null;
+            throw;
         }
     }
 

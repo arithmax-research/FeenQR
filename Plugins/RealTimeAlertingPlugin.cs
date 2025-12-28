@@ -53,7 +53,7 @@ namespace QuantResearchAgent.Plugins
         public async Task<string> CreatePortfolioAlert(
             [Description("Alert type: pnl_above, pnl_below, equity_below, drawdown_above")] string alertType,
             [Description("Threshold value")] decimal threshold,
-            [Description("Optional custom message")] string message = null)
+            [Description("Optional custom message")] string? message = null)
         {
             try
             {
