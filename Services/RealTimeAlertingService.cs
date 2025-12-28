@@ -60,7 +60,7 @@ namespace QuantResearchAgent.Services
             public bool IsRead { get; set; }
         }
 
-        public async Task<string> CreatePriceAlertAsync(string symbol, string condition, decimal threshold, string message = null)
+        public async Task<string> CreatePriceAlertAsync(string symbol, string condition, decimal threshold, string? message = null)
         {
             try
             {
@@ -119,7 +119,7 @@ namespace QuantResearchAgent.Services
             }
         }
 
-        public async Task<string> CreatePortfolioAlertAsync(string alertType, decimal threshold, string message = null)
+        public async Task<string> CreatePortfolioAlertAsync(string alertType, decimal threshold, string? message = null)
         {
             try
             {
@@ -320,14 +320,14 @@ namespace QuantResearchAgent.Services
         private async Task<AlertNotification> CheckTechnicalAlertAsync(AlertRule alert)
         {
             // Get technical indicators
-            var technicalData = await _technicalAnalysisService.GetTechnicalIndicatorsAsync(alert.Symbol, 100);
+            var technicalData = await _technicalAnalysisService.GetTechnicalIndicatorsAsync(alert.Symbol);
 
             if (technicalData == null) return null;
 
             // Check RSI condition as example
-            if (alert.Condition.Contains("rsi") && technicalData.RSI.HasValue)
+            if (alert.Condition.Contains("rsi") && technicalData.ContainsKey("rsi"))
             {
-                var rsi = technicalData.RSI.Value;
+                var rsi = Convert.ToDecimal(technicalData["rsi"]);
                 bool isTriggered = false;
 
                 if (alert.Condition.Contains("above"))
@@ -355,9 +355,12 @@ namespace QuantResearchAgent.Services
 
         private async Task<AlertNotification> CheckPortfolioAlertAsync(AlertRule alert)
         {
-            var account = await _alpacaService.GetAccountAsync();
+            var accountObj = await _alpacaService.GetAccountAsync();
 
-            if (account == null) return null;
+            if (accountObj == null) return null;
+
+            // Cast to dynamic to access account properties
+            dynamic account = accountObj;
 
             decimal value = 0;
             bool isTriggered = false;
@@ -365,15 +368,15 @@ namespace QuantResearchAgent.Services
             switch (alert.Condition)
             {
                 case "pnl_above":
-                    value = account.Equity - account.LastEquity;
+                    value = (decimal)account.Equity - (decimal)account.LastEquity;
                     isTriggered = value > alert.Threshold;
                     break;
                 case "pnl_below":
-                    value = account.Equity - account.LastEquity;
+                    value = (decimal)account.Equity - (decimal)account.LastEquity;
                     isTriggered = value < alert.Threshold;
                     break;
                 case "equity_below":
-                    value = account.Equity;
+                    value = (decimal)account.Equity;
                     isTriggered = value < alert.Threshold;
                     break;
             }
