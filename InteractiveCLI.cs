@@ -10234,7 +10234,7 @@ public class InteractiveCLI
     private async Task GeoEventsCommand(string[] parts)
     {
         var count = 10;
-        string region = null;
+        string? region = null;
 
         if (parts.Length > 1)
         {
@@ -10619,29 +10619,38 @@ public class InteractiveCLI
             {
                 case "deploy":
                     var configJson = parts.Length > 3 ? parts[3] : "{\"initialCapital\":10000,\"maxDrawdown\":0.1,\"riskPerTrade\":0.02}";
-                    var config = System.Text.Json.JsonSerializer.Deserialize<LiveStrategyConfig>(configJson);
-                    var result = await _liveStrategyService.DeployLiveStrategyAsync(symbol, config);
-                    Console.WriteLine($"Strategy deployed: {result.IsSuccess}");
-                    if (!result.IsSuccess) Console.WriteLine($"Error: {result.ErrorMessage}");
+                    var config = System.Text.Json.JsonSerializer.Deserialize<Services.LiveStrategyService.LiveStrategyConfig>(configJson);
+                    if (config != null)
+                    {
+                        var result = await _liveStrategyService.DeployLiveStrategyAsync(config);
+                        Console.WriteLine($"Strategy deployed: {result}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: Invalid configuration JSON");
+                    }
                     break;
 
                 case "status":
-                    var status = await _liveStrategyService.GetStrategyStatusAsync(symbol);
-                    Console.WriteLine($"Status: {status.Status}");
-                    Console.WriteLine($"PnL: {status.TotalPnL:C}");
-                    Console.WriteLine($"Drawdown: {status.CurrentDrawdown:P}");
+                    var status = await _liveStrategyService.GetStrategyPerformanceAsync(symbol);
+                    Console.WriteLine($"Strategy ID: {status.StrategyId}");
+                    Console.WriteLine($"Current PnL: {status.CurrentPnL:C}");
+                    Console.WriteLine($"Max Drawdown: {status.MaxDrawdown:P}");
+                    Console.WriteLine($"Sharpe Ratio: {status.SharpeRatio:F2}");
+                    Console.WriteLine($"Win Rate: {status.WinRate:P}");
+                    Console.WriteLine($"Total Trades: {status.TotalTrades}");
                     break;
 
                 case "stop":
-                    var stopResult = await _liveStrategyService.StopLiveStrategyAsync(symbol);
-                    Console.WriteLine($"Strategy stopped: {stopResult.IsSuccess}");
+                    var stopResult = await _liveStrategyService.StopStrategyAsync(symbol);
+                    Console.WriteLine($"Strategy stopped: {stopResult}");
                     break;
 
                 case "adjust":
-                    var adjustConfigJson = parts.Length > 3 ? parts[3] : "{\"riskPerTrade\":0.03}";
-                    var adjustConfig = System.Text.Json.JsonSerializer.Deserialize<LiveStrategyConfig>(adjustConfigJson);
-                    var adjustResult = await _liveStrategyService.AdjustStrategyParametersAsync(symbol, adjustConfig);
-                    Console.WriteLine($"Strategy adjusted: {adjustResult.IsSuccess}");
+                    var adjustConfigJson = parts.Length > 3 ? parts[3] : "0.03";
+                    var targetPosition = decimal.Parse(adjustConfigJson);
+                    var adjustResult = await _liveStrategyService.AdjustStrategyPositionAsync("default-strategy", symbol, targetPosition);
+                    Console.WriteLine($"Strategy adjusted: {adjustResult}");
                     break;
 
                 default:
@@ -10680,37 +10689,47 @@ public class InteractiveCLI
             {
                 case "setup":
                     var eventType = parts.Length > 3 ? parts[3] : "news";
-                    var rules = new List<TradingRule>
+                    var rules = new List<Services.EventDrivenTradingService.TradingRule>
                     {
-                        new TradingRule
+                        new Services.EventDrivenTradingService.TradingRule
                         {
+                            RuleId = Guid.NewGuid().ToString(),
                             Symbol = symbol,
                             EventType = eventType,
-                            Condition = "sentiment_score > 0.7",
+                            SentimentThreshold = 0.7m,
                             Action = "buy",
                             Quantity = 100,
                             IsActive = true
                         }
                     };
-                    var setupResult = await _eventDrivenTradingService.SetupTradingRulesAsync(rules);
-                    Console.WriteLine($"Rules setup: {setupResult.IsSuccess}");
+                    Console.WriteLine("Note: Setup trading rules functionality not yet implemented in service");
+                    Console.WriteLine($"Would setup {rules.Count} rules for {symbol}");
                     break;
 
                 case "execute":
-                    var executeResult = await _eventDrivenTradingService.ExecuteEventDrivenTradesAsync();
-                    Console.WriteLine($"Trades executed: {executeResult.Count}");
-                    foreach (var trade in executeResult)
+                    var marketEvent = await _eventDrivenTradingService.DetectMarketEventsAsync();
+                    var activeRules = await _eventDrivenTradingService.GetActiveRulesAsync();
+                    if (marketEvent != null && activeRules.Any())
                     {
-                        Console.WriteLine($"  {trade.Symbol}: {trade.Action} {trade.Quantity} @ {trade.Price:C}");
+                        var executeResult = await _eventDrivenTradingService.ExecuteEventDrivenTradeAsync(marketEvent, activeRules.First());
+                        Console.WriteLine($"Trade executed: {executeResult}");
+                        if (executeResult)
+                        {
+                            Console.WriteLine($"  {marketEvent.Symbol}: {activeRules.First().Action} {activeRules.First().Quantity}");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("No market events or active rules found");
                     }
                     break;
 
                 case "status":
-                    var events = await _eventDrivenTradingService.DetectMarketEventsAsync();
-                    Console.WriteLine($"Active events: {events.Count}");
-                    foreach (var evt in events)
+                    var recentEvents = await _eventDrivenTradingService.GetRecentEventsAsync(24);
+                    Console.WriteLine($"Recent events (24h): {recentEvents.Count}");
+                    foreach (var evt in recentEvents)
                     {
-                        Console.WriteLine($"  {evt.Type}: {evt.Description} (Impact: {evt.ImpactScore})");
+                        Console.WriteLine($"  {evt.EventType}: {evt.Headline} (Impact: {evt.ImpactScore})");
                     }
                     break;
 
@@ -10756,18 +10775,25 @@ public class InteractiveCLI
                     }
                     var symbol = parts[2];
                     var alertJson = parts[3];
-                    var alertRule = System.Text.Json.JsonSerializer.Deserialize<AlertRule>(alertJson);
-                    var createResult = await _realTimeAlertingService.CreateAlertAsync(symbol, alertRule);
-                    Console.WriteLine($"Alert created: {createResult.IsSuccess}");
+                    var alertRule = System.Text.Json.JsonSerializer.Deserialize<Services.RealTimeAlertingService.AlertRule>(alertJson);
+                    if (alertRule != null)
+                    {
+                        var alertId = await _realTimeAlertingService.CreatePriceAlertAsync(symbol, alertRule.Condition, alertRule.Threshold, alertRule.Message);
+                        Console.WriteLine($"Alert created: {alertId}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: Invalid alert JSON");
+                    }
                     break;
 
                 case "check":
                     var checkSymbol = parts.Length > 2 ? parts[2] : null;
-                    var triggeredAlerts = await _realTimeAlertingService.CheckAlertsAsync(checkSymbol);
+                    var triggeredAlerts = await _realTimeAlertingService.CheckAlertsAsync();
                     Console.WriteLine($"Triggered alerts: {triggeredAlerts.Count}");
                     foreach (var alert in triggeredAlerts)
                     {
-                        Console.WriteLine($"  {alert.Symbol}: {alert.Type} alert - {alert.Message}");
+                        Console.WriteLine($"  {alert.Symbol}: {alert.Message}");
                     }
                     break;
 
@@ -10776,7 +10802,7 @@ public class InteractiveCLI
                     Console.WriteLine($"Active alerts: {allAlerts.Count}");
                     foreach (var alert in allAlerts)
                     {
-                        Console.WriteLine($"  {alert.Symbol}: {alert.Type} - {alert.Condition} {alert.Value}");
+                        Console.WriteLine($"  {alert.Symbol}: {alert.AlertType} - {alert.Condition} {alert.Threshold}");
                     }
                     break;
 
@@ -10787,9 +10813,9 @@ public class InteractiveCLI
                         return;
                     }
                     var deleteSymbol = parts[2];
-                    var alertType = parts[3];
-                    var deleteResult = await _realTimeAlertingService.DeleteAlertAsync(deleteSymbol, alertType);
-                    Console.WriteLine($"Alert deleted: {deleteResult.IsSuccess}");
+                    var deleteAlertId = parts[3];
+                    var deleteResult = await _realTimeAlertingService.DeleteAlertAsync(deleteAlertId);
+                    Console.WriteLine($"Alert deleted: {deleteResult}");
                     break;
 
                 default:
@@ -10828,25 +10854,20 @@ public class InteractiveCLI
             switch (action)
             {
                 case "check":
-                    if (string.IsNullOrEmpty(symbol))
+                    var checkResult = await _complianceMonitoringService.CheckComplianceAsync();
+                    Console.WriteLine($"Compliance check results:");
+                    Console.WriteLine($"  Status: {(checkResult.Count == 0 ? "COMPLIANT" : "VIOLATIONS FOUND")}");
+                    if (checkResult.Count > 0)
                     {
-                        Console.WriteLine("Symbol required for compliance check");
-                        return;
-                    }
-                    var checkResult = await _complianceMonitoringService.CheckComplianceAsync(symbol);
-                    Console.WriteLine($"Compliance check for {symbol}:");
-                    Console.WriteLine($"  Status: {(checkResult.IsCompliant ? "COMPLIANT" : "VIOLATIONS FOUND")}");
-                    if (!checkResult.IsCompliant)
-                    {
-                        foreach (var violation in checkResult.Violations)
+                        foreach (var violation in checkResult)
                         {
-                            Console.WriteLine($"  VIOLATION: {violation.RuleType} - {violation.Description}");
+                            Console.WriteLine($"  VIOLATION: {violation.RuleId} - {violation.Description}");
                         }
                     }
                     break;
 
                 case "rules":
-                    var rules = await _complianceMonitoringService.GetComplianceRulesAsync();
+                    var rules = await _complianceMonitoringService.GetActiveComplianceRulesAsync();
                     Console.WriteLine($"Active compliance rules: {rules.Count}");
                     foreach (var rule in rules)
                     {
@@ -10855,11 +10876,11 @@ public class InteractiveCLI
                     break;
 
                 case "violations":
-                    var violations = await _complianceMonitoringService.GetComplianceViolationsAsync();
+                    var violations = await _complianceMonitoringService.GetRecentViolationsAsync();
                     Console.WriteLine($"Recent violations: {violations.Count}");
                     foreach (var violation in violations)
                     {
-                        Console.WriteLine($"  {violation.Symbol}: {violation.RuleType} - {violation.Description} ({violation.Timestamp})");
+                        Console.WriteLine($"  {violation.RuleId}: {violation.Description} ({violation.DetectedAt})");
                     }
                     break;
 
@@ -10869,11 +10890,9 @@ public class InteractiveCLI
                         Console.WriteLine("Usage: compliance resolve [symbol] [violation_type]");
                         return;
                     }
-                    var resolveSymbol = parts[2];
-                    var violationType = parts[3];
-                    var resolveResult = await _complianceMonitoringService.ResolveComplianceViolationAsync(resolveSymbol, violationType);
-                    Console.WriteLine($"Violation resolved: {resolveResult.IsSuccess}");
-                    if (!resolveResult.IsSuccess) Console.WriteLine($"Error: {resolveResult.ErrorMessage}");
+                    var violationId = parts[2];
+                    var resolveResult = await _complianceMonitoringService.ResolveViolationAsync(violationId);
+                    Console.WriteLine($"Violation resolved: {resolveResult}");
                     break;
 
                 default:
