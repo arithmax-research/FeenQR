@@ -34,7 +34,7 @@ public class EnhancedFundamentalAnalysisService
     /// <summary>
     /// Get comprehensive company overview combining multiple data sources
     /// </summary>
-    public async Task<EnhancedCompanyOverview?> GetComprehensiveCompanyOverviewAsync(string symbol)
+    public async Task<EnhancedCompanyOverview> GetComprehensiveCompanyOverviewAsync(string symbol)
     {
         try
         {
@@ -53,14 +53,14 @@ public class EnhancedFundamentalAnalysisService
             var overview = new EnhancedCompanyOverview
             {
                 Symbol = symbol,
-                CompanyName = alphaOverview?.Name ?? iexCompany?.CompanyName ?? fmpProfile?.CompanyName ?? string.Empty,
-                Description = alphaOverview?.Description ?? fmpProfile?.Description ?? string.Empty,
-                Industry = alphaOverview?.Industry ?? fmpProfile?.Industry ?? string.Empty,
-                Sector = alphaOverview?.Sector ?? fmpProfile?.Sector ?? string.Empty,
-                Exchange = alphaOverview?.Exchange ?? iexCompany?.Exchange ?? string.Empty,
-                Country = alphaOverview?.Country ?? fmpProfile?.Country ?? string.Empty,
-                Website = alphaOverview?.Website ?? fmpProfile?.Website ?? string.Empty,
-                CEO = fmpProfile?.CEO ?? string.Empty,
+                CompanyName = alphaOverview?.Name ?? iexCompany?.CompanyName ?? fmpProfile?.CompanyName,
+                Description = alphaOverview?.Description ?? fmpProfile?.Description,
+                Industry = alphaOverview?.Industry ?? fmpProfile?.Industry,
+                Sector = alphaOverview?.Sector ?? fmpProfile?.Sector,
+                Exchange = alphaOverview?.Exchange ?? iexCompany?.Exchange,
+                Country = alphaOverview?.Country ?? fmpProfile?.Country,
+                Website = alphaOverview?.Website ?? fmpProfile?.Website,
+                CEO = fmpProfile?.CEO,
                 Employees = fmpProfile?.FullTimeEmployees ?? 0,
                 MarketCap = alphaOverview?.MarketCapitalization ?? 0,
                 PERatio = alphaOverview?.PERatio ?? 0,
@@ -89,11 +89,11 @@ public class EnhancedFundamentalAnalysisService
                 FiftyDayMovingAverage = alphaOverview?.FiftyDayMovingAverage ?? 0,
                 TwoHundredDayMovingAverage = alphaOverview?.TwoHundredDayMovingAverage ?? 0,
                 SharesOutstanding = alphaOverview?.SharesOutstanding ?? 0,
-                DividendDate = alphaOverview?.DividendDate ?? string.Empty,
-                ExDividendDate = alphaOverview?.ExDividendDate ?? string.Empty,
-                LastSplitFactor = alphaOverview?.LastSplitFactor ?? string.Empty,
-                LastSplitDate = alphaOverview?.LastSplitDate ?? string.Empty,
-                IpoDate = fmpProfile?.IpoDate ?? string.Empty,
+                DividendDate = alphaOverview?.DividendDate,
+                ExDividendDate = alphaOverview?.ExDividendDate,
+                LastSplitFactor = alphaOverview?.LastSplitFactor,
+                LastSplitDate = alphaOverview?.LastSplitDate,
+                IpoDate = fmpProfile?.IpoDate,
                 IsActivelyTrading = fmpProfile?.IsActivelyTrading ?? false
             };
 
@@ -109,7 +109,7 @@ public class EnhancedFundamentalAnalysisService
     /// <summary>
     /// Get comprehensive financial statements analysis
     /// </summary>
-    public async Task<EnhancedFinancialStatements?> GetComprehensiveFinancialStatementsAsync(string symbol)
+    public async Task<EnhancedFinancialStatements> GetComprehensiveFinancialStatementsAsync(string symbol)
     {
         try
         {
@@ -135,9 +135,9 @@ public class EnhancedFundamentalAnalysisService
             var statements = new EnhancedFinancialStatements
             {
                 Symbol = symbol,
-                IncomeStatements = alphaIncome?.FirstOrDefault() != null || fmpIncome != null ? CombineIncomeStatements(alphaIncome?.FirstOrDefault(), fmpIncome) : new List<EnhancedIncomeStatement>(),
-                BalanceSheets = alphaBalance?.FirstOrDefault() != null || fmpBalance != null ? CombineBalanceSheets(alphaBalance?.FirstOrDefault(), fmpBalance) : new List<EnhancedBalanceSheet>(),
-                CashFlowStatements = alphaCashFlow?.FirstOrDefault() != null || fmpCashFlow != null ? CombineCashFlowStatements(alphaCashFlow?.FirstOrDefault(), fmpCashFlow) : new List<EnhancedCashFlow>(),
+                IncomeStatements = CombineIncomeStatements(alphaIncome?.FirstOrDefault(), fmpIncome),
+                BalanceSheets = CombineBalanceSheets(alphaBalance?.FirstOrDefault(), fmpBalance),
+                CashFlowStatements = CombineCashFlowStatements(alphaCashFlow?.FirstOrDefault(), fmpCashFlow),
                 LastUpdated = DateTime.UtcNow
             };
 
@@ -153,7 +153,7 @@ public class EnhancedFundamentalAnalysisService
     /// <summary>
     /// Get comprehensive valuation analysis
     /// </summary>
-    public async Task<EnhancedValuationAnalysis?> GetComprehensiveValuationAnalysisAsync(string symbol)
+    public async Task<EnhancedValuationAnalysis> GetComprehensiveValuationAnalysisAsync(string symbol)
     {
         try
         {
@@ -237,7 +237,7 @@ public class EnhancedFundamentalAnalysisService
     /// <summary>
     /// Get comprehensive technical analysis indicators
     /// </summary>
-    public async Task<EnhancedTechnicalAnalysis?> GetComprehensiveTechnicalAnalysisAsync(string symbol)
+    public async Task<EnhancedTechnicalAnalysis> GetComprehensiveTechnicalAnalysisAsync(string symbol)
     {
         try
         {
@@ -327,7 +327,7 @@ public class EnhancedFundamentalAnalysisService
     /// <summary>
     /// Get analyst recommendations and estimates
     /// </summary>
-    public async Task<EnhancedAnalystAnalysis?> GetComprehensiveAnalystAnalysisAsync(string symbol)
+    public async Task<EnhancedAnalystAnalysis> GetComprehensiveAnalystAnalysisAsync(string symbol)
     {
         try
         {
@@ -359,7 +359,7 @@ public class EnhancedFundamentalAnalysisService
                 NumberOfAnalystOpinions = 0,
 
                 // Use latest estimates
-                LatestEstimates = estimates.FirstOrDefault() ?? new EarningsEstimates { Symbol = symbol },
+                LatestEstimates = estimates.FirstOrDefault(),
                 AllEstimates = estimates,
 
                 AnalysisDate = DateTime.UtcNow
@@ -377,7 +377,7 @@ public class EnhancedFundamentalAnalysisService
     /// <summary>
     /// Generate comprehensive fundamental analysis report
     /// </summary>
-    public async Task<EnhancedFundamentalReport?> GenerateComprehensiveReportAsync(string symbol)
+    public async Task<EnhancedFundamentalReport> GenerateComprehensiveReportAsync(string symbol)
     {
         try
         {
@@ -478,7 +478,7 @@ public class EnhancedFundamentalAnalysisService
         }).ToList() ?? new List<EnhancedCashFlow>();
     }
 
-    private decimal GetLatestValue(Dictionary<string, Dictionary<string, string>> data, string? key = null)
+    private decimal GetLatestValue(Dictionary<string, Dictionary<string, string>> data, string key = null)
     {
         if (data == null || data.Count == 0)
             return 0;
