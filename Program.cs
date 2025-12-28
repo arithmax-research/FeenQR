@@ -31,7 +31,7 @@ namespace QuantResearchAgent
 
             // Configure services (DeepSeekService is used for LLM completions)
             // Add configuration
-            services.AddSingleton(configuration);
+            services.AddSingleton<IConfiguration>(configuration);
             // Register Kernel for DI with AI service configured
             services.AddSingleton<Kernel>(sp => 
             {
@@ -382,6 +382,10 @@ namespace QuantResearchAgent
             // Add Phase 10 Web & Alternative Data Integration plugins
             services.AddSingleton<WebIntelligencePlugin>();
             services.AddSingleton<PatentAnalysisPlugin>();
+            services.AddSingleton<GoogleWebSearchPlugin>();
+            services.AddSingleton<IWebSearchPlugin, GoogleWebSearchPlugin>();
+            services.AddSingleton<YahooFinanceDataPlugin>();
+            services.AddSingleton<IFinancialDataPlugin, YahooFinanceDataPlugin>();
             services.AddSingleton<FederalReservePlugin>();
             services.AddSingleton<GlobalEconomicPlugin>();
             services.AddSingleton<GeopoliticalRiskPlugin>();
@@ -529,6 +533,13 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<DeepSeekService>()
                 )
             );
+
+            // Build the service provider
+            var serviceProvider = services.BuildServiceProvider();
+
+            // Get the CLI and run it
+            var cli = serviceProvider.GetRequiredService<InteractiveCLI>();
+            await cli.RunAsync(args);
         }
     }
 }
