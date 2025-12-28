@@ -555,6 +555,10 @@ public class InteractiveCLI
         Console.WriteLine("219. counterparty-risk [command] [parameters] - Counterparty risk analysis and monitoring");
         Console.WriteLine("220. performance-attribution [command] [parameters] - Performance attribution and factor analysis");
         Console.WriteLine("221. benchmarking [command] [parameters] - Benchmarking and replication analysis");
+        Console.WriteLine("222. live-strategy [action] [symbol] [params] - Live strategy management (deploy/status/stop/adjust)");
+        Console.WriteLine("223. event-trading [action] [symbol] [params] - Event-driven trading system (setup/execute/status)");
+        Console.WriteLine("224. alerts [action] [symbol] [params] - Real-time alerting system (create/check/list/delete)");
+        Console.WriteLine("225. compliance [action] [params] - Compliance monitoring (check/rules/violations/resolve)");
 
         // Check if command line arguments were provided
         if (args != null && args.Length > 0)
@@ -1467,37 +1471,419 @@ public class InteractiveCLI
 
     private async Task AdvancedRiskCommand(string[] parts)
     {
-        PrintSectionHeader("Advanced Risk Analytics");
-        var function = _kernel.Plugins["AdvancedRiskAnalyticsPlugin"]["RunAdvancedRiskAnalysis"];
-        var result = await _kernel.InvokeAsync(function);
-        Console.WriteLine(result.ToString());
+        if (parts.Length < 2)
+        {
+            PrintSectionHeader("Advanced Risk Analytics - Help");
+            Console.WriteLine("Usage: advanced-risk [command] [parameters]");
+            Console.WriteLine();
+            Console.WriteLine("Available commands:");
+            Console.WriteLine("  cvar [symbol] [confidence_level] - Calculate Conditional Value at Risk");
+            Console.WriteLine("  expected-shortfall [symbol] [confidence_level] - Calculate Expected Shortfall");
+            Console.WriteLine("  black-litterman [symbols] [views] - Black-Litterman portfolio optimization");
+            Console.WriteLine("  risk-parity [symbols] - Risk parity portfolio construction");
+            Console.WriteLine("  hierarchical-risk [symbols] - Hierarchical Risk Parity (HRP)");
+            Console.WriteLine("  tail-risk [symbol] - Comprehensive tail risk analysis");
+            Console.WriteLine("  stress-test [scenario] - Stress testing with custom scenarios");
+            Console.WriteLine();
+            Console.WriteLine("Examples:");
+            Console.WriteLine("  advanced-risk cvar AAPL 0.95");
+            Console.WriteLine("  advanced-risk black-litterman AAPL,MSFT,GOOGL bullish");
+            Console.WriteLine("  advanced-risk risk-parity AAPL,MSFT,GOOGL,AMZN");
+            PrintSectionFooter();
+            return;
+        }
+
+        var subCommand = parts[1].ToLower();
+        var symbol = parts.Length > 2 ? parts[2] : "AAPL";
+
+        PrintSectionHeader($"Advanced Risk Analytics - {subCommand}");
+        
+        try
+        {
+            switch (subCommand)
+            {
+                case "cvar":
+                    var confidenceLevel = parts.Length > 3 ? parts[3] : "0.95";
+                    Console.WriteLine($"Symbol: {symbol}, Confidence Level: {confidenceLevel}");
+                    var cvarFunction = _kernel.Plugins["AdvancedRiskAnalyticsPlugin"]["CalculateCVaR"];
+                    var cvarResult = await _kernel.InvokeAsync(cvarFunction, new() { ["symbol"] = symbol, ["confidenceLevel"] = confidenceLevel });
+                    Console.WriteLine(cvarResult.ToString());
+                    break;
+
+                case "expected-shortfall":
+                case "es":
+                    var esConfidence = parts.Length > 3 ? parts[3] : "0.95";
+                    Console.WriteLine($"Symbol: {symbol}, Confidence Level: {esConfidence}");
+                    var esFunction = _kernel.Plugins["AdvancedRiskAnalyticsPlugin"]["CalculateExpectedShortfall"];
+                    var esResult = await _kernel.InvokeAsync(esFunction, new() { ["symbol"] = symbol, ["confidenceLevel"] = esConfidence });
+                    Console.WriteLine(esResult.ToString());
+                    break;
+
+                case "black-litterman":
+                case "bl":
+                    var blSymbols = parts.Length > 2 ? parts[2] : "AAPL,MSFT,GOOGL";
+                    var views = parts.Length > 3 ? parts[3] : "neutral";
+                    Console.WriteLine($"Symbols: {blSymbols}, Views: {views}");
+                    var blFunction = _kernel.Plugins["AdvancedRiskAnalyticsPlugin"]["BlackLittermanOptimization"];
+                    var blResult = await _kernel.InvokeAsync(blFunction, new() { ["symbols"] = blSymbols, ["views"] = views });
+                    Console.WriteLine(blResult.ToString());
+                    break;
+
+                case "risk-parity":
+                case "rp":
+                    var rpSymbols = parts.Length > 2 ? parts[2] : "AAPL,MSFT,GOOGL,AMZN";
+                    Console.WriteLine($"Symbols: {rpSymbols}");
+                    var rpFunction = _kernel.Plugins["AdvancedRiskAnalyticsPlugin"]["RiskParityOptimization"];
+                    var rpResult = await _kernel.InvokeAsync(rpFunction, new() { ["symbols"] = rpSymbols });
+                    Console.WriteLine(rpResult.ToString());
+                    break;
+
+                case "hierarchical-risk":
+                case "hrp":
+                    var hrpSymbols = parts.Length > 2 ? parts[2] : "AAPL,MSFT,GOOGL,AMZN,TSLA";
+                    Console.WriteLine($"Symbols: {hrpSymbols}");
+                    var hrpFunction = _kernel.Plugins["AdvancedRiskAnalyticsPlugin"]["HierarchicalRiskParity"];
+                    var hrpResult = await _kernel.InvokeAsync(hrpFunction, new() { ["symbols"] = hrpSymbols });
+                    Console.WriteLine(hrpResult.ToString());
+                    break;
+
+                case "tail-risk":
+                    Console.WriteLine($"Symbol: {symbol}");
+                    var tailFunction = _kernel.Plugins["AdvancedRiskAnalyticsPlugin"]["AnalyzeTailRisk"];
+                    var tailResult = await _kernel.InvokeAsync(tailFunction, new() { ["symbol"] = symbol });
+                    Console.WriteLine(tailResult.ToString());
+                    break;
+
+                case "stress-test":
+                    var scenario = parts.Length > 2 ? parts[2] : "market_crash";
+                    Console.WriteLine($"Scenario: {scenario}");
+                    var stressFunction = _kernel.Plugins["AdvancedRiskAnalyticsPlugin"]["StressTestPortfolio"];
+                    var stressResult = await _kernel.InvokeAsync(stressFunction, new() { ["scenario"] = scenario });
+                    Console.WriteLine(stressResult.ToString());
+                    break;
+
+                default:
+                    Console.WriteLine($"Unknown sub-command: {subCommand}");
+                    Console.WriteLine("Use 'advanced-risk' without parameters for help.");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        
         PrintSectionFooter();
     }
 
     private async Task CounterpartyRiskCommand(string[] parts)
     {
-        PrintSectionHeader("Counterparty Risk Analysis");
-        var function = _kernel.Plugins["CounterpartyRiskPlugin"]["AnalyzeCounterpartyRisk"];
-        var result = await _kernel.InvokeAsync(function);
-        Console.WriteLine(result.ToString());
+        if (parts.Length < 2)
+        {
+            PrintSectionHeader("Counterparty Risk Analysis - Help");
+            Console.WriteLine("Usage: counterparty-risk [command] [parameters]");
+            Console.WriteLine();
+            Console.WriteLine("Available commands:");
+            Console.WriteLine("  analyze [counterparty] - Analyze counterparty credit risk");
+            Console.WriteLine("  exposure [counterparty] - Calculate exposure to counterparty");
+            Console.WriteLine("  concentration - Monitor concentration risk across counterparties");
+            Console.WriteLine("  credit-rating [counterparty] - Get credit rating and assessment");
+            Console.WriteLine("  limits [counterparty] - Check exposure limits and violations");
+            Console.WriteLine("  stress-test [counterparty] [scenario] - Stress test counterparty exposure");
+            Console.WriteLine("  portfolio-impact [counterparty] - Assess portfolio impact of default");
+            Console.WriteLine();
+            Console.WriteLine("Examples:");
+            Console.WriteLine("  counterparty-risk analyze GoldmanSachs");
+            Console.WriteLine("  counterparty-risk exposure JPMorgan");
+            Console.WriteLine("  counterparty-risk concentration");
+            PrintSectionFooter();
+            return;
+        }
+
+        var subCommand = parts[1].ToLower();
+        var counterparty = parts.Length > 2 ? parts[2] : "DefaultCounterparty";
+
+        PrintSectionHeader($"Counterparty Risk - {subCommand}");
+        
+        try
+        {
+            switch (subCommand)
+            {
+                case "analyze":
+                    Console.WriteLine($"Counterparty: {counterparty}");
+                    var analyzeFunction = _kernel.Plugins["CounterpartyRiskPlugin"]["AnalyzeCounterpartyRisk"];
+                    var analyzeResult = await _kernel.InvokeAsync(analyzeFunction, new() { ["counterparty"] = counterparty });
+                    Console.WriteLine(analyzeResult.ToString());
+                    break;
+
+                case "exposure":
+                    Console.WriteLine($"Counterparty: {counterparty}");
+                    var exposureFunction = _kernel.Plugins["CounterpartyRiskPlugin"]["CalculateExposure"];
+                    var exposureResult = await _kernel.InvokeAsync(exposureFunction, new() { ["counterparty"] = counterparty });
+                    Console.WriteLine(exposureResult.ToString());
+                    break;
+
+                case "concentration":
+                    var concentrationFunction = _kernel.Plugins["CounterpartyRiskPlugin"]["MonitorConcentration"];
+                    var concentrationResult = await _kernel.InvokeAsync(concentrationFunction);
+                    Console.WriteLine(concentrationResult.ToString());
+                    break;
+
+                case "credit-rating":
+                    Console.WriteLine($"Counterparty: {counterparty}");
+                    var ratingFunction = _kernel.Plugins["CounterpartyRiskPlugin"]["GetCreditRating"];
+                    var ratingResult = await _kernel.InvokeAsync(ratingFunction, new() { ["counterparty"] = counterparty });
+                    Console.WriteLine(ratingResult.ToString());
+                    break;
+
+                case "limits":
+                    Console.WriteLine($"Counterparty: {counterparty}");
+                    var limitsFunction = _kernel.Plugins["CounterpartyRiskPlugin"]["CheckExposureLimits"];
+                    var limitsResult = await _kernel.InvokeAsync(limitsFunction, new() { ["counterparty"] = counterparty });
+                    Console.WriteLine(limitsResult.ToString());
+                    break;
+
+                case "stress-test":
+                    var scenario = parts.Length > 3 ? parts[3] : "default";
+                    Console.WriteLine($"Counterparty: {counterparty}, Scenario: {scenario}");
+                    var stressFunction = _kernel.Plugins["CounterpartyRiskPlugin"]["StressTestExposure"];
+                    var stressResult = await _kernel.InvokeAsync(stressFunction, new() { ["counterparty"] = counterparty, ["scenario"] = scenario });
+                    Console.WriteLine(stressResult.ToString());
+                    break;
+
+                case "portfolio-impact":
+                    Console.WriteLine($"Counterparty: {counterparty}");
+                    var impactFunction = _kernel.Plugins["CounterpartyRiskPlugin"]["AssessPortfolioImpact"];
+                    var impactResult = await _kernel.InvokeAsync(impactFunction, new() { ["counterparty"] = counterparty });
+                    Console.WriteLine(impactResult.ToString());
+                    break;
+
+                default:
+                    Console.WriteLine($"Unknown sub-command: {subCommand}");
+                    Console.WriteLine("Use 'counterparty-risk' without parameters for help.");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        
         PrintSectionFooter();
     }
 
     private async Task PerformanceAttributionCommand(string[] parts)
     {
-        PrintSectionHeader("Performance Attribution Analysis");
-        var function = _kernel.Plugins["PerformanceAttributionPlugin"]["RunPerformanceAttribution"];
-        var result = await _kernel.InvokeAsync(function);
-        Console.WriteLine(result.ToString());
+        if (parts.Length < 2)
+        {
+            PrintSectionHeader("Performance Attribution - Help");
+            Console.WriteLine("Usage: performance-attribution [command] [parameters]");
+            Console.WriteLine();
+            Console.WriteLine("Available commands:");
+            Console.WriteLine("  factor [portfolio] - Factor-based performance attribution");
+            Console.WriteLine("  sector [portfolio] - Sector-level attribution analysis");
+            Console.WriteLine("  security [portfolio] - Security-level contribution analysis");
+            Console.WriteLine("  risk-adjusted [portfolio] [benchmark] - Risk-adjusted performance measures");
+            Console.WriteLine("  alpha-beta [portfolio] [benchmark] - Alpha and beta decomposition");
+            Console.WriteLine("  timing [portfolio] [benchmark] - Market timing analysis");
+            Console.WriteLine("  selection [portfolio] [benchmark] - Security selection analysis");
+            Console.WriteLine("  summary [portfolio] [period] - Comprehensive attribution summary");
+            Console.WriteLine();
+            Console.WriteLine("Examples:");
+            Console.WriteLine("  performance-attribution factor MyPortfolio");
+            Console.WriteLine("  performance-attribution risk-adjusted MyPortfolio SPY");
+            Console.WriteLine("  performance-attribution summary MyPortfolio quarterly");
+            PrintSectionFooter();
+            return;
+        }
+
+        var subCommand = parts[1].ToLower();
+        var portfolio = parts.Length > 2 ? parts[2] : "DefaultPortfolio";
+
+        PrintSectionHeader($"Performance Attribution - {subCommand}");
+        
+        try
+        {
+            switch (subCommand)
+            {
+                case "factor":
+                    Console.WriteLine($"Portfolio: {portfolio}");
+                    var factorFunction = _kernel.Plugins["PerformanceAttributionPlugin"]["FactorAttribution"];
+                    var factorResult = await _kernel.InvokeAsync(factorFunction, new() { ["portfolio"] = portfolio });
+                    Console.WriteLine(factorResult.ToString());
+                    break;
+
+                case "sector":
+                    Console.WriteLine($"Portfolio: {portfolio}");
+                    var sectorFunction = _kernel.Plugins["PerformanceAttributionPlugin"]["SectorAttribution"];
+                    var sectorResult = await _kernel.InvokeAsync(sectorFunction, new() { ["portfolio"] = portfolio });
+                    Console.WriteLine(sectorResult.ToString());
+                    break;
+
+                case "security":
+                    Console.WriteLine($"Portfolio: {portfolio}");
+                    var securityFunction = _kernel.Plugins["PerformanceAttributionPlugin"]["SecurityAttribution"];
+                    var securityResult = await _kernel.InvokeAsync(securityFunction, new() { ["portfolio"] = portfolio });
+                    Console.WriteLine(securityResult.ToString());
+                    break;
+
+                case "risk-adjusted":
+                    var benchmark = parts.Length > 3 ? parts[3] : "SPY";
+                    Console.WriteLine($"Portfolio: {portfolio}, Benchmark: {benchmark}");
+                    var riskFunction = _kernel.Plugins["PerformanceAttributionPlugin"]["RiskAdjustedPerformance"];
+                    var riskResult = await _kernel.InvokeAsync(riskFunction, new() { ["portfolio"] = portfolio, ["benchmark"] = benchmark });
+                    Console.WriteLine(riskResult.ToString());
+                    break;
+
+                case "alpha-beta":
+                    var abBenchmark = parts.Length > 3 ? parts[3] : "SPY";
+                    Console.WriteLine($"Portfolio: {portfolio}, Benchmark: {abBenchmark}");
+                    var alphaFunction = _kernel.Plugins["PerformanceAttributionPlugin"]["AlphaBetaDecomposition"];
+                    var alphaResult = await _kernel.InvokeAsync(alphaFunction, new() { ["portfolio"] = portfolio, ["benchmark"] = abBenchmark });
+                    Console.WriteLine(alphaResult.ToString());
+                    break;
+
+                case "timing":
+                    var timingBenchmark = parts.Length > 3 ? parts[3] : "SPY";
+                    Console.WriteLine($"Portfolio: {portfolio}, Benchmark: {timingBenchmark}");
+                    var timingFunction = _kernel.Plugins["PerformanceAttributionPlugin"]["MarketTimingAnalysis"];
+                    var timingResult = await _kernel.InvokeAsync(timingFunction, new() { ["portfolio"] = portfolio, ["benchmark"] = timingBenchmark });
+                    Console.WriteLine(timingResult.ToString());
+                    break;
+
+                case "selection":
+                    var selectionBenchmark = parts.Length > 3 ? parts[3] : "SPY";
+                    Console.WriteLine($"Portfolio: {portfolio}, Benchmark: {selectionBenchmark}");
+                    var selectionFunction = _kernel.Plugins["PerformanceAttributionPlugin"]["SecuritySelectionAnalysis"];
+                    var selectionResult = await _kernel.InvokeAsync(selectionFunction, new() { ["portfolio"] = portfolio, ["benchmark"] = selectionBenchmark });
+                    Console.WriteLine(selectionResult.ToString());
+                    break;
+
+                case "summary":
+                    var period = parts.Length > 3 ? parts[3] : "monthly";
+                    Console.WriteLine($"Portfolio: {portfolio}, Period: {period}");
+                    var summaryFunction = _kernel.Plugins["PerformanceAttributionPlugin"]["AttributionSummary"];
+                    var summaryResult = await _kernel.InvokeAsync(summaryFunction, new() { ["portfolio"] = portfolio, ["period"] = period });
+                    Console.WriteLine(summaryResult.ToString());
+                    break;
+
+                default:
+                    Console.WriteLine($"Unknown sub-command: {subCommand}");
+                    Console.WriteLine("Use 'performance-attribution' without parameters for help.");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        
         PrintSectionFooter();
     }
 
     private async Task BenchmarkingCommand(string[] parts)
     {
-        PrintSectionHeader("Benchmarking Analysis");
-        var function = _kernel.Plugins["BenchmarkingPlugin"]["RunBenchmarkingAnalysis"];
-        var result = await _kernel.InvokeAsync(function);
-        Console.WriteLine(result.ToString());
+        if (parts.Length < 2)
+        {
+            PrintSectionHeader("Benchmarking Analysis - Help");
+            Console.WriteLine("Usage: benchmarking [command] [parameters]");
+            Console.WriteLine();
+            Console.WriteLine("Available commands:");
+            Console.WriteLine("  compare [portfolio] [benchmark] - Compare portfolio vs benchmark");
+            Console.WriteLine("  replicate [benchmark] [method] - Replicate benchmark with subset");
+            Console.WriteLine("  tracking-error [portfolio] [benchmark] - Calculate tracking error");
+            Console.WriteLine("  create-custom [name] [symbols] [weights] - Create custom benchmark");
+            Console.WriteLine("  style-analysis [portfolio] [benchmarks] - Style analysis vs multiple benchmarks");
+            Console.WriteLine("  performance-comparison [portfolio] [benchmarks] - Multi-benchmark comparison");
+            Console.WriteLine("  peer-analysis [portfolio] [peers] - Peer group comparison");
+            Console.WriteLine();
+            Console.WriteLine("Examples:");
+            Console.WriteLine("  benchmarking compare MyPortfolio SPY");
+            Console.WriteLine("  benchmarking tracking-error MyPortfolio QQQ");
+            Console.WriteLine("  benchmarking create-custom TechBenchmark AAPL,MSFT,GOOGL 0.4,0.3,0.3");
+            PrintSectionFooter();
+            return;
+        }
+
+        var subCommand = parts[1].ToLower();
+        var portfolio = parts.Length > 2 ? parts[2] : "DefaultPortfolio";
+
+        PrintSectionHeader($"Benchmarking - {subCommand}");
+        
+        try
+        {
+            switch (subCommand)
+            {
+                case "compare":
+                    var benchmark = parts.Length > 3 ? parts[3] : "SPY";
+                    Console.WriteLine($"Portfolio: {portfolio}, Benchmark: {benchmark}");
+                    var compareFunction = _kernel.Plugins["BenchmarkingPlugin"]["CompareToBenchmark"];
+                    var compareResult = await _kernel.InvokeAsync(compareFunction, new() { ["portfolio"] = portfolio, ["benchmark"] = benchmark });
+                    Console.WriteLine(compareResult.ToString());
+                    break;
+
+                case "replicate":
+                    var replicateBenchmark = parts.Length > 2 ? parts[2] : "SPY";
+                    var method = parts.Length > 3 ? parts[3] : "optimization";
+                    Console.WriteLine($"Benchmark: {replicateBenchmark}, Method: {method}");
+                    var replicateFunction = _kernel.Plugins["BenchmarkingPlugin"]["ReplicateBenchmark"];
+                    var replicateResult = await _kernel.InvokeAsync(replicateFunction, new() { ["benchmark"] = replicateBenchmark, ["method"] = method });
+                    Console.WriteLine(replicateResult.ToString());
+                    break;
+
+                case "tracking-error":
+                    var teBenchmark = parts.Length > 3 ? parts[3] : "SPY";
+                    Console.WriteLine($"Portfolio: {portfolio}, Benchmark: {teBenchmark}");
+                    var teFunction = _kernel.Plugins["BenchmarkingPlugin"]["CalculateTrackingError"];
+                    var teResult = await _kernel.InvokeAsync(teFunction, new() { ["portfolio"] = portfolio, ["benchmark"] = teBenchmark });
+                    Console.WriteLine(teResult.ToString());
+                    break;
+
+                case "create-custom":
+                    var benchmarkName = parts.Length > 2 ? parts[2] : "CustomBenchmark";
+                    var symbols = parts.Length > 3 ? parts[3] : "AAPL,MSFT,GOOGL";
+                    var weights = parts.Length > 4 ? parts[4] : "0.33,0.33,0.34";
+                    Console.WriteLine($"Name: {benchmarkName}, Symbols: {symbols}, Weights: {weights}");
+                    var createFunction = _kernel.Plugins["BenchmarkingPlugin"]["CreateCustomBenchmark"];
+                    var createResult = await _kernel.InvokeAsync(createFunction, new() { ["name"] = benchmarkName, ["symbols"] = symbols, ["weights"] = weights });
+                    Console.WriteLine(createResult.ToString());
+                    break;
+
+                case "style-analysis":
+                    var styleBenchmarks = parts.Length > 3 ? parts[3] : "SPY,QQQ,IWM";
+                    Console.WriteLine($"Portfolio: {portfolio}, Benchmarks: {styleBenchmarks}");
+                    var styleFunction = _kernel.Plugins["BenchmarkingPlugin"]["StyleAnalysis"];
+                    var styleResult = await _kernel.InvokeAsync(styleFunction, new() { ["portfolio"] = portfolio, ["benchmarks"] = styleBenchmarks });
+                    Console.WriteLine(styleResult.ToString());
+                    break;
+
+                case "performance-comparison":
+                    var compBenchmarks = parts.Length > 3 ? parts[3] : "SPY,QQQ,DIA";
+                    Console.WriteLine($"Portfolio: {portfolio}, Benchmarks: {compBenchmarks}");
+                    var perfFunction = _kernel.Plugins["BenchmarkingPlugin"]["PerformanceComparison"];
+                    var perfResult = await _kernel.InvokeAsync(perfFunction, new() { ["portfolio"] = portfolio, ["benchmarks"] = compBenchmarks });
+                    Console.WriteLine(perfResult.ToString());
+                    break;
+
+                case "peer-analysis":
+                    var peers = parts.Length > 3 ? parts[3] : "Portfolio1,Portfolio2,Portfolio3";
+                    Console.WriteLine($"Portfolio: {portfolio}, Peers: {peers}");
+                    var peerFunction = _kernel.Plugins["BenchmarkingPlugin"]["PeerGroupAnalysis"];
+                    var peerResult = await _kernel.InvokeAsync(peerFunction, new() { ["portfolio"] = portfolio, ["peers"] = peers });
+                    Console.WriteLine(peerResult.ToString());
+                    break;
+
+                default:
+                    Console.WriteLine($"Unknown sub-command: {subCommand}");
+                    Console.WriteLine("Use 'benchmarking' without parameters for help.");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        
         PrintSectionFooter();
     }
 
