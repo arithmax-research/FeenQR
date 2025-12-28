@@ -5,13 +5,24 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <NoWarn>CS1998,CS8625,CS8603,CS8604,CS8629,CS8601,CS8600,CS8602,CS8632</NoWarn>
+    <NoWarn>CS1998,CS8625,CS8603,CS8604,CS8629,CS8601,CS8600,CS8602,CS8632,SKEXP0001,SKEXP0050,SKEXP0110</NoWarn>
+    <EnableDefaultItems>true</EnableDefaultItems>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
   </PropertyGroup>
+
+  <!-- Exclude FeenQR.Web subfolder to prevent compilation conflicts -->
+  <ItemGroup>
+    <Compile Remove="FeenQR.Web/**/*.cs" />
+    <EmbeddedResource Remove="FeenQR.Web/**/*" />
+    <None Remove="FeenQR.Web/**/*" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.25.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.25.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Core" Version="1.25.0-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.25.0-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.25.0-alpha" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />

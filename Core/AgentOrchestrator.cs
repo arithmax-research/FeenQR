@@ -24,6 +24,10 @@ public class AgentOrchestrator
     private readonly MarketDataService _marketDataService;
     private readonly RiskManagementService _riskService;
     private readonly PortfolioService _portfolioService;
+
+    // RAG and Agentic services
+    private readonly RAGService _ragService;
+    private readonly AgenticOrchestrator _agenticOrchestrator;
     
     // Research agent services
     private readonly MarketSentimentAgentService _marketSentimentAgent;
@@ -79,6 +83,8 @@ public class AgentOrchestrator
         MarketDataService marketDataService,
         RiskManagementService riskService,
         PortfolioService portfolioService,
+        RAGService ragService,
+        AgenticOrchestrator agenticOrchestrator,
         MarketSentimentAgentService marketSentimentAgent,
         StatisticalPatternAgentService statisticalPatternAgent,
         CompanyValuationService companyValuationService,
@@ -126,6 +132,8 @@ public class AgentOrchestrator
         _marketDataService = marketDataService;
         _riskService = riskService;
         _portfolioService = portfolioService;
+        _ragService = ragService;
+        _agenticOrchestrator = agenticOrchestrator;
         _marketSentimentAgent = marketSentimentAgent;
         _statisticalPatternAgent = statisticalPatternAgent;
         _companyValuationService = companyValuationService;
@@ -240,7 +248,7 @@ public class AgentOrchestrator
         kernel.Plugins.AddFromObject(new PatentAnalysisPlugin(_patentAnalysisService));
         kernel.Plugins.AddFromObject(new FederalReservePlugin(_federalReserveService));
         kernel.Plugins.AddFromObject(new GlobalEconomicPlugin(_globalEconomicService));
-        kernel.Plugins.AddFromObject(new GeopoliticalRiskPlugin(_geopoliticalRiskService));
+        // kernel.Plugins.AddFromObject(new GeopoliticalRiskPlugin(_geopoliticalRiskService)); // Temporarily disabled
 
         // Register Phase 11 Derivatives & Options Analytics plugins
         kernel.Plugins.AddFromObject(new OptionsFlowPlugin(_optionsFlowService));
@@ -540,4 +548,132 @@ public class AgentOrchestrator
             _logger.LogError(ex, "Error in data refresh callback");
         }
     }
+
+    #region RAGentic Methods
+
+    /// <summary>
+    /// Execute RAG-enhanced analysis
+    /// </summary>
+    public async Task<string> ExecuteRAGAnalysisAsync(string query, string contentType = "general")
+    {
+        try
+        {
+            var result = await _ragService.AnalyzeWithRAGAsync(query, contentType);
+            return FormatRAGResult(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "RAG analysis failed", ex);
+            return $"RAG Analysis Error: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Execute autonomous agentic analysis
+    /// </summary>
+    public async Task<string> ExecuteAgenticAnalysisAsync(string symbol, decimal capital = 10000)
+    {
+        try
+        {
+            var result = await _agenticOrchestrator.ExecuteAutonomousAnalysisAsync(symbol, capital);
+            return FormatAgenticResult(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Agentic analysis failed", ex);
+            return $"Agentic Analysis Error: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Analyze YouTube content with full RAGentic pipeline
+    /// </summary>
+    public async Task<string> AnalyzeYouTubeRAGenticAsync(string videoUrl)
+    {
+        try
+        {
+            // RAG-enhanced YouTube analysis
+            var ragResult = await _ragService.AnalyzeYouTubeVideoWithRAGAsync(videoUrl);
+
+            // Agentic coordination
+            var agenticResult = await _agenticOrchestrator.AnalyzeYouTubeContentAsync(videoUrl);
+
+            return $"🎥 RAGentic YouTube Analysis\n\n" +
+                   $"📊 RAG Analysis (Confidence: {ragResult.ConfidenceScore:P1}):\n{ragResult.Analysis}\n\n" +
+                   $"🤖 Agentic Analysis (Confidence: {agenticResult.ConfidenceScore:P1}):\n{agenticResult.FinalDecision}\n\n" +
+                   $"🎯 Combined Insights:\n{string.Join("\n", ragResult.TradingSignals.Concat(agenticResult.RAGContext.TradingSignals).Distinct())}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "RAGentic YouTube analysis failed", ex);
+            return $"RAGentic Analysis Error: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Comprehensive market analysis with RAG and agentic coordination
+    /// </summary>
+    public async Task<string> ComprehensiveMarketAnalysisAsync(string symbol)
+    {
+        try
+        {
+            // Parallel execution of RAG and Agentic analysis
+            var ragTask = _ragService.AnalyzeMarketTrendsWithRAGAsync(symbol);
+            var agenticTask = _agenticOrchestrator.ExecuteAutonomousAnalysisAsync(symbol);
+
+            await Task.WhenAll(ragTask, agenticTask);
+
+            var ragResult = await ragTask;
+            var agenticResult = await agenticTask;
+
+            return $"📈 Comprehensive Market Analysis for {symbol}\n\n" +
+                   $"🧠 RAG Analysis (Score: {ragResult.ConfidenceScore:P1}):\n{ragResult.Analysis}\n\n" +
+                   $"🤖 Agentic Decision (Score: {agenticResult.ConfidenceScore:P1}):\n{agenticResult.FinalDecision}\n\n" +
+                   $"📋 Trading Signals:\n" +
+                   $"RAG Signals: {string.Join(", ", ragResult.TradingSignals)}\n" +
+                   $"Agentic Signals: {agenticResult.TradingSignals}\n\n" +
+                   $"⚠️ Risk Assessment: {agenticResult.RiskAssessment}\n\n" +
+                   $"⚡ Execution Plan: {agenticResult.ExecutionPlan}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Comprehensive market analysis failed", ex);
+            return $"Comprehensive Analysis Error: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Learn from trading outcomes and update RAG memory
+    /// </summary>
+    public async Task LearnFromOutcomeAsync(string symbol, bool successful, string outcome)
+    {
+        try
+        {
+            await _agenticOrchestrator.LearnFromOutcomeAsync(symbol, successful, outcome);
+            _logger.LogInformation("Learned from trading outcome for {Symbol}: {Outcome}", symbol, outcome);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Learning from outcome failed", ex);
+        }
+    }
+
+    private string FormatRAGResult(RAGAnalysisResult result)
+    {
+        return $"RAG Analysis Result:\n" +
+               $"Query: {result.Query}\n" +
+               $"Analysis: {result.Analysis}\n" +
+               $"Signals: {string.Join(", ", result.TradingSignals)}\n" +
+               $"Confidence: {result.ConfidenceScore:P1}";
+    }
+
+    private string FormatAgenticResult(AgenticAnalysisResult result)
+    {
+        return $"Agentic Analysis Result:\n" +
+               $"Symbol: {result.Symbol}\n" +
+               $"Decision: {result.FinalDecision}\n" +
+               $"Confidence: {result.ConfidenceScore:P1}";
+    }
+
+    #endregion
 }

@@ -37,14 +37,7 @@ public class AutoMLService
         int featureCount,
         int sampleSize)
     {
-        // TODO: Implement actual model selection logic
-        await Task.Delay(10); // Simulate async work
-        return new List<ModelResult> {
-            new ModelResult {
-                ModelType = $"DummyModel-{dataType}-{targetType}",
-                Performance = new ModelPerformance { Score = 0.95 }
-            }
-        };
+        throw new NotImplementedException("Real API integration for automated model selection is not implemented. ML framework integration required.");
     }
 
     /// <summary>
@@ -57,44 +50,8 @@ public class AutoMLService
         string targetType = "returns",
         int maxModels = 10)
     {
-        try
-        {
-            _logger.LogInformation("Starting AutoML pipeline for {Count} symbols", symbols.Count);
-
-            // Prepare data
-            var data = await PrepareTrainingDataAsync(symbols, startDate, endDate, targetType);
-
-            // Generate features - using prepared data directly for now
-            // Note: FeatureEngineeringService does not provide an async method; integration can be added later.
-            // Run model selection based on prepared training data
-            var modelResults = await RunModelSelectionAsync(data, maxModels);
-
-            // Select best model
-            var bestModel = modelResults.OrderByDescending(r => r.Performance.Score).First();
-
-            var result = new AutoMLResult
-            {
-                TargetType = targetType,
-                TrainingPeriodStart = startDate,
-                TrainingPeriodEnd = endDate,
-                Symbols = symbols,
-                FeatureCount = data.Features.FirstOrDefault()?.Count ?? 0,
-                ModelsTested = modelResults.Count,
-                BestModel = bestModel,
-                AllModelResults = modelResults,
-                ExecutionTime = DateTime.UtcNow
-            };
-
-            _logger.LogInformation("AutoML pipeline completed. Best model: {Model} with score {Score:F4}",
-                bestModel.ModelType, bestModel.Performance.Score);
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to run AutoML pipeline");
-            throw;
-        }
+        _logger.LogInformation("Starting AutoML pipeline for {Count} symbols", symbols.Count);
+        throw new NotImplementedException("Real API integration for AutoML pipeline is not implemented. ML framework and data pipeline integration required.");
     }
 
     /// <summary>
@@ -105,51 +62,8 @@ public class AutoMLService
         Vector<double> targetVector,
         int maxFeatures = 20)
     {
-        try
-        {
-            _logger.LogInformation("Performing automated feature selection");
-
-            var selectionResult = new FeatureSelectionResult
-            {
-                OriginalFeatureCount = featureMatrix.ColumnCount,
-                SelectedFeatures = new List<int>(),
-                FeatureImportance = new Dictionary<int, double>(),
-                SelectionMethod = "Recursive Feature Elimination"
-            };
-
-            // Simplified feature selection using correlation
-            var correlations = new Dictionary<int, double>();
-            for (int i = 0; i < featureMatrix.ColumnCount; i++)
-            {
-                var featureColumn = featureMatrix.Column(i);
-                var correlation = Correlation.Pearson(featureColumn, targetVector);
-                correlations[i] = Math.Abs(correlation);
-            }
-
-            // Select top features
-            selectionResult.SelectedFeatures = correlations
-                .OrderByDescending(c => c.Value)
-                .Take(maxFeatures)
-                .Select(c => c.Key)
-                .ToList();
-
-            foreach (var selected in selectionResult.SelectedFeatures)
-            {
-                selectionResult.FeatureImportance[selected] = correlations[selected];
-            }
-
-            selectionResult.FinalFeatureCount = selectionResult.SelectedFeatures.Count;
-
-            _logger.LogInformation("Feature selection completed. Selected {Count} features",
-                selectionResult.FinalFeatureCount);
-
-            return selectionResult;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to perform feature selection");
-            throw;
-        }
+        _logger.LogInformation("Performing automated feature selection");
+        throw new NotImplementedException("Real API integration for automated feature selection is not implemented. ML framework integration required.");
     }
 
     // Overload to match callers passing an extra method parameter
@@ -171,45 +85,8 @@ public class AutoMLService
         Matrix<double> featureMatrix,
         EnsembleMethod method = EnsembleMethod.WeightedAverage)
     {
-        try
-        {
-            _logger.LogInformation("Generating ensemble prediction with {Count} models", models.Count);
-
-            var predictions = new List<Vector<double>>();
-            var weights = new List<double>();
-
-            // Get predictions from each model
-            foreach (var model in models)
-            {
-                var prediction = await GenerateModelPredictionAsync(model, featureMatrix);
-                predictions.Add(prediction);
-
-                // Weight by model performance
-                var weight = Math.Max(0.1, model.Performance.Score);
-                weights.Add(weight);
-            }
-
-            // Combine predictions based on method
-            var ensemblePrediction = CombinePredictions(predictions, weights, method);
-
-            var ensemble = new EnsemblePrediction
-            {
-                Method = method,
-                ModelCount = models.Count,
-                Weights = weights,
-                Predictions = ensemblePrediction,
-                Confidence = CalculateEnsembleConfidence(predictions),
-                GenerationDate = DateTime.UtcNow
-            };
-
-            _logger.LogInformation("Ensemble prediction generated using {Method}", method);
-            return ensemble;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to generate ensemble prediction");
-            throw;
-        }
+        _logger.LogInformation("Generating ensemble prediction with {Count} models", models.Count);
+        throw new NotImplementedException("Real API integration for ensemble prediction generation is not implemented. ML framework integration required.");
     }
 
     /// <summary>
@@ -283,44 +160,8 @@ public class AutoMLService
         Vector<double> targetVector,
         Dictionary<string, List<double>> parameterGrid)
     {
-        try
-        {
-            _logger.LogInformation("Optimizing hyperparameters for {ModelType}", modelType);
-
-            var results = new List<ParameterSetResult>();
-            var parameterCombinations = GenerateParameterCombinations(parameterGrid);
-
-            foreach (var parameters in parameterCombinations)
-            {
-                var score = await EvaluateParameterSetAsync(modelType, parameters, featureMatrix, targetVector);
-                results.Add(new ParameterSetResult
-                {
-                    Parameters = parameters,
-                    Score = score
-                });
-            }
-
-            var bestResult = results.OrderByDescending(r => r.Score).First();
-
-            var optimizationResult = new HyperparameterOptimizationResult
-            {
-                ModelType = modelType,
-                ParameterGrid = parameterGrid,
-                CombinationsTested = results.Count,
-                BestParameters = bestResult.Parameters,
-                BestScore = bestResult.Score,
-                AllResults = results,
-                OptimizationDate = DateTime.UtcNow
-            };
-
-            _logger.LogInformation("Hyperparameter optimization completed. Best score: {Score:F4}", bestResult.Score);
-            return optimizationResult;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to optimize hyperparameters");
-            throw;
-        }
+        _logger.LogInformation("Optimizing hyperparameters for {ModelType}", modelType);
+        throw new NotImplementedException("Real API integration for hyperparameter optimization is not implemented. ML framework integration required.");
     }
 
     /// <summary>

@@ -97,11 +97,19 @@
               "target": "Package",
               "version": "[1.25.0, )"
             },
+            "Microsoft.SemanticKernel.Agents.Core": {
+              "target": "Package",
+              "version": "[1.25.0-alpha, )"
+            },
             "Microsoft.SemanticKernel.Connectors.OpenAI": {
               "target": "Package",
               "version": "[1.25.0, )"
             },
             "Microsoft.SemanticKernel.Plugins.Core": {
+              "target": "Package",
+              "version": "[1.25.0-alpha, )"
+            },
+            "Microsoft.SemanticKernel.Plugins.Memory": {
               "target": "Package",
               "version": "[1.25.0-alpha, )"
             },

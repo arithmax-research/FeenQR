@@ -145,7 +145,7 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<PatentAnalysisPlugin>(),
                     sp.GetRequiredService<FederalReservePlugin>(),
                     sp.GetRequiredService<GlobalEconomicPlugin>(),
-                    sp.GetRequiredService<GeopoliticalRiskPlugin>(),
+                    // sp.GetRequiredService<GeopoliticalRiskPlugin>(), // Temporarily disabled
                     sp.GetRequiredService<OptionsFlowService>(),
                     sp.GetRequiredService<VolatilityTradingService>(),
                     sp.GetRequiredService<AdvancedMicrostructureService>(),
@@ -187,6 +187,19 @@ namespace QuantResearchAgent
                 )
             );
 
+            // Add Semantic Kernel memory for RAG capabilities
+            services.AddSingleton<ISemanticTextMemory>(sp =>
+            {
+                var kernel = sp.GetRequiredService<Kernel>();
+                var embeddingService = kernel.GetRequiredService<Microsoft.SemanticKernel.Embeddings.ITextEmbeddingGenerationService>();
+                var memoryStore = new Microsoft.SemanticKernel.Memory.VolatileMemoryStore();
+                return new Microsoft.SemanticKernel.Memory.SemanticTextMemory(memoryStore, embeddingService);
+            });
+
+            // Add RAG and Agentic services
+            services.AddSingleton<RAGService>();
+            services.AddSingleton<AgenticOrchestrator>();
+
             // Add core services
             services.AddSingleton<LeanDataService>();
             services.AddSingleton<AgentOrchestrator>(sp =>
@@ -197,6 +210,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<MarketDataService>(),
                     sp.GetRequiredService<RiskManagementService>(),
                     sp.GetRequiredService<PortfolioService>(),
+                    sp.GetRequiredService<RAGService>(),
+                    sp.GetRequiredService<AgenticOrchestrator>(),
                     sp.GetRequiredService<MarketSentimentAgentService>(),
                     sp.GetRequiredService<StatisticalPatternAgentService>(),
                     sp.GetRequiredService<CompanyValuationService>(),
@@ -388,7 +403,7 @@ namespace QuantResearchAgent
             services.AddSingleton<IFinancialDataPlugin, YahooFinanceDataPlugin>();
             services.AddSingleton<FederalReservePlugin>();
             services.AddSingleton<GlobalEconomicPlugin>();
-            services.AddSingleton<GeopoliticalRiskPlugin>();
+            // services.AddSingleton<GeopoliticalRiskPlugin>(); // Temporarily disabled due to mock data removal
 
             // Add Phase 11 Derivatives & Options Analytics plugins
             services.AddSingleton<OptionsFlowPlugin>();
@@ -510,6 +525,10 @@ namespace QuantResearchAgent
             services.AddSingleton<EventDrivenTradingPlugin>();
             services.AddSingleton<RealTimeAlertingPlugin>();
             services.AddSingleton<ComplianceMonitoringPlugin>();
+
+            // Add RAG and Agentic plugins
+            services.AddSingleton<RAGPlugin>();
+            services.AddSingleton<AgenticPlugin>();
 
             // Add research agents
             services.AddSingleton<NewsScrapingService>();

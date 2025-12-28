@@ -18,21 +18,29 @@ public class PatentAnalysisPlugin
 
     [KernelFunction, Description("Search for company patents")]
     public async Task<string> SearchCompanyPatents(
-        [Description("The company name to search patents for")] string companyName)
+        [Description("The company symbol/name to search patents for")] string symbol,
+        [Description("Maximum number of results to return")] int maxResults = 10)
     {
         try
         {
-            var patents = await _patentAnalysisService.SearchCompanyPatentsAsync(companyName);
+            var patents = await _patentAnalysisService.SearchCompanyPatentsAsync(symbol);
 
             if (patents.Any())
             {
-                return $"Found {patents.Count} patents for {companyName}:\n" +
-                       string.Join("\n", patents.Select(p =>
-                           $"{p.PatentId}: {p.Title} (Filed: {p.PublicationDate:yyyy-MM-dd}, Citations: {p.CitationCount})"));
+                var limitedPatents = patents.Take(maxResults);
+                return $"Found {patents.Count} patents for {symbol} (showing top {limitedPatents.Count()}):\n\n" +
+                       string.Join("\n\n", limitedPatents.Select(p =>
+                           $"Patent ID: {p.PatentId}\n" +
+                           $"Title: {p.Title}\n" +
+                           $"Publication Date: {p.PublicationDate:yyyy-MM-dd}\n" +
+                           $"Assignee: {p.Assignee}\n" +
+                           $"Inventors: {string.Join(", ", p.Inventors)}\n" +
+                           $"Abstract: {p.Abstract?.Substring(0, Math.Min(200, p.Abstract.Length))}...\n" +
+                           $"Citation Count: {p.CitationCount}"));
             }
             else
             {
-                return $"No patents found for {companyName}";
+                return $"No patents found for {symbol}";
             }
         }
         catch (Exception ex)

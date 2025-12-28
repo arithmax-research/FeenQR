@@ -82,7 +82,7 @@ public class InteractiveCLI
     private readonly PatentAnalysisPlugin _patentAnalysisPlugin;
     private readonly FederalReservePlugin _federalReservePlugin;
     private readonly GlobalEconomicPlugin _globalEconomicPlugin;
-    private readonly GeopoliticalRiskPlugin _geopoliticalRiskPlugin;
+    // private readonly GeopoliticalRiskPlugin _geopoliticalRiskPlugin; // Temporarily disabled
     private readonly OptionsFlowService _optionsFlowService;
     private readonly VolatilityTradingService _volatilityTradingService;
     private readonly AdvancedMicrostructureService _advancedMicrostructureService;
@@ -185,7 +185,7 @@ public class InteractiveCLI
         PatentAnalysisPlugin patentAnalysisPlugin,
         FederalReservePlugin federalReservePlugin,
         GlobalEconomicPlugin globalEconomicPlugin,
-        GeopoliticalRiskPlugin geopoliticalRiskPlugin,
+        // GeopoliticalRiskPlugin geopoliticalRiskPlugin, // Temporarily disabled
         OptionsFlowService optionsFlowService,
         VolatilityTradingService volatilityTradingService,
         AdvancedMicrostructureService advancedMicrostructureService,
@@ -287,7 +287,7 @@ public class InteractiveCLI
         _patentAnalysisPlugin = patentAnalysisPlugin;
         _federalReservePlugin = federalReservePlugin;
         _globalEconomicPlugin = globalEconomicPlugin;
-        _geopoliticalRiskPlugin = geopoliticalRiskPlugin;
+        // _geopoliticalRiskPlugin = geopoliticalRiskPlugin; // Temporarily disabled
         _optionsFlowService = optionsFlowService;
         _volatilityTradingService = volatilityTradingService;
         _advancedMicrostructureService = advancedMicrostructureService;
@@ -1265,6 +1265,7 @@ public class InteractiveCLI
                 case "global-commodity-prices":
                     await GlobalCommodityPricesCommand(parts);
                     break;
+                /*
                 case "geo-events":
                     await GeoEventsCommand(parts);
                     break;
@@ -1280,6 +1281,7 @@ public class InteractiveCLI
                 case "geo-stability":
                     await GeoStabilityCommand(parts);
                     break;
+                */
                 // Phase 11: Derivatives & Options Analytics
                 case "options-flow":
                     await OptionsFlowCommand(parts);
@@ -2462,7 +2464,7 @@ public class InteractiveCLI
         var patentAnalysisPlugin = serviceProvider.GetRequiredService<PatentAnalysisPlugin>();
         var federalReservePlugin = serviceProvider.GetRequiredService<FederalReservePlugin>();
         var globalEconomicPlugin = serviceProvider.GetRequiredService<GlobalEconomicPlugin>();
-        var geopoliticalRiskPlugin = serviceProvider.GetRequiredService<GeopoliticalRiskPlugin>();
+        // var geopoliticalRiskPlugin = serviceProvider.GetRequiredService<GeopoliticalRiskPlugin>(); // Temporarily disabled
         var optionsFlowPlugin = serviceProvider.GetRequiredService<OptionsFlowPlugin>();
         var volatilityTradingPlugin = serviceProvider.GetRequiredService<VolatilityTradingPlugin>();
         var advancedMicrostructurePlugin = serviceProvider.GetRequiredService<AdvancedMicrostructurePlugin>();
@@ -2504,7 +2506,7 @@ public class InteractiveCLI
         var realTimeAlertingPlugin = serviceProvider.GetRequiredService<RealTimeAlertingPlugin>();
         var complianceMonitoringPlugin = serviceProvider.GetRequiredService<ComplianceMonitoringPlugin>();
         
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, geopoliticalRiskPlugin, optionsFlowService, volatilityTradingService, advancedMicrostructureService, latencyArbitrageService, optionsFlowPlugin, volatilityTradingPlugin, advancedMicrostructurePlugin, latencyArbitragePlugin, conversationalResearchPlugin, automatedReportingPlugin, marketRegimePlugin, anomalyDetectionPlugin, dynamicFactorPlugin, tradingTemplateGeneratorPlugin, alphaVantageService, iexCloudService, financialModelingPrepService, enhancedFundamentalAnalysisService, alphaVantagePlugin, iexCloudPlugin, financialModelingPrepPlugin, enhancedFundamentalAnalysisPlugin, advancedRiskAnalyticsService, counterpartyRiskService, performanceAttributionService, benchmarkingService, advancedRiskAnalyticsPlugin, counterpartyRiskPlugin, performanceAttributionPlugin, benchmarkingPlugin, liveStrategyService, eventDrivenTradingService, realTimeAlertingService, complianceMonitoringService, liveStrategyPlugin, eventDrivenTradingPlugin, realTimeAlertingPlugin, complianceMonitoringPlugin));
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, optionsFlowService, volatilityTradingService, advancedMicrostructureService, latencyArbitrageService, optionsFlowPlugin, volatilityTradingPlugin, advancedMicrostructurePlugin, latencyArbitragePlugin, conversationalResearchPlugin, automatedReportingPlugin, marketRegimePlugin, anomalyDetectionPlugin, dynamicFactorPlugin, tradingTemplateGeneratorPlugin, alphaVantageService, iexCloudService, financialModelingPrepService, enhancedFundamentalAnalysisService, alphaVantagePlugin, iexCloudPlugin, financialModelingPrepPlugin, enhancedFundamentalAnalysisPlugin, advancedRiskAnalyticsService, counterpartyRiskService, performanceAttributionService, benchmarkingService, advancedRiskAnalyticsPlugin, counterpartyRiskPlugin, performanceAttributionPlugin, benchmarkingPlugin, liveStrategyService, eventDrivenTradingService, realTimeAlertingService, complianceMonitoringService, liveStrategyPlugin, eventDrivenTradingPlugin, realTimeAlertingPlugin, complianceMonitoringPlugin));
     }
 
     // Alpaca Commands
@@ -10546,7 +10548,7 @@ public class InteractiveCLI
         PrintSectionHeader($"Patent Analysis - Innovation Trends for {symbol}");
 
         var function = _kernel.Plugins["PatentAnalysisPlugin"]["AnalyzeInnovationTrends"];
-        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol, ["years"] = years });
+        var result = await _kernel.InvokeAsync(function, new() { ["companyName"] = symbol, ["years"] = years });
         Console.WriteLine(result.ToString());
         PrintSectionFooter();
     }
@@ -10683,6 +10685,7 @@ public class InteractiveCLI
         PrintSectionFooter();
     }
 
+    /*
     private async Task GeoEventsCommand(string[] parts)
     {
         var count = 10;
@@ -10726,7 +10729,9 @@ public class InteractiveCLI
         Console.WriteLine(result.ToString());
         PrintSectionFooter();
     }
+    */
 
+    /*
     private async Task GeoSanctionsCommand(string[] parts)
     {
         var countries = parts.Length > 1 ? parts[1] : "Russia,Iran,North Korea";
@@ -10770,6 +10775,7 @@ public class InteractiveCLI
         Console.WriteLine(result.ToString());
         PrintSectionFooter();
     }
+    */
 
     // Phase 11: Derivatives & Options Analytics Commands
     private async Task OptionsFlowCommand(string[] parts)

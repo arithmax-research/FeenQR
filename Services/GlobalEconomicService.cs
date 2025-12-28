@@ -32,142 +32,32 @@ namespace QuantResearchAgent.Services
 
         public async Task<List<GlobalEconomicIndicator>> GetGlobalEconomicIndicatorsAsync(DateTime? startDate, DateTime? endDate)
         {
-            try
-            {
-                _logger.LogInformation($"Fetching global economic indicators from {startDate} to {endDate}");
-
-                var indicators = new List<GlobalEconomicIndicator>();
-
-                // Convert DateTime to years for API calls (use current year if null)
-                int? startYear = startDate?.Year ?? DateTime.Now.Year - 1;
-                int? endYear = endDate?.Year ?? DateTime.Now.Year;
-
-                // Aggregate data from multiple sources
-                var imfData = await _imfService.GetSeriesDataAsync("NGDP_RPCH", "USA", startYear, endYear);
-                var oecdData = await _oecdService.GetSeriesDataAsync("GDP", "USA", startYear, endYear);
-                var worldBankData = await _worldBankService.GetPopularIndicatorsAsync();
-
-                // Combine and process data
-                indicators.Add(new GlobalEconomicIndicator
-                {
-                    IndicatorName = "Global GDP Growth",
-                    Value = 2.8,
-                    Unit = "Percent",
-                    Date = DateTime.Now,
-                    Source = "IMF/OECD/World Bank"
-                });
-
-                return indicators;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching global economic indicators");
-                return new List<GlobalEconomicIndicator>();
-            }
+            _logger.LogInformation($"Fetching global economic indicators from {startDate} to {endDate}");
+            throw new NotImplementedException("Real API integration for global economic indicators is not implemented. IMF/OECD/World Bank API integration required.");
         }
 
         public async Task<List<SupplyChainDisruption>> MonitorSupplyChainDisruptionsAsync()
         {
-            try
-            {
-                _logger.LogInformation("Monitoring global supply chain disruptions");
-
-                var disruptions = new List<SupplyChainDisruption>();
-
-                disruptions.Add(new SupplyChainDisruption
-                {
-                    Region = "Asia-Pacific",
-                    DisruptionIndex = 0.75,
-                    CriticalDisruptions = 12,
-                    AffectedIndustries = new List<string> { "Semiconductors", "Automotive", "Electronics" },
-                    EstimatedRecoveryTime = TimeSpan.FromDays(90),
-                    Alerts = new List<string> { "Port congestion", "Component shortages" }
-                });
-
-                return disruptions;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error monitoring supply chain disruptions");
-                return new List<SupplyChainDisruption>();
-            }
+            _logger.LogInformation("Monitoring global supply chain disruptions");
+            throw new NotImplementedException("Real API integration for supply chain disruption monitoring is not implemented. Supply chain data feed integration required.");
         }
 
         public async Task<List<GlobalTradeData>> GetGlobalTradeDataAsync(DateTime? startDate, DateTime? endDate)
         {
-            try
-            {
-                _logger.LogInformation($"Fetching global trade data from {startDate} to {endDate}");
-
-                var tradeData = new List<GlobalTradeData>();
-
-                tradeData.Add(new GlobalTradeData
-                {
-                    Country = "China",
-                    ExportValue = 2500000000000, // 2.5 trillion
-                    ImportValue = 2000000000000, // 2.0 trillion
-                    TradeBalance = 500000000000, // 0.5 trillion
-                    Date = DateTime.Now
-                });
-
-                return tradeData;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching global trade data");
-                return new List<GlobalTradeData>();
-            }
+            _logger.LogInformation($"Fetching global trade data from {startDate} to {endDate}");
+            throw new NotImplementedException("Real API integration for global trade data is not implemented. International trade database API integration required.");
         }
 
         public async Task<List<CurrencyData>> GetGlobalCurrencyDataAsync()
         {
-            try
-            {
-                _logger.LogInformation("Fetching global currency data");
-
-                var currencies = new List<CurrencyData>();
-
-                currencies.Add(new CurrencyData
-                {
-                    CurrencyCode = "USD",
-                    ExchangeRate = 1.0,
-                    Volatility = 0.08,
-                    Trend = "Stable"
-                });
-
-                return currencies;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching global currency data");
-                return new List<CurrencyData>();
-            }
+            _logger.LogInformation("Fetching global currency data");
+            throw new NotImplementedException("Real API integration for global currency data is not implemented. Forex data feed API integration required.");
         }
 
         public async Task<List<CommodityPrice>> GetGlobalCommodityPricesAsync()
         {
-            try
-            {
-                _logger.LogInformation("Fetching global commodity prices");
-
-                var commodities = new List<CommodityPrice>();
-
-                commodities.Add(new CommodityPrice
-                {
-                    CommodityName = "Crude Oil (WTI)",
-                    Price = 78.50,
-                    Unit = "USD per barrel",
-                    ChangePercent = 2.1,
-                    Date = DateTime.Now
-                });
-
-                return commodities;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching global commodity prices");
-                return new List<CommodityPrice>();
-            }
+            _logger.LogInformation("Fetching global commodity prices");
+            throw new NotImplementedException("Real API integration for global commodity prices is not implemented. Commodity market data feed API integration required.");
         }
     }
 
