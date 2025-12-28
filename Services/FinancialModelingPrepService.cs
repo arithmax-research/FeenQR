@@ -37,7 +37,7 @@ public class FinancialModelingPrepService
     /// <summary>
     /// Get company profile
     /// </summary>
-    public async Task<FMPCompanyProfile> GetCompanyProfileAsync(string symbol)
+    public async Task<FMPCompanyProfile?> GetCompanyProfileAsync(string symbol)
     {
         try
         {
@@ -64,7 +64,7 @@ public class FinancialModelingPrepService
     /// <summary>
     /// Get real-time stock quote
     /// </summary>
-    public async Task<FMPQuote> GetQuoteAsync(string symbol)
+    public async Task<FMPQuote?> GetQuoteAsync(string symbol)
     {
         try
         {
@@ -91,7 +91,7 @@ public class FinancialModelingPrepService
     /// <summary>
     /// Get income statement
     /// </summary>
-    public async Task<List<FMPIncomeStatement>> GetIncomeStatementAsync(string symbol, int limit = 5)
+    public async Task<List<FMPIncomeStatement>?> GetIncomeStatementAsync(string symbol, int limit = 5)
     {
         try
         {
@@ -117,7 +117,7 @@ public class FinancialModelingPrepService
     /// <summary>
     /// Get balance sheet
     /// </summary>
-    public async Task<List<FMPBalanceSheet>> GetBalanceSheetAsync(string symbol, int limit = 5)
+    public async Task<List<FMPBalanceSheet>?> GetBalanceSheetAsync(string symbol, int limit = 5)
     {
         try
         {
@@ -143,7 +143,7 @@ public class FinancialModelingPrepService
     /// <summary>
     /// Get cash flow statement
     /// </summary>
-    public async Task<List<FMPCashFlow>> GetCashFlowAsync(string symbol, int limit = 5)
+    public async Task<List<FMPCashFlow>?> GetCashFlowAsync(string symbol, int limit = 5)
     {
         try
         {
@@ -169,7 +169,7 @@ public class FinancialModelingPrepService
     /// <summary>
     /// Get key metrics
     /// </summary>
-    public async Task<List<FMPKeyMetrics>> GetKeyMetricsAsync(string symbol, int limit = 5)
+    public async Task<List<FMPKeyMetrics>?> GetKeyMetricsAsync(string symbol, int limit = 5)
     {
         try
         {
@@ -195,7 +195,7 @@ public class FinancialModelingPrepService
     /// <summary>
     /// Get financial ratios
     /// </summary>
-    public async Task<List<FMPFinancialRatios>> GetFinancialRatiosAsync(string symbol, int limit = 5)
+    public async Task<List<FMPFinancialRatios>?> GetFinancialRatiosAsync(string symbol, int limit = 5)
     {
         try
         {
@@ -221,7 +221,7 @@ public class FinancialModelingPrepService
     /// <summary>
     /// Get historical daily prices
     /// </summary>
-    public async Task<List<FMPHistoricalPrice>> GetHistoricalPricesAsync(string symbol, string from, string to)
+    public async Task<List<FMPHistoricalPrice>?> GetHistoricalPricesAsync(string symbol, string from, string to)
     {
         try
         {
@@ -248,7 +248,7 @@ public class FinancialModelingPrepService
     /// <summary>
     /// Get analyst estimates
     /// </summary>
-    public async Task<List<FMPAnalystEstimates>> GetAnalystEstimatesAsync(string symbol, int limit = 5)
+    public async Task<List<FMPAnalystEstimates>?> GetAnalystEstimatesAsync(string symbol, int limit = 5)
     {
         try
         {
@@ -274,7 +274,7 @@ public class FinancialModelingPrepService
     /// <summary>
     /// Get stock screener results
     /// </summary>
-    public async Task<List<FMPStockScreener>> GetStockScreenerAsync(FMPStockScreenerCriteria criteria)
+    public async Task<List<FMPStockScreener>?> GetStockScreenerAsync(FMPStockScreenerCriteria criteria)
     {
         try
         {
@@ -301,7 +301,7 @@ public class FinancialModelingPrepService
     /// <summary>
     /// Get market indices
     /// </summary>
-    public async Task<List<FMPMarketIndex>> GetMarketIndicesAsync()
+    public async Task<List<FMPMarketIndex>?> GetMarketIndicesAsync()
     {
         try
         {

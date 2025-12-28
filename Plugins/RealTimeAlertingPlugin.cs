@@ -18,7 +18,7 @@ namespace QuantResearchAgent.Plugins
             [Description("Stock symbol")] string symbol,
             [Description("Alert condition: above, below, crosses_above, crosses_below")] string condition,
             [Description("Price threshold")] decimal threshold,
-            [Description("Optional custom message")] string message = null)
+            [Description("Optional custom message")] string? message = null)
         {
             try
             {

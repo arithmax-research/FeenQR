@@ -202,7 +202,7 @@ namespace QuantResearchAgent.Services
                 // Get recent news with sentiment analysis
                 var newsItems = await _newsService.GetSentimentAnalyzedNewsAsync("market", 10);
 
-                foreach (var news in newsItems.Where(n => n.SentimentScore > 0.5m || n.SentimentScore < -0.5m))
+                foreach (var news in newsItems.Where(n => (double)n.SentimentScore > 0.5 || (double)n.SentimentScore < -0.5))
                 {
                     // Extract symbols mentioned in the news
                     var symbols = ExtractSymbolsFromNews(news.Title + " " + news.Summary);
@@ -215,13 +215,13 @@ namespace QuantResearchAgent.Services
                             EventType = "news",
                             Symbol = symbol,
                             Headline = news.Title,
-                            SentimentScore = news.SentimentScore,
-                            ImpactScore = Math.Abs(news.SentimentScore) * 0.8m,
-                            Timestamp = news.PublishedAt,
+                            SentimentScore = (decimal)news.SentimentScore,
+                            ImpactScore = (decimal)(Math.Abs(news.SentimentScore) * 0.8),
+                            Timestamp = news.PublishedDate,
                             Metadata = new Dictionary<string, object>
                             {
                                 { "source", news.Source },
-                                { "url", news.Url }
+                                { "url", news.Link }
                             }
                         });
                     }
@@ -244,7 +244,7 @@ namespace QuantResearchAgent.Services
                 // Check for recent FOMC announcements
                 var fomcData = await _fedService.GetLatestFOMCDataAsync();
 
-                if (fomcData != null && fomcData.Timestamp > DateTime.UtcNow.AddHours(-24))
+                if (fomcData != null && fomcData.LastUpdated > DateTime.UtcNow.AddHours(-24))
                 {
                     // Analyze the impact of FOMC decisions
                     var impactScore = AnalyzeFOMCImpact(fomcData);
@@ -254,14 +254,14 @@ namespace QuantResearchAgent.Services
                         EventId = Guid.NewGuid().ToString(),
                         EventType = "economic",
                         Symbol = "SPY", // Broad market impact
-                        Headline = $"FOMC: {fomcData.Decision}",
+                        Headline = $"FOMC: {fomcData.LatestAnnouncement?.Title ?? "Update"}",
                         SentimentScore = impactScore > 0 ? 0.3m : -0.3m,
                         ImpactScore = Math.Abs(impactScore),
-                        Timestamp = fomcData.Timestamp,
+                        Timestamp = fomcData.LastUpdated,
                         Metadata = new Dictionary<string, object>
                         {
-                            { "fed_funds_rate", fomcData.FedFundsRate },
-                            { "decision", fomcData.Decision }
+                            { "fed_funds_rate", fomcData.CurrentRate },
+                            { "next_meeting", fomcData.NextMeeting }
                         }
                     });
                 }
@@ -281,26 +281,27 @@ namespace QuantResearchAgent.Services
             try
             {
                 // Check for geopolitical risk events
-                var riskEvents = await _geoRiskService.GetRecentRiskEventsAsync();
+                // TODO: Implement GetRecentRiskEventsAsync method in GeopoliticalRiskService
+                // var riskEvents = await _geoRiskService.GetRecentRiskEventsAsync();
 
-                foreach (var riskEvent in riskEvents.Where(r => r.RiskScore > 0.7m))
-                {
-                    events.Add(new MarketEvent
-                    {
-                        EventId = Guid.NewGuid().ToString(),
-                        EventType = "geopolitical",
-                        Symbol = "SPY", // Broad market impact
-                        Headline = riskEvent.Description,
-                        SentimentScore = -0.5m, // Geopolitical events typically negative
-                        ImpactScore = riskEvent.RiskScore,
-                        Timestamp = riskEvent.Timestamp,
-                        Metadata = new Dictionary<string, object>
-                        {
-                            { "region", riskEvent.Region },
-                            { "risk_score", riskEvent.RiskScore }
-                        }
-                    });
-                }
+                // foreach (var riskEvent in riskEvents.Where(r => r.RiskScore > 0.7m))
+                // {
+                //     events.Add(new MarketEvent
+                //     {
+                //         EventId = Guid.NewGuid().ToString(),
+                //         EventType = "geopolitical",
+                //         Symbol = "SPY", // Broad market impact
+                //         Headline = riskEvent.Description,
+                //         SentimentScore = -0.5m, // Geopolitical events typically negative
+                //         ImpactScore = riskEvent.RiskScore,
+                //         Timestamp = riskEvent.Timestamp,
+                //         Metadata = new Dictionary<string, object>
+                //         {
+                //             { "region", riskEvent.Region },
+                //             { "risk_score", riskEvent.RiskScore }
+                //         }
+                //     });
+                // }
             }
             catch (Exception ex)
             {
@@ -340,7 +341,7 @@ namespace QuantResearchAgent.Services
         private decimal AnalyzeFOMCImpact(object fomcData)
         {
             // Simplified FOMC impact analysis
-
+            return 0.5m; // Placeholder impact score
         }
     }
 }
