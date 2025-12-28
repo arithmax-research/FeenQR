@@ -40,9 +40,9 @@ namespace QuantResearchAgent.Plugins
                 _logger.LogInformation($"Calculating CVaR with confidence {confidenceLevel} and lookback {lookbackDays} days");
 
                 var portfolio = ParsePortfolioJson(portfolioJson);
-                var returns = await CalculatePortfolioReturnsAsync(portfolio, lookbackDays);
+                var symbols = portfolio.Select(p => p.Symbol).ToList();
 
-                var cvarResult = await _riskService.CalculateCVaRAsync(returns, confidenceLevel);
+                var cvarResult = await _riskService.CalculateCVaRAsync(symbols, (decimal)confidenceLevel, lookbackDays);
 
                 return FormatCVaRResult(cvarResult);
             }
@@ -66,9 +66,9 @@ namespace QuantResearchAgent.Plugins
                 _logger.LogInformation($"Calculating Expected Shortfall with {numSimulations} simulations");
 
                 var portfolio = ParsePortfolioJson(portfolioJson);
-                var returns = await CalculatePortfolioReturnsAsync(portfolio, lookbackDays);
+                var symbols = portfolio.Select(p => p.Symbol).ToList();
 
-                var esResult = await _riskService.CalculateExpectedShortfallAsync(returns, confidenceLevel, numSimulations);
+                var esResult = await _riskService.CalculateExpectedShortfallAsync(symbols, (decimal)confidenceLevel, numSimulations);
 
                 return FormatExpectedShortfallResult(esResult);
             }
@@ -96,11 +96,14 @@ namespace QuantResearchAgent.Plugins
                 var views = ParseViewsJson(viewsJson);
                 var confidences = ParseConfidencesJson(confidencesJson);
 
-                var marketReturns = await CalculateMarketReturnsAsync(marketWeights.Keys.ToList(), lookbackDays);
-                var covarianceMatrix = await CalculateCovarianceMatrixAsync(marketWeights.Keys.ToList(), lookbackDays);
+                var symbols = marketWeights.Keys.ToList();
+                var viewsDict = new Dictionary<string, (double expectedReturn, double confidence)>();
+                for (int i = 0; i < views.Count && i < confidences.Count; i++)
+                {
+                    viewsDict[views[i].Asset] = (views[i].ExpectedReturn, confidences[i]);
+                }
 
-                var blResult = await _riskService.CalculateBlackLittermanAsync(
-                    marketWeights, marketReturns, covarianceMatrix, views, confidences, riskAversion);
+                var blResult = await _riskService.CalculateBlackLittermanAsync(symbols, marketWeights, viewsDict, riskAversion);
 
                 return FormatBlackLittermanResult(blResult);
             }
@@ -122,9 +125,8 @@ namespace QuantResearchAgent.Plugins
                 _logger.LogInformation("Calculating risk parity weights");
 
                 var symbols = ParseSymbolsJson(symbolsJson);
-                var covarianceMatrix = await CalculateCovarianceMatrixAsync(symbols, lookbackDays);
 
-                var rpResult = await _riskService.CalculateRiskParityAsync(covarianceMatrix);
+                var rpResult = await _riskService.CalculateRiskParityAsync(symbols);
 
                 return FormatRiskParityResult(rpResult, symbols);
             }
@@ -147,9 +149,8 @@ namespace QuantResearchAgent.Plugins
                 _logger.LogInformation($"Calculating hierarchical risk parity with {numClusters} clusters");
 
                 var symbols = ParseSymbolsJson(symbolsJson);
-                var returns = await CalculateAssetReturnsAsync(symbols, lookbackDays);
 
-                var hrpResult = await _riskService.CalculateHierarchicalRiskParityAsync(returns, numClusters);
+                var hrpResult = await _riskService.CalculateHierarchicalRiskParityAsync(symbols);
 
                 return FormatHierarchicalRiskParityResult(hrpResult, symbols);
             }
@@ -171,20 +172,17 @@ namespace QuantResearchAgent.Plugins
                 _logger.LogInformation("Performing portfolio risk decomposition analysis");
 
                 var portfolio = ParsePortfolioJson(portfolioJson);
-                var returns = await CalculatePortfolioReturnsAsync(portfolio, lookbackDays);
+                var symbols = portfolio.Select(p => p.Symbol).ToList();
 
-                var cvarTask = _riskService.CalculateCVaRAsync(returns, 0.95);
-                var esTask = _riskService.CalculateExpectedShortfallAsync(returns, 0.95, 10000);
-                var varTask = _riskService.CalculateVaRAsync(returns, 0.95);
+                var cvarTask = _riskService.CalculateCVaRAsync(symbols, 0.95m);
+                var esTask = _riskService.CalculateExpectedShortfallAsync(symbols, 0.95m, 10000);
 
-                await Task.WhenAll(cvarTask, esTask, varTask);
+                await Task.WhenAll(cvarTask, esTask);
 
                 var analysis = new
                 {
                     CVaR = cvarTask.Result,
-                    ExpectedShortfall = esTask.Result,
-                    VaR = varTask.Result,
-                    RiskMetrics = await CalculateRiskMetricsAsync(returns)
+                    ExpectedShortfall = esTask.Result
                 };
 
                 return FormatRiskDecompositionResult(analysis);
@@ -208,14 +206,15 @@ namespace QuantResearchAgent.Plugins
                 _logger.LogInformation("Generating comprehensive risk report");
 
                 var portfolio = ParsePortfolioJson(portfolioJson);
+                var symbols = portfolio.Select(p => p.Symbol).ToList();
                 var returns = await CalculatePortfolioReturnsAsync(portfolio, lookbackDays);
 
                 var report = new
                 {
                     PortfolioOverview = SummarizePortfolio(portfolio),
                     RiskMetrics = await CalculateRiskMetricsAsync(returns),
-                    CVaRAnalysis = await _riskService.CalculateCVaRAsync(returns, 0.95),
-                    ExpectedShortfallAnalysis = await _riskService.CalculateExpectedShortfallAsync(returns, 0.95, 10000),
+                    CVaRAnalysis = await _riskService.CalculateCVaRAsync(symbols, 0.95m),
+                    ExpectedShortfallAnalysis = await _riskService.CalculateExpectedShortfallAsync(symbols, 0.95m, 10000),
                     StressTesting = includeStressTesting ? await PerformStressTestingAsync(returns) : null,
                     Recommendations = GenerateRiskRecommendations(returns)
                 };
@@ -318,28 +317,26 @@ namespace QuantResearchAgent.Plugins
         private string FormatExpectedShortfallResult(ExpectedShortfallResult result)
         {
             return $"Expected Shortfall ({result.ConfidenceLevel:P2}): {result.ExpectedShortfall:F4}\n" +
-                   $"Worst Loss: {result.WorstLoss:F4}\n" +
-                   $"Average Loss: {result.AverageLoss:F4}";
+                   $"Simulations: {result.Simulations}\n" +
+                   $"Method: {result.Method}";
         }
 
         private string FormatBlackLittermanResult(BlackLittermanResult result)
         {
-            var weights = string.Join(", ", result.OptimalWeights.Select(w => $"{w.Key}: {w.Value:F4}"));
-            return $"Black-Litterman Optimal Weights:\n{weights}\n" +
-                   $"Expected Return: {result.ExpectedReturn:F4}\n" +
-                   $"Portfolio Volatility: {result.Volatility:F4}";
+            var weights = string.Join(", ", result.OptimalWeights.Select(w => $"{w.Symbol}: {w.Weight:F4}"));
+            return $"Black-Litterman Optimal Weights:\n{weights}";
         }
 
         private string FormatRiskParityResult(RiskParityResult result, List<string> symbols)
         {
-            var weights = string.Join(", ", result.Weights.Select((w, i) => $"{symbols[i]}: {w:F4}"));
+            var weights = string.Join(", ", result.Weights.Select(w => $"{w.Symbol}: {w.Weight:F4}"));
             return $"Risk Parity Weights:\n{weights}\n" +
-                   $"Risk Contribution: {result.RiskContribution:F4}";
+                   $"Portfolio Volatility: {result.PortfolioVolatility:F4}";
         }
 
         private string FormatHierarchicalRiskParityResult(HierarchicalRiskParityResult result, List<string> symbols)
         {
-            var weights = string.Join(", ", result.Weights.Select((w, i) => $"{symbols[i]}: {w:F4}"));
+            var weights = string.Join(", ", result.Weights.Select(w => $"{w.Symbol}: {w.Weight:F4}"));
             return $"Hierarchical Risk Parity Weights:\n{weights}\n" +
                    $"Clusters: {result.Clusters.Count}";
         }

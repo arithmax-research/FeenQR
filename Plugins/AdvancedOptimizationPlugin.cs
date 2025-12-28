@@ -27,7 +27,7 @@ namespace QuantResearchAgent.Plugins
                 var assetList = assets.Split(',').Select(a => a.Trim()).ToList();
                 var views = ParseViews(absoluteViews);
 
-                var constraints = new Services.OptimizationConstraints();
+                var constraints = new Core.OptimizationConstraints();
                 var result = await _optimizationService.RunBlackLittermanOptimizationAsync(
                     assetList, views, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
 
@@ -49,7 +49,7 @@ namespace QuantResearchAgent.Plugins
             try
             {
                 var assetList = assets.Split(',').Select(a => a.Trim()).ToList();
-                var constraints = new Services.OptimizationConstraints();
+                var constraints = new Core.OptimizationConstraints();
 
                 var result = await _optimizationService.OptimizeRiskParityAsync(
                     assetList, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
@@ -72,7 +72,7 @@ namespace QuantResearchAgent.Plugins
             try
             {
                 var assetList = assets.Split(',').Select(a => a.Trim()).ToList();
-                var constraints = new Services.OptimizationConstraints();
+                var constraints = new Core.OptimizationConstraints();
 
                 var result = await _optimizationService.OptimizeHierarchicalRiskParityAsync(
                     assetList, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
@@ -95,7 +95,7 @@ namespace QuantResearchAgent.Plugins
             try
             {
                 var assetList = assets.Split(',').Select(a => a.Trim()).ToList();
-                var constraints = new Services.OptimizationConstraints();
+                var constraints = new Core.OptimizationConstraints();
 
                 var result = await _optimizationService.OptimizeMinimumVarianceAsync(
                     assetList, constraints, DateTime.Parse(startDate), DateTime.Parse(endDate));
@@ -118,7 +118,7 @@ namespace QuantResearchAgent.Plugins
             try
             {
                 var assetList = assets.Split(',').Select(a => a.Trim()).ToList();
-                var constraints = new Services.OptimizationConstraints();
+                var constraints = new Core.OptimizationConstraints();
 
                 // Run all optimization methods
                 var riskParity = await _optimizationService.OptimizeRiskParityAsync(
