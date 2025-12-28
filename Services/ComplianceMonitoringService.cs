@@ -181,15 +181,19 @@ namespace QuantResearchAgent.Services
 
         private async Task<ComplianceViolation> CheckPositionLimitAsync(ComplianceRule rule)
         {
-            var positions = await _alpacaService.GetPortfolioPositionsAsync();
-            var account = await _alpacaService.GetAccountAsync();
+            var positionsObj = await _alpacaService.GetPortfolioPositionsAsync();
+            var accountObj = await _alpacaService.GetAccountAsync();
 
+            if (positionsObj == null || accountObj == null) return null;
+
+            var positions = positionsObj as IEnumerable<dynamic>;
+            var account = accountObj as dynamic;
             if (positions == null || account == null) return null;
 
-            foreach (var position in positions)
+            foreach (dynamic position in positions)
             {
-                var positionValue = Math.Abs(position.MarketValue);
-                var portfolioValue = account.Equity;
+                var positionValue = Math.Abs((decimal)position.Equity);
+                var portfolioValue = (decimal)account.Equity;
                 var positionPercent = positionValue / portfolioValue;
 
                 if (positionPercent > rule.Threshold)
@@ -213,18 +217,22 @@ namespace QuantResearchAgent.Services
 
         private async Task<ComplianceViolation> CheckConcentrationLimitAsync(ComplianceRule rule)
         {
-            var positions = await _alpacaService.GetPortfolioPositionsAsync();
-            var account = await _alpacaService.GetAccountAsync();
+            var positionsObj = await _alpacaService.GetPortfolioPositionsAsync();
+            var accountObj = await _alpacaService.GetAccountAsync();
 
+            if (positionsObj == null || accountObj == null) return null;
+
+            var positions = positionsObj as IEnumerable<dynamic>;
+            var account = accountObj as dynamic;
             if (positions == null || account == null) return null;
 
             // Group positions by sector (simplified - would need sector mapping)
-            var sectorGroups = positions.GroupBy(p => GetSectorForSymbol(p.Symbol));
+            var sectorGroups = positions.Cast<dynamic>().GroupBy(p => GetSectorForSymbol((string)p.Symbol));
 
             foreach (var sector in sectorGroups)
             {
-                var sectorValue = sector.Sum(p => Math.Abs(p.MarketValue));
-                var portfolioValue = account.Equity;
+                var sectorValue = sector.Sum(p => Math.Abs((decimal)p.Equity));
+                var portfolioValue = (decimal)account.Equity;
                 var sectorPercent = sectorValue / portfolioValue;
 
                 if (sectorPercent > rule.Threshold)
@@ -324,6 +332,7 @@ namespace QuantResearchAgent.Services
                 ["PFE"] = "Healthcare"
             };
 
+            return sectorMap.GetValueOrDefault(symbol, "Unknown");
         }
     }
 }

@@ -256,11 +256,34 @@ namespace QuantResearchAgent.Services
                     .OrderByDescending(r => Math.Abs(r.Impact.ReturnImpact))
                     .FirstOrDefault();
 
+                // Convert BenchmarkStressTest to StressTestResult (Services)
+                var convertedResults = stressTestResults.Select(r => new Services.StressTestResult
+                {
+                    ScenarioName = r.Scenario.Name,
+                    ScenarioType = r.Scenario.Type.ToString(),
+                    StressedExposures = new Dictionary<string, decimal>(),
+                    StressedMetrics = new Services.PortfolioConcentrationMetrics(),
+                    TotalLoss = (decimal)(-r.Impact.ReturnImpact),
+                    MaxLoss = (decimal)(-r.Impact.ReturnImpact),
+                    LossDistribution = new Dictionary<string, decimal>()
+                }).ToList();
+
+                // Convert CustomBenchmark to BenchmarkData
+                var benchmarkData = new BenchmarkData
+                {
+                    Name = benchmark.Name,
+                    Description = benchmark.Description,
+                    Holdings = benchmark.Composition,
+                    Statistics = benchmark.Statistics,
+                    CreatedAt = benchmark.CreatedDate,
+                    Source = "Custom"
+                };
+
                 return new BenchmarkStressTestResult
                 {
-                    Benchmark = benchmark,
-                    StressTestResults = stressTestResults,
-                    WorstCaseScenario = worstCase,
+                    Benchmark = benchmarkData,
+                    StressTestResults = convertedResults,
+                    WorstCaseScenario = worstCase?.Scenario.Name ?? string.Empty,
                     Timestamp = DateTime.UtcNow
                 };
             }
@@ -360,8 +383,7 @@ namespace QuantResearchAgent.Services
             {
                 case CriterionType.MarketCapRange:
                     return securities.Where(s =>
-                        s.MarketCap >= criterion.MinValue && s.MarketCap <= criterion.MaxValue);
-
+                        s.MarketCap >= (decimal?)(criterion.MinValue) && s.MarketCap <= (decimal?)(criterion.MaxValue));
                 case CriterionType.SectorWeight:
                     // Group by sector and apply weight constraints
                     var sectorGroups = securities.GroupBy(s => s.Sector);
@@ -390,7 +412,7 @@ namespace QuantResearchAgent.Services
                     return countryFiltered;
 
                 case CriterionType.Liquidity:
-                    return securities.Where(s => s.AverageVolume >= criterion.MinValue);
+                    return securities.Where(s => s.AverageVolume >= (decimal?)(criterion.MinValue));
 
                 case CriterionType.CustomFilter:
                     // Apply custom filtering logic
@@ -792,32 +814,23 @@ namespace QuantResearchAgent.Services
         try
         {
             // Create benchmark returns from holdings
-            var benchmarkReturns = new BenchmarkReturns
-            {
-                Name = benchmarkData.Name,
-                Returns = new List<double> { 0.0 }, // Placeholder
-                Dates = new List<DateTime> { DateTime.Now }
-            };
+            var benchmarkReturns = new List<double> { 0.0 }; // Placeholder
+            var benchmarkDates = new List<DateTime> { DateTime.Now };
 
             // Create portfolio returns from holdings
-            var portfolioReturns = new PortfolioReturns
-            {
-                Returns = new List<double> { 0.0 }, // Placeholder
-                Dates = new List<DateTime> { DateTime.Now }
-            };
+            var portfolioReturns = new List<double> { 0.0 }; // Placeholder
+            var portfolioDates = new List<DateTime> { DateTime.Now };
 
-            // Generate comparison
-            var comparison = await CompareToBenchmarksAsync(
-                portfolioReturns,
-                new List<BenchmarkReturns> { benchmarkReturns },
-                0.02);
-
+            // Generate basic report
             return new BenchmarkPerformanceReport
             {
-                BenchmarkName = benchmarkData.Name,
-                ReportType = reportType,
-                GeneratedAt = DateTime.Now,
-                Summary = $"Report generated for {benchmarkData.Name} vs portfolio"
+                Benchmark = new CustomBenchmark { Name = benchmarkData.Name },
+                ReportPeriod = new DateRange { StartDate = DateTime.Now.AddYears(-1), EndDate = DateTime.Now },
+                Returns = benchmarkReturns,
+                RiskMetrics = new BenchmarkRiskMetrics(),
+                FactorExposures = new Dictionary<string, double>(),
+                Comparisons = new List<BenchmarkComparisonData>(),
+                GeneratedDate = DateTime.Now
             };
         }
         catch (Exception ex)
@@ -892,9 +905,9 @@ namespace QuantResearchAgent.Services
                 {
                     new BenchmarkCriterion
                     {
-                        Type = "Sector",
-                        Value = sectorName,
-                        Operator = "Equals"
+                        Type = CriterionType.SectorWeight,
+                        TargetWeight = 1.0,
+                        Parameters = new Dictionary<string, object> { { "Sector", sectorName } }
                     }
                 },
                 WeightingMethodology = weightingMethodology
@@ -916,8 +929,8 @@ namespace QuantResearchAgent.Services
     private double CalculateCompositionDrift(BenchmarkComposition previous, BenchmarkComposition current)
     {
         // Calculate weighted difference between compositions
-        var previousWeights = previous.Holdings.ToDictionary(h => h.Symbol, h => h.Weight);
-        var currentWeights = current.Holdings.ToDictionary(h => h.Symbol, h => h.Weight);
+        var previousWeights = previous.Holdings.ToDictionary(h => h.SecurityId, h => h.Weight);
+        var currentWeights = current.Holdings.ToDictionary(h => h.SecurityId, h => h.Weight);
 
         var allSymbols = previousWeights.Keys.Union(currentWeights.Keys).ToList();
         var totalDrift = 0.0;
@@ -942,9 +955,7 @@ namespace QuantResearchAgent.Services
                 Symbol = "AAPL",
                 Name = "Apple Inc.",
                 Sector = criteria.Sector,
-                MarketCap = 3000000000000,
-                Price = 150.0,
-                Volume = 50000000
+                MarketCap = 3000000000000
             }
         };
     }
@@ -964,10 +975,8 @@ namespace QuantResearchAgent.Services
         {
             var analysis = new BenchmarkCompositionAnalysis
             {
-                BenchmarkName = benchmark.Name,
-                TotalHoldings = benchmark.Composition.Count,
-                MarketCapWeighted = benchmark.Specification.WeightingMethodology == WeightingMethodology.MarketCapWeighted,
-                EqualWeighted = benchmark.Specification.WeightingMethodology == WeightingMethodology.EqualWeighted,
+                NumberOfHoldings = benchmark.Composition.Count,
+                AverageMarketCap = benchmark.Composition.Average(h => (double)h.MarketCap),
                 SectorDiversification = benchmark.Composition.GroupBy(h => h.Sector).Count(),
                 ConcentrationIndex = benchmark.Composition.Max(h => h.Weight)
             };
@@ -1016,7 +1025,7 @@ namespace QuantResearchAgent.Services
             }
 
             // Calculate benchmark returns
-            var benchmarkReturns = CalculateBenchmarkReturns(historicalData, benchmark.Composition);
+            var benchmarkReturns = await CalculateBenchmarkReturnsAsync(benchmark, startDate, endDate);
 
             if (!benchmarkReturns.Any())
             {
