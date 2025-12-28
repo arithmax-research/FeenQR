@@ -8,8 +8,6 @@ using Feen.Services;
 using QuantResearchAgent.Services.ResearchAgents;
 using QuantResearchAgent.Plugins;
 using Feen.Plugins;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Builder;
 
 namespace QuantResearchAgent
 {
@@ -17,81 +15,7 @@ namespace QuantResearchAgent
     {
         static async Task Main(string[] args)
         {
-            // Check if we should run as web API
-            if (args.Length > 0 && args[0] == "--web")
-            {
-                await RunWebApiAsync(args);
-                return;
-            }
-
-            // Run as CLI by default
             await RunCliAsync(args);
-        }
-
-        static async Task RunWebApiAsync(string[] args)
-        {
-            var builder = WebApplication.CreateBuilder(args);
-
-            // Build configuration
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                .Build();
-
-            // Configure services (DeepSeekService is used for LLM completions)
-            ConfigureServices(builder.Services, configuration, null);
-
-            // Add API controllers
-            builder.Services.AddControllers();
-            builder.Services.AddRazorPages();
-            builder.Services.AddServerSideBlazor();
-            builder.Services.AddCors(options =>
-            {
-                options.AddDefaultPolicy(policy =>
-                {
-                    policy.AllowAnyOrigin()
-                          .AllowAnyMethod()
-                          .AllowAnyHeader();
-                });
-            });
-
-            // Register web search and financial data plugins
-            builder.Services.AddHttpClient<QuantResearchAgent.Plugins.GoogleWebSearchPlugin>();
-            builder.Services.AddSingleton<QuantResearchAgent.Plugins.IWebSearchPlugin>(sp =>
-                sp.GetRequiredService<QuantResearchAgent.Plugins.GoogleWebSearchPlugin>());
-
-            builder.Services.AddHttpClient<QuantResearchAgent.Plugins.YahooFinanceDataPlugin>();
-            builder.Services.AddSingleton<QuantResearchAgent.Plugins.IFinancialDataPlugin>(sp =>
-                sp.GetRequiredService<QuantResearchAgent.Plugins.YahooFinanceDataPlugin>());
-
-            var app = builder.Build();
-
-            // Configure middleware
-            app.UseCors();
-            app.UseStaticFiles();
-            app.UseRouting();
-            app.MapControllers();
-            app.MapRazorPages();
-            app.MapBlazorHub();
-
-            // Get the orchestrator and start
-            var orchestrator = app.Services.GetRequiredService<AgentOrchestrator>();
-            await orchestrator.StartAsync();
-
-            Console.WriteLine("Arithmax Research Agent API started at http://localhost:5000");
-            Console.WriteLine("Frontend available at http://localhost:4321");
-            
-            await app.RunAsync("http://localhost:5000");
-        }
-
-        static async Task RunCliAsync(string[] args)
-        {
-            // Build configuration
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                .Build();
-
             // Create service collection
             var services = new ServiceCollection();
             
