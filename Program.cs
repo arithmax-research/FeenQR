@@ -16,44 +16,25 @@ namespace QuantResearchAgent
         static async Task Main(string[] args)
         {
             await RunCliAsync(args);
-            // Create service collection
-            var services = new ServiceCollection();
-            
-            // Configure services (DeepSeekService is used for LLM completions)
-            ConfigureServices(services, configuration, null);
-
-            // Register web search and financial data plugins
-            services.AddHttpClient<QuantResearchAgent.Plugins.GoogleWebSearchPlugin>();
-            services.AddSingleton<QuantResearchAgent.Plugins.IWebSearchPlugin>(sp =>
-                sp.GetRequiredService<QuantResearchAgent.Plugins.GoogleWebSearchPlugin>());
-
-            services.AddHttpClient<QuantResearchAgent.Plugins.YahooFinanceDataPlugin>();
-            services.AddSingleton<QuantResearchAgent.Plugins.IFinancialDataPlugin>(sp =>
-                sp.GetRequiredService<QuantResearchAgent.Plugins.YahooFinanceDataPlugin>());
-
-            // Build service provider
-            var serviceProvider = services.BuildServiceProvider();
-
-            // Get the orchestrator and start (it will register its own plugins)
-            var orchestrator = serviceProvider.GetRequiredService<AgentOrchestrator>();
-            
-            // Start the orchestrator
-            await orchestrator.StartAsync();
-            
-            // Start the interactive CLI
-            var cli = serviceProvider.GetRequiredService<InteractiveCLI>();
-            await cli.RunAsync(args);
         }
 
-    static void ConfigureServices(IServiceCollection services, IConfiguration configuration, Kernel? kernel = null)
+        static async Task RunCliAsync(string[] args)
         {
+            // Build configuration
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .Build();
+
+            // Create service collection
+            var services = new ServiceCollection();
+
+            // Configure services (DeepSeekService is used for LLM completions)
             // Add configuration
             services.AddSingleton(configuration);
             // Register Kernel for DI with AI service configured
             services.AddSingleton<Kernel>(sp => 
             {
-                if (kernel != null) return kernel;
-                
                 var kernelBuilder = Kernel.CreateBuilder();
                 var config = sp.GetRequiredService<IConfiguration>();
                 

@@ -1,4 +1,5 @@
 using Microsoft.SemanticKernel;
+using Microsoft.Extensions.Logging;
 using QuantResearchAgent.Services;
 using System.ComponentModel;
 using System.Text.Json;
