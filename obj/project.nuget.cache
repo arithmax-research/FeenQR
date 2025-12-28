@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "kyCviL1eNuc=",
+  "dgSpecHash": "maqedvJn/rg=",
   "success": true,
   "projectFilePath": "/Users/misango/codechest/FeenQR/QuantResearchAgent.csproj",
   "expectedPackageFiles": [
@@ -75,6 +75,7 @@
     "/Users/misango/.nuget/packages/reddit/1.5.2/reddit.1.5.2.nupkg.sha512",
     "/Users/misango/.nuget/packages/restsharp/112.0.0/restsharp.112.0.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/skender.stock.indicators/3.0.0-preview.1/skender.stock.indicators.3.0.0-preview.1.nupkg.sha512",
+    "/Users/misango/.nuget/packages/spectre.console/0.49.1/spectre.console.0.49.1.nupkg.sha512",
     "/Users/misango/.nuget/packages/system.clientmodel/1.1.0/system.clientmodel.1.1.0.nupkg.sha512",
     "/Users/misango/.nuget/packages/system.codedom/9.0.4/system.codedom.9.0.4.nupkg.sha512",
     "/Users/misango/.nuget/packages/system.collections.immutable/1.5.0/system.collections.immutable.1.5.0.nupkg.sha512",

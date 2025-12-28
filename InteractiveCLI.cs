@@ -12,6 +12,7 @@ using CoreModels = QuantResearchAgent.Core;
 using MathNet.Numerics.LinearAlgebra;
 using System.Linq;
 using System.Text.Json;
+using Spectre.Console;
 
 namespace QuantResearchAgent;
 
@@ -330,270 +331,537 @@ public class InteractiveCLI
 
     public async Task RunAsync(string[]? args = null)
     {
-        Console.WriteLine("FeenQR : Quantitative Research Agent");
-        Console.WriteLine("=========================================");
-        Console.WriteLine();
-        Console.WriteLine("Available commands:");
-        Console.WriteLine("  1. ai-assistant [query] - Intelligent AI Assistant (data analysis & tools)");
-        Console.WriteLine("  2. deepseek-chat [query] - DeepSeek R1 Chat (strategy & math analysis)");
-        Console.WriteLine("  3. analyze-video [url] - Analyze a YouTube video");
-        Console.WriteLine("  4. get-quantopian-videos - Get latest Quantopian videos");
-        Console.WriteLine("  5. search-finance-videos [query] - Search finance videos");
-        Console.WriteLine("  6. technical-analysis [symbol] - Short-term (100d) technical analysis");
-        Console.WriteLine("  7. technical-analysis-long [symbol] - Long-term (7y) technical analysis");
-        Console.WriteLine("  8. fundamental-analysis [symbol] - Fundamental & sentiment analysis");
-        Console.WriteLine("  9. market-data [symbol] - Get market data");
-        Console.WriteLine(" 10. yahoo-data [symbol] - Get Yahoo Finance market data");
-        Console.WriteLine(" 11. portfolio - View portfolio summary");
-        Console.WriteLine(" 12. risk-assessment - Assess portfolio risk");
-        Console.WriteLine(" 13. alpaca-data [symbol] - Get Alpaca market data");
-        Console.WriteLine(" 14. alpaca-historical [symbol] [days] - Get historical data");
-        Console.WriteLine(" 15. alpaca-account - View Alpaca account info");
-        Console.WriteLine(" 16. alpaca-positions - View current positions");
-        Console.WriteLine(" 17. alpaca-quotes [symbols] - Get multiple quotes");
-        Console.WriteLine(" 18. ta-indicators [symbol] [category] - Detailed indicators");
-        Console.WriteLine(" 19. ta-compare [symbols] - Compare TA of multiple symbols");
-        Console.WriteLine(" 20. ta-patterns [symbol] - Pattern recognition analysis");
-        Console.WriteLine(" 21. comprehensive-analysis [symbol] [asset_type] - Full analysis & recommendation");
-        Console.WriteLine(" 22. research-papers [topic] - Search academic finance papers");
-        Console.WriteLine(" 23. analyze-paper [url] [focus_area] - Analyze paper & generate blueprint");
-        Console.WriteLine(" 24. research-synthesis [topic] [max_papers] - Research & synthesize topic");
-        Console.WriteLine(" 25. quick-research [topic] [max_papers] - Quick research overview (faster)");
-        Console.WriteLine(" 26. test-apis [symbol] - Test API connectivity and configuration");
-        Console.WriteLine(" 27. polygon-data [symbol] - Get Polygon.io market data");
-        Console.WriteLine(" 28. polygon-news [symbol] - Get Polygon.io news for symbol");
-        Console.WriteLine(" 29. polygon-financials [symbol] - Get Polygon.io financial data");
-        Console.WriteLine(" 30. databento-ohlcv [symbol] [days] - Get DataBento OHLCV data");
-        Console.WriteLine(" 31. databento-futures [symbol] - Get DataBento futures contracts");
-        Console.WriteLine(" 32. live-news [symbol/keyword] - Get live financial news");
-        Console.WriteLine(" 33. sentiment-analysis [symbol] - AI-powered sentiment analysis for specific stock");
-        Console.WriteLine(" 34. market-sentiment - AI-powered overall market sentiment analysis");
-        Console.WriteLine(" 35. reddit-sentiment [subreddit] [limit] - Reddit discussion overview (top posts)");
-        Console.WriteLine(" 36. reddit-scrape [subreddit] - Scrape Reddit posts from subreddit");
-        Console.WriteLine(" 37. optimize-portfolio [tickers] - Portfolio optimization (equal weight)");
-        Console.WriteLine(" 38. extract-web-data [url] - Extract structured data from web pages");
-        Console.WriteLine(" 39. generate-report [symbol/portfolio] [report_type] - Generate comprehensive reports");
-        Console.WriteLine(" 40. analyze-satellite-imagery [symbol] - Analyze satellite imagery for company operations");
-        Console.WriteLine(" 41. scrape-social-media [symbol] - Social media sentiment analysis");
-        Console.WriteLine(" 42. generate-trading-template [symbol] - Generate comprehensive trading strategy template");
-        Console.WriteLine(" 43. statistical-test [test_type] [data] - Perform statistical hypothesis testing");
-        Console.WriteLine(" 44. hypothesis-test [null_hypothesis] [alternative] - Run hypothesis test with custom hypotheses");
-        Console.WriteLine(" 45. power-analysis [effect_size] [sample_size] - Calculate statistical power and sample size");
-        Console.WriteLine(" 46. forecast [symbol] [method] - Time series forecasting (arima/exponential/ssa)");
-        Console.WriteLine(" 47. forecast-compare [symbol] - Compare all forecasting methods");
-        Console.WriteLine(" 48. forecast-accuracy [symbol] [method] - Analyze forecast accuracy");
-        Console.WriteLine(" 49. feature-engineer [symbol] [types] - Generate technical indicators and features");
-        Console.WriteLine(" 50. feature-importance [symbol] - Analyze feature importance ranking");
-        Console.WriteLine(" 51. feature-select [symbol] [method] [top_n] - Select top features for modeling");
-        Console.WriteLine(" 52. model-validate [symbol] [method] - Validate model performance");
-        Console.WriteLine(" 53. cross-validate [symbol] [folds] - Perform cross-validation analysis");
-        Console.WriteLine(" 54. model-metrics [actual] [predicted] - Calculate model performance metrics");
-        Console.WriteLine(" 55. black-litterman [assets] [views] [start_date] [end_date] - Black-Litterman optimization");
-        Console.WriteLine(" 56. risk-parity [assets] [start_date] [end_date] - Risk parity portfolio optimization");
-        Console.WriteLine(" 57. hierarchical-risk-parity [assets] [start_date] [end_date] - HRP optimization");
-        Console.WriteLine(" 58. minimum-variance [assets] [start_date] [end_date] - Minimum variance optimization");
-        Console.WriteLine(" 59. compare-optimization [assets] [start_date] [end_date] - Compare optimization methods");
-        Console.WriteLine(" 60. calculate-var [weights_json] [confidence] [method] - Calculate Value-at-Risk");
-        Console.WriteLine(" 61. stress-test-portfolio [weights_json] [scenarios] [names] [threshold] - Stress testing");
-        Console.WriteLine(" 62. risk-attribution [weights_json] [factors] [start_date] [end_date] - Risk factor attribution");
-        Console.WriteLine(" 63. risk-report [weights_json] [factors] [scenarios] [names] - Comprehensive risk report");
-        Console.WriteLine(" 64. compare-risk-measures [weights_json] [start_date] [end_date] - Compare VaR methods");
-        Console.WriteLine(" 65. sec-analysis [ticker] [filing_type] - SEC filing analysis (10-K, 10-Q, 8-K)");
-        Console.WriteLine(" 66. sec-filing-history [ticker] [filing_type] [limit] - SEC filing history");
-        Console.WriteLine(" 67. sec-risk-factors [ticker] - SEC risk factors analysis");
-        Console.WriteLine(" 68. sec-management-discussion [ticker] - SEC MD&A analysis");
-        Console.WriteLine(" 69. sec-comprehensive [ticker] - Comprehensive SEC analysis");
-        Console.WriteLine(" 70. earnings-analysis [ticker] - Earnings call analysis");
-        Console.WriteLine(" 71. earnings-history [ticker] - Earnings call history");
-        Console.WriteLine(" 72. earnings-sentiment [ticker] - Earnings sentiment analysis");
-        Console.WriteLine(" 73. earnings-strategic [ticker] - Earnings strategic insights");
-        Console.WriteLine(" 74. earnings-risks [ticker] - Earnings risk assessment");
-        Console.WriteLine(" 75. earnings-comprehensive [ticker] - Comprehensive earnings analysis");
-        Console.WriteLine(" 76. supply-chain-analysis [ticker] - Supply chain analysis");
-        Console.WriteLine(" 77. supply-chain-risks [ticker] - Supply chain risk assessment");
-        Console.WriteLine(" 78. supply-chain-geography [ticker] - Supply chain geographic exposure");
-        Console.WriteLine(" 79. supply-chain-diversification [ticker] - Supply chain diversification metrics");
-        Console.WriteLine(" 80. supply-chain-resilience [ticker] - Supply chain resilience score");
-        Console.WriteLine(" 81. supply-chain-comprehensive [ticker] - Comprehensive supply chain analysis");
-        Console.WriteLine(" 82. order-book-analysis [symbol] [depth] - Analyze order book microstructure");
-        Console.WriteLine(" 83. market-depth [symbol] [levels] - Generate market depth visualization");
-        Console.WriteLine(" 84. liquidity-analysis [symbol] - Analyze market liquidity metrics");
-        Console.WriteLine(" 85. spread-analysis [symbol] - Calculate bid-ask spread analysis");
-        Console.WriteLine(" 86. almgren-chriss [shares] [horizon] [volatility] - Almgren-Chriss optimal execution");
-        Console.WriteLine(" 87. implementation-shortfall [benchmark] [prices] [volumes] [total_volume] - Calculate IS");
-        Console.WriteLine(" 88. price-impact [size] [volume] [volatility] [market_cap] [beta] - Estimate price impact");
-        Console.WriteLine(" 89. optimal-execution [shares] [horizon] [volatility] [price] [volume] - Optimal execution strategy");
-        Console.WriteLine(" 90. vwap-schedule [symbol] [shares] [start] [end] [volumes] - Generate VWAP schedule");
-        Console.WriteLine(" 91. twap-schedule [shares] [start] [end] [intervals] - Generate TWAP schedule");
-        Console.WriteLine(" 92. iceberg-order [quantity] [display] [slices] [interval] - Create iceberg order");
-        Console.WriteLine(" 93. smart-routing [symbol] [quantity] [type] - Smart order routing decision");
-        Console.WriteLine(" 94. execution-optimization [symbol] [shares] [urgency] - Optimize execution parameters");
-        Console.WriteLine(" 95. portfolio-monte-carlo [symbols] [simulations] [time_horizon] - Monte Carlo portfolio simulation");
-        Console.WriteLine(" 96. option-monte-carlo [option_type] [spot_price] [strike] [time] [vol] [rate] [sims] - Monte Carlo option pricing");
-        Console.WriteLine(" 97. scenario-analysis [symbols] [returns] [shocks] - Scenario analysis with custom shocks");
-        Console.WriteLine(" 98. build-strategy [strategy_type] [parameters] - Build interactive trading strategy");
-        Console.WriteLine(" 99. optimize-strategy [strategy_id] [param_ranges] - Optimize strategy parameters");
-        Console.WriteLine("100. create-notebook [name] [description] - Create research notebook");
-        Console.WriteLine("101. execute-notebook [notebook_id] - Execute research notebook");
-        Console.WriteLine("102. data-validation [symbol] [days] [source] - Validate market data quality");
-        Console.WriteLine("103. corporate-action [symbol] [start-date] [end-date] - Process corporate actions");
-        Console.WriteLine("104. timezone [command] [parameters] - Timezone and market calendar operations");
-        Console.WriteLine("105. fred-series [series_id] [start_date] [end_date] - Get FRED economic series data");
-        Console.WriteLine("106. fred-search [query] [max_results] - Search FRED economic indicators");
-        Console.WriteLine("107. fred-popular - Get popular FRED economic indicators");
-        Console.WriteLine("108. worldbank-series [indicator] [country] [start_year] [end_year] - Get World Bank series data");
-        Console.WriteLine("109. worldbank-search [query] [max_results] - Search World Bank indicators");
-        Console.WriteLine("110. worldbank-popular - Get popular World Bank indicators");
-        Console.WriteLine("111. worldbank-indicator [indicator_code] - Get World Bank indicator info");
-        Console.WriteLine("112. oecd-series [indicator] [country] [start_year] [end_year] - Get OECD series data");
-        Console.WriteLine("113. oecd-search [query] [max_results] - Search OECD indicators");
-        Console.WriteLine("114. oecd-popular - Get popular OECD indicators");
-        Console.WriteLine("115. oecd-indicator [indicator_key] - Get OECD indicator info");
-        Console.WriteLine("116. imf-series [indicator] [country] [start_year] [end_year] - Get IMF series data");
-        Console.WriteLine("117. imf-search [query] [max_results] - Search IMF indicators");
-        Console.WriteLine("118. imf-popular - Get popular IMF indicators");
-        Console.WriteLine("119. imf-indicator [indicator_code] - Get IMF indicator info");
-        Console.WriteLine("120. bracket-order [symbol] [qty] [limit] [stop] [profit] [side] - Place bracket order");
-        Console.WriteLine("121. oco-order [symbol] [qty] [stop_price] [limit_price] [side] - Place OCO order");
-        Console.WriteLine("122. trailing-stop [symbol] [qty] [trail_percent] [side] - Place trailing stop order");
-        Console.WriteLine("123. portfolio-analytics [symbol] - Advanced portfolio analytics");
-        Console.WriteLine("124. risk-metrics [symbol] - Calculate risk metrics");
-        Console.WriteLine("125. performance-metrics [symbol] - Performance metrics analysis");
-        Console.WriteLine("126. tax-lots [symbol] - Tax lot analysis");
-        Console.WriteLine("127. portfolio-strategy [strategy] - Portfolio strategy optimization");
-        Console.WriteLine("128. clear - Clear terminal and show menu");
-        Console.WriteLine("129. help - Show available functions");
-        Console.WriteLine("130. quit - Exit the application");
-        Console.WriteLine("131. factor-research [symbols] [start_date] [end_date] - Advanced factor research and analysis");
-        Console.WriteLine("132. factor-portfolio [factors] [start_date] [end_date] - Create factor-based portfolio");
-        Console.WriteLine("133. factor-efficacy [factor] [symbols] [start_date] [end_date] - Test factor efficacy");
-        Console.WriteLine("134. academic-research [topic] [max_papers] - Extract strategies from academic papers");
-        Console.WriteLine("135. replicate-study [paper_url] [focus_area] - Replicate academic study");
-        Console.WriteLine("136. citation-network [topic] [max_papers] - Build citation network analysis");
-        Console.WriteLine("137. quantitative-model [paper_url] - Extract quantitative models from papers");
-        Console.WriteLine("138. literature-review [topic] [max_papers] - Generate literature review synthesis");
-        Console.WriteLine("139. automl-pipeline [symbols] [target] [start_date] [end_date] - Run AutoML pipeline");
-        Console.WriteLine("140. model-selection [data_type] [target_type] [features] [samples] - Select optimal model");
-        Console.WriteLine("141. feature-selection [symbols] [start_date] [end_date] [method] - Perform feature selection");
-        Console.WriteLine("142. ensemble-prediction [symbols] [method] [models] - Generate ensemble predictions");
-        Console.WriteLine("143. cross-validation [model] [symbols] [folds] - Perform cross-validation");
-        Console.WriteLine("144. hyperparameter-opt [model] [symbols] [method] - Optimize hyperparameters");
-        Console.WriteLine("145. shap-analysis [symbols] [start_date] [end_date] - Calculate SHAP values");
-        Console.WriteLine("146. partial-dependence [symbols] [feature] [start_date] [end_date] - Generate partial dependence plots");
-        Console.WriteLine("147. feature-interactions [symbols] [start_date] [end_date] - Analyze feature interactions");
-        Console.WriteLine("148. explain-prediction [symbol] [date] - Explain individual prediction");
-        Console.WriteLine("149. permutation-importance [symbols] [start_date] [end_date] - Calculate permutation importance");
-        Console.WriteLine("150. model-fairness [symbols] [start_date] [end_date] [groups] - Analyze model fairness");
-        Console.WriteLine("151. interpretability-report [symbols] [start_date] [end_date] - Generate interpretability report");
-        Console.WriteLine("152. train-q-learning [symbols] [start_date] [end_date] [episodes] - Train Q-learning agent");
-        Console.WriteLine("153. train-policy-gradient [symbols] [start_date] [end_date] [episodes] - Train policy gradient agent");
-        Console.WriteLine("154. train-actor-critic [symbols] [start_date] [end_date] [episodes] - Train actor-critic agent");
-        Console.WriteLine("155. adapt-strategy [symbol] [features] [base_params] - Adapt strategy with RL");
-        Console.WriteLine("156. bandit-optimization [param_sets] [trials] - Optimize parameters with bandit");
-        Console.WriteLine("157. contextual-bandit [symbols] [strategies] [start_date] [end_date] - Run contextual bandit");
-        Console.WriteLine("158. evaluate-rl-agent [symbols] [start_date] [end_date] [episodes] - Evaluate RL agent");
-        Console.WriteLine("159. rl-strategy-report [symbols] [start_date] [end_date] - Generate RL strategy report");
-        Console.WriteLine("160. fix-connect [host] [port] [sender_id] [target_id] - Connect to FIX server");
-        Console.WriteLine("161. fix-disconnect - Disconnect from FIX server");
-        Console.WriteLine("162. fix-order [symbol] [side] [type] [quantity] [price] - Send FIX order");
-        Console.WriteLine("163. fix-cancel [order_id] [symbol] - Cancel FIX order");
-        Console.WriteLine("164. fix-market-data [symbol] - Request FIX market data");
-        Console.WriteLine("165. fix-heartbeat - Send FIX heartbeat");
-        Console.WriteLine("166. fix-status - Get FIX connection status");
-        Console.WriteLine("167. fix-info - Get FIX protocol information");
-        Console.WriteLine("168. web-scrape-earnings [symbol] - Scrape earnings presentations and reports");
-        Console.WriteLine("169. web-monitor-communications [symbol] - Monitor corporate communications");
-        Console.WriteLine("170. web-analyze-sentiment [symbol] [sources] - Analyze web sentiment for symbol");
-        Console.WriteLine("171. web-analyze-social [symbol] [platforms] - Analyze social media influencers");
-        Console.WriteLine("172. web-monitor-darkweb [symbol] - Monitor dark web for corporate intelligence");
-        Console.WriteLine("173. patent-search [symbol] [max_results] - Search company patents");
-        Console.WriteLine("174. patent-innovation [symbol] [years] - Analyze innovation trends");
-        Console.WriteLine("175. patent-citations [patent_id] - Analyze patent citations");
-        Console.WriteLine("176. patent-value [patent_id] - Estimate patent value");
-        Console.WriteLine("177. fed-fomc-announcements [count] - Get recent FOMC announcements");
-        Console.WriteLine("178. fed-interest-rates [period] - Get interest rate decisions");
-        Console.WriteLine("179. fed-economic-projections - Get economic projections");
-        Console.WriteLine("180. fed-speeches [count] - Get recent Fed speeches");
-        Console.WriteLine("181. global-economic-indicators [countries] - Get global economic indicators");
-        Console.WriteLine("182. global-supply-chain [industries] - Monitor supply chain disruptions");
-        Console.WriteLine("183. global-trade-data [countries] - Get global trade data");
-        Console.WriteLine("184. global-currency-data [currencies] - Get global currency data");
-        Console.WriteLine("185. global-commodity-prices [commodities] - Get global commodity prices");
-        Console.WriteLine("186. geo-events [count|region] [region|count] - Get recent geopolitical events");
-        Console.WriteLine("187. geo-sanctions [countries] - Get sanctions data");
-        Console.WriteLine("188. geo-risk-index [regions] - Calculate geopolitical risk index");
-        Console.WriteLine("189. geo-conflicts [regions] - Monitor ongoing conflicts");
-        Console.WriteLine("190. geo-stability [countries] - Analyze political stability");
-        Console.WriteLine("191. options-flow [symbol] [minutes] - Analyze options order flow");
-        Console.WriteLine("192. unusual-options [symbol] [threshold] - Detect unusual options activity");
-        Console.WriteLine("193. gamma-exposure [symbol] - Analyze options gamma exposure");
-        Console.WriteLine("194. options-orderbook [symbol] [strike] [expiration] [type] - Get options order book");
-        Console.WriteLine("195. volatility-surface [symbol] - Analyze volatility surface");
-        Console.WriteLine("196. vix-analysis - Analyze VIX futures and products");
-        Console.WriteLine("197. volatility-strategy [symbol] [strategy] - Calculate volatility trading strategy");
-        Console.WriteLine("198. volatility-monitor [symbol] - Monitor volatility changes");
-        Console.WriteLine("199. orderbook-reconstruction [symbol] - Reconstruct order book across exchanges");
-        Console.WriteLine("200. hft-analysis [symbol] [minutes] - Analyze high-frequency trading");
-        Console.WriteLine("201. liquidity-analysis [symbol] [order_size] - Analyze liquidity patterns");
-        Console.WriteLine("202. manipulation-detection [symbol] - Detect market manipulation");
-        Console.WriteLine("203. latency-arbitrage [symbol] - Detect latency arbitrage opportunities");
-        Console.WriteLine("204. colocation-analysis [exchange] - Analyze co-location advantages");
-        Console.WriteLine("205. order-routing [symbol] [order_type] - Analyze order routing latency");
-        Console.WriteLine("206. market-data-feeds [symbol] - Analyze market data feed quality");
-        Console.WriteLine("207. arbitrage-profitability [symbol] [capital] - Calculate arbitrage profitability");
-        Console.WriteLine("208. alpha-vantage [symbol] - Get comprehensive financial data from Alpha Vantage");
-        Console.WriteLine("209. iex-data [symbol] - Get market data from IEX Cloud");
-        Console.WriteLine("210. fmp-data [symbol] - Get financial data from Financial Modeling Prep");
-        Console.WriteLine("211. enhanced-analysis [symbol] - Get comprehensive fundamental analysis");
-        Console.WriteLine("212. research-query [query] - Natural language research queries");
-        Console.WriteLine("213. research-report [symbol] [report_type] - Generate automated research reports");
-        Console.WriteLine("214. detect-market-regime [symbol] - Detect current market regime");
-        Console.WriteLine("215. detect-anomalies [symbol] [anomaly_type] - Detect market anomalies");
-        Console.WriteLine("216. dynamic-factors [symbol] - Analyze dynamic factor models");
-        Console.WriteLine("217. trading-template [symbol] [strategy_type] - Generate trading strategy template");
-        Console.WriteLine("218. advanced-risk [command] [parameters] - Advanced risk analytics (cvar, black-litterman, risk-parity)");
-        Console.WriteLine("219. counterparty-risk [command] [parameters] - Counterparty risk analysis and monitoring");
-        Console.WriteLine("220. performance-attribution [command] [parameters] - Performance attribution and factor analysis");
-        Console.WriteLine("221. benchmarking [command] [parameters] - Benchmarking and replication analysis");
-        Console.WriteLine("222. live-strategy [action] [symbol] [params] - Live strategy management (deploy/status/stop/adjust)");
-        Console.WriteLine("223. event-trading [action] [symbol] [params] - Event-driven trading system (setup/execute/status)");
-        Console.WriteLine("224. alerts [action] [symbol] [params] - Real-time alerting system (create/check/list/delete)");
-        Console.WriteLine("225. compliance [action] [params] - Compliance monitoring (check/rules/violations/resolve)");
-
-        // Check if command line arguments were provided
+        // If command line arguments provided, execute directly
         if (args != null && args.Length > 0)
         {
-            // Join all args into a single command string
             var commandInput = string.Join(" ", args);
-            Console.WriteLine($"Executing command: {commandInput}");
-            Console.WriteLine();
+            UIHelper.ShowSectionHeader("Executing Command", commandInput);
             await ProcessCommandAsync(commandInput);
-            return; // Exit after processing the command
+            return;
         }
 
+        // Main interactive loop
         while (true)
         {
-            Console.Write("agent> ");
-            var input = Console.ReadLine()?.Trim();
-
-            // Handle null input (EOF from pipe or Ctrl+D)
-            if (input == null)
-            {
-                Console.WriteLine();
-                break;
-            }
-
+            var input = ShowMainMenuAndGetInput();
+            
             if (string.IsNullOrEmpty(input))
                 continue;
-
+            
             if (input.ToLower() == "quit" || input.ToLower() == "exit")
+            {
+                UIHelper.ShowInfo("Thank you for using FeenQR!");
                 break;
-
+            }
+            
+            // Handle menu navigation
+            if (int.TryParse(input, out int menuChoice))
+            {
+                await HandleMenuChoice(menuChoice);
+                continue;
+            }
+            
+            // Direct command execution
             await ProcessCommandAsync(input);
-            Console.WriteLine();
         }
     }
 
+    private string ShowMainMenuAndGetInput()
+    {
+        UIHelper.ShowBanner();
+        
+        // Quick Actions Panel
+        var quickPanel = new Panel(
+            "[cyan1]chat[/]          AI Assistant (natural language queries)\n" +
+            "[cyan1]analyze <SYM>[/]  Quick comprehensive analysis\n" +
+            "[cyan1]news <SYM>[/]     Latest news & sentiment\n" +
+            "[cyan1]help <CMD>[/]     Get help for specific command"
+        )
+        {
+            Header = new PanelHeader("[bold]Quick Actions[/]", Justify.Left),
+            Border = BoxBorder.Rounded,
+            BorderStyle = new Style(Color.Grey)
+        };
+        
+        AnsiConsole.Write(quickPanel);
+        AnsiConsole.WriteLine();
+        
+        // Main Categories Table
+        var table = new Table()
+            .Border(TableBorder.Rounded)
+            .BorderColor(Color.Grey)
+            .AddColumn(new TableColumn("[bold]#[/]").Centered())
+            .AddColumn(new TableColumn("[bold]Category[/]").LeftAligned())
+            .AddColumn(new TableColumn("[bold]Description[/]").LeftAligned());
+        
+        table.AddRow("[cyan1]1[/]", "[cyan1]Market Data[/]", "Real-time quotes & historical data");
+        table.AddRow("[dodgerblue2]2[/]", "[dodgerblue2]Technical Analysis[/]", "TA indicators, patterns & charts");
+        table.AddRow("[magenta1]3[/]", "[magenta1]Fundamental & News[/]", "Earnings, SEC filings & sentiment");
+        table.AddRow("[yellow]4[/]", "[yellow]Portfolio[/]", "Portfolio management & tracking");
+        table.AddRow("[red]5[/]", "[red]Risk Analysis[/]", "VaR, stress testing & optimization");
+        table.AddRow("[green]6[/]", "[green]Research[/]", "Academic papers & strategies");
+        table.AddRow("[dodgerblue2]7[/]", "[dodgerblue2]Advanced Analytics[/]", "ML, forecasting & statistics");
+        table.AddRow("[magenta1]8[/]", "[magenta1]Trading Strategies[/]", "Strategy building & backtesting");
+        table.AddRow("[red]9[/]", "[red]Live Trading[/]", "Orders, execution & monitoring");
+        table.AddRow("[grey]0[/]", "[grey]Settings & Help[/]", "Configuration & documentation");
+        
+        AnsiConsole.Write(table);
+        AnsiConsole.WriteLine();
+        
+        AnsiConsole.MarkupLine("[dim]Type: number for menu, command name, or 'quit' to exit[/]");
+        
+        var prompt = AnsiConsole.Prompt(
+            new TextPrompt<string>("[cyan1]agent>[/]")
+                .AllowEmpty()
+        );
+        
+        return prompt.Trim();
+    }
+
+    private async Task HandleMenuChoice(int choice)
+    {
+        switch (choice)
+        {
+            case 1:
+                await ShowMarketDataMenu();
+                break;
+            case 2:
+                await ShowTechnicalAnalysisMenu();
+                break;
+            case 3:
+                await ShowFundamentalMenu();
+                break;
+            case 4:
+                await ShowPortfolioMenu();
+                break;
+            case 5:
+                await ShowRiskAnalysisMenu();
+                break;
+            case 6:
+                await ShowResearchMenu();
+                break;
+            case 7:
+                await ShowAdvancedAnalyticsMenu();
+                break;
+            case 8:
+                await ShowTradingStrategiesMenu();
+                break;
+            case 9:
+                await ShowLiveTradingMenu();
+                break;
+            case 0:
+                ShowHelpMenu();
+                break;
+            default:
+                UIHelper.ShowError($"Invalid menu choice: {choice}");
+                break;
+        }
+    }
+
+    private async Task ShowMarketDataMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Market Data & Quotes");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("yahoo <SYM>", "Yahoo Finance real-time data"),
+            ("alpaca <SYM>", "Alpaca Markets data"),
+            ("alpaca-account", "View Alpaca account info"),
+            ("alpaca-positions", "View current positions"),
+            ("polygon <SYM>", "Polygon.io premium data"),
+            ("polygon-news <SYM>", "Polygon.io news"),
+            ("polygon-financials <SYM>", "Polygon.io financials"),
+            ("databento <SYM>", "DataBento institutional data"),
+            ("databento-futures <SYM>", "DataBento futures contracts"),
+            ("iex <SYM>", "IEX Cloud exchange data"),
+            ("alpha-vantage <SYM>", "Alpha Vantage global data"),
+            ("fmp <SYM>", "Financial Modeling Prep data"),
+            ("historical <SYM> <DAYS>", "Historical price data"),
+            ("quotes <SYM1,SYM2...>", "Multi-symbol quotes"),
+            ("test-apis <SYM>", "Test API connectivity"),
+            ("fred-series <ID>", "FRED economic data"),
+            ("fred-search <QUERY>", "Search FRED indicators"),
+            ("worldbank-series <IND> <COUNTRY>", "World Bank data"),
+            ("oecd-series <IND> <COUNTRY>", "OECD data"),
+            ("imf-series <IND> <COUNTRY>", "IMF data")
+        };
+        
+        var table = UIHelper.CreateDataTable("#", "Command", "Description");
+        for (int i = 0; i < commands.Count; i++)
+        {
+            table.AddRow($"[grey]{i + 1}[/]", $"[cyan1]{commands[i].command}[/]", commands[i].description);
+        }
+        
+        AnsiConsole.Write(table);
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[dim]Type number, command name, or 'back' to return[/]");
+        
+        var input = AnsiConsole.Prompt(new TextPrompt<string>("[cyan1]agent>[/]").AllowEmpty());
+        
+        if (!string.IsNullOrEmpty(input) && input.ToLower() != "back")
+        {
+            // Check if input is a number
+            if (int.TryParse(input.Trim(), out int choice) && choice >= 1 && choice <= commands.Count)
+            {
+                var selectedCommand = commands[choice - 1].command;
+                AnsiConsole.MarkupLine($"[dim]Selected: {selectedCommand}[/]");
+                
+                // Prompt for parameters if needed
+                if (selectedCommand.Contains("<"))
+                {
+                    var paramPrompt = selectedCommand.Split(' ')[0]; // Get base command
+                    var param = AnsiConsole.Ask<string>($"[cyan1]Enter parameters for {paramPrompt}:[/]");
+                    await ProcessCommandAsync($"{paramPrompt} {param}");
+                }
+                else
+                {
+                    await ProcessCommandAsync(selectedCommand.Split(' ')[0]);
+                }
+            }
+            else
+            {
+                await ProcessCommandAsync(input);
+            }
+        }
+    }
+
+    private async Task ShowTechnicalAnalysisMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Technical Analysis");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("ta <SYM>", "Short-term (100d) technical analysis"),
+            ("ta-long <SYM>", "Long-term (7y) technical analysis"),
+            ("ta-indicators <SYM>", "Detailed technical indicators"),
+            ("ta-patterns <SYM>", "Pattern recognition"),
+            ("ta-compare <SYM1,SYM2...>", "Compare multiple symbols")
+        };
+        
+        var table = UIHelper.CreateDataTable("#", "Command", "Description");
+        for (int i = 0; i < commands.Count; i++)
+        {
+            table.AddRow($"[grey]{i + 1}[/]", $"[dodgerblue2]{commands[i].command}[/]", commands[i].description);
+        }
+        
+        AnsiConsole.Write(table);
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[dim]Type number, command name, or 'back' to return[/]");
+        
+        var input = AnsiConsole.Prompt(new TextPrompt<string>("[cyan1]agent>[/]").AllowEmpty());
+        
+        if (!string.IsNullOrEmpty(input) && input.ToLower() != "back")
+        {
+            if (int.TryParse(input.Trim(), out int choice) && choice >= 1 && choice <= commands.Count)
+            {
+                var selectedCommand = commands[choice - 1].command;
+                var baseCommand = selectedCommand.Split(' ')[0];
+                
+                if (selectedCommand.Contains("<"))
+                {
+                    var param = AnsiConsole.Ask<string>($"[cyan1]Enter parameters for {baseCommand}:[/]");
+                    await ProcessCommandAsync($"{baseCommand} {param}");
+                }
+                else
+                {
+                    await ProcessCommandAsync(baseCommand);
+                }
+            }
+            else
+            {
+                await ProcessCommandAsync(input);
+            }
+        }
+    }
+
+    private async Task ShowFundamentalMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Fundamental & News Analysis");
+        
+        var commands = new Dictionary<string, string>
+        {
+            { "fundamental <SYM>", "Fundamental analysis" },
+            { "news <SYM>", "Latest financial news" },
+            { "sentiment <SYM>", "Sentiment analysis" },
+            { "market-sentiment", "Overall market sentiment" },
+            { "earnings <SYM>", "Earnings call analysis" },
+            { "earnings-history <SYM>", "Earnings history" },
+            { "earnings-sentiment <SYM>", "Earnings sentiment" },
+            { "sec <SYM>", "SEC filings analysis" },
+            { "sec-filing-history <SYM>", "SEC filing history" },
+            { "sec-risk-factors <SYM>", "SEC risk factors" },
+            { "sec-comprehensive <SYM>", "Full SEC analysis" },
+            { "supply-chain-analysis <SYM>", "Supply chain analysis" },
+            { "company-valuation <SYM>", "Company valuation" },
+            { "enhanced-analysis <SYM>", "Comprehensive fundamental analysis" }
+        };
+        
+        var table = UIHelper.CreateDataTable("Command", "Description");
+        foreach (var cmd in commands)
+        {
+            table.AddRow($"[magenta1]{cmd.Key}[/]", cmd.Value);
+        }
+        
+        AnsiConsole.Write(table);
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[dim]Type command or 'back' to return[/]");
+        
+        var input = AnsiConsole.Prompt(new TextPrompt<string>("[cyan1]agent>[/]").AllowEmpty());
+        
+        if (!string.IsNullOrEmpty(input) && input.ToLower() != "back")
+        {
+            await ProcessCommandAsync(input);
+        }
+    }
+
+    private async Task ShowPortfolioMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Portfolio Management");
+        
+        var commands = new Dictionary<string, string>
+        {
+            { "portfolio", "View portfolio summary" },
+            { "portfolio-analytics <SYM>", "Advanced analytics" },
+            { "portfolio-strategy <STRAT>", "Strategy optimization" },
+            { "performance-metrics <SYM>", "Performance analysis" },
+            { "tax-lots <SYM>", "Tax lot analysis" },
+            { "optimize <TICKERS>", "Portfolio optimization" },
+            { "positions", "View current positions" },
+            { "performance", "Performance analysis" },
+            { "rebalance", "Rebalancing suggestions" },
+            { "black-litterman <ASSETS>", "Black-Litterman optimization" },
+            { "risk-parity <ASSETS>", "Risk parity optimization" },
+            { "hierarchical-risk-parity <ASSETS>", "HRP optimization" },
+            { "minimum-variance <ASSETS>", "Min variance optimization" },
+            { "performance-attribution <PORT>", "Performance attribution" },
+            { "benchmarking <PORT>", "Portfolio benchmarking" }
+        };
+        
+        var table = UIHelper.CreateDataTable("Command", "Description");
+        foreach (var cmd in commands)
+        {
+            table.AddRow($"[yellow]{cmd.Key}[/]", cmd.Value);
+        }
+        
+        AnsiConsole.Write(table);
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[dim]Type command or 'back' to return[/]");
+        
+        var input = AnsiConsole.Prompt(new TextPrompt<string>("[cyan1]agent>[/]").AllowEmpty());
+        
+        if (!string.IsNullOrEmpty(input) && input.ToLower() != "back")
+        {
+            await ProcessCommandAsync(input);
+        }
+    }
+
+    private async Task ShowRiskAnalysisMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Risk Analysis & Optimization");
+        
+        var commands = new Dictionary<string, string>
+        {
+            { "risk-assessment", "Portfolio risk assessment" },
+            { "var <WEIGHTS>", "Value-at-Risk calculation" },
+            { "stress-test <WEIGHTS>", "Stress testing" },
+            { "risk-parity <ASSETS>", "Risk parity optimization" },
+            { "black-litterman <ASSETS>", "Black-Litterman optimization" }
+        };
+        
+        var table = UIHelper.CreateDataTable("Command", "Description");
+        foreach (var cmd in commands)
+        {
+            table.AddRow($"[red]{cmd.Key}[/]", cmd.Value);
+        }
+        
+        AnsiConsole.Write(table);
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[dim]Type command or 'back' to return[/]");
+        
+        var input = AnsiConsole.Prompt(new TextPrompt<string>("[cyan1]agent>[/]").AllowEmpty());
+        
+        if (!string.IsNullOrEmpty(input) && input.ToLower() != "back")
+        {
+            await ProcessCommandAsync(input);
+        }
+    }
+
+    private async Task ShowResearchMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Research & Academic Papers");
+        
+        var commands = new Dictionary<string, string>
+        {
+            { "deepseek-chat <QUERY>", "DeepSeek R1 reasoning & strategy analysis" },
+            { "ai-chat <QUERY>", "AI-powered quant research chat" },
+            { "research-papers <TOPIC>", "Search academic papers" },
+            { "analyze-paper <URL>", "Analyze paper & generate blueprint" },
+            { "research-synthesis <TOPIC>", "Research synthesis" },
+            { "quick-research <TOPIC>", "Quick research overview" },
+            { "agent-strategy <SYM>", "Generate trading strategy with agent" }
+        };
+        
+        var table = UIHelper.CreateDataTable("Command", "Description");
+        foreach (var cmd in commands)
+        {
+            table.AddRow($"[green]{cmd.Key}[/]", cmd.Value);
+        }
+        
+        AnsiConsole.Write(table);
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[dim]Type command or 'back' to return[/]");
+        
+        var input = AnsiConsole.Prompt(new TextPrompt<string>("[cyan1]agent>[/]").AllowEmpty());
+        
+        if (!string.IsNullOrEmpty(input) && input.ToLower() != "back")
+        {
+            await ProcessCommandAsync(input);
+        }
+    }
+
+    private async Task ShowAdvancedAnalyticsMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Advanced Analytics");
+        
+        var commands = new Dictionary<string, string>
+        {
+            { "deepseek <QUERY>", "DeepSeek R1 advanced quant reasoning" },
+            { "forecast <SYM>", "Time series forecasting" },
+            { "forecast-compare <SYM>", "Compare forecast methods" },
+            { "forecast-accuracy <SYM>", "Forecast accuracy analysis" },
+            { "feature-engineer <SYM>", "Feature engineering" },
+            { "feature-importance <SYM>", "Feature importance" },
+            { "feature-select <SYM>", "Feature selection" },
+            { "automl <SYMBOLS>", "AutoML pipeline" },
+            { "model-selection <TYPE>", "Select optimal model" },
+            { "ensemble-prediction <SYMBOLS>", "Ensemble predictions" },
+            { "cross-validation <MODEL>", "Cross-validation" },
+            { "hyperparameter-opt <MODEL>", "Hyperparameter optimization" },
+            { "statistical-test <TYPE>", "Statistical testing" },
+            { "hypothesis-test <NULL> <ALT>", "Hypothesis testing" },
+            { "power-analysis <EFFECT> <SIZE>", "Power analysis" },
+            { "detect-anomalies <SYMBOLS>", "Anomaly detection" },
+            { "detect-market-regime <SYMBOLS>", "Market regime detection" },
+            { "dynamic-factors <SYMBOLS>", "Dynamic factor analysis" }
+        };
+        
+        var table = UIHelper.CreateDataTable("Command", "Description");
+        foreach (var cmd in commands)
+        {
+            table.AddRow($"[dodgerblue2]{cmd.Key}[/]", cmd.Value);
+        }
+        
+        AnsiConsole.Write(table);
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[dim]Type command or 'back' to return[/]");
+        
+        var input = AnsiConsole.Prompt(new TextPrompt<string>("[cyan1]agent>[/]").AllowEmpty());
+        
+        if (!string.IsNullOrEmpty(input) && input.ToLower() != "back")
+        {
+            await ProcessCommandAsync(input);
+        }
+    }
+
+    private async Task ShowTradingStrategiesMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Trading Strategies");
+        
+        var commands = new Dictionary<string, string>
+        {
+            { "generate-template <SYM>", "Generate trading template" },
+            { "build-strategy <TYPE>", "Build interactive strategy" },
+            { "optimize-strategy <ID>", "Optimize strategy parameters" },
+            { "backtest <STRATEGY>", "Backtest strategy" }
+        };
+        
+        var table = UIHelper.CreateDataTable("Command", "Description");
+        foreach (var cmd in commands)
+        {
+            table.AddRow($"[magenta1]{cmd.Key}[/]", cmd.Value);
+        }
+        
+        AnsiConsole.Write(table);
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[dim]Type command or 'back' to return[/]");
+        
+        var input = AnsiConsole.Prompt(new TextPrompt<string>("[cyan1]agent>[/]").AllowEmpty());
+        
+        if (!string.IsNullOrEmpty(input) && input.ToLower() != "back")
+        {
+            await ProcessCommandAsync(input);
+        }
+    }
+
+    private async Task ShowLiveTradingMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Live Trading & Execution");
+        
+        var commands = new Dictionary<string, string>
+        {
+            { "bracket-order <SYM>", "Place bracket order" },
+            { "oco-order <SYM>", "Place OCO order" },
+            { "live-strategy <ACTION>", "Manage live strategy" },
+            { "alerts <ACTION>", "Real-time alerting" },
+            { "compliance <ACTION>", "Compliance monitoring" }
+        };
+        
+        var table = UIHelper.CreateDataTable("Command", "Description");
+        foreach (var cmd in commands)
+        {
+            table.AddRow($"[red]{cmd.Key}[/]", cmd.Value);
+        }
+        
+        AnsiConsole.Write(table);
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[dim]Type command or 'back' to return[/]");
+        
+        var input = AnsiConsole.Prompt(new TextPrompt<string>("[cyan1]agent>[/]").AllowEmpty());
+        
+        if (!string.IsNullOrEmpty(input) && input.ToLower() != "back")
+        {
+            await ProcessCommandAsync(input);
+        }
+    }
+
+    private void ShowHelpMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Help & Settings");
+        
+        var panel = new Panel(
+            "[cyan1]Command Aliases:[/]\n" +
+            "  ta = technical-analysis\n" +
+            "  chat = ai-assistant\n" +
+            "  analyze = comprehensive-analysis\n\n" +
+            "[cyan1]Tips:[/]\n" +
+            "  • Type command name directly for quick access\n" +
+            "  • Use 'help <command>' for detailed help\n" +
+            "  • Use arrow keys for command history\n" +
+            "  • Use 'clear' to clear screen\n\n" +
+            "[cyan1]Settings:[/]\n" +
+            "  • API keys configured in appsettings.json\n" +
+            "  • Type 'test-apis' to verify connectivity"
+        )
+        {
+            Header = new PanelHeader("[bold]Quick Reference[/]", Justify.Left),
+            Border = BoxBorder.Rounded
+        };
+        
+        AnsiConsole.Write(panel);
+        AnsiConsole.WriteLine();
+        
+        AnsiConsole.Prompt(new TextPrompt<string>("[dim]Press Enter to continue...[/]").AllowEmpty());
+    }
 
     private async Task ProcessCommandAsync(string input)
     {
@@ -630,9 +898,11 @@ public class InteractiveCLI
                     if (days > 1000) await TechnicalAnalysisLongCommand(parts);
                     else await TechnicalAnalysisCommand(parts);
                     break;
+                case "ta-long":
                 case "technical-analysis-long":
                     await TechnicalAnalysisLongCommand(parts);
                     break;
+                case "fundamental":
                 case "fundamental-analysis":
                     await FundamentalAnalysisCommand(parts);
                     break;
@@ -640,6 +910,7 @@ public class InteractiveCLI
                 case "market-data":
                     await MarketDataCommand(parts);
                     break;
+                case "yahoo":
                 case "yahoo-data":
                     await YahooDataCommand(parts);
                     break;
@@ -649,9 +920,11 @@ public class InteractiveCLI
                 case "risk-assessment":
                     await RiskAssessmentCommand();
                     break;
+                case "alpaca":
                 case "alpaca-data":
                     await AlpacaDataCommand(parts);
                     break;
+                case "historical":
                 case "alpaca-historical":
                     await AlpacaHistoricalCommand(parts);
                     break;
@@ -661,6 +934,7 @@ public class InteractiveCLI
                 case "alpaca-positions":
                     await AlpacaPositionsCommand();
                     break;
+                case "quotes":
                 case "alpaca-quotes":
                     await AlpacaQuotesCommand(parts);
                     break;
@@ -697,6 +971,7 @@ public class InteractiveCLI
                 case "test-apis":
                     await TestApisCommand(parts);
                     break;
+                case "polygon":
                 case "polygon-data":
                     await PolygonDataCommand(parts);
                     break;
@@ -706,6 +981,7 @@ public class InteractiveCLI
                 case "polygon-financials":
                     await PolygonFinancialsCommand(parts);
                     break;
+                case "databento":
                 case "databento-ohlcv":
                     await DataBentoOhlcvCommand(parts);
                     break;
@@ -976,6 +1252,7 @@ public class InteractiveCLI
                 case "granger-stock-test":
                     await GrangerStockTestCommand(parts);
                     break;
+                case "sec":
                 case "sec-analysis":
                     await SecAnalysisCommand(parts);
                     break;
@@ -991,6 +1268,7 @@ public class InteractiveCLI
                 case "sec-comprehensive":
                     await SecComprehensiveCommand(parts);
                     break;
+                case "earnings":
                 case "earnings-analysis":
                     await EarningsAnalysisCommand(parts);
                     break;
@@ -1095,6 +1373,10 @@ public class InteractiveCLI
                     break;
                 case "clear":
                     await ClearCommand();
+                    break;
+                case "menu":
+                    // Return to main menu - just clear screen, menu will show again in main loop
+                    AnsiConsole.Clear();
                     break;
                 case "help":
                     await ShowAvailableFunctions();
@@ -1335,9 +1617,11 @@ public class InteractiveCLI
                 case "alpha-vantage":
                     await AlphaVantageCommand(parts);
                     break;
+                case "iex":
                 case "iex-data":
                     await IEXDataCommand(parts);
                     break;
+                case "fmp":
                 case "fmp-data":
                     await FMPDataCommand(parts);
                     break;
@@ -1400,9 +1684,15 @@ public class InteractiveCLI
         catch (Exception ex)
         {
             // Only show a minimal error message, no logs
-            PrintSectionHeader("Error");
-            Console.WriteLine($"{ex.Message}");
-            PrintSectionFooter();
+            UIHelper.ShowError(ex.Message);
+        }
+        
+        // Wait for user to press Enter before returning to menu
+        if (!string.IsNullOrEmpty(input) && input.ToLower() != "clear" && input.ToLower() != "menu")
+        {
+            AnsiConsole.WriteLine();
+            AnsiConsole.Markup("[dim]Press Enter to continue...[/]");
+            Console.ReadLine();
         }
     }
 
@@ -1455,11 +1745,30 @@ public class InteractiveCLI
 
     private async Task PortfolioCommand()
     {
-        PrintSectionHeader("Portfolio Summary");
+        UIHelper.ShowSectionHeader("Portfolio Summary");
         var function = _kernel.Plugins["RiskManagementPlugin"]["GetPortfolioSummary"];
         var result = await _kernel.InvokeAsync(function);
         Console.WriteLine(result.ToString());
-        PrintSectionFooter();
+        
+        // Example: Add portfolio allocation visualization
+        // In a real implementation, you'd parse the result and extract actual data
+        var sampleAllocations = new Dictionary<string, double>
+        {
+            { "AAPL", 25000 },
+            { "MSFT", 20000 },
+            { "GOOGL", 18000 },
+            { "AMZN", 15000 },
+            { "TSLA", 12000 },
+            { "NVDA", 10000 }
+        };
+        
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[bold]Portfolio Allocation:[/]");
+        var breakdownChart = UIHelper.CreateBreakdownChart("Holdings Distribution", sampleAllocations);
+        AnsiConsole.Write(breakdownChart);
+        AnsiConsole.WriteLine();
+        
+        UIHelper.ShowSectionFooter();
     }
 
     private async Task RiskAssessmentCommand()
@@ -1891,256 +2200,31 @@ public class InteractiveCLI
 
     private async Task ShowAvailableFunctions()
     {
-        Console.WriteLine("Available Semantic Kernel Functions:");
-        Console.WriteLine();
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Available Semantic Kernel Functions");
+
+        var tree = UIHelper.CreateTree("[cyan1]Plugins[/]");
 
         foreach (var plugin in _kernel.Plugins)
         {
-            Console.WriteLine($"{plugin.Name}:");
+            var pluginNode = tree.AddNode($"[yellow]{plugin.Name}[/]");
             
             foreach (var function in plugin)
             {
-                Console.WriteLine($"  • {function.Name} - {function.Description}");
+                pluginNode.AddNode($"{function.Name} [dim]- {function.Description}[/]");
             }
-            Console.WriteLine();
         }
+
+        AnsiConsole.Write(tree);
+        UIHelper.ShowSectionFooter();
 
         await Task.CompletedTask;
     }
 
     private async Task ClearCommand()
     {
-        Console.Clear();
-        Console.WriteLine("FeenQR : Quantitative Research Agent");
-        Console.WriteLine("=========================================");
-        Console.WriteLine();
-        Console.WriteLine("Available commands:");
-        Console.WriteLine("  1. ai-assistant [query] - Intelligent AI Assistant (data analysis & tools)");
-        Console.WriteLine("  2. deepseek-chat [query] - DeepSeek R1 Chat (strategy & math analysis)");
-        Console.WriteLine("  3. analyze-video [url] - Analyze a YouTube video");
-        Console.WriteLine("  4. get-quantopian-videos - Get latest Quantopian videos");
-        Console.WriteLine("  5. search-finance-videos [query] - Search finance videos");
-        Console.WriteLine("  6. technical-analysis [symbol] - Short-term (100d) technical analysis");
-        Console.WriteLine("  7. technical-analysis-long [symbol] - Long-term (7y) technical analysis");
-        Console.WriteLine("  8. fundamental-analysis [symbol] - Fundamental & sentiment analysis");
-        Console.WriteLine("  9. market-data [symbol] - Get market data");
-        Console.WriteLine(" 10. yahoo-data [symbol] - Get Yahoo Finance market data");
-        Console.WriteLine(" 11. portfolio - View portfolio summary");
-        Console.WriteLine(" 12. risk-assessment - Assess portfolio risk");
-        Console.WriteLine(" 13. alpaca-data [symbol] - Get Alpaca market data");
-        Console.WriteLine(" 14. alpaca-historical [symbol] [days] - Get historical data");
-        Console.WriteLine(" 15. alpaca-account - View Alpaca account info");
-        Console.WriteLine(" 16. alpaca-positions - View current positions");
-        Console.WriteLine(" 17. alpaca-quotes [symbols] - Get multiple quotes");
-        Console.WriteLine(" 18. ta-indicators [symbol] [category] - Detailed indicators");
-        Console.WriteLine(" 19. ta-compare [symbols] - Compare TA of multiple symbols");
-        Console.WriteLine(" 20. ta-patterns [symbol] - Pattern recognition analysis");
-        Console.WriteLine(" 21. comprehensive-analysis [symbol] [asset_type] - Full analysis & recommendation");
-        Console.WriteLine(" 22. research-papers [topic] - Search academic finance papers");
-        Console.WriteLine(" 23. analyze-paper [url] [focus_area] - Analyze paper & generate blueprint");
-        Console.WriteLine(" 24. research-synthesis [topic] [max_papers] - Research & synthesize topic");
-        Console.WriteLine(" 25. quick-research [topic] [max_papers] - Quick research overview (faster)");
-        Console.WriteLine(" 26. test-apis [symbol] - Test API connectivity and configuration");
-        Console.WriteLine(" 27. polygon-data [symbol] - Get Polygon.io market data");
-        Console.WriteLine(" 28. polygon-news [symbol] - Get Polygon.io news for symbol");
-        Console.WriteLine(" 29. polygon-financials [symbol] - Get Polygon.io financial data");
-        Console.WriteLine(" 30. databento-ohlcv [symbol] [days] - Get DataBento OHLCV data");
-        Console.WriteLine(" 31. databento-futures [symbol] - Get DataBento futures contracts");
-        Console.WriteLine(" 32. live-news [symbol/keyword] - Get live financial news");
-        Console.WriteLine(" 33. sentiment-analysis [symbol] - AI-powered sentiment analysis for specific stock");
-        Console.WriteLine(" 34. market-sentiment - AI-powered overall market sentiment analysis");
-        Console.WriteLine(" 35. reddit-sentiment [subreddit] [symbol] - Reddit sentiment analysis for symbol");
-        Console.WriteLine(" 36. reddit-scrape [subreddit] - Scrape Reddit posts from subreddit");
-        Console.WriteLine(" 37. optimize-portfolio [tickers] - Portfolio optimization (equal weight)");
-        Console.WriteLine(" 38. extract-web-data [url] - Extract structured data from web pages");
-        Console.WriteLine(" 39. generate-report [symbol/portfolio] [report_type] - Generate comprehensive reports");
-        Console.WriteLine(" 40. analyze-satellite-imagery [symbol] - Analyze satellite imagery for company operations");
-        Console.WriteLine(" 41. scrape-social-media [symbol] - Social media sentiment analysis");
-        Console.WriteLine(" 42. generate-trading-template [symbol] - Generate comprehensive trading strategy template");
-        Console.WriteLine(" 43. statistical-test [test_type] [data] - Perform statistical hypothesis testing");
-        Console.WriteLine(" 44. hypothesis-test [null_hypothesis] [alternative] - Run hypothesis test with custom hypotheses");
-        Console.WriteLine(" 45. power-analysis [effect_size] [sample_size] - Calculate statistical power and sample size");
-        Console.WriteLine(" 46. forecast [symbol] [method] - Time series forecasting (arima/exponential/ssa)");
-        Console.WriteLine(" 47. forecast-compare [symbol] - Compare all forecasting methods");
-        Console.WriteLine(" 48. forecast-accuracy [symbol] [method] - Analyze forecast accuracy");
-        Console.WriteLine(" 49. feature-engineer [symbol] [types] - Generate technical indicators and features");
-        Console.WriteLine(" 50. feature-importance [symbol] - Analyze feature importance ranking");
-        Console.WriteLine(" 51. feature-select [symbol] [method] [top_n] - Select top features for modeling");
-        Console.WriteLine(" 52. model-validate [symbol] [method] - Validate model performance");
-        Console.WriteLine(" 53. cross-validate [symbol] [folds] - Perform cross-validation analysis");
-        Console.WriteLine(" 54. model-metrics [actual] [predicted] - Calculate model performance metrics");
-        Console.WriteLine(" 55. black-litterman [assets] [views] [start_date] [end_date] - Black-Litterman optimization");
-        Console.WriteLine(" 56. risk-parity [assets] [start_date] [end_date] - Risk parity portfolio optimization");
-        Console.WriteLine(" 57. hierarchical-risk-parity [assets] [start_date] [end_date] - HRP optimization");
-        Console.WriteLine(" 58. minimum-variance [assets] [start_date] [end_date] - Minimum variance optimization");
-        Console.WriteLine(" 59. compare-optimization [assets] [start_date] [end_date] - Compare optimization methods");
-        Console.WriteLine(" 60. calculate-var [weights_json] [confidence] [method] - Calculate Value-at-Risk");
-        Console.WriteLine(" 61. stress-test-portfolio [weights_json] [scenarios] [names] [threshold] - Stress testing");
-        Console.WriteLine(" 62. risk-attribution [weights_json] [factors] [start_date] [end_date] - Risk factor attribution");
-        Console.WriteLine(" 63. risk-report [weights_json] [factors] [scenarios] [names] - Comprehensive risk report");
-        Console.WriteLine(" 64. compare-risk-measures [weights_json] [start_date] [end_date] - Compare VaR methods");
-        Console.WriteLine(" 65. sec-analysis [ticker] [filing_type] - SEC filing analysis (10-K, 10-Q, 8-K)");
-        Console.WriteLine(" 66. sec-filing-history [ticker] [filing_type] [limit] - SEC filing history");
-        Console.WriteLine(" 67. sec-risk-factors [ticker] - SEC risk factors analysis");
-        Console.WriteLine(" 68. sec-management-discussion [ticker] - SEC MD&A analysis");
-        Console.WriteLine(" 69. sec-comprehensive [ticker] - Comprehensive SEC analysis");
-        Console.WriteLine(" 70. earnings-analysis [ticker] - Earnings call analysis");
-        Console.WriteLine(" 71. earnings-history [ticker] - Earnings call history");
-        Console.WriteLine(" 72. earnings-sentiment [ticker] - Earnings sentiment analysis");
-        Console.WriteLine(" 73. earnings-strategic [ticker] - Earnings strategic insights");
-        Console.WriteLine(" 74. earnings-risks [ticker] - Earnings risk assessment");
-        Console.WriteLine(" 75. earnings-comprehensive [ticker] - Comprehensive earnings analysis");
-        Console.WriteLine(" 76. supply-chain-analysis [ticker] - Supply chain analysis");
-        Console.WriteLine(" 77. supply-chain-risks [ticker] - Supply chain risk assessment");
-        Console.WriteLine(" 78. supply-chain-geography [ticker] - Supply chain geographic exposure");
-        Console.WriteLine(" 79. supply-chain-diversification [ticker] - Supply chain diversification metrics");
-        Console.WriteLine(" 80. supply-chain-resilience [ticker] - Supply chain resilience score");
-        Console.WriteLine(" 81. supply-chain-comprehensive [ticker] - Comprehensive supply chain analysis");
-        Console.WriteLine(" 82. order-book-analysis [symbol] [depth] - Analyze order book microstructure");
-        Console.WriteLine(" 83. market-depth [symbol] [levels] - Generate market depth visualization");
-        Console.WriteLine(" 84. liquidity-analysis [symbol] - Analyze market liquidity metrics");
-        Console.WriteLine(" 85. spread-analysis [symbol] - Calculate bid-ask spread analysis");
-        Console.WriteLine(" 86. almgren-chriss [shares] [horizon] [volatility] - Almgren-Chriss optimal execution");
-        Console.WriteLine(" 87. implementation-shortfall [benchmark] [prices] [volumes] [total_volume] - Calculate IS");
-        Console.WriteLine(" 88. price-impact [size] [volume] [volatility] [market_cap] [beta] - Estimate price impact");
-        Console.WriteLine(" 89. optimal-execution [shares] [horizon] [volatility] [price] [volume] - Optimal execution strategy");
-        Console.WriteLine(" 90. vwap-schedule [symbol] [shares] [start] [end] [volumes] - Generate VWAP schedule");
-        Console.WriteLine(" 91. twap-schedule [shares] [start] [end] [intervals] - Generate TWAP schedule");
-        Console.WriteLine(" 92. iceberg-order [quantity] [display] [slices] [interval] - Create iceberg order");
-        Console.WriteLine(" 93. smart-routing [symbol] [quantity] [type] - Smart order routing decision");
-        Console.WriteLine(" 94. execution-optimization [symbol] [shares] [urgency] - Optimize execution parameters");
-        Console.WriteLine(" 95. portfolio-monte-carlo [symbols] [simulations] [time_horizon] - Monte Carlo portfolio simulation");
-        Console.WriteLine(" 96. option-monte-carlo [option_type] [spot_price] [strike] [time] [vol] [rate] [sims] - Monte Carlo option pricing");
-        Console.WriteLine(" 97. scenario-analysis [symbols] [returns] [shocks] - Scenario analysis with custom shocks");
-        Console.WriteLine(" 98. build-strategy [strategy_type] [parameters] - Build interactive trading strategy");
-        Console.WriteLine(" 99. optimize-strategy [strategy_id] [param_ranges] - Optimize strategy parameters");
-        Console.WriteLine("100. create-notebook [name] [description] - Create research notebook");
-        Console.WriteLine("101. execute-notebook [notebook_id] - Execute research notebook");
-        Console.WriteLine("102. data-validation [symbol] [days] [source] - Validate market data quality");
-        Console.WriteLine("103. corporate-action [symbol] [start-date] [end-date] - Process corporate actions");
-        Console.WriteLine("104. timezone [command] [parameters] - Timezone and market calendar operations");
-        Console.WriteLine("105. fred-series [series_id] [start_date] [end_date] - Get FRED economic series data");
-        Console.WriteLine("106. fred-search [query] [max_results] - Search FRED economic indicators");
-        Console.WriteLine("107. fred-popular - Get popular FRED economic indicators");
-        Console.WriteLine("108. worldbank-series [indicator] [country] [start_year] [end_year] - Get World Bank series data");
-        Console.WriteLine("109. worldbank-search [query] [max_results] - Search World Bank indicators");
-        Console.WriteLine("110. worldbank-popular - Get popular World Bank indicators");
-        Console.WriteLine("111. worldbank-indicator [indicator_code] - Get World Bank indicator info");
-        Console.WriteLine("112. oecd-series [indicator] [country] [start_year] [end_year] - Get OECD series data");
-        Console.WriteLine("113. oecd-search [query] [max_results] - Search OECD indicators");
-        Console.WriteLine("114. oecd-popular - Get popular OECD indicators");
-        Console.WriteLine("115. oecd-indicator [indicator_key] - Get OECD indicator info");
-        Console.WriteLine("116. imf-series [indicator] [country] [start_year] [end_year] - Get IMF series data");
-        Console.WriteLine("117. imf-search [query] [max_results] - Search IMF indicators");
-        Console.WriteLine("118. imf-popular - Get popular IMF indicators");
-        Console.WriteLine("119. imf-indicator [indicator_code] - Get IMF indicator info");
-        Console.WriteLine("120. bracket-order [symbol] [qty] [limit] [stop] [profit] [side] - Place bracket order");
-        Console.WriteLine("121. oco-order [symbol] [qty] [stop_price] [limit_price] [side] - Place OCO order");
-        Console.WriteLine("122. trailing-stop [symbol] [qty] [trail_percent] [side] - Place trailing stop order");
-        Console.WriteLine("123. portfolio-analytics [symbol] - Advanced portfolio analytics");
-        Console.WriteLine("124. risk-metrics [symbol] - Calculate risk metrics");
-        Console.WriteLine("125. performance-metrics [symbol] - Performance metrics analysis");
-        Console.WriteLine("126. tax-lots [symbol] - Tax lot analysis");
-        Console.WriteLine("127. portfolio-strategy [strategy] - Portfolio strategy optimization");
-        Console.WriteLine("128. clear - Clear terminal and show menu");
-        Console.WriteLine("129. help - Show available functions");
-        Console.WriteLine("130. quit - Exit the application");
-        Console.WriteLine("131. factor-research [symbols] [start_date] [end_date] - Advanced factor research and analysis");
-        Console.WriteLine("132. factor-portfolio [factors] [start_date] [end_date] - Create factor-based portfolio");
-        Console.WriteLine("133. factor-efficacy [factor] [symbols] [start_date] [end_date] - Test factor efficacy");
-        Console.WriteLine("134. academic-research [topic] [max_papers] - Extract strategies from academic papers");
-        Console.WriteLine("135. replicate-study [paper_url] [focus_area] - Replicate academic study");
-        Console.WriteLine("136. citation-network [topic] [max_papers] - Build citation network analysis");
-        Console.WriteLine("137. quantitative-model [paper_url] - Extract quantitative models from papers");
-        Console.WriteLine("138. literature-review [topic] [max_papers] - Generate literature review synthesis");
-        Console.WriteLine("139. automl-pipeline [symbols] [target] [start_date] [end_date] - Run AutoML pipeline");
-        Console.WriteLine("140. model-selection [data_type] [target_type] [features] [samples] - Select optimal model");
-        Console.WriteLine("141. feature-selection [symbols] [start_date] [end_date] [method] - Perform feature selection");
-        Console.WriteLine("142. ensemble-prediction [symbols] [method] [models] - Generate ensemble predictions");
-        Console.WriteLine("143. cross-validation [model] [symbols] [folds] - Perform cross-validation");
-        Console.WriteLine("144. hyperparameter-opt [model] [symbols] [method] - Optimize hyperparameters");
-        Console.WriteLine("145. shap-analysis [symbols] [start_date] [end_date] - Calculate SHAP values");
-        Console.WriteLine("146. partial-dependence [symbols] [feature] [start_date] [end_date] - Generate partial dependence plots");
-        Console.WriteLine("147. feature-interactions [symbols] [start_date] [end_date] - Analyze feature interactions");
-        Console.WriteLine("148. explain-prediction [symbol] [date] - Explain individual prediction");
-        Console.WriteLine("149. permutation-importance [symbols] [start_date] [end_date] - Calculate permutation importance");
-        Console.WriteLine("150. model-fairness [symbols] [start_date] [end_date] [groups] - Analyze model fairness");
-        Console.WriteLine("151. interpretability-report [symbols] [start_date] [end_date] - Generate interpretability report");
-        Console.WriteLine("152. train-q-learning [symbols] [start_date] [end_date] [episodes] - Train Q-learning agent");
-        Console.WriteLine("153. train-policy-gradient [symbols] [start_date] [end_date] [episodes] - Train policy gradient agent");
-        Console.WriteLine("154. train-actor-critic [symbols] [start_date] [end_date] [episodes] - Train actor-critic agent");
-        Console.WriteLine("155. adapt-strategy [symbol] [features] [base_params] - Adapt strategy with RL");
-        Console.WriteLine("156. bandit-optimization [param_sets] [trials] - Optimize parameters with bandit");
-        Console.WriteLine("157. contextual-bandit [symbols] [strategies] [start_date] [end_date] - Run contextual bandit");
-        Console.WriteLine("158. evaluate-rl-agent [symbols] [start_date] [end_date] [episodes] - Evaluate RL agent");
-        Console.WriteLine("159. rl-strategy-report [symbols] [start_date] [end_date] - Generate RL strategy report");
-        Console.WriteLine("160. fix-connect [parameters] - Connect to FIX protocol");
-        Console.WriteLine("161. fix-disconnect - Disconnect from FIX protocol");
-        Console.WriteLine("162. fix-order [parameters] - Place FIX order");
-        Console.WriteLine("163. fix-cancel [parameters] - Cancel FIX order");
-        Console.WriteLine("164. fix-market-data [parameters] - Get FIX market data");
-        Console.WriteLine("165. fix-heartbeat - Send FIX heartbeat");
-        Console.WriteLine("166. fix-status - Get FIX connection status");
-        Console.WriteLine("167. fix-info - Get FIX connection info");
-        Console.WriteLine("168. web-scrape-earnings [symbol] - Scrape earnings data from web");
-        Console.WriteLine("169. web-monitor-communications [symbol] - Monitor company communications");
-        Console.WriteLine("170. web-analyze-sentiment [url] - Analyze sentiment from web content");
-        Console.WriteLine("171. web-analyze-social [symbol] - Analyze social media sentiment");
-        Console.WriteLine("172. web-monitor-darkweb [query] - Monitor dark web for information");
-        Console.WriteLine("173. patent-search [query] - Search patents");
-        Console.WriteLine("174. patent-innovation [company] - Analyze patent innovation");
-        Console.WriteLine("175. patent-citations [patent_id] - Get patent citations");
-        Console.WriteLine("176. patent-value [patent_id] - Assess patent value");
-        Console.WriteLine("177. fed-fomc-announcements - Get FOMC announcements");
-        Console.WriteLine("178. fed-interest-rates - Get federal interest rates");
-        Console.WriteLine("179. fed-economic-projections - Get economic projections");
-        Console.WriteLine("180. fed-speeches [topic] - Search Fed speeches");
-        Console.WriteLine("181. global-economic-indicators [country] - Get economic indicators");
-        Console.WriteLine("182. global-supply-chain [indicator] - Analyze global supply chain");
-        Console.WriteLine("183. global-trade-data [country] - Get trade data");
-        Console.WriteLine("184. global-currency-data [currency] - Get currency data");
-        Console.WriteLine("185. global-commodity-prices [commodity] - Get commodity prices");
-        Console.WriteLine("186. geo-events [region] - Get geopolitical events");
-        Console.WriteLine("187. geo-sanctions [country] - Get sanctions information");
-        Console.WriteLine("188. geo-risk-index [region] - Get geopolitical risk index");
-        Console.WriteLine("189. geo-conflicts [region] - Analyze conflicts");
-        Console.WriteLine("190. geo-stability [country] - Assess geopolitical stability");
-        Console.WriteLine("191. options-flow [symbol] - Analyze options flow");
-        Console.WriteLine("192. unusual-options [symbol] - Detect unusual options activity");
-        Console.WriteLine("193. gamma-exposure [symbol] - Calculate gamma exposure");
-        Console.WriteLine("194. options-orderbook [symbol] - Get options order book");
-        Console.WriteLine("195. volatility-surface [symbol] - Generate volatility surface");
-        Console.WriteLine("196. vix-analysis - Analyze VIX");
-        Console.WriteLine("197. volatility-strategy [symbol] - Implement volatility strategy");
-        Console.WriteLine("198. volatility-monitor [symbol] - Monitor volatility");
-        Console.WriteLine("199. orderbook-reconstruction [symbol] - Reconstruct order book");
-        Console.WriteLine("200. hft-analysis [symbol] - High frequency trading analysis");
-        Console.WriteLine("201. manipulation-detection [symbol] - Detect market manipulation");
-        Console.WriteLine("202. latency-arbitrage [symbols] - Latency arbitrage analysis");
-        Console.WriteLine("203. colocation-analysis [exchange] - Colocation analysis");
-        Console.WriteLine("204. order-routing [symbol] - Smart order routing");
-        Console.WriteLine("205. market-data-feeds [exchange] - Analyze market data feeds");
-        Console.WriteLine("206. arbitrage-profitability [symbols] - Calculate arbitrage profitability");
-        Console.WriteLine("207. alpha-vantage [symbol] - Get Alpha Vantage data");
-        Console.WriteLine("208. iex-data [symbol] - Get IEX data");
-        Console.WriteLine("209. fmp-data [symbol] - Get Financial Modeling Prep data");
-        Console.WriteLine("210. enhanced-analysis [symbol] - Enhanced analysis");
-        Console.WriteLine("211. research-query [query] - Research query");
-        Console.WriteLine("212. research-report [topic] - Generate research report");
-        Console.WriteLine("213. detect-market-regime [symbols] - Detect market regime");
-        Console.WriteLine("214. detect-anomalies [symbols] - Detect anomalies");
-        Console.WriteLine("215. dynamic-factors [symbols] - Dynamic factor analysis");
-        Console.WriteLine("216. trading-template [symbol] - Generate trading template");
-        Console.WriteLine("217. counterparty-risk [counterparty] - Assess counterparty risk");
-        Console.WriteLine("218. performance-attribution [portfolio] - Performance attribution");
-        Console.WriteLine("219. benchmarking [portfolio] - Portfolio benchmarking");
-        Console.WriteLine("220. live-strategy [strategy] - Deploy live strategy");
-        Console.WriteLine("221. event-trading [event] - Event driven trading");
-        Console.WriteLine("222. alerts [symbol] - Real time alerts");
-        Console.WriteLine("223. compliance [check] - Compliance monitoring");
-        Console.WriteLine("224. alerts [action] [symbol] [params] - Real-time alerting system (create/check/list/delete)");
-        Console.WriteLine("225. compliance [action] [params] - Compliance monitoring (check/rules/violations/resolve)");
-
+        AnsiConsole.Clear();
+        // Show main menu again
         await Task.CompletedTask;
     }
 

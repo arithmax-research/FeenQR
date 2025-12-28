@@ -5,7 +5,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <NoWarn>CS1998,CS8625,CS8603,CS8604,CS8629,CS8601,CS8600,CS8602,CS8632,SKEXP0001,SKEXP0050,SKEXP0110</NoWarn>
+    <NoWarn>CS1998,CS8625,CS8603,CS8604,CS8629,CS8601,CS8600,CS8602,CS8632,SKEXP0001,SKEXP0010,SKEXP0050,SKEXP0110</NoWarn>
     <EnableDefaultItems>true</EnableDefaultItems>
     <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
   </PropertyGroup>
@@ -46,6 +46,7 @@
     <PackageReference Include="Microsoft.ML" Version="3.0.1" />
     <PackageReference Include="Microsoft.ML.TimeSeries" Version="3.0.1" />
     <PackageReference Include="NodaTime" Version="3.1.11" />
+    <PackageReference Include="Spectre.Console" Version="0.49.1" />
   </ItemGroup>
 
 </Project>

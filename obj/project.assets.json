@@ -1405,6 +1405,19 @@
           }
         }
       },
+      "Spectre.Console/0.49.1": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/Spectre.Console.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/Spectre.Console.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "System.ClientModel/1.1.0": {
         "type": "package",
         "dependencies": {
@@ -3790,6 +3803,26 @@
         "skender.stock.indicators.nuspec"
       ]
     },
+    "Spectre.Console/0.49.1": {
+      "sha512": "USV+pdu49OJ3nCjxNuw1K9Zw/c1HCBbwbjXZp0EOn6wM99tFdAtN34KEBZUMyRuJuXlUMDqhd8Yq9obW2MslYA==",
+      "type": "package",
+      "path": "spectre.console/0.49.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/net6.0/Spectre.Console.dll",
+        "lib/net6.0/Spectre.Console.xml",
+        "lib/net7.0/Spectre.Console.dll",
+        "lib/net7.0/Spectre.Console.xml",
+        "lib/net8.0/Spectre.Console.dll",
+        "lib/net8.0/Spectre.Console.xml",
+        "lib/netstandard2.0/Spectre.Console.dll",
+        "lib/netstandard2.0/Spectre.Console.xml",
+        "small-logo.png",
+        "spectre.console.0.49.1.nupkg.sha512",
+        "spectre.console.nuspec"
+      ]
+    },
     "System.ClientModel/1.1.0": {
       "sha512": "UocOlCkxLZrG2CKMAAImPcldJTxeesHnHGHwhJ0pNlZEvEXcWKuQvVOER2/NiOkJGRJk978SNdw3j6/7O9H1lg==",
       "type": "package",
@@ -5077,6 +5110,7 @@
       "Reddit >= 1.5.2",
       "RestSharp >= 112.0.0",
       "Skender.Stock.Indicators >= 3.0.0-preview.1",
+      "Spectre.Console >= 0.49.1",
       "System.Text.Json >= 8.0.5",
       "Terminal.Gui >= 1.19.0",
       "YahooFinanceApi >= 2.3.3"
@@ -5225,6 +5259,10 @@
           "Skender.Stock.Indicators": {
             "target": "Package",
             "version": "[3.0.0-preview.1, )"
+          },
+          "Spectre.Console": {
+            "target": "Package",
+            "version": "[0.49.1, )"
           },
           "System.Text.Json": {
             "target": "Package",

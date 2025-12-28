@@ -2,6 +2,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Memory;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using QuantResearchAgent.Core;
 using QuantResearchAgent.Services;
 using Feen.Services;
@@ -187,13 +189,22 @@ namespace QuantResearchAgent
                 )
             );
 
-            // Add Semantic Kernel memory for RAG capabilities
-            services.AddSingleton<ISemanticTextMemory>(sp =>
+            // Add Semantic Kernel memory for RAG capabilities - using in-memory store
+            services.AddSingleton<ISemanticTextMemory>(sp => 
             {
                 var kernel = sp.GetRequiredService<Kernel>();
-                var embeddingService = kernel.GetRequiredService<Microsoft.SemanticKernel.Embeddings.ITextEmbeddingGenerationService>();
-                var memoryStore = new Microsoft.SemanticKernel.Memory.VolatileMemoryStore();
-                return new Microsoft.SemanticKernel.Memory.SemanticTextMemory(memoryStore, embeddingService);
+                var config = sp.GetRequiredService<IConfiguration>();
+                var openAiKey = config["OpenAI:ApiKey"];
+                var embeddingModel = config["OpenAI:EmbeddingModel"] ?? "text-embedding-3-small";
+                
+                var memoryBuilder = new MemoryBuilder();
+                if (!string.IsNullOrEmpty(openAiKey))
+                {
+                    memoryBuilder.WithOpenAITextEmbeddingGeneration(embeddingModel, openAiKey);
+                }
+                memoryBuilder.WithMemoryStore(new VolatileMemoryStore());
+                
+                return memoryBuilder.Build();
             });
 
             // Add RAG and Agentic services
