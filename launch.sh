@@ -19,24 +19,29 @@ if [ "$1" = "web" ]; then
     MODE="web"
 fi
 
-echo " Building backend..."
-dotnet build QuantResearchAgent.csproj
-
-if [ $? -ne 0 ]; then
-    echo " Backend build failed. Please check for errors."
-    exit 1
-fi
-
-echo " Backend built successfully"
-echo ""
-
 if [ "$MODE" = "web" ]; then
     echo " Starting Web interface..."
-    echo " Backend API will be available at http://localhost:5000"
-    echo " Frontend will be available at http://localhost:5000"
+    echo " Checking for webapp..."
+    if [ ! -d "../FeenQR.WebApp" ]; then
+        echo " Error: Webapp not found at ../FeenQR.WebApp"
+        echo " Please ensure the webapp is built and available."
+        exit 1
+    fi
+    echo " Webapp will be available at http://localhost:5157"
     echo ""
-    dotnet run --project QuantResearchAgent.csproj -- --web
+    cd ../FeenQR.WebApp/Client
+    dotnet run
 else
+    echo " Building backend..."
+    dotnet build QuantResearchAgent.csproj
+
+    if [ $? -ne 0 ]; then
+        echo " Backend build failed. Please check for errors."
+        exit 1
+    fi
+
+    echo " Backend built successfully"
+    echo ""
     echo " Starting CLI interface..."
     echo ""
     dotnet run --project QuantResearchAgent.csproj
