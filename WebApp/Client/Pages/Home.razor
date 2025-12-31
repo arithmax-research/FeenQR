@@ -1,11 +1,78 @@
-@page "/home"
-@inject NavigationManager Navigation
+@page "/"
+@inject IJSRuntime JS
+@implements IDisposable
 
-<PageTitle>Arithmax - Home</PageTitle>
+<PageTitle>FeenQR - Home</PageTitle>
+
+<style>
+    .chart-container {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 280px;
+        background: inherit;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    #tradingViewChart {
+        width: 100%;
+        height: 100%;
+    }
+
+    @@media (max-width: 768px) {
+        .chart-container {
+            left: 0;
+        }
+    }
+</style>
+
+<div class="chart-container">
+    <div id="tradingViewChart"></div>
+</div>
 
 @code {
-    protected override void OnInitialized()
+    private bool chartInitialized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        Navigation.NavigateTo("/dashboard");
+        if (firstRender && !chartInitialized)
+        {
+            chartInitialized = true;
+            await InitializeChart();
+            
+            // Monitor theme changes via window.currentTheme
+            await JS.InvokeVoidAsync("eval", @"
+                window.currentTheme = window.currentTheme || 'dark';
+                setInterval(() => {
+                    const chart = document.getElementById('tradingViewChart');
+                    if (chart && chart.dataset.theme !== window.currentTheme) {
+                        chart.dataset.theme = window.currentTheme;
+                        chart.innerHTML = '';
+                        window.createAdvancedChart('tradingViewChart', 'NASDAQ:AAPL', '60');
+                    }
+                }, 500);
+            ");
+        }
+    }
+
+    private async Task InitializeChart()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("createAdvancedChart", "tradingViewChart", "NASDAQ:AAPL", "60");
+            Console.WriteLine("Trading chart initialized");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Chart initialization error: {ex.Message}");
+        }
+    }
+
+    public void Dispose()
+    {
+        // Cleanup if needed
     }
 }
