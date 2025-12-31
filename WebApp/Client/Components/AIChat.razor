@@ -1,0 +1,190 @@
+@using System.Text
+@using System.Text.Json
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<div class="ai-chat-widget">
+    <div class="ai-chat-header">
+        <div>
+            <MudText Typo="Typo.h6" Style="margin: 0;">AI Research Assistant</MudText>
+            <MudText Typo="Typo.caption" Style="color: var(--text-secondary);">@selectedModel</MudText>
+        </div>
+        <div class="ai-chat-model-selector">
+            <button class="model-btn @(selectedModel == "DeepSeek" ? "active" : "")" @onclick="SelectDeepSeek">
+                <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Small" /> DeepSeek
+            </button>
+            <button class="model-btn @(selectedModel == "OpenAI" ? "active" : "")" @onclick="SelectOpenAI">
+                <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Size="Size.Small" /> OpenAI
+            </button>
+        </div>
+    </div>
+
+    <div class="ai-chat-messages" @ref="messagesContainer">
+        @if (!messages.Any())
+        {
+            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Large" Style="font-size: 4rem; opacity: 0.3;" />
+                <MudText Typo="Typo.body1" Style="margin-top: 1rem;">Ask me anything about markets, strategies, or analysis</MudText>
+            </div>
+        }
+        else
+        {
+            @foreach (var message in messages)
+            {
+                <div class="chat-message @(message.IsUser ? "user" : "ai")">
+                    <div class="message-avatar @(message.IsUser ? "user" : "ai")">
+                        @if (message.IsUser)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
+                        }
+                    </div>
+                    <div class="message-content">
+                        @message.Content
+                    </div>
+                </div>
+            }
+            
+            @if (isLoading)
+            {
+                <div class="chat-message ai">
+                    <div class="message-avatar ai">
+                        <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
+                    </div>
+                    <div class="message-content">
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                        <span style="margin-left: 0.5rem;">Thinking...</span>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    <div class="ai-chat-input">
+        <input type="text" 
+               placeholder="Ask about markets, strategies, risk analysis..." 
+               @bind="userMessage" 
+               @onkeypress="HandleKeyPress"
+               disabled="@isLoading" />
+        <button @onclick="SendMessage" disabled="@(isLoading || string.IsNullOrWhiteSpace(userMessage))">
+            <MudIcon Icon="@Icons.Material.Filled.Send" Size="Size.Small" />
+            Send
+        </button>
+    </div>
+</div>
+
+@code {
+    private ElementReference messagesContainer;
+    private List<ChatMessage> messages = new();
+    private string userMessage = "";
+    private string selectedModel = "DeepSeek";
+    private bool isLoading = false;
+
+    private class ChatMessage
+    {
+        public string Content { get; set; } = "";
+        public bool IsUser { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+    }
+
+    private void SelectModel(string model)
+    {
+        selectedModel = model;
+        StateHasChanged();
+    }
+
+    private void SelectDeepSeek() => SelectModel("DeepSeek");
+    private void SelectOpenAI() => SelectModel("OpenAI");
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !isLoading && !string.IsNullOrWhiteSpace(userMessage))
+        {
+            await SendMessage();
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(userMessage) || isLoading) return;
+
+        var userMsg = userMessage;
+        userMessage = "";
+        isLoading = true;
+
+        messages.Add(new ChatMessage
+        {
+            Content = userMsg,
+            IsUser = true
+        });
+        StateHasChanged();
+
+        try
+        {
+            var endpoint = selectedModel == "DeepSeek" ? "/api/chat/deepseek" : "/api/chat/openai";
+            
+            var requestBody = new
+            {
+                message = userMsg,
+                history = messages.Where(m => !m.IsUser).Select(m => m.Content).ToList()
+            };
+
+            var response = await Http.PostAsJsonAsync(endpoint, requestBody);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ChatResponse>();
+                
+                messages.Add(new ChatMessage
+                {
+                    Content = result?.Response ?? "Sorry, I couldn't generate a response.",
+                    IsUser = false
+                });
+            }
+            else
+            {
+                messages.Add(new ChatMessage
+                {
+                    Content = "Sorry, I encountered an error. Please try again.",
+                    IsUser = false
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            messages.Add(new ChatMessage
+            {
+                Content = $"Error: {ex.Message}. Please check your connection and try again.",
+                IsUser = false
+            });
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+            await ScrollToBottom();
+        }
+    }
+
+    private async Task ScrollToBottom()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("eval", 
+                @"document.querySelector('.ai-chat-messages').scrollTop = 
+                  document.querySelector('.ai-chat-messages').scrollHeight");
+        }
+        catch
+        {
+            // Ignore scrolling errors
+        }
+    }
+
+    private class ChatResponse
+    {
+        public string Response { get; set; } = "";
+    }
+}

@@ -1,0 +1,294 @@
+@page "/ai-chat"
+@inject HttpClient Http
+
+<PageTitle>FeenQR - AI Research Assistant</PageTitle>
+
+<style>
+    .chat-container {
+        padding: 2rem;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-box {
+        flex: 1;
+        background: rgba(10, 15, 30, 0.7);
+        backdrop-filter: blur(30px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        max-height: calc(100vh - 300px);
+        overflow-y: auto;
+        transform-style: preserve-3d;
+    }
+
+    .message {
+        margin-bottom: 1.5rem;
+        animation: fadeIn 0.4s ease;
+    }
+
+    .message.user {
+        text-align: right;
+    }
+
+    .message-bubble {
+        display: inline-block;
+        padding: 1rem 1.5rem;
+        border-radius: 16px;
+        max-width: 70%;
+        transform-style: preserve-3d;
+        transition: transform 0.3s ease;
+    }
+
+    .message-bubble:hover {
+        transform: translateZ(10px);
+    }
+
+    .message.user .message-bubble {
+        background: rgba(59, 130, 246, 0.2);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        color: #fff;
+    }
+
+    .message.assistant .message-bubble {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .input-container {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .chat-input {
+        flex: 1;
+        background: rgba(10, 15, 30, 0.7);
+        backdrop-filter: blur(30px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 1rem 1.5rem;
+        color: #fff;
+        font-size: 1rem;
+        font-family: Georgia, serif;
+        outline: none;
+        transition: all 0.3s ease;
+    }
+
+    .chat-input:focus {
+        border-color: rgba(59, 130, 246, 0.4);
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+    }
+
+    .send-btn {
+        padding: 1rem 2rem;
+        border-radius: 16px;
+        background: rgba(59, 130, 246, 0.15);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        transform-style: preserve-3d;
+    }
+
+    .send-btn:hover {
+        background: rgba(59, 130, 246, 0.25);
+        transform: translateZ(10px);
+    }
+
+    .send-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .model-selector {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .model-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.85rem;
+    }
+
+    .model-btn:hover, .model-btn.active {
+        background: rgba(59, 130, 246, 0.15);
+        border-color: rgba(59, 130, 246, 0.3);
+        color: #fff;
+    }
+
+    .chat-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: #fff;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<div class="chat-container">
+    <div class="chat-title">AI Research Assistant</div>
+
+    <div class="model-selector">
+        <button class="model-btn @(selectedModel == "deepseek" ? "active" : "")" 
+                @onclick='() => selectedModel = "deepseek"'>
+            DeepSeek
+        </button>
+        <button class="model-btn @(selectedModel == "gpt-4" ? "active" : "")" 
+                @onclick='() => selectedModel = "gpt-4"'>
+            GPT-4
+        </button>
+        <button class="model-btn @(selectedModel == "claude" ? "active" : "")" 
+                @onclick='() => selectedModel = "claude"'>
+            Claude
+        </button>
+    </div>
+
+    <div class="chat-box">
+        @foreach (var msg in messages)
+        {
+            <div class="message @msg.Role">
+                <div class="message-bubble">
+                    @msg.Content
+                </div>
+            </div>
+        }
+
+        @if (isTyping)
+        {
+            <div class="message assistant">
+                <div class="message-bubble">
+                    <div class="loading-spinner" style="width: 20px; height: 20px; border-width: 2px;"></div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="input-container">
+        <input type="text" 
+               class="chat-input" 
+               placeholder="Ask about markets, strategies, risk analysis..."
+               @bind="userInput"
+               @onkeypress="HandleKeyPress"
+               disabled="@isTyping" />
+        <button class="send-btn" @onclick="SendMessage" disabled="@isTyping">
+            @(isTyping ? "Thinking..." : "Send")
+        </button>
+    </div>
+</div>
+
+@code {
+    private string userInput = "";
+    private string selectedModel = "deepseek";
+    private bool isTyping = false;
+    private List<ChatMessage> messages = new();
+
+    public class ChatMessage
+    {
+        public string Role { get; set; } = ""; // "user" or "assistant"
+        public string Content { get; set; } = "";
+    }
+
+    protected override void OnInitialized()
+    {
+        messages.Add(new ChatMessage
+        {
+            Role = "assistant",
+            Content = "Hello! I'm your AI quant research assistant. I can help with market analysis, trading strategies, risk metrics, and more. How can I assist you today?"
+        });
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(userInput) || isTyping)
+            return;
+
+        var question = userInput;
+        userInput = "";
+
+        messages.Add(new ChatMessage { Role = "user", Content = question });
+        StateHasChanged();
+
+        isTyping = true;
+        try
+        {
+            // Map model to correct endpoint
+            string endpoint = selectedModel switch
+            {
+                "gpt-4" => "api/chat/openai",
+                "claude" => "api/chat/openai",
+                _ => "api/chat/deepseek"
+            };
+            
+            var response = await Http.PostAsJsonAsync(endpoint, new 
+            { 
+                message = question
+            });
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ChatResponse>();
+                if (result != null)
+                {
+                    messages.Add(new ChatMessage
+                    {
+                        Role = "assistant",
+                        Content = result.Message
+                    });
+                    Console.WriteLine($"✓ AI response from {result.Model}");
+                }
+            }
+            else
+            {
+                messages.Add(new ChatMessage
+                {
+                    Role = "assistant",
+                    Content = $"Error: API returned {response.StatusCode}"
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            messages.Add(new ChatMessage
+            {
+                Role = "assistant",
+                Content = $"Error: {ex.Message}"
+            });
+            Console.Error.WriteLine($"Chat error: {ex}");
+        }
+        finally
+        {
+            isTyping = false;
+            StateHasChanged();
+        }
+    }
+
+    public class ChatResponse
+    {
+        public string Message { get; set; } = "";
+        public string Model { get; set; } = "";
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(userInput))
+        {
+            await SendMessage();
+        }
+    }
+}

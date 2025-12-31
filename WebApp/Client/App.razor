@@ -1,0 +1,54 @@
+@using MudBlazor
+
+<MudThemeProvider Theme="@MyTheme" @bind-IsDarkMode="@_isDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p role="alert">Sorry, there's nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
+</Router>
+
+@code {
+    private bool _isDarkMode = true;
+    
+    private MudTheme MyTheme = new MudTheme()
+    {
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#1976d2",
+            Secondary = "#dc004e",
+            Background = "#121212",
+            Surface = "#1e1e1e",
+            DrawerBackground = "#1e1e1e",
+            DrawerText = "#ffffff",
+            DrawerIcon = "#ffffff",
+            AppbarBackground = "#1e1e1e",
+            AppbarText = "#ffffff",
+            TextPrimary = "#ffffff",
+            TextSecondary = "#bdbdbd",
+            ActionDefault = "#ffffff",
+            ActionDisabled = "#616161",
+            ActionDisabledBackground = "#424242",
+            Divider = "#424242",
+            DividerLight = "#616161",
+            TableLines = "#424242",
+            LinesDefault = "#424242",
+            LinesInputs = "#424242",
+            TextDisabled = "#616161",
+            Info = "#2196f3",
+            Success = "#4caf50",
+            Warning = "#ff9800",
+            Error = "#f44336"
+        }
+    };
+}

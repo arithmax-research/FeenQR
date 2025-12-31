@@ -1,4 +1,11 @@
-/bin/
+# Ignore build and log folders
 /obj/
 /logs/
+
+# Ignore config file
 appsettings.json
+
+# Ignore all bin folders everywhere
+bin/
+**/bin/
+**/obj/

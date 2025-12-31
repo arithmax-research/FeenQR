@@ -1,0 +1,259 @@
+@page "/symbol/{Symbol}"
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>@Symbol - FeenQR</PageTitle>
+
+<style>
+    .symbol-container {
+        padding: 2rem;
+        min-height: 100vh;
+    }
+
+    .symbol-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding: 2rem;
+        background: rgba(10, 15, 30, 0.7);
+        backdrop-filter: blur(30px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 20px;
+    }
+
+    .symbol-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
+        color: #fff;
+    }
+
+    .symbol-price {
+        font-size: 3rem;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
+        color: #fff;
+    }
+
+    .symbol-change {
+        font-size: 1.5rem;
+        font-weight: 600;
+        font-family: 'JetBrains Mono', monospace;
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        display: inline-block;
+        margin-top: 0.5rem;
+    }
+
+    .grid-layout {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .chart-card {
+        background: rgba(10, 15, 30, 0.7);
+        backdrop-filter: blur(30px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 20px;
+        padding: 1.5rem;
+        transform-style: preserve-3d;
+        transition: all 0.4s ease;
+    }
+
+    .chart-card:hover {
+        transform: translateZ(15px);
+        border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .stat-item {
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #fff;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    @@media (max-width: 1024px) {
+        .grid-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="symbol-container">
+    @if (isLoading)
+    {
+        <div style="display: flex; justify-content: center; align-items: center; height: 400px;">
+            <div class="loading-spinner"></div>
+        </div>
+    }
+    else if (quote != null)
+    {
+        <div class="symbol-header">
+            <div>
+                <div class="symbol-title">@Symbol</div>
+                <div class="symbol-price">$@quote.Price.ToString("F2")</div>
+                <div class="symbol-change @(quote.Change >= 0 ? "up" : "down")">
+                    @(quote.Change >= 0 ? "▲" : "▼") @Math.Abs(quote.Change).ToString("F2")%
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div class="stat-label">Volume</div>
+                <div class="stat-value">@FormatVolume(quote.Volume)</div>
+            </div>
+        </div>
+
+        <div class="grid-layout">
+            <div class="chart-card">
+                <div style="font-size: 1.2rem; font-weight: 600; color: #fff; margin-bottom: 1rem;">
+                    Advanced Chart
+                </div>
+                <div id="advancedChart" style="width: 100%; height: 600px;"></div>
+            </div>
+
+            <div>
+                <div class="chart-card" style="margin-bottom: 1.5rem;">
+                    <div style="font-size: 1.1rem; font-weight: 600; color: #fff; margin-bottom: 1rem;">
+                        Key Metrics
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">Price</div>
+                            <div class="stat-value">$@quote.Price.ToString("F2")</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Change</div>
+                            <div class="stat-value" style="color: @(quote.Change >= 0 ? "#10b981" : "#ef4444")">
+                                @quote.Change.ToString("F2")%
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Volume</div>
+                            <div class="stat-value">@FormatVolume(quote.Volume)</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Market Cap</div>
+                            <div class="stat-value">@quote.MarketCap</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div style="font-size: 1.1rem; font-weight: 600; color: #fff; margin-bottom: 1rem;">
+                        Quick Actions
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <button class="nav-pill" style="width: 100%; text-align: left;">
+                            📊 Technical Analysis
+                        </button>
+                        <button class="nav-pill" style="width: 100%; text-align: left;">
+                            📈 Backtest Strategy
+                        </button>
+                        <button class="nav-pill" style="width: 100%; text-align: left;">
+                            📰 Related News
+                        </button>
+                        <button class="nav-pill" style="width: 100%; text-align: left;">
+                            🤖 AI Analysis
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Symbol { get; set; } = "";
+
+    private bool isLoading = true;
+    private Quote? quote;
+
+    public class Quote
+    {
+        public string Symbol { get; set; } = "";
+        public double Price { get; set; }
+        public double Change { get; set; }
+        public long Volume { get; set; }
+        public string MarketCap { get; set; } = "N/A";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSymbolData();
+    }
+
+    private async Task LoadSymbolData()
+    {
+        try
+        {
+            isLoading = true;
+            var quotes = await Http.GetFromJsonAsync<Quote[]>("api/marketdata/quotes");
+            
+            if (quotes != null)
+            {
+                quote = quotes.FirstOrDefault(q => q.Symbol.Equals(Symbol, StringComparison.OrdinalIgnoreCase));
+                
+                if (quote != null)
+                {
+                    Console.WriteLine($"✓ Loaded data for {Symbol}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error loading symbol data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && quote != null)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("createAdvancedChart", "advancedChart", $"NASDAQ:{Symbol}", "60");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chart error: {ex.Message}");
+            }
+        }
+    }
+
+    private string FormatVolume(long volume)
+    {
+        if (volume >= 1_000_000_000)
+            return $"{volume / 1_000_000_000.0:F1}B";
+        if (volume >= 1_000_000)
+            return $"{volume / 1_000_000.0:F1}M";
+        if (volume >= 1_000)
+            return $"{volume / 1_000.0:F1}K";
+        return volume.ToString();
+    }
+}

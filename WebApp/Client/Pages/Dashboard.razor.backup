@@ -1,0 +1,335 @@
+@page "/dashboard"
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>Arithmax - Quantitative Research Dashboard</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-2">
+    <!-- Header -->
+    <div style="margin-bottom: 1.5rem;">
+        <MudText Typo="Typo.h4" Style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">
+            <MudIcon Icon="@Icons.Material.Filled.Dashboard" Style="vertical-align: middle; margin-right: 0.5rem;" />
+            Quantitative Research Dashboard
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color: var(--text-secondary);">
+            Real-time market data, AI-powered insights, and advanced analytics
+        </MudText>
+    </div>
+
+    <!-- Top Ticker Bar -->
+    <div class="ticker-bar" style="margin-bottom: 1.5rem;">
+        @foreach (var quote in topQuotes)
+        {
+            <span class="ticker-item @(quote.Change >= 0 ? "ticker-positive" : "ticker-negative")">
+                <strong>@quote.Symbol</strong>: $@quote.Price.ToString("F2") 
+                @(quote.Change >= 0 ? "▲" : "▼")@Math.Abs(quote.Change).ToString("F2")%
+            </span>
+        }
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="metrics-grid" style="margin-bottom: 1.5rem;">
+        <div class="metric-card">
+            <div class="metric-label">Portfolio Value</div>
+            <div class="metric-value">$1,245,320</div>
+            <div class="metric-change positive">+5.2% ($64,840)</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Daily P&L</div>
+            <div class="metric-value">+$12,450</div>
+            <div class="metric-change positive">+1.8%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Sharpe Ratio</div>
+            <div class="metric-value">2.34</div>
+            <div class="metric-change positive">+0.12</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Max Drawdown</div>
+            <div class="metric-value">-8.5%</div>
+            <div class="metric-change negative">-1.2%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Win Rate</div>
+            <div class="metric-value">67.8%</div>
+            <div class="metric-change positive">+2.3%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Active Positions</div>
+            <div class="metric-value">24</div>
+            <div class="metric-change neutral">0</div>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <MudGrid>
+        <!-- Left Column: Charts and Data -->
+        <MudItem xs="12" md="8" lg="9">
+            <!-- Quick Actions -->
+            <MudPaper Class="quant-card" Style="margin-bottom: 1.5rem;">
+                <div class="quant-card-header">
+                    <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small" Style="vertical-align: middle;" />
+                    Quick Actions
+                </div>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Filled" 
+                              Color="Color.Primary" 
+                              StartIcon="@Icons.Material.Filled.TrendingUp"
+                              Size="Size.Medium">
+                        Run Backtest
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" 
+                              Color="Color.Secondary" 
+                              StartIcon="@Icons.Material.Filled.Assessment"
+                              Size="Size.Medium">
+                        Risk Analysis
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" 
+                              Color="Color.Info" 
+                              StartIcon="@Icons.Material.Filled.AutoGraph"
+                              Size="Size.Medium">
+                        Strategy Builder
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" 
+                              Color="Color.Success" 
+                              StartIcon="@Icons.Material.Filled.Newspaper"
+                              Size="Size.Medium">
+                        Market News
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+
+            <!-- Watchlist Table -->
+            <MudPaper Class="quant-card" Style="margin-bottom: 1.5rem;">
+                <div class="quant-card-header">
+                    <MudIcon Icon="@Icons.Material.Filled.RemoveRedEye" Size="Size.Small" Style="vertical-align: middle;" />
+                    Watchlist
+                </div>
+                <MudDataGrid T="Quote" 
+                            Items="@quotes" 
+                            Dense="true"
+                            Hover="true"
+                            SortMode="SortMode.Multiple" 
+                            Filterable="true"
+                            QuickFilter="@_quickFilter"
+                            Class="mud-elevation-0">
+                    <ToolBarContent>
+                        <MudTextField @bind-Value="_searchString" 
+                                     Placeholder="Search symbols..." 
+                                     Adornment="Adornment.Start" 
+                                     AdornmentIcon="@Icons.Material.Filled.Search" 
+                                     IconSize="Size.Small"
+                                     Immediate="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense" />
+                        <MudSpacer />
+                        <MudButton Variant="Variant.Text" 
+                                  StartIcon="@Icons.Material.Filled.Add" 
+                                  Color="Color.Primary" 
+                                  Size="Size.Small">
+                            Add Symbol
+                        </MudButton>
+                    </ToolBarContent>
+                    <Columns>
+                        <PropertyColumn Property="x => x.Symbol" Title="Symbol">
+                            <CellTemplate>
+                                <strong style="color: var(--accent-blue);">@context.Item.Symbol</strong>
+                            </CellTemplate>
+                        </PropertyColumn>
+                        <PropertyColumn Property="x => x.Price" Title="Price" Format="C2" />
+                        <TemplateColumn Title="Change">
+                            <CellTemplate>
+                                <span style="@GetChangeStyle(context.Item.Change); font-weight: 600;">
+                                    @(context.Item.Change >= 0 ? "+" : "")@context.Item.Change.ToString("F2")%
+                                </span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.Volume" Title="Volume" Format="N0" />
+                        <PropertyColumn Property="x => x.MarketCap" Title="Market Cap" />
+                        <TemplateColumn Title="Actions">
+                            <CellTemplate>
+                                <MudIconButton Icon="@Icons.Material.Filled.ShowChart" 
+                                              Size="Size.Small" 
+                                              Color="Color.Info" 
+                                              OnClick="() => ShowChart(context.Item.Symbol)" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Analytics" 
+                                              Size="Size.Small" 
+                                              Color="Color.Primary" 
+                                              OnClick="() => AnalyzeSymbol(context.Item.Symbol)" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                    <PagerContent>
+                        <MudDataGridPager T="Quote" />
+                    </PagerContent>
+                </MudDataGrid>
+            </MudPaper>
+
+            <!-- Charts Grid -->
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <span class="chart-title">AAPL - Apple Inc.</span>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <MudButton Size="Size.Small" Variant="Variant.Text">1D</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Text">1W</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Text">1M</MudButton>
+                            </div>
+                        </div>
+                        <div id="chart1" style="width: 100%; height: 400px;"></div>
+                    </div>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <span class="chart-title">NVDA - NVIDIA Corp.</span>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <MudButton Size="Size.Small" Variant="Variant.Text">1D</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Text">1W</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Text">1M</MudButton>
+                            </div>
+                        </div>
+                        <div id="chart2" style="width: 100%; height: 400px;"></div>
+                    </div>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <span class="chart-title">Market Overview</span>
+                            <MudIconButton Icon="@Icons.Material.Filled.Fullscreen" Size="Size.Small" />
+                        </div>
+                        <div id="marketOverview" style="width: 100%; height: 400px;"></div>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudItem>
+
+        <!-- Right Column: AI Chat & News -->
+        <MudItem xs="12" md="4" lg="3">
+            <!-- AI Chat Widget -->
+            <div style="margin-bottom: 1.5rem;">
+                <AIChat />
+            </div>
+
+            <!-- News Feed -->
+            <MudPaper Class="quant-card" Style="max-height: 500px; overflow-y: auto;">
+                <div class="quant-card-header">
+                    <MudIcon Icon="@Icons.Material.Filled.Newspaper" Size="Size.Small" Style="vertical-align: middle;" />
+                    Market News
+                </div>
+                @foreach (var newsItem in newsItems)
+                {
+                    <div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+                        <MudText Typo="Typo.body2" Style="font-weight: 600; margin-bottom: 0.25rem;">
+                            @newsItem.Title
+                        </MudText>
+                        <MudText Typo="Typo.caption" Style="color: var(--text-secondary);">
+                            @newsItem.Source • @newsItem.Time
+                        </MudText>
+                    </div>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private string _searchString = "";
+    
+    private List<Quote> topQuotes = new()
+    {
+        new Quote { Symbol = "AAPL", Price = 195.32, Change = 2.45 },
+        new Quote { Symbol = "NVDA", Price = 523.18, Change = 5.67 },
+        new Quote { Symbol = "TSLA", Price = 245.80, Change = -1.23 },
+        new Quote { Symbol = "MSFT", Price = 412.50, Change = 1.89 },
+        new Quote { Symbol = "GOOGL", Price = 142.75, Change = 3.21 },
+        new Quote { Symbol = "AMZN", Price = 178.95, Change = -0.85 },
+        new Quote { Symbol = "META", Price = 488.23, Change = 4.12 },
+        new Quote { Symbol = "NFLX", Price = 678.45, Change = -2.34 }
+    };
+
+    private List<Quote> quotes = new()
+    {
+        new Quote { Symbol = "AAPL", Price = 195.32, Change = 2.45, Volume = 52450000, MarketCap = "$3.02T" },
+        new Quote { Symbol = "NVDA", Price = 523.18, Change = 5.67, Volume = 45820000, MarketCap = "$1.29T" },
+        new Quote { Symbol = "TSLA", Price = 245.80, Change = -1.23, Volume = 115230000, MarketCap = "$779B" },
+        new Quote { Symbol = "MSFT", Price = 412.50, Change = 1.89, Volume = 28450000, MarketCap = "$3.07T" },
+        new Quote { Symbol = "GOOGL", Price = 142.75, Change = 3.21, Volume = 25670000, MarketCap = "$1.78T" },
+        new Quote { Symbol = "AMZN", Price = 178.95, Change = -0.85, Volume = 42180000, MarketCap = "$1.86T" },
+        new Quote { Symbol = "META", Price = 488.23, Change = 4.12, Volume = 18950000, MarketCap = "$1.24T" },
+        new Quote { Symbol = "NFLX", Price = 678.45, Change = -2.34, Volume = 5670000, MarketCap = "$292B" },
+        new Quote { Symbol = "ORCL", Price = 125.67, Change = 1.56, Volume = 9230000, MarketCap = "$348B" },
+        new Quote { Symbol = "IBM", Price = 187.89, Change = 0.92, Volume = 4560000, MarketCap = "$173B" },
+        new Quote { Symbol = "AMD", Price = 164.23, Change = 3.45, Volume = 68920000, MarketCap = "$265B" },
+        new Quote { Symbol = "INTC", Price = 45.78, Change = -1.67, Volume = 45670000, MarketCap = "$189B" }
+    };
+
+    private List<NewsItem> newsItems = new()
+    {
+        new NewsItem { Title = "Fed signals potential rate cuts in 2024", Source = "Bloomberg", Time = "15m ago" },
+        new NewsItem { Title = "Tech stocks rally on AI optimism", Source = "CNBC", Time = "1h ago" },
+        new NewsItem { Title = "Oil prices surge amid Middle East tensions", Source = "Reuters", Time = "2h ago" },
+        new NewsItem { Title = "Apple unveils new AI features for iPhone", Source = "TechCrunch", Time = "3h ago" },
+        new NewsItem { Title = "Amazon reports strong Q4 earnings", Source = "WSJ", Time = "4h ago" },
+        new NewsItem { Title = "Bitcoin crosses $50K milestone", Source = "CoinDesk", Time = "5h ago" }
+    };
+
+    private Func<Quote, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+        
+        return x.Symbol.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    };
+
+    public class Quote
+    {
+        public string Symbol { get; set; } = "";
+        public double Price { get; set; }
+        public double Change { get; set; }
+        public long Volume { get; set; }
+        public string MarketCap { get; set; } = "";
+    }
+
+    public class NewsItem
+    {
+        public string Title { get; set; } = "";
+        public string Source { get; set; } = "";
+        public string Time { get; set; } = "";
+    }
+
+    private string GetChangeStyle(double change)
+    {
+        return change >= 0 ? "color: var(--positive);" : "color: var(--negative);";
+    }
+
+    private void ShowChart(string symbol)
+    {
+        // Navigate to chart view or open dialog
+    }
+
+    private void AnalyzeSymbol(string symbol)
+    {
+        // Navigate to analysis view or open dialog
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("createTradingViewChart", "chart1", "NASDAQ:AAPL", "D", 400);
+                await JS.InvokeVoidAsync("createTradingViewChart", "chart2", "NASDAQ:NVDA", "D", 400);
+                await JS.InvokeVoidAsync("createMarketOverview", "marketOverview");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading charts: {ex.Message}");
+            }
+        }
+    }
+}

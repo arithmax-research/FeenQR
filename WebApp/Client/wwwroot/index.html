@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FeenQR - Quantitative Research Platform</title>
+    <link rel="icon" type="image/png" href="images/logo.png" />
+    <base href="/" />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link href="Client.styles.css" rel="stylesheet" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #000000;">
+    <div id="app" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #000000;">
+        <div style="text-align: center;">
+            <div style="font-size: 2.5rem; font-weight: 700; font-family: 'Playfair Display', Georgia, serif; color: #ffffff; margin-bottom: 2rem; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                FeenQR
+            </div>
+            <div style="font-size: 1rem; color: #9ca3af; margin-bottom: 2rem;">
+                Welcome to FeenQR
+            </div>
+            <div class="spinner-container">
+                <div class="spinner"></div>
+            </div>
+            <div style="margin-top: 1.5rem; font-size: 0.875rem; color: #666666;">
+                Loading platform...
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .spinner-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(59, 130, 246, 0.1);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="." class="reload">Reload</a>
+        <span class="dismiss">X</span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    
+    <script>
+        // TradingView Ticker Tape Widget (scrolling stock ticker)
+        window.createTickerTape = (containerId) => {
+            try {
+                new TradingView.widget({
+                    "container_id": containerId,
+                    "symbols": [
+                        { "proName": "NASDAQ:AAPL", "title": "Apple" },
+                        { "proName": "NASDAQ:NVDA", "title": "NVIDIA" },
+                        { "proName": "NASDAQ:TSLA", "title": "Tesla" },
+                        { "proName": "NASDAQ:MSFT", "title": "Microsoft" },
+                        { "proName": "NASDAQ:GOOGL", "title": "Google" },
+                        { "proName": "NASDAQ:AMZN", "title": "Amazon" },
+                        { "proName": "NASDAQ:META", "title": "Meta" },
+                        { "proName": "NYSE:JPM", "title": "JPMorgan" },
+                        { "proName": "NYSE:V", "title": "Visa" },
+                        { "proName": "NASDAQ:NFLX", "title": "Netflix" },
+                        { "proName": "NYSE:WMT", "title": "Walmart" },
+                        { "proName": "NYSE:DIS", "title": "Disney" },
+                        { "proName": "BINANCE:BTCUSDT", "title": "Bitcoin" },
+                        { "proName": "BINANCE:ETHUSDT", "title": "Ethereum" },
+                        { "proName": "BINANCE:SOLUSDT", "title": "Solana" },
+                        { "proName": "BINANCE:ADAUSDT", "title": "Cardano" }
+                    ],
+                    "showSymbolLogo": true,
+                    "colorTheme": "dark",
+                    "isTransparent": false,
+                    "displayMode": "adaptive",
+                    "locale": "en"
+                });
+                return true;
+            } catch (e) {
+                console.error('Error creating ticker tape:', e);
+                return false;
+            }
+        };
+
+        // TradingView Chart Widget
+        window.createTradingViewChart = (containerId, symbol, interval = 'D', height = 400) => {
+            try {
+                new TradingView.widget({
+                    "width": "100%",
+                    "height": height,
+                    "symbol": symbol,
+                    "interval": interval,
+                    "timezone": "Etc/UTC",
+                    "theme": "dark",
+                    "style": "1",
+                    "locale": "en",
+                    "toolbar_bg": "#1f2a40",
+                    "enable_publishing": false,
+                    "hide_top_toolbar": false,
+                    "hide_legend": false,
+                    "save_image": false,
+                    "container_id": containerId,
+                    "backgroundColor": "#1f2a40",
+                    "gridColor": "#2a3f5f",
+                    "studies": [
+                        "MASimple@tv-basicstudies",
+                        "Volume@tv-basicstudies"
+                    ]
+                });
+                return true;
+            } catch (e) {
+                console.error('Error creating TradingView chart:', e);
+                return false;
+            }
+        };
+
+        // TradingView Mini Chart Widget
+        window.createTradingViewMiniChart = (containerId, symbols) => {
+            try {
+                new TradingView.MiniChart({
+                    "container_id": containerId,
+                    "width": "100%",
+                    "height": 220,
+                    "symbol": symbols,
+                    "dateRange": "12M",
+                    "colorTheme": "dark",
+                    "trendLineColor": "#4a9eff",
+                    "underLineColor": "rgba(74, 158, 255, 0.3)",
+                    "isTransparent": false,
+                    "autosize": true,
+                    "largeChartUrl": ""
+                });
+                return true;
+            } catch (e) {
+                console.error('Error creating TradingView mini chart:', e);
+                return false;
+            }
+        };
+
+        // TradingView Advanced Chart
+        window.createAdvancedChart = (containerId, symbol = 'NASDAQ:AAPL', interval = '60') => {
+            try {
+                // Detect theme from body background color
+                const bgColor = window.getComputedStyle(document.body).backgroundColor;
+                const isDark = bgColor === 'rgb(0, 0, 0)';
+                const theme = isDark ? 'dark' : 'light';
+                const bgChartColor = isDark ? '#000000' : '#ffffff';
+                const toolbarBg = isDark ? '#1f1f1f' : '#f0f0f0';
+                
+                new TradingView.widget({
+                    "autosize": true,
+                    "symbol": symbol,
+                    "interval": interval,
+                    "timezone": "Etc/UTC",
+                    "theme": theme,
+                    "style": "1",
+                    "locale": "en",
+                    "toolbar_bg": toolbarBg,
+                    "enable_publishing": false,
+                    "allow_symbol_change": true,
+                    "details": true,
+                    "hotlist": true,
+                    "calendar": true,
+                    "container_id": containerId,
+                    "studies": [
+                        "STD;SMA",
+                        "STD;EMA",
+                        "STD;Volume",
+                        "STD;MACD",
+                        "STD;RSI"
+                    ],
+                    "show_popup_button": true,
+                    "popup_width": "1000",
+                    "popup_height": "650",
+                    "backgroundColor": bgChartColor
+                });
+                return true;
+            } catch (e) {
+                console.error('Error creating advanced chart:', e);
+                return false;
+            }
+        };
+    </script>
+</body>
+
+</html>

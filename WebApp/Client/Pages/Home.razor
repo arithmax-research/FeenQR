@@ -1,0 +1,11 @@
+@page "/home"
+@inject NavigationManager Navigation
+
+<PageTitle>Arithmax - Home</PageTitle>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo("/dashboard");
+    }
+}

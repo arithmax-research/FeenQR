@@ -1,0 +1,127 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="@customTheme" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudDrawer @bind-Open="@drawerOpen" Elevation="2" Style="@GetDrawerStyle()">
+        <MudDrawerHeader Style="@GetDrawerHeaderStyle()">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                <img src="images/logo.png" alt="FeenQR" style="height: 40px; width: auto;" />
+                <MudIconButton Icon="@GetThemeIcon()" Color="Color.Inherit" OnClick="@ToggleTheme" Size="Size.Small" Style="@GetThemeIconStyle()" />
+            </div>
+        </MudDrawerHeader>
+        
+        <MudNavMenu Style="@GetNavMenuStyle()">
+            <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" IconColor="Color.Primary">Home</MudNavLink>
+            <MudNavLink Href="/dashboard" Icon="@Icons.Material.Filled.Dashboard" IconColor="Color.Primary">Dashboard</MudNavLink>
+            
+            <MudDivider Style="margin: 0.75rem 0;" />
+            
+            <MudText Typo="Typo.caption" Style="padding: 1rem 1rem 0.5rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Market Data</MudText>
+            <MudNavLink Href="/market-quotes" Icon="@Icons.Material.Filled.ShowChart" IconColor="Color.Success">Real-Time Quotes</MudNavLink>
+            <MudNavLink Href="/market-screener" Icon="@Icons.Material.Filled.FilterList" IconColor="Color.Success">Stock Screener</MudNavLink>
+            <MudNavLink Href="/economic-calendar" Icon="@Icons.Material.Filled.CalendarMonth" IconColor="Color.Success">Economic Calendar</MudNavLink>
+            <MudNavLink Href="/news-sentiment" Icon="@Icons.Material.Filled.Newspaper" IconColor="Color.Success">News & Sentiment</MudNavLink>
+            
+            <MudDivider Style="margin: 0.75rem 0;" />
+            
+            <MudText Typo="Typo.caption" Style="padding: 1rem 1rem 0.5rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Trading</MudText>
+            <MudNavLink Href="/portfolio" Icon="@Icons.Material.Filled.AccountBalance" IconColor="Color.Info">Portfolio</MudNavLink>
+            <MudNavLink Href="/strategies" Icon="@Icons.Material.Filled.Psychology" IconColor="Color.Info">Strategies</MudNavLink>
+            <MudNavLink Href="/backtesting" Icon="@Icons.Material.Filled.HistoryToggleOff" IconColor="Color.Info">Backtesting</MudNavLink>
+            <MudNavLink Href="/execution" Icon="@Icons.Material.Filled.Bolt" IconColor="Color.Info">Execution</MudNavLink>
+            <MudNavLink Href="/order-management" Icon="@Icons.Material.Filled.Assignment" IconColor="Color.Info">Order Management</MudNavLink>
+            
+            <MudDivider Style="margin: 0.75rem 0;" />
+            
+            <MudText Typo="Typo.caption" Style="padding: 1rem 1rem 0.5rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Analytics</MudText>
+            <MudNavLink Href="/technical-analysis" Icon="@Icons.Material.Filled.Timeline" IconColor="Color.Warning">Technical Analysis</MudNavLink>
+            <MudNavLink Href="/fundamental-analysis" Icon="@Icons.Material.Filled.Assessment" IconColor="Color.Warning">Fundamental Analysis</MudNavLink>
+            <MudNavLink Href="/risk-analysis" Icon="@Icons.Material.Filled.Security" IconColor="Color.Warning">Risk Analysis</MudNavLink>
+            <MudNavLink Href="/performance" Icon="@Icons.Material.Filled.TrendingUp" IconColor="Color.Warning">Performance Analytics</MudNavLink>
+            <MudNavLink Href="/attribution" Icon="@Icons.Material.Filled.PieChart" IconColor="Color.Warning">Attribution Analysis</MudNavLink>
+            
+            <MudDivider Style="margin: 0.75rem 0;" />
+            
+            <MudText Typo="Typo.caption" Style="padding: 1rem 1rem 0.5rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Machine Learning</MudText>
+            <MudNavLink Href="/ml-models" Icon="@Icons.Material.Filled.ModelTraining" IconColor="Color.Secondary">ML Models</MudNavLink>
+            <MudNavLink Href="/factor-research" Icon="@Icons.Material.Filled.Science" IconColor="Color.Secondary">Factor Research</MudNavLink>
+            <MudNavLink Href="/forecasting" Icon="@Icons.Material.Filled.Insights" IconColor="Color.Secondary">Forecasting</MudNavLink>
+            <MudNavLink Href="/anomaly-detection" Icon="@Icons.Material.Filled.BugReport" IconColor="Color.Secondary">Anomaly Detection</MudNavLink>
+            
+            <MudDivider Style="margin: 0.75rem 0;" />
+            
+            <MudText Typo="Typo.caption" Style="padding: 1rem 1rem 0.5rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Tools</MudText>
+            <MudNavLink Href="/optimizer" Icon="@Icons.Material.Filled.Tune" IconColor="Color.Tertiary">Portfolio Optimizer</MudNavLink>
+            <MudNavLink Href="/correlation-matrix" Icon="@Icons.Material.Filled.GridView" IconColor="Color.Tertiary">Correlation Matrix</MudNavLink>
+            <MudNavLink Href="/monte-carlo" Icon="@Icons.Material.Filled.Casino" IconColor="Color.Tertiary">Monte Carlo Sim</MudNavLink>
+            <MudNavLink Href="/alerts" Icon="@Icons.Material.Filled.NotificationsActive" IconColor="Color.Tertiary">Alerts & Triggers</MudNavLink>
+            <MudNavLink Href="/reports" Icon="@Icons.Material.Filled.Description" IconColor="Color.Tertiary">Reports</MudNavLink>
+            <MudNavLink Href="/compliance" Icon="@Icons.Material.Filled.Verified" IconColor="Color.Tertiary">Compliance</MudNavLink>
+            
+            <div Style="padding: 2rem 1rem; margin-top: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <MudText Typo="Typo.caption" Align="Align.Center" Style="color: #666666;">
+                    FeenQR v2.0.0<br/>
+                    <span style="font-size: 0.75rem;">© 2025 Arithmax Research</span>
+                </MudText>
+            </div>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent Style="@GetMainContentStyle()">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool drawerOpen = true;
+    private string searchQuery = "";
+    private bool isDarkTheme = true;
+    
+    private void ToggleDrawer()
+    {
+        drawerOpen = !drawerOpen;
+    }
+
+    private void ToggleTheme()
+    {
+        isDarkTheme = !isDarkTheme;
+        StateHasChanged();
+    }
+
+    private string GetThemeIcon() => isDarkTheme ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode;
+
+    private string GetThemeIconStyle() => $"color: {(isDarkTheme ? "#ffffff" : "#000000")}";
+
+    private string GetDrawerStyle() => $"width: 280px; background: {(isDarkTheme ? "#000000" : "#ffffff")}; color: {(isDarkTheme ? "#ffffff" : "#000000")}";
+
+    private string GetDrawerHeaderStyle() => $"padding: 1.5rem; background: {(isDarkTheme ? "#000000" : "#ffffff")}; border-bottom: 1px solid {(isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)")}";
+
+    private string GetHeaderTextStyle() => $"font-weight: 700; font-family: 'Playfair Display', Georgia, serif; color: {(isDarkTheme ? "#ffffff" : "#000000")}";
+
+    private string GetNavMenuStyle() => $"padding: 0.5rem; background: {(isDarkTheme ? "#000000" : "#ffffff")}; color: {(isDarkTheme ? "#ffffff" : "#000000")}";
+
+    private string GetMainContentStyle() => $"padding: 0; background: {(isDarkTheme ? "#000000" : "#ffffff")}; min-height: 100vh;";
+    
+    private MudTheme customTheme = new MudTheme
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#3b82f6",
+            Secondary = "#8b5cf6",
+            Success = "#10b981",
+            Warning = "#f59e0b",
+            Error = "#ef4444",
+            Info = "#06b6d4",
+            Dark = "#000000",
+            Background = "#000000",
+            Surface = "#000000",
+            AppbarBackground = "#000000",
+            DrawerBackground = "#000000",
+            TextPrimary = "#f9fafb",
+            TextSecondary = "#9ca3af"
+        }
+    };
+}

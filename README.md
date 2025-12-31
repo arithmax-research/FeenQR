@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="FeenQR_logo.png" alt="FeenQR Logo" width="300"/>
+  <img src="feenqr-logo.png" alt="FeenQR Logo" width="300"/>
   
   # FeenQR
   

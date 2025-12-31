@@ -1,0 +1,247 @@
+@page "/portfolio"
+@inject HttpClient Http
+
+<PageTitle>Portfolio - FeenQR</PageTitle>
+
+<style>
+    .portfolio-container {
+        padding: 2rem;
+        min-height: 100vh;
+    }
+
+    .portfolio-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .portfolio-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .summary-card {
+        background: rgba(10, 15, 30, 0.7);
+        backdrop-filter: blur(30px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 16px;
+        padding: 1.5rem;
+        transform-style: preserve-3d;
+        transition: all 0.4s ease;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-8px) translateZ(20px);
+        border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .summary-label {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-bottom: 0.5rem;
+    }
+
+    .summary-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #fff;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .positions-table {
+        background: rgba(10, 15, 30, 0.7);
+        backdrop-filter: blur(30px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 20px;
+        padding: 1.5rem;
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th {
+        text-align: left;
+        padding: 1rem;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.85rem;
+        font-weight: 600;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    td {
+        padding: 1rem;
+        color: #fff;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    tr:hover {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .add-position-btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        background: rgba(59, 130, 246, 0.15);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .add-position-btn:hover {
+        background: rgba(59, 130, 246, 0.25);
+        transform: translateZ(10px);
+    }
+</style>
+
+<div class="portfolio-container">
+    <div class="portfolio-header">
+        <div class="portfolio-title">Portfolio Management</div>
+        <button class="add-position-btn">+ Add Position</button>
+    </div>
+
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="summary-label">Total Value</div>
+            <div class="summary-value">$@totalValue.ToString("N2")</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Today's P&L</div>
+            <div class="summary-value" style="color: @(todayPnL >= 0 ? "#10b981" : "#ef4444")">
+                @(todayPnL >= 0 ? "+" : "")$@todayPnL.ToString("N2")
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Total P&L</div>
+            <div class="summary-value" style="color: @(totalPnL >= 0 ? "#10b981" : "#ef4444")">
+                @(totalPnL >= 0 ? "+" : "")@totalPnLPercent.ToString("F2")%
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Positions</div>
+            <div class="summary-value">@positions.Count</div>
+        </div>
+    </div>
+
+    <div class="positions-table">
+        <div style="font-size: 1.2rem; font-weight: 600; color: #fff; margin-bottom: 1.5rem;">
+            Current Positions
+        </div>
+        
+        @if (positions.Count == 0)
+        {
+            <div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.5);">
+                No positions yet. Click "+ Add Position" to get started.
+            </div>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Shares</th>
+                        <th>Avg Cost</th>
+                        <th>Current Price</th>
+                        <th>Market Value</th>
+                        <th>P&L</th>
+                        <th>P&L %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var position in positions)
+                    {
+                        <tr>
+                            <td style="font-weight: 600; font-family: 'JetBrains Mono', monospace;">@position.Symbol</td>
+                            <td>@position.Shares</td>
+                            <td>$@position.AvgCost.ToString("F2")</td>
+                            <td>$@position.CurrentPrice.ToString("F2")</td>
+                            <td>$@position.MarketValue.ToString("N2")</td>
+                            <td style="color: @(position.PnL >= 0 ? "#10b981" : "#ef4444")">
+                                @(position.PnL >= 0 ? "+" : "")$@position.PnL.ToString("N2")
+                            </td>
+                            <td style="color: @(position.PnLPercent >= 0 ? "#10b981" : "#ef4444")">
+                                @(position.PnLPercent >= 0 ? "+" : "")@position.PnLPercent.ToString("F2")%
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Position> positions = new();
+    private double totalValue = 0;
+    private double todayPnL = 0;
+    private double totalPnL = 0;
+    private double totalPnLPercent = 0;
+
+    public class Position
+    {
+        public string Symbol { get; set; } = "";
+        public int Shares { get; set; }
+        public double AvgCost { get; set; }
+        public double CurrentPrice { get; set; }
+        public double MarketValue => Shares * CurrentPrice;
+        public double PnL => MarketValue - (Shares * AvgCost);
+        public double PnLPercent => (CurrentPrice - AvgCost) / AvgCost * 100;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPortfolio();
+    }
+
+    private async Task LoadPortfolio()
+    {
+        try
+        {
+            // TODO: Load from backend API
+            // Mock data for demonstration
+            await Task.Delay(100);
+            
+            var quotes = await Http.GetFromJsonAsync<Quote[]>("api/marketdata/quotes");
+            
+            if (quotes != null && quotes.Length > 0)
+            {
+                // Create sample positions with real prices
+                positions = new List<Position>
+                {
+                    new() { Symbol = "AAPL", Shares = 100, AvgCost = 250.00, CurrentPrice = quotes.FirstOrDefault(q => q.Symbol == "AAPL")?.Price ?? 273.79 },
+                    new() { Symbol = "NVDA", Shares = 50, AvgCost = 180.00, CurrentPrice = quotes.FirstOrDefault(q => q.Symbol == "NVDA")?.Price ?? 188.23 },
+                    new() { Symbol = "TSLA", Shares = 25, AvgCost = 470.00, CurrentPrice = quotes.FirstOrDefault(q => q.Symbol == "TSLA")?.Price ?? 459.68 },
+                };
+
+                totalValue = positions.Sum(p => p.MarketValue);
+                totalPnL = positions.Sum(p => p.PnL);
+                todayPnL = totalValue * 0.0123; // Mock today's change
+                totalPnLPercent = (totalPnL / (totalValue - totalPnL)) * 100;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Portfolio error: {ex.Message}");
+        }
+    }
+
+    public class Quote
+    {
+        public string Symbol { get; set; } = "";
+        public double Price { get; set; }
+    }
+}
