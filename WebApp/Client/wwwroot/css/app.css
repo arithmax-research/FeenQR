@@ -1,18 +1,18 @@
 /* FeenQR Modern Theme with Glassmorphism */
 :root {
-    --primary-bg: linear-gradient(135deg, #0a0e27 0%, #1a1d35 100%);
-    --secondary-bg: rgba(20, 27, 61, 0.85);
-    --card-bg: rgba(26, 35, 71, 0.6);
-    --accent-blue: #3b82f6;
+    --primary-bg: #000000;
+    --secondary-bg: rgba(0, 0, 0, 0.85);
+    --card-bg: rgba(0, 0, 0, 0.6);
+    --accent-blue: #888888;
     --accent-green: #10b981;
     --accent-red: #ef4444;
     --accent-yellow: #f59e0b;
-    --accent-purple: #8b5cf6;
-    --accent-cyan: #06b6d4;
+    --accent-purple: #888888;
+    --accent-cyan: #888888;
     --text-primary: #f9fafb;
     --text-secondary: #9ca3af;
     --border-color: rgba(148, 163, 184, 0.1);
-    --hover-bg: rgba(59, 130, 246, 0.1);
+    --hover-bg: rgba(128, 128, 128, 0.1);
     --glass-bg: rgba(255, 255, 255, 0.05);
     --glass-border: rgba(255, 255, 255, 0.1);
 }
@@ -52,9 +52,9 @@ code, pre, .monospace {
 
 .quant-card:hover {
     transform: translateY(-4px) scale(1.01);
-    box-shadow: 0 12px 48px rgba(59, 130, 246, 0.3), 0 0 0 1px var(--accent-blue) inset;
-    border-color: var(--accent-blue);
-    background: rgba(59, 130, 246, 0.08);
+    box-shadow: 0 12px 48px rgba(128, 128, 128, 0.3), 0 0 0 1px rgba(128, 128, 128, 0.5) inset;
+    border-color: rgba(128, 128, 128, 0.5);
+    background: rgba(128, 128, 128, 0.08);
 }
 
 .quant-card-title {
@@ -101,7 +101,7 @@ code, pre, .monospace {
 }
 
 .ticker-item:hover {
-    background: rgba(59, 130, 246, 0.15);
+    background: rgba(128, 128, 128, 0.15);
     transform: scale(1.05);
 }
 
@@ -109,7 +109,7 @@ code, pre, .monospace {
     font-weight: 700;
     font-size: 0.95rem;
     font-family: 'JetBrains Mono', monospace;
-    color: var(--accent-blue);
+    color: rgba(128, 128, 128, 0.5);
 }
 
 .ticker-price {
@@ -162,7 +162,7 @@ code, pre, .monospace {
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+    background: linear-gradient(90deg, rgba(128, 128, 128, 0.5), rgba(128, 128, 128, 0.5));
     opacity: 0;
     transition: opacity 0.3s ease;
 }
@@ -173,8 +173,8 @@ code, pre, .monospace {
 
 .metric-card:hover {
     transform: translateY(-6px);
-    box-shadow: 0 16px 48px rgba(59, 130, 246, 0.4);
-    border-color: var(--accent-blue);
+    box-shadow: 0 16px 48px rgba(128, 128, 128, 0.4);
+    border-color: rgba(128, 128, 128, 0.5);
 }
 
 .metric-label {
@@ -190,7 +190,7 @@ code, pre, .monospace {
     font-size: 2rem;
     font-weight: 700;
     font-family: 'JetBrains Mono', monospace;
-    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    background: linear-gradient(135deg, rgba(128, 128, 128, 0.5), rgba(128, 128, 128, 0.5));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -215,7 +215,7 @@ code, pre, .monospace {
 }
 
 .ai-chat-header {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+    background: linear-gradient(135deg, rgba(128, 128, 128, 0.2), rgba(128, 128, 128, 0.2));
     border-bottom: 1px solid var(--glass-border);
     padding: 1.25rem;
     display: flex;
@@ -252,9 +252,9 @@ code, pre, .monospace {
 }
 
 .model-btn.active {
-    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    background: linear-gradient(135deg, rgba(128, 128, 128, 0.5), rgba(128, 128, 128, 0.5));
     color: white;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 12px rgba(128, 128, 128, 0.4);
 }
 
 .ai-chat-messages {
@@ -297,13 +297,13 @@ code, pre, .monospace {
 }
 
 .message-avatar.user {
-    background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    background: linear-gradient(135deg, rgba(128, 128, 128, 0.5), rgba(128, 128, 128, 0.5));
+    box-shadow: 0 4px 12px rgba(128, 128, 128, 0.4);
 }
 
 .message-avatar.ai {
-    background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    background: linear-gradient(135deg, rgba(128, 128, 128, 0.5), rgba(128, 128, 128, 0.5));
+    box-shadow: 0 4px 12px rgba(128, 128, 128, 0.4);
 }
 
 .message-content {
@@ -316,8 +316,8 @@ code, pre, .monospace {
 }
 
 .chat-message.user .message-content {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
-    border-color: rgba(59, 130, 246, 0.3);
+    background: linear-gradient(135deg, rgba(128, 128, 128, 0.2), rgba(128, 128, 128, 0.2));
+    border-color: rgba(128, 128, 128, 0.3);
 }
 
 .ai-chat-input {
@@ -341,13 +341,13 @@ code, pre, .monospace {
 
 .ai-chat-input input:focus {
     outline: none;
-    border-color: var(--accent-blue);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-    background: rgba(59, 130, 246, 0.05);
+    border-color: rgba(128, 128, 128, 0.5);
+    box-shadow: 0 0 0 3px rgba(128, 128, 128, 0.2);
+    background: rgba(128, 128, 128, 0.05);
 }
 
 .ai-chat-input button {
-    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    background: linear-gradient(135deg, rgba(128, 128, 128, 0.5), rgba(128, 128, 128, 0.5));
     border: none;
     border-radius: 14px;
     padding: 0.875rem 1.5rem;
@@ -358,12 +358,12 @@ code, pre, .monospace {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 16px rgba(128, 128, 128, 0.4);
 }
 
 .ai-chat-input button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(59, 130, 246, 0.6);
+    box-shadow: 0 6px 24px rgba(128, 128, 128, 0.6);
 }
 
 .ai-chat-input button:disabled {
@@ -422,7 +422,7 @@ code, pre, .monospace {
     width: 0;
     height: 0;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.3), transparent);
+    background: radial-gradient(circle, rgba(128, 128, 128, 0.3), transparent);
     transform: translate(-50%, -50%);
     transition: width 0.6s, height 0.6s;
 }
@@ -434,8 +434,8 @@ code, pre, .monospace {
 
 .action-btn:hover {
     transform: translateY(-3px);
-    border-color: var(--accent-blue);
-    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+    border-color: rgba(128, 128, 128, 0.5);
+    box-shadow: 0 8px 24px rgba(128, 128, 128, 0.4);
 }
 
 /* Data Grid Styling */
@@ -448,11 +448,11 @@ code, pre, .monospace {
 }
 
 .mud-table-head {
-    background: rgba(59, 130, 246, 0.1) !important;
+    background: rgba(128, 128, 128, 0.1) !important;
 }
 
 .mud-table-row:hover {
-    background: rgba(59, 130, 246, 0.08) !important;
+    background: rgba(128, 128, 128, 0.08) !important;
 }
 
 /* Custom Scrollbar */
@@ -462,23 +462,23 @@ code, pre, .monospace {
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
+    background: #000000;
     border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    background: rgba(128, 128, 128, 0.5);
     border-radius: 10px;
     transition: all 0.3s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+    background: rgba(128, 128, 128, 0.7);
 }
 
 /* MudBlazor Overrides for Premium Look */
 .mud-drawer {
-    background: rgba(20, 27, 61, 0.95) !important;
+    background: #000000 !important;
     backdrop-filter: blur(20px);
     border-right: 1px solid var(--glass-border) !important;
 }
@@ -494,13 +494,13 @@ code, pre, .monospace {
 }
 
 .mud-nav-link:hover {
-    background: rgba(59, 130, 246, 0.15) !important;
+    background: rgba(128, 128, 128, 0.15) !important;
     transform: translateX(4px);
 }
 
 .mud-nav-link-active {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3)) !important;
-    border-left: 3px solid var(--accent-blue) !important;
+    background: linear-gradient(135deg, rgba(128, 128, 128, 0.3), rgba(128, 128, 128, 0.3)) !important;
+    border-left: 3px solid rgba(128, 128, 128, 0.5) !important;
 }
 
 /* Responsive Design */
@@ -534,7 +534,7 @@ code, pre, .monospace {
 
 /* Utility Classes */
 .text-gradient {
-    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    background: linear-gradient(135deg, rgba(128, 128, 128, 0.5), rgba(128, 128, 128, 0.5));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }

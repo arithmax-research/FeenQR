@@ -44,14 +44,13 @@
             chartInitialized = true;
             await InitializeChart();
             
-            // Monitor theme changes via localStorage or use JS interop
+            // Monitor theme changes via window.currentTheme
             await JS.InvokeVoidAsync("eval", @"
+                window.currentTheme = window.currentTheme || 'dark';
                 setInterval(() => {
-                    const bgColor = window.getComputedStyle(document.body).backgroundColor;
-                    const isBlack = bgColor === 'rgb(0, 0, 0)';
                     const chart = document.getElementById('tradingViewChart');
-                    if (chart && chart.dataset.theme !== (isBlack ? 'dark' : 'light')) {
-                        chart.dataset.theme = isBlack ? 'dark' : 'light';
+                    if (chart && chart.dataset.theme !== window.currentTheme) {
+                        chart.dataset.theme = window.currentTheme;
                         chart.innerHTML = '';
                         window.createAdvancedChart('tradingViewChart', 'NASDAQ:AAPL', '60');
                     }
