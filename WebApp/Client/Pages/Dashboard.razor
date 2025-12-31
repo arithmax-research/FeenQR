@@ -259,6 +259,7 @@
             <button class="tab-btn @(activeTab == "ownership" ? "active" : "")" @onclick='() => SwitchTab("ownership")'>Ownership</button>
             <button class="tab-btn @(activeTab == "calendar" ? "active" : "")" @onclick='() => SwitchTab("calendar")'>Company Calendar</button>
             <button class="tab-btn @(activeTab == "estimate" ? "active" : "")" @onclick='() => SwitchTab("estimate")'>Estimate</button>
+            <button class="tab-btn @(activeTab == "screeners" ? "active" : "")" @onclick='() => SwitchTab("screeners")'>Screeners</button>
         </div>
     </div>
 
@@ -335,7 +336,7 @@
         <!-- Income Statement Widget (TradingView Financials) -->
         <div class="grid-stack-item" gs-w="4" gs-h="4" gs-x="0" gs-y="0">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Income Statement - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Income Statement@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div id="incomeStatementWidget" class="tradingview-widget" style="height: 100%; width: 100%;">
                         <div class="widget-loading"><div class="loading-spinner"></div></div>
@@ -347,7 +348,7 @@
         <!-- Balance Sheet Widget (TradingView Financials) -->
         <div class="grid-stack-item" gs-w="4" gs-h="4" gs-x="4" gs-y="0">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Balance Sheet - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Balance Sheet@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div id="balanceSheetWidget" class="tradingview-widget" style="height: 100%; width: 100%;">
                         <div class="widget-loading"><div class="loading-spinner"></div></div>
@@ -359,7 +360,7 @@
         <!-- Cash Flow Statement Widget (TradingView Financials) -->
         <div class="grid-stack-item" gs-w="4" gs-h="4" gs-x="8" gs-y="0">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Cash Flow Statement - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Cash Flow Statement@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div id="cashFlowWidget" class="tradingview-widget" style="height: 100%; width: 100%;">
                         <div class="widget-loading"><div class="loading-spinner"></div></div>
@@ -371,7 +372,7 @@
         <!-- Valuation Ratios Widget (TradingView) -->
         <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="0" gs-y="4">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Valuation Ratios - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Valuation Ratios@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div id="valuationRatiosWidget" class="tradingview-widget" style="height: 100%; width: 100%;">
                         <div class="widget-loading"><div class="loading-spinner"></div></div>
@@ -383,7 +384,7 @@
         <!-- Profitability Metrics Widget (TradingView) -->
         <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="4" gs-y="4">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Profitability Metrics - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Profitability Metrics@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div id="profitabilityWidget" class="tradingview-widget" style="height: 100%; width: 100%;">
                         <div class="widget-loading"><div class="loading-spinner"></div></div>
@@ -395,7 +396,7 @@
         <!-- Financial Health Widget (TradingView) -->
         <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="8" gs-y="4">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Financial Health - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Financial Health@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div id="financialHealthWidget" class="tradingview-widget" style="height: 100%; width: 100%;">
                         <div class="widget-loading"><div class="loading-spinner"></div></div>
@@ -413,7 +414,7 @@
         <!-- Advanced TradingView Chart -->
         <div class="grid-stack-item" gs-w="12" gs-h="12" gs-x="0" gs-y="0">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Advanced Chart - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Advanced Chart@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div id="technicalAdvancedChart" class="tradingview-widget-container" style="height: 100%; width: 100%;">
                         <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
@@ -427,9 +428,9 @@
         @if (activeTab == "comparison")
         {
         <!-- Price Comparison Chart Widget -->
-        <div class="grid-stack-item" gs-w="6" gs-h="4" gs-x="0" gs-y="0">
+        <div class="grid-stack-item" gs-w="6" gs-h="8" gs-x="0" gs-y="0">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Side-by-Side Price Comparison - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Side-by-Side Price Comparison@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div id="marketDataChart" class="chart-container"></div>
                 </div>
@@ -437,79 +438,19 @@
         </div>
 
         <!-- AI Comparison Assistant -->
-        <div class="grid-stack-item" gs-w="6" gs-h="4" gs-x="6" gs-y="0">
+        <div class="grid-stack-item" gs-w="6" gs-h="8" gs-x="6" gs-y="0">
             <div class="grid-stack-item-content">
-                <div class="widget-header">AI Comparison Analysis - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">AI Comparison Analysis@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div class="chat-container">
                         <div class="chat-messages" id="chatMessages">
                             <div class="chat-message">
-                                <strong>AI:</strong> Compare <span class="widget-symbol">@currentSymbol</span> side-by-side with peers using key metrics like P/E, growth, margins, or performance!
+                                <strong>AI:</strong> @(string.IsNullOrEmpty(currentSymbol) ? "Compare stocks side-by-side with peers using key metrics like P/E, growth, margins, or performance!" : $"Compare {currentSymbol} side-by-side with peers using key metrics like P/E, growth, margins, or performance!")
                             </div>
                         </div>
                         <div class="chat-input-area">
                             <input type="text" class="chat-input" placeholder="Compare with..." id="chatInput" />
                             <button class="chat-btn">Send</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sector Comparison Widget -->
-        <div class="grid-stack-item" gs-w="6" gs-h="3" gs-x="0" gs-y="4">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Sector Comparison - <span class="widget-symbol">@currentSymbol</span> vs Tech Avg</div>
-                <div class="widget-body">
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">P/E Ratio</div>
-                            <div style="font-size: 1rem; font-weight: 600;">28.5</div>
-                            <div style="font-size: 0.7rem; color: #10b981;">vs 32.1 avg</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">PEG Ratio</div>
-                            <div style="font-size: 1rem; font-weight: 600;">1.8</div>
-                            <div style="font-size: 0.7rem; color: #ef4444;">vs 1.5 avg</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">ROE</div>
-                            <div style="font-size: 1rem; font-weight: 600;">147%</div>
-                            <div style="font-size: 0.7rem; color: #10b981;">vs 28% avg</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Profit Margin</div>
-                            <div style="font-size: 1rem; font-weight: 600;">26.3%</div>
-                            <div style="font-size: 0.7rem; color: #10b981;">vs 18% avg</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Peer Comparison Widget -->
-        <div class="grid-stack-item" gs-w="6" gs-h="3" gs-x="6" gs-y="4">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Peer Comparison (Key Metrics) - <span class="widget-symbol">@currentSymbol</span></div>
-                <div class="widget-body">
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 0.5rem; padding: 0.5rem; background: rgba(128, 128, 128, 0.1); border-radius: 6px;">
-                            <span style="font-weight: 600;">AAPL</span>
-                            <span style="text-align: right;">$185.50</span>
-                            <span style="text-align: right; color: #10b981;">+2.1%</span>
-                            <span style="text-align: right;">28.5</span>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 0.5rem; padding: 0.5rem; background: rgba(128, 128, 128, 0.05); border-radius: 6px;">
-                            <span>MSFT</span>
-                            <span style="text-align: right;">$375.20</span>
-                            <span style="text-align: right; color: #10b981;">+1.5%</span>
-                            <span style="text-align: right;">34.2</span>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 0.5rem; padding: 0.5rem; background: rgba(128, 128, 128, 0.05); border-radius: 6px;">
-                            <span>GOOGL</span>
-                            <span style="text-align: right;">$142.80</span>
-                            <span style="text-align: right; color: #10b981;">+0.8%</span>
-                            <span style="text-align: right;">24.1</span>
                         </div>
                     </div>
                 </div>
@@ -523,7 +464,7 @@
         <!-- Price Chart Widget -->
         <div class="grid-stack-item" gs-w="6" gs-h="4" gs-x="0" gs-y="0">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Price Chart - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Price Chart@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div id="marketDataChart" class="chart-container"></div>
                 </div>
@@ -533,12 +474,12 @@
         <!-- AI Ownership Assistant -->
         <div class="grid-stack-item" gs-w="6" gs-h="4" gs-x="6" gs-y="0">
             <div class="grid-stack-item-content">
-                <div class="widget-header">AI Ownership Analysis - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">AI Ownership Analysis@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div class="chat-container">
                         <div class="chat-messages" id="chatMessages">
                             <div class="chat-message">
-                                <strong>AI:</strong> Analyze <span class="widget-symbol">@currentSymbol</span> ownership structure - major shareholders, institutional holdings, insider transactions!
+                                <strong>AI:</strong> @(string.IsNullOrEmpty(currentSymbol) ? "Analyze ownership structure - major shareholders, institutional holdings, insider transactions!" : $"Analyze {currentSymbol} ownership structure - major shareholders, institutional holdings, insider transactions!")
                             </div>
                         </div>
                         <div class="chat-input-area">
@@ -553,7 +494,7 @@
         <!-- Institutional Ownership Widget -->
         <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="0" gs-y="4">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Institutional Ownership - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Institutional Ownership@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                         <div>
@@ -580,7 +521,7 @@
         <!-- Insider Trading Widget -->
         <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="4" gs-y="4">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Insider Transactions - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Insider Transactions@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body">
                     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                         <div style="padding: 0.5rem; background: rgba(128, 128, 128, 0.1); border-radius: 6px;">
@@ -636,7 +577,7 @@
         <!-- Price Chart Widget -->
         <div class="grid-stack-item" gs-w="6" gs-h="4" gs-x="0" gs-y="0">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Price Chart - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Price Chart@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div id="marketDataChart" class="chart-container"></div>
                 </div>
@@ -646,12 +587,12 @@
         <!-- AI Calendar Assistant -->
         <div class="grid-stack-item" gs-w="6" gs-h="4" gs-x="6" gs-y="0">
             <div class="grid-stack-item-content">
-                <div class="widget-header">AI Calendar Analysis - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">AI Calendar Analysis@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div class="chat-container">
                         <div class="chat-messages" id="chatMessages">
                             <div class="chat-message">
-                                <strong>AI:</strong> Important dates for <span class="widget-symbol">@currentSymbol</span> - earnings reports, dividend payments, stock splits, and key events!
+                                <strong>AI:</strong> @(string.IsNullOrEmpty(currentSymbol) ? "Important dates - earnings reports, dividend payments, stock splits, and key events!" : $"Important dates for {currentSymbol} - earnings reports, dividend payments, stock splits, and key events!")
                             </div>
                         </div>
                         <div class="chat-input-area">
@@ -666,7 +607,7 @@
         <!-- Earnings Calendar Widget -->
         <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="0" gs-y="4">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Earnings Report Dates - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Earnings Report Dates@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body">
                     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                         <div>
@@ -739,7 +680,7 @@
         <!-- Price Chart Widget -->
         <div class="grid-stack-item" gs-w="6" gs-h="4" gs-x="0" gs-y="0">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Price Chart - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Price Chart@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div id="marketDataChart" class="chart-container"></div>
                 </div>
@@ -749,12 +690,12 @@
         <!-- AI Estimate Assistant -->
         <div class="grid-stack-item" gs-w="6" gs-h="4" gs-x="6" gs-y="0">
             <div class="grid-stack-item-content">
-                <div class="widget-header">AI Analyst Consensus - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">AI Analyst Consensus@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
                     <div class="chat-container">
                         <div class="chat-messages" id="chatMessages">
                             <div class="chat-message">
-                                <strong>AI:</strong> Analyst consensus for <span class="widget-symbol">@currentSymbol</span> - EPS/revenue estimates, price targets, ratings, and compare actual vs expectations!
+                                <strong>AI:</strong> @(string.IsNullOrEmpty(currentSymbol) ? "Analyst consensus - EPS/revenue estimates, price targets, ratings, and compare actual vs expectations!" : $"Analyst consensus for {currentSymbol} - EPS/revenue estimates, price targets, ratings, and compare actual vs expectations!")
                             </div>
                         </div>
                         <div class="chat-input-area">
@@ -769,7 +710,7 @@
         <!-- Analyst Estimates Widget -->
         <div class="grid-stack-item" gs-w="4" gs-h="4" gs-x="0" gs-y="4">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Analyst Ratings & Price Targets - <span class="widget-symbol">@currentSymbol</span></div>
+                <div class="widget-header">Analyst Ratings & Price Targets@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body">
                     <div style="display: flex; flex-direction: column; gap: 1rem;">
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
@@ -848,6 +789,41 @@
         </div>
         }
 
+        @if (activeTab == "screeners")
+        {
+        <!-- Market Screener Widget -->
+        <div class="grid-stack-item" gs-w="12" gs-h="8" gs-x="0" gs-y="0">
+            <div class="grid-stack-item-content">
+                <div class="widget-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Stock Screener</span>
+                    <select class="market-selector" @onchange="OnMarketChanged" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 0.4rem 0.6rem; color: #f9fafb; font-size: 0.85rem; cursor: pointer;">
+                        <option value="america" selected>America</option>
+                        <option value="australia">Australia</option>
+                        <option value="brazil">Brazil</option>
+                        <option value="canada">Canada</option>
+                        <option value="crypto">Crypto</option>
+                        <option value="forex">Forex</option>
+                        <option value="france">France</option>
+                        <option value="germany">Germany</option>
+                        <option value="hongkong">Hong Kong</option>
+                        <option value="india">India</option>
+                        <option value="italy">Italy</option>
+                        <option value="japan">Japan</option>
+                        <option value="russia">Russia</option>
+                        <option value="spain">Spain</option>
+                        <option value="sweden">Sweden</option>
+                        <option value="turkey">Turkey</option>
+                        <option value="uk">United Kingdom</option>
+                        <option value="vietnam">Vietnam</option>
+                    </select>
+                </div>
+                <div class="widget-body" style="padding: 0;">
+                    <div id="screenerWidget" style="width: 100%; height: 100%;"></div>
+                </div>
+            </div>
+        </div>
+        }
+
     </div>
     </div>
 </div>
@@ -855,9 +831,10 @@
 <script src="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack-all.js"></script>
 
 @code {
-    private string currentSymbol = "AAPL";
+    private string currentSymbol = "";
     private string activeTab = "overview";
     private string heatmapType = "stocks";
+    private string screenerMarket = "america";
     private string chatInput = "";
     private string customSymbolInput = "";
     
@@ -924,6 +901,20 @@
         await JS.InvokeVoidAsync("eval", $@"
             if (window.createStocksHeatmap) {{
                 window.createStocksHeatmap('{datasource}');
+            }}
+        ");
+    }
+
+    private async Task OnMarketChanged(ChangeEventArgs e)
+    {
+        screenerMarket = e.Value?.ToString() ?? "america";
+        StateHasChanged();
+        await Task.Delay(100);
+        
+        // Reinitialize screener with new market
+        await JS.InvokeVoidAsync("eval", $@"
+            if (window.createScreenerWidget) {{
+                window.createScreenerWidget('{screenerMarket}');
             }}
         ");
     }
@@ -1059,6 +1050,19 @@
         activeTab = tab;
         StateHasChanged();
         await Task.Delay(100); // Wait for DOM update
+        
+        // Initialize screener widget if on screeners tab
+        if (tab == "screeners")
+        {
+            await JS.InvokeVoidAsync("eval", $@"
+                setTimeout(() => {{
+                    if (window.createScreenerWidget) {{
+                        window.createScreenerWidget('{screenerMarket}');
+                    }}
+                }}, 200);
+            ");
+        }
+        
         await InitializeGridStack();
         await InitializeCharts();
     }
@@ -1068,7 +1072,7 @@
         try
         {
             await JS.InvokeVoidAsync("eval", @"
-                window.currentSymbol = 'NASDAQ:AAPL';
+                window.currentSymbol = '';
                 window.changeSymbol = async function(symbol) {
                     window.currentSymbol = symbol;
                     
@@ -1164,7 +1168,7 @@
                     // Listen for resize events to refresh TradingView charts
                     grid.on('resizestop', function(event, element) {
                         const chartContainers = element.querySelectorAll('.tradingview-chart, .tradingview-widget');
-                        const currentSym = window.currentSymbol || 'NASDAQ:AAPL';
+                        const currentSym = window.currentSymbol || '';
                         chartContainers.forEach(container => {
                             if (container.id && window.refreshTradingViewWidget) {
                                 // Trigger chart refresh after resize

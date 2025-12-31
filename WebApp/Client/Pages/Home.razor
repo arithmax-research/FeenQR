@@ -237,9 +237,17 @@
                 <div class="tradingview-widget-container__widget" id="newsTimelineWidget"></div>
             </div>
         </div>
+
+        <!-- Chart 6: Economic Events -->
+        <div class="widget-container">
+            <div class="widget-title">Economic Events</div>
+            <div class="tradingview-widget-container" id="economicEvents">
+                <div class="tradingview-widget-container__widget" id="economicEventsWidget"></div>
+            </div>
+        </div>
     </div>
 
-    <!-- Chart 6: Forex Screener (Full Width) -->
+    <!-- Chart 7: Forex Screener (Full Width) -->
     <div class="widget-container full-width">
         <div class="widget-title">Forex Screener</div>
         <div class="tradingview-widget-container" id="forexScreener">
@@ -247,7 +255,7 @@
         </div>
     </div>
 
-    <!-- Chart 7: Crypto Markets (Full Width) -->
+    <!-- Chart 8: Crypto Markets (Full Width) -->
     <div class="widget-container full-width">
         <div class="widget-title">Crypto Markets</div>
         <div class="tradingview-widget-container" id="cryptoMarkets">
@@ -285,10 +293,16 @@
     {
         try
         {
+            Console.WriteLine("Initializing market widgets...");
             await Task.Delay(500);
             
+            Console.WriteLine("Calling initializeTradingViewWidgets...");
             await JS.InvokeVoidAsync("initializeTradingViewWidgets", selectedExchange);
+            
+            Console.WriteLine("Calling createTickerTapeWidget...");
             await JS.InvokeVoidAsync("createTickerTapeWidget");
+            
+            Console.WriteLine("Market widgets initialized successfully");
         }
         catch (Exception ex)
         {

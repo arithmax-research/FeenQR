@@ -237,7 +237,7 @@
         };
 
         // TradingView Advanced Chart Widget for Dashboard Overview
-        window.createDashboardAdvancedChart = (containerId, symbol = 'NASDAQ:PLTR') => {
+        window.createDashboardAdvancedChart = (containerId, symbol = '') => {
             try {
                 console.log('Creating advanced chart widget for:', containerId, symbol);
                 const container = document.getElementById(containerId);
@@ -248,6 +248,12 @@
                 
                 // Clear existing content
                 container.innerHTML = '';
+                
+                // Only create widget if symbol is provided
+                if (!symbol) {
+                    container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #9ca3af; font-size: 0.9rem;">Select a symbol to view chart</div>';
+                    return false;
+                }
                 
                 // Create widget using new API
                 new TradingView.widget({
@@ -628,10 +634,13 @@
                     // Chart 5: News Timeline
                     createNewsTimelineWidget();
 
-                    // Chart 6: Forex Screener
+                    // Chart 6: Economic Events
+                    createEconomicEventsWidget();
+
+                    // Chart 7: Forex Screener
                     createForexScreenerWidget();
 
-                    // Chart 7: Crypto Markets
+                    // Chart 8: Crypto Markets
                     createCryptoMarketsWidget();
 
                     console.log('All TradingView widgets initialized successfully');
@@ -848,7 +857,27 @@
             widgetDiv.appendChild(script);
         }
 
-        // Chart 6: Forex Screener Widget
+        // Chart 6: Economic Events Widget
+        function createEconomicEventsWidget() {
+            const widgetDiv = document.getElementById('economicEventsWidget');
+            if (!widgetDiv) return;
+
+            const script = document.createElement('script');
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-events.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "colorTheme": "dark",
+                "isTransparent": false,
+                "locale": "en",
+                "countryFilter": "",
+                "importanceFilter": "-1,0,1",
+                "width": "100%",
+                "height": "550"
+            });
+            widgetDiv.appendChild(script);
+        }
+
+        // Chart 7: Forex Screener Widget
         function createForexScreenerWidget() {
             const widgetDiv = document.getElementById('forexScreenerWidget');
             if (!widgetDiv) return;
@@ -870,7 +899,7 @@
             widgetDiv.appendChild(script);
         }
 
-        // Chart 7: Crypto Markets Widget
+        // Chart 8: Crypto Markets Widget
         function createCryptoMarketsWidget() {
             const widgetDiv = document.getElementById('cryptoMarketsWidget');
             if (!widgetDiv) return;
@@ -894,13 +923,60 @@
         // Ticker Tape Widget for Home Page
         function createTickerTapeWidget() {
             const container = document.getElementById('tickerTapeWidget');
-            if (!container) return;
+            if (!container) {
+                console.error('Ticker tape container not found');
+                return;
+            }
 
-            container.innerHTML = `
-                <script type="module" src="https://widgets.tradingview-widget.com/w/en/tv-ticker-tape.js"><\/script>
-                <tv-ticker-tape symbols='FOREXCOM:SPXUSD,FOREXCOM:NSXUSD,FOREXCOM:DJI,FX:EURUSD,BITSTAMP:BTCUSD,BITSTAMP:ETHUSD,CMCMARKETS:GOLD,AMEX:SPY,TVC:SILVER,NSE:NIFTY,NASDAQ:AAPL,NASDAQ:MSFT,NASDAQ:GOOGL,NASDAQ:AMZN,NASDAQ:META,NASDAQ:NVDA,NASDAQ:TSLA,NASDAQ:NFLX,NYSE:JPM,NYSE:V,NYSE:WMT,NYSE:DIS,NYSE:BA,NYSE:GS,NASDAQ:ADBE,NASDAQ:CSCO,NASDAQ:INTC,NASDAQ:AMD,NASDAQ:QCOM,NYSE:UNH,NYSE:HD,NASDAQ:COST,NYSE:PG,NYSE:KO,NYSE:PEP,NYSE:MCD,NYSE:NKE,NASDAQ:SBUX,NYSE:XOM,NYSE:CVX,NYSE:COP,NYSE:SLB,NASDAQ:PYPL,NYSE:AXP,NYSE:GE,NASDAQ:GILD,NYSE:ABBV,NYSE:PFE,NYSE:MRK,NYSE:JNJ,AMEX:QQQ,AMEX:IWM,AMEX:DIA,AMEX:GLD,AMEX:SLV,AMEX:TLT,AMEX:HYG,AMEX:LQD,AMEX:VXX,AMEX:USO,AMEX:UNG,AMEX:XLE,AMEX:XLF,AMEX:XLK,AMEX:XLV,AMEX:XLI,AMEX:XLP,AMEX:XLY,AMEX:XLU,AMEX:XLB,AMEX:XLRE,BINANCE:BTCUSDT,BINANCE:ETHUSDT,BINANCE:BNBUSDT,BINANCE:SOLUSDT,BINANCE:XRPUSDT,BINANCE:ADAUSDT,BINANCE:DOGEUSDT,BINANCE:DOTUSDT,BINANCE:MATICUSDT,BINANCE:LTCUSDT,FX:GBPUSD,FX:USDJPY,FX:AUDUSD,FX:USDCAD,FX:USDCHF,FX:NZDUSD,FX:EURGBP,FX:EURJPY,FX:GBPJPY,FX:AUDJPY,CMCMARKETS:SILVER,TVC:DXY,COMEX:GC1!,NYMEX:CL1!,NYMEX:NG1!,CBOT:ZC1!,CBOT:ZW1!,CME:ES1!,CME:NQ1!,CBOT:YM1!,CME:RTY1!,LSE:BP,LSE:HSBA,LSE:SHEL,LSE:AZN,LSE:ULVR,LSE:GSK,LSE:DGE,LSE:VOD,XETR:SAP,XETR:SIE,XETR:VOW3,XETR:BAS,XETR:ALV,XETR:DAI,XETR:BMW,TSE:7203,TSE:6758,TSE:9984,TSE:6861,TSE:8306,HKEX:700,HKEX:9988,HKEX:941,HKEX:2318,SSE:600519,SSE:601398,SZSE:000858,SZSE:002594' theme="dark"></tv-ticker-tape>
-            `;
+            console.log('Creating ticker tape widget');
+            container.innerHTML = '';
+            
+            const script = document.createElement('script');
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "symbols": [
+                    {"proName": "FOREXCOM:SPXUSD", "title": "S&P 500"},
+                    {"proName": "FOREXCOM:NSXUSD", "title": "NASDAQ"},
+                    {"proName": "FOREXCOM:DJI", "title": "Dow Jones"},
+                    {"proName": "FX:EURUSD", "title": "EUR/USD"},
+                    {"proName": "BITSTAMP:BTCUSD", "title": "Bitcoin"},
+                    {"proName": "BITSTAMP:ETHUSD", "title": "Ethereum"},
+                    {"proName": "CMCMARKETS:GOLD", "title": "Gold"},
+                    {"proName": "AMEX:SPY", "title": "SPY"},
+                    {"proName": "TVC:SILVER", "title": "Silver"},
+                    {"proName": "NSE:NIFTY", "title": "NIFTY"},
+                    {"proName": "NASDAQ:AAPL", "title": "Apple"},
+                    {"proName": "NASDAQ:MSFT", "title": "Microsoft"},
+                    {"proName": "NASDAQ:GOOGL", "title": "Google"},
+                    {"proName": "NASDAQ:AMZN", "title": "Amazon"},
+                    {"proName": "NASDAQ:META", "title": "Meta"},
+                    {"proName": "NASDAQ:NVDA", "title": "NVIDIA"},
+                    {"proName": "NASDAQ:TSLA", "title": "Tesla"},
+                    {"proName": "NASDAQ:NFLX", "title": "Netflix"},
+                    {"proName": "NYSE:JPM", "title": "JPMorgan"},
+                    {"proName": "NYSE:V", "title": "Visa"},
+                    {"proName": "NYSE:WMT", "title": "Walmart"},
+                    {"proName": "NYSE:DIS", "title": "Disney"},
+                    {"proName": "AMEX:QQQ", "title": "QQQ"},
+                    {"proName": "AMEX:IWM", "title": "IWM"},
+                    {"proName": "BINANCE:BTCUSDT", "title": "BTC/USDT"},
+                    {"proName": "BINANCE:ETHUSDT", "title": "ETH/USDT"},
+                    {"proName": "FX:GBPUSD", "title": "GBP/USD"},
+                    {"proName": "FX:USDJPY", "title": "USD/JPY"}
+                ],
+                "showSymbolLogo": true,
+                "colorTheme": "dark",
+                "isTransparent": false,
+                "displayMode": "adaptive",
+                "locale": "en"
+            });
+            container.appendChild(script);
+            console.log('Ticker tape widget script added');
         }
+        
+        // Expose globally
+        window.createTickerTapeWidget = createTickerTapeWidget;
         
         // Stock Heatmap Widget for Dashboard Overview (renamed from createStockHeatmapWidget)
         function createStocksHeatmap(datasource = 'SPX500') {
@@ -1032,11 +1108,40 @@
             createStocksHeatmap(datasource);
         };
         
+        // Stock Screener Widget for Dashboard Screeners Tab
+        function createScreenerWidget(market = 'america') {
+            const widgetDiv = document.getElementById('screenerWidget');
+            if (!widgetDiv) {
+                console.log('Screener widget container not found');
+                return;
+            }
+
+            console.log('Initializing screener widget with market:', market);
+            widgetDiv.innerHTML = '';
+            
+            const script = document.createElement('script');
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-screener.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "market": market,
+                "showToolbar": true,
+                "defaultColumn": "overview",
+                "defaultScreen": "most_capitalized",
+                "isTransparent": false,
+                "locale": "en",
+                "colorTheme": "dark",
+                "width": "100%",
+                "height": "550"
+            });
+            widgetDiv.appendChild(script);
+        }
+        
         // Expose heatmap functions globally
         window.createStocksHeatmap = createStocksHeatmap;
         window.createCryptoHeatmap = createCryptoHeatmap;
         window.createEtfHeatmap = createEtfHeatmap;
         window.createForexHeatmap = createForexHeatmap;
+        window.createScreenerWidget = createScreenerWidget;
     </script>
 </body>
 
