@@ -36,6 +36,9 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<LeanDataService>();
 builder.Services.AddSingleton<AlpacaService>();
 builder.Services.AddSingleton<AlphaVantageService>();
+builder.Services.AddSingleton<YahooFinanceService>();
+builder.Services.AddSingleton<PolygonService>();
+builder.Services.AddSingleton<DataBentoService>();
 builder.Services.AddSingleton<DeepSeekService>();
 builder.Services.AddSingleton<OpenAIService>();
 

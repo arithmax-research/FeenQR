@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using QuantResearchAgent.Services;
-using QuantResearchAgent.Core;
 
 namespace Server.Controllers;
 
@@ -11,15 +10,24 @@ public class MarketDataController : ControllerBase
     private readonly ILogger<MarketDataController> _logger;
     private readonly AlpacaService _alpacaService;
     private readonly AlphaVantageService _alphaVantageService;
+    private readonly YahooFinanceService _yahooService;
+    private readonly PolygonService _polygonService;
+    private readonly DataBentoService _databentoService;
 
     public MarketDataController(
         ILogger<MarketDataController> logger,
         AlpacaService alpacaService,
-        AlphaVantageService alphaVantageService)
+        AlphaVantageService alphaVantageService,
+        YahooFinanceService yahooService,
+        PolygonService polygonService,
+        DataBentoService databentoService)
     {
         _logger = logger;
         _alpacaService = alpacaService;
         _alphaVantageService = alphaVantageService;
+        _yahooService = yahooService;
+        _polygonService = polygonService;
+        _databentoService = databentoService;
     }
 
     [HttpGet("quotes")]
@@ -93,6 +101,171 @@ public class MarketDataController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching quote for {Symbol}", symbol);
+            return StatusCode(500, new { Error = ex.Message });
+        }
+    }
+
+    [HttpGet("yahoo/{symbol}")]
+    public async Task<IActionResult> GetYahooData(string symbol)
+    {
+        try
+        {
+            var data = await _yahooService.GetMarketDataAsync(symbol);
+            if (data == null)
+            {
+                return NotFound(new { Error = $"No data found for symbol: {symbol}" });
+            }
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching Yahoo data for {Symbol}", symbol);
+            return StatusCode(500, new { Error = ex.Message });
+        }
+    }
+
+    [HttpGet("polygon/quote/{symbol}")]
+    public async Task<IActionResult> GetPolygonQuote(string symbol)
+    {
+        try
+        {
+            var quote = await _polygonService.GetQuoteAsync(symbol);
+            if (quote == null)
+            {
+                return NotFound(new { Error = $"No quote found for symbol: {symbol}" });
+            }
+            return Ok(quote);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching Polygon quote for {Symbol}", symbol);
+            return StatusCode(500, new { Error = ex.Message });
+        }
+    }
+
+    [HttpGet("polygon/daily/{symbol}")]
+    public async Task<IActionResult> GetPolygonDailyBar(string symbol, [FromQuery] DateTime? date = null)
+    {
+        try
+        {
+            var targetDate = date ?? DateTime.UtcNow.AddDays(-1);
+            var bar = await _polygonService.GetDailyBarAsync(symbol, targetDate);
+            if (bar == null)
+            {
+                return NotFound(new { Error = $"No daily bar found for symbol: {symbol}" });
+            }
+            return Ok(bar);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching Polygon daily bar for {Symbol}", symbol);
+            return StatusCode(500, new { Error = ex.Message });
+        }
+    }
+
+    [HttpGet("polygon/aggregates/{symbol}")]
+    public async Task<IActionResult> GetPolygonAggregates(
+        string symbol, 
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] string timespan = "day")
+    {
+        try
+        {
+            var fromDate = from ?? DateTime.UtcNow.AddMonths(-3);
+            var toDate = to ?? DateTime.UtcNow;
+            
+            var aggregates = await _polygonService.GetAggregatesAsync(symbol, timespan, fromDate, toDate);
+            if (aggregates == null || aggregates.Count == 0)
+            {
+                return NotFound(new { Error = $"No aggregates found for symbol: {symbol}" });
+            }
+            return Ok(aggregates);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching Polygon aggregates for {Symbol}", symbol);
+            return StatusCode(500, new { Error = ex.Message });
+        }
+    }
+
+    [HttpGet("polygon/financials/{symbol}")]
+    public async Task<IActionResult> GetPolygonFinancials(string symbol)
+    {
+        try
+        {
+            var financials = await _polygonService.GetFinancialsAsync(symbol);
+            if (financials == null)
+            {
+                return NotFound(new { Error = $"No financials found for symbol: {symbol}" });
+            }
+            return Ok(financials);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching Polygon financials for {Symbol}", symbol);
+            return StatusCode(500, new { Error = ex.Message });
+        }
+    }
+
+    [HttpGet("databento/{symbol}")]
+    public async Task<IActionResult> GetDatabentoData(string symbol)
+    {
+        try
+        {
+            var data = await _databentoService.GetMarketDataAsync(symbol);
+            if (data == null)
+            {
+                return NotFound(new { Error = $"No data found for symbol: {symbol}" });
+            }
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching Databento data for {Symbol}", symbol);
+            return StatusCode(500, new { Error = ex.Message });
+        }
+    }
+
+    [HttpGet("multi-quotes")]
+    public async Task<IActionResult> GetMultipleQuotes([FromQuery] string symbols)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(symbols))
+            {
+                return BadRequest(new { Error = "Symbols parameter is required" });
+            }
+
+            var symbolList = symbols.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .ToList();
+
+            var quotes = new Dictionary<string, object>();
+            
+            foreach (var symbol in symbolList)
+            {
+                try
+                {
+                    // Try Yahoo first as it's most reliable for real-time data
+                    var data = await _yahooService.GetMarketDataAsync(symbol);
+                    if (data != null)
+                    {
+                        quotes[symbol] = data;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error fetching data for {Symbol}", symbol);
+                    quotes[symbol] = new { error = "Data unavailable" };
+                }
+            }
+
+            return Ok(quotes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching multiple quotes");
             return StatusCode(500, new { Error = ex.Message });
         }
     }

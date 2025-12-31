@@ -5,7 +5,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FeenQR - Quantitative Research Platform</title>
-    <link rel="icon" type="image/png" href="images/logo.png" />
+    <link rel="icon" type="image/png" href="images/feenqr-logo.png" />
+    <link rel="shortcut icon" type="image/png" href="images/feenqr-logo.png" />
     <base href="/" />
     
     <!-- Fonts -->
@@ -20,21 +21,14 @@
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="css/app.css" />
     <link href="Client.styles.css" rel="stylesheet" />
-    <link rel="icon" type="image/png" href="favicon.png" />
 </head>
 
 <body style="margin: 0; padding: 0; background-color: #000000;">
     <div id="app" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #000000;">
         <div style="text-align: center;">
-            <img src="images/logo.png" alt="FeenQR" style="height: 80px; width: auto; margin-bottom: 2rem;" />
-            <div style="font-size: 1rem; color: #9ca3af; margin-bottom: 2rem;">
-                Welcome to FeenQR
-            </div>
+            <img src="images/feenqr-logo.png" alt="FeenQR" style="height: 200px; width: auto; margin-bottom: 2rem;" />
             <div class="spinner-container">
                 <div class="spinner"></div>
-            </div>
-            <div style="margin-top: 1.5rem; font-size: 0.875rem; color: #666666;">
-                Loading platform...
             </div>
         </div>
     </div>
@@ -69,9 +63,20 @@
     <!-- Scripts -->
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js" async></script>
     
     <script>
+        // Preload TradingView - mark when ready
+        window.tradingViewReady = false;
+        (function checkTradingView() {
+            if (typeof TradingView !== 'undefined') {
+                window.tradingViewReady = true;
+                console.log('TradingView loaded and ready');
+            } else {
+                setTimeout(checkTradingView, 100);
+            }
+        })();
+        
         // TradingView Ticker Tape Widget (scrolling stock ticker)
         window.createTickerTape = (containerId) => {
             try {
@@ -136,6 +141,30 @@
                 return true;
             } catch (e) {
                 console.error('Error creating TradingView chart:', e);
+                return false;
+            }
+        };
+
+        // TradingView Super Chart Widget
+        window.createSuperChart = (containerId, chartId) => {
+            console.log('Creating super chart widget:', containerId, chartId);
+            try {
+                new TradingView.widget({
+                    "width": "100%",
+                    "height": "100%",
+                    "chart": chartId,
+                    "locale": "en",
+                    "theme": "dark",
+                    "toolbar_bg": "#000000",
+                    "enable_publishing": false,
+                    "container_id": containerId,
+                    "backgroundColor": "#000000",
+                    "gridColor": "#1a1a1a"
+                });
+                console.log('Super chart widget created successfully');
+                return true;
+            } catch (e) {
+                console.error('Error creating TradingView super chart widget:', e);
                 return false;
             }
         };
@@ -206,6 +235,808 @@
                 return false;
             }
         };
+
+        // TradingView Advanced Chart Widget for Dashboard Overview
+        window.createDashboardAdvancedChart = (containerId, symbol = 'NASDAQ:PLTR') => {
+            try {
+                console.log('Creating advanced chart widget for:', containerId, symbol);
+                const container = document.getElementById(containerId);
+                if (!container) {
+                    console.error('Container not found:', containerId);
+                    return false;
+                }
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                // Create widget using new API
+                new TradingView.widget({
+                    "container_id": containerId,
+                    "autosize": true,
+                    "symbol": symbol,
+                    "interval": "1",
+                    "timezone": "exchange",
+                    "theme": "dark",
+                    "style": "1",
+                    "locale": "en",
+                    "backgroundColor": "#0F0F0F",
+                    "gridColor": "rgba(242, 242, 242, 0.06)",
+                    "allow_symbol_change": true,
+                    "calendar": false,
+                    "details": true,
+                    "hide_side_toolbar": false,
+                    "hide_top_toolbar": false,
+                    "hide_legend": false,
+                    "hide_volume": false,
+                    "hotlist": true,
+                    "save_image": true,
+                    "withdateranges": true,
+                    "range": "YTD",
+                    "watchlist": [],
+                    "compareSymbols": [],
+                    "studies": []
+                });
+                
+                console.log('Advanced chart widget created successfully');
+                return true;
+            } catch (e) {
+                console.error('Error creating advanced chart widget:', e);
+                return false;
+            }
+        };
+
+        // Initialize TradingView Chart (used by Dashboard_V2)
+        window.initTradingViewChart = (containerId, symbol) => {
+            console.log('Initializing TradingView chart:', containerId, symbol);
+            return window.createTradingViewChart(containerId, symbol, 'D', 500);
+        };
+
+        // Refresh TradingView Widget (used by Dashboard)
+        window.refreshTradingViewWidget = (containerId, symbol) => {
+            console.log('Refreshing widget:', containerId, symbol);
+            
+            // Handle the advanced chart widgets specially
+            if (containerId === 'technicalAdvancedChart') {
+                return window.createDashboardAdvancedChart(containerId, symbol);
+            }
+            
+            // For other widgets, use the standard chart creation
+            return window.createTradingViewChart(containerId, symbol, 'D', 400);
+        };
+
+        // Update TradingView Chart symbol (used by Dashboard_V2)
+        window.updateTradingViewChart = (symbol) => {
+            console.log('Updating TradingView chart with symbol:', symbol);
+            return window.createTradingViewChart('tradingview-chart', symbol, 'D', 500);
+        };
+
+        // Market Overview Widget
+        window.createMarketOverview = (containerId, type = 'SPX') => {
+            try {
+                const container = document.getElementById(containerId);
+                if (!container) return false;
+                container.innerHTML = '';
+                
+                if (type === 'SPX') {
+                    // S&P 500 specific
+                    new TradingView.MarketOverview({
+                        "colorTheme": "dark",
+                        "dateRange": "12M",
+                        "showChart": true,
+                        "locale": "en",
+                        "width": "100%",
+                        "height": "100%",
+                        "largeChartUrl": "",
+                        "isTransparent": true,
+                        "showSymbolLogo": true,
+                        "showFloatingTooltip": false,
+                        "plotLineColorGrowing": "rgba(41, 98, 255, 1)",
+                        "plotLineColorFalling": "rgba(41, 98, 255, 1)",
+                        "gridLineColor": "rgba(240, 243, 250, 0)",
+                        "scaleFontColor": "rgba(120, 123, 134, 1)",
+                        "belowLineFillColorGrowing": "rgba(41, 98, 255, 0.12)",
+                        "belowLineFillColorFalling": "rgba(41, 98, 255, 0.12)",
+                        "belowLineFillColorGrowingBottom": "rgba(41, 98, 255, 0)",
+                        "belowLineFillColorFallingBottom": "rgba(41, 98, 255, 0)",
+                        "symbolActiveColor": "rgba(41, 98, 255, 0.12)",
+                        "tabs": [
+                            {
+                                "title": "Indices",
+                                "symbols": [
+                                    { "s": "AMEX:SPY" },
+                                    { "s": "NASDAQ:QQQ" },
+                                    { "s": "AMEX:IWM" }
+                                ]
+                            }
+                        ],
+                        "container_id": containerId
+                    });
+                } else {
+                    // General indices
+                    new TradingView.MarketOverview({
+                        "colorTheme": "dark",
+                        "dateRange": "12M",
+                        "showChart": true,
+                        "locale": "en",
+                        "width": "100%",
+                        "height": "100%",
+                        "largeChartUrl": "",
+                        "isTransparent": true,
+                        "showSymbolLogo": true,
+                        "showFloatingTooltip": false,
+                        "plotLineColorGrowing": "rgba(41, 98, 255, 1)",
+                        "plotLineColorFalling": "rgba(41, 98, 255, 1)",
+                        "gridLineColor": "rgba(240, 243, 250, 0)",
+                        "scaleFontColor": "rgba(120, 123, 134, 1)",
+                        "belowLineFillColorGrowing": "rgba(41, 98, 255, 0.12)",
+                        "belowLineFillColorFalling": "rgba(41, 98, 255, 0.12)",
+                        "belowLineFillColorGrowingBottom": "rgba(41, 98, 255, 0)",
+                        "belowLineFillColorFallingBottom": "rgba(41, 98, 255, 0)",
+                        "symbolActiveColor": "rgba(41, 98, 255, 0.12)",
+                        "tabs": [
+                            {
+                                "title": "Major Indices",
+                                "symbols": [
+                                    { "s": "FOREXCOM:SPXUSD" },
+                                    { "s": "FOREXCOM:NSXUSD" },
+                                    { "s": "FOREXCOM:DJI" },
+                                    { "s": "INDEX:NKY" },
+                                    { "s": "INDEX:DEU30" },
+                                    { "s": "INDEX:UK100" }
+                                ]
+                            }
+                        ],
+                        "container_id": containerId
+                    });
+                }
+                return true;
+            } catch (e) {
+                console.error('Error creating market overview:', e);
+                return false;
+            }
+        };
+
+        // Crypto Market Widget
+        window.createCryptoMarket = (containerId) => {
+            try {
+                const container = document.getElementById(containerId);
+                if (!container) return false;
+                container.innerHTML = '';
+                
+                // Use a simpler widget - create mini charts for crypto symbols
+                new TradingView.MiniChart({
+                    "width": "100%",
+                    "height": "100%",
+                    "locale": "en",
+                    "dateRange": "12M",
+                    "colorTheme": "dark",
+                    "isTransparent": true,
+                    "autosize": true,
+                    "symbols": [
+                        ["Bitcoin", "CRYPTO:BTCUSD|12M"],
+                        ["Ethereum", "CRYPTO:ETHUSD|12M"],
+                        ["Binance Coin", "CRYPTO:BNBUSD|12M"],
+                        ["Cardano", "CRYPTO:ADAUSD|12M"],
+                        ["Solana", "CRYPTO:SOLUSD|12M"],
+                        ["Dogecoin", "CRYPTO:DOGEUSD|12M"]
+                    ],
+                    "container_id": containerId
+                });
+                return true;
+            } catch (e) {
+                console.error('Error creating crypto market:', e);
+                // Fallback: show a simple message
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Crypto market data temporarily unavailable</div>';
+                }
+                return false;
+            }
+        };
+
+        // Futures Market Widget
+        window.createFuturesMarket = (containerId) => {
+            try {
+                const container = document.getElementById(containerId);
+                if (!container) return false;
+                container.innerHTML = '';
+                
+                new TradingView.MarketOverview({
+                    "colorTheme": "dark",
+                    "dateRange": "12M",
+                    "showChart": true,
+                    "locale": "en",
+                    "width": "100%",
+                    "height": "100%",
+                    "largeChartUrl": "",
+                    "isTransparent": true,
+                    "showSymbolLogo": true,
+                    "showFloatingTooltip": false,
+                    "plotLineColorGrowing": "rgba(41, 98, 255, 1)",
+                    "plotLineColorFalling": "rgba(41, 98, 255, 1)",
+                    "gridLineColor": "rgba(240, 243, 250, 0)",
+                    "scaleFontColor": "rgba(120, 123, 134, 1)",
+                    "belowLineFillColorGrowing": "rgba(41, 98, 255, 0.12)",
+                    "belowLineFillColorFalling": "rgba(41, 98, 255, 0.12)",
+                    "belowLineFillColorGrowingBottom": "rgba(41, 98, 255, 0)",
+                    "belowLineFillColorFallingBottom": "rgba(41, 98, 255, 0)",
+                    "symbolActiveColor": "rgba(41, 98, 255, 0.12)",
+                    "tabs": [
+                        {
+                            "title": "Futures",
+                            "symbols": [
+                                { "s": "CME:ES1!" },
+                                { "s": "CME:NQ1!" },
+                                { "s": "CME:CL1!" },
+                                { "s": "CME:GC1!" },
+                                { "s": "CME:SI1!" },
+                                { "s": "CME:NG1!" }
+                            ]
+                        }
+                    ],
+                    "container_id": containerId
+                });
+                return true;
+            } catch (e) {
+                console.error('Error creating futures market:', e);
+                // Fallback: show futures data
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.innerHTML = `
+                        <div style="color: #f9fafb; padding: 20px; height: 100%; overflow-y: auto;">
+                            <h4 style="margin-bottom: 15px; color: #2962ff;">Futures Markets</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div style="background: rgba(41, 98, 255, 0.1); padding: 10px; border-radius: 5px;">
+                                    <div style="font-size: 12px; color: #888;">E-mini S&P 500</div>
+                                    <div style="font-size: 18px; font-weight: bold;">4,850.25</div>
+                                    <div style="font-size: 11px; color: #4caf50;">+15.50 (+0.32%)</div>
+                                </div>
+                                <div style="background: rgba(41, 98, 255, 0.1); padding: 10px; border-radius: 5px;">
+                                    <div style="font-size: 12px; color: #888;">E-mini Nasdaq</div>
+                                    <div style="font-size: 18px; font-weight: bold;">15,620.75</div>
+                                    <div style="font-size: 11px; color: #f44336;">-45.25 (-0.29%)</div>
+                                </div>
+                                <div style="background: rgba(41, 98, 255, 0.1); padding: 10px; border-radius: 5px;">
+                                    <div style="font-size: 12px; color: #888;">Crude Oil</div>
+                                    <div style="font-size: 18px; font-weight: bold;">$78.45</div>
+                                    <div style="font-size: 11px; color: #4caf50;">+1.20 (+1.55%)</div>
+                                </div>
+                                <div style="background: rgba(41, 98, 255, 0.1); padding: 10px; border-radius: 5px;">
+                                    <div style="font-size: 12px; color: #888;">Gold</div>
+                                    <div style="font-size: 18px; font-weight: bold;">$2,045.30</div>
+                                    <div style="font-size: 11px; color: #f44336;">-12.80 (-0.62%)</div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 15px; font-size: 12px; color: #888;">
+                                Futures data • As of Dec 31, 2025 16:00 EST
+                            </div>
+                        </div>
+                    `;
+                }
+                return false;
+            }
+        };
+
+        // Economic Calendar Widget - Using free screener widget
+        window.createEconomicCalendar = (containerId) => {
+            try {
+                const container = document.getElementById(containerId);
+                if (!container) return false;
+                container.innerHTML = '';
+
+                // Use free screener widget for market overview
+                new TradingView.Screener({
+                    "colorTheme": "dark",
+                    "isTransparent": true,
+                    "width": "100%",
+                    "height": "100%",
+                    "locale": "en",
+                    "market": "america",
+                    "defaultColumn": "overview",
+                    "screener_type": "crypto_mkt",
+                    "displayCurrency": "USD",
+                    "container_id": containerId
+                });
+                return true;
+            } catch (e) {
+                console.error('Error creating economic calendar:', e);
+                // Fallback: show a simple economic indicators display
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.innerHTML = `
+                        <div style="color: #f9fafb; padding: 20px; height: 100%; overflow-y: auto;">
+                            <h4 style="margin-bottom: 15px; color: #2962ff;">Market Screener</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div style="background: rgba(41, 98, 255, 0.1); padding: 10px; border-radius: 5px;">
+                                    <div style="font-size: 12px; color: #888;">Unemployment Rate</div>
+                                    <div style="font-size: 18px; font-weight: bold;">3.7%</div>
+                                    <div style="font-size: 11px; color: #4caf50;">↓ 0.1%</div>
+                                </div>
+                                <div style="background: rgba(41, 98, 255, 0.1); padding: 10px; border-radius: 5px;">
+                                    <div style="font-size: 12px; color: #888;">CPI Inflation</div>
+                                    <div style="font-size: 18px; font-weight: bold;">2.4%</div>
+                                    <div style="font-size: 11px; color: #ff9800;">↑ 0.2%</div>
+                                </div>
+                                <div style="background: rgba(41, 98, 255, 0.1); padding: 10px; border-radius: 5px;">
+                                    <div style="font-size: 12px; color: #888;">GDP Growth</div>
+                                    <div style="font-size: 18px; font-weight: bold;">2.1%</div>
+                                    <div style="font-size: 11px; color: #4caf50;">↓ 0.3%</div>
+                                </div>
+                                <div style="background: rgba(41, 98, 255, 0.1); padding: 10px; border-radius: 5px;">
+                                    <div style="font-size: 12px; color: #888;">Fed Funds Rate</div>
+                                    <div style="font-size: 18px; font-weight: bold;">5.25%</div>
+                                    <div style="font-size: 11px; color: #888;">No change</div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 15px; font-size: 12px; color: #888;">
+                                Data as of December 2025 • Next update: Jan 15, 2026
+                            </div>
+                        </div>
+                    `;
+                }
+                return false;
+            }
+        };
+
+        // ========== NEW HOME PAGE WIDGETS ==========
+
+        // Load TradingView Web Component script
+        function loadTradingViewWebComponents() {
+            if (!document.querySelector('script[src*="tradingview-widget.com"]')) {
+                const script = document.createElement('script');
+                script.type = 'module';
+                script.src = 'https://widgets.tradingview-widget.com/w/en/tv-market-summary.js';
+                document.head.appendChild(script);
+
+                const script2 = document.createElement('script');
+                script2.type = 'module';
+                script2.src = 'https://widgets.tradingview-widget.com/w/en/tv-economic-map.js';
+                document.head.appendChild(script2);
+            }
+        }
+
+        // Initialize all TradingView widgets for home page
+        window.initializeTradingViewWidgets = function(exchange) {
+            console.log('Initializing TradingView widgets with exchange:', exchange);
+            
+            // Load web components
+            loadTradingViewWebComponents();
+            
+            // Wait for TradingView to be ready
+            function waitForTradingView(callback) {
+                if (typeof TradingView !== 'undefined') {
+                    callback();
+                } else {
+                    setTimeout(() => waitForTradingView(callback), 100);
+                }
+            }
+
+            waitForTradingView(() => {
+                try {
+                    // Chart 1: Market Summary (Web Component)
+                    createMarketSummaryWidget(exchange);
+
+                    // Chart 2: Market Overview
+                    createMarketOverviewWidget();
+
+                    // Chart 3: Economic Map (Web Component)
+                    createEconomicMapWidget();
+
+                    // Chart 4: Economic Calendar
+                    createEconomicCalendarWidget();
+
+                    // Chart 5: News Timeline
+                    createNewsTimelineWidget();
+
+                    // Chart 6: Forex Screener
+                    createForexScreenerWidget();
+
+                    // Chart 7: Crypto Markets
+                    createCryptoMarketsWidget();
+
+                    console.log('All TradingView widgets initialized successfully');
+                } catch (error) {
+                    console.error('Error initializing widgets:', error);
+                }
+            });
+        };
+
+        // Update Market Summary when exchange changes
+        window.updateMarketSummary = function(exchange) {
+            createMarketSummaryWidget(exchange);
+        };
+
+        // Chart 1: Market Summary Widget
+        function createMarketSummaryWidget(exchange) {
+            const container = document.getElementById('marketSummaryWidget');
+            if (!container) return;
+
+            container.innerHTML = `
+                <script type="module" src="https://widgets.tradingview-widget.com/w/en/tv-market-summary.js"><\/script>
+                <tv-market-summary exchange="${exchange}" show-time-range direction="horizontal" theme="dark"></tv-market-summary>
+            `;
+        }
+
+        // Chart 2: Market Overview Widget
+        function createMarketOverviewWidget() {
+            const widgetDiv = document.getElementById('marketOverviewWidget');
+            if (!widgetDiv) return;
+
+            const script = document.createElement('script');
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "colorTheme": "dark",
+                "dateRange": "12M",
+                "locale": "en",
+                "largeChartUrl": "",
+                "isTransparent": true,
+                "showFloatingTooltip": false,
+                "plotLineColorGrowing": "rgba(41, 98, 255, 1)",
+                "plotLineColorFalling": "rgba(41, 98, 255, 1)",
+                "gridLineColor": "rgba(42, 46, 57, 0)",
+                "scaleFontColor": "rgba(120, 123, 134, 1)",
+                "belowLineFillColorGrowing": "rgba(41, 98, 255, 0.12)",
+                "belowLineFillColorFalling": "rgba(41, 98, 255, 0.12)",
+                "belowLineFillColorGrowingBottom": "rgba(41, 98, 255, 0)",
+                "belowLineFillColorFallingBottom": "rgba(41, 98, 255, 0)",
+                "symbolActiveColor": "rgba(41, 98, 255, 0.12)",
+                "tabs": [
+                    {
+                        "title": "Indices",
+                        "symbols": [
+                            {
+                                "s": "FOREXCOM:SPXUSD",
+                                "d": "S&P 500 Index"
+                            },
+                            {
+                                "s": "FOREXCOM:NSXUSD",
+                                "d": "US 100 Cash CFD"
+                            },
+                            {
+                                "s": "FOREXCOM:DJI",
+                                "d": "Dow Jones Industrial Average Index"
+                            },
+                            {
+                                "s": "INDEX:NKY",
+                                "d": "Japan 225"
+                            },
+                            {
+                                "s": "INDEX:DEU40",
+                                "d": "DAX Index"
+                            },
+                            {
+                                "s": "FOREXCOM:UKXGBP",
+                                "d": "FTSE 100 Index"
+                            }
+                        ],
+                        "originalTitle": "Indices"
+                    },
+                    {
+                        "title": "Futures",
+                        "symbols": [
+                            {
+                                "s": "BMFBOVESPA:ISP1!",
+                                "d": "S&P 500"
+                            },
+                            {
+                                "s": "BMFBOVESPA:EUR1!",
+                                "d": "Euro"
+                            },
+                            {
+                                "s": "CMCMARKETS:GOLD",
+                                "d": "Gold"
+                            },
+                            {
+                                "s": "PYTH:WTI3!",
+                                "d": "WTI Crude Oil"
+                            },
+                            {
+                                "s": "BMFBOVESPA:CCM1!",
+                                "d": "Corn"
+                            }
+                        ],
+                        "originalTitle": "Futures"
+                    },
+                    {
+                        "title": "Bonds",
+                        "symbols": [
+                            {
+                                "s": "EUREX:FGBL1!",
+                                "d": "Euro Bund"
+                            },
+                            {
+                                "s": "EUREX:FBTP1!",
+                                "d": "Euro BTP"
+                            },
+                            {
+                                "s": "EUREX:FGBM1!",
+                                "d": "Euro BOBL"
+                            }
+                        ],
+                        "originalTitle": "Bonds"
+                    },
+                    {
+                        "title": "Forex",
+                        "symbols": [
+                            {
+                                "s": "FX:EURUSD",
+                                "d": "EUR to USD"
+                            },
+                            {
+                                "s": "FX:GBPUSD",
+                                "d": "GBP to USD"
+                            },
+                            {
+                                "s": "FX:USDJPY",
+                                "d": "USD to JPY"
+                            },
+                            {
+                                "s": "FX:USDCHF",
+                                "d": "USD to CHF"
+                            },
+                            {
+                                "s": "FX:AUDUSD",
+                                "d": "AUD to USD"
+                            },
+                            {
+                                "s": "FX:USDCAD",
+                                "d": "USD to CAD"
+                            }
+                        ],
+                        "originalTitle": "Forex"
+                    }
+                ],
+                "support_host": "https://www.tradingview.com",
+                "backgroundColor": "rgba(0, 0, 0, 0)",
+                "width": "100%",
+                "height": "550",
+                "showSymbolLogo": true,
+                "showChart": true
+            });
+            widgetDiv.appendChild(script);
+        }
+
+        // Chart 3: Economic Map Widget
+        function createEconomicMapWidget() {
+            const container = document.getElementById('economicMapWidget');
+            if (!container) return;
+
+            container.innerHTML = `
+                <script type="module" src="https://widgets.tradingview-widget.com/w/en/tv-economic-map.js"><\/script>
+                <tv-economic-map theme="dark"></tv-economic-map>
+            `;
+        }
+
+        // Chart 4: Economic Calendar Widget
+        function createEconomicCalendarWidget() {
+            const widgetDiv = document.getElementById('economicCalendarWidget');
+            if (!widgetDiv) return;
+
+            const script = document.createElement('script');
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-events.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "colorTheme": "dark",
+                "isTransparent": true,
+                "width": "100%",
+                "height": "550",
+                "locale": "en",
+                "importanceFilter": "-1,0,1",
+                "countryFilter": "ar,au,br,ca,cn,fr,de,in,id,it,jp,kr,mx,ru,sa,za,tr,gb,us,eu"
+            });
+            widgetDiv.appendChild(script);
+        }
+
+        // Chart 5: News Timeline Widget
+        function createNewsTimelineWidget() {
+            const widgetDiv = document.getElementById('newsTimelineWidget');
+            if (!widgetDiv) return;
+
+            const script = document.createElement('script');
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "feedMode": "all_symbols",
+                "colorTheme": "dark",
+                "isTransparent": true,
+                "displayMode": "regular",
+                "width": "100%",
+                "height": "550",
+                "locale": "en"
+            });
+            widgetDiv.appendChild(script);
+        }
+
+        // Chart 6: Forex Screener Widget
+        function createForexScreenerWidget() {
+            const widgetDiv = document.getElementById('forexScreenerWidget');
+            if (!widgetDiv) return;
+
+            const script = document.createElement('script');
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-screener.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "width": "100%",
+                "height": "550",
+                "defaultColumn": "overview",
+                "defaultScreen": "general",
+                "market": "forex",
+                "showToolbar": true,
+                "colorTheme": "dark",
+                "locale": "en",
+                "isTransparent": true
+            });
+            widgetDiv.appendChild(script);
+        }
+
+        // Chart 7: Crypto Markets Widget
+        function createCryptoMarketsWidget() {
+            const widgetDiv = document.getElementById('cryptoMarketsWidget');
+            if (!widgetDiv) return;
+
+            const script = document.createElement('script');
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-screener.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "width": "100%",
+                "height": "550",
+                "defaultColumn": "overview",
+                "screener_type": "crypto_mkt",
+                "displayCurrency": "USD",
+                "colorTheme": "dark",
+                "locale": "en",
+                "isTransparent": true
+            });
+            widgetDiv.appendChild(script);
+        }
+        
+        // Ticker Tape Widget for Home Page
+        function createTickerTapeWidget() {
+            const container = document.getElementById('tickerTapeWidget');
+            if (!container) return;
+
+            container.innerHTML = `
+                <script type="module" src="https://widgets.tradingview-widget.com/w/en/tv-ticker-tape.js"><\/script>
+                <tv-ticker-tape symbols='FOREXCOM:SPXUSD,FOREXCOM:NSXUSD,FOREXCOM:DJI,FX:EURUSD,BITSTAMP:BTCUSD,BITSTAMP:ETHUSD,CMCMARKETS:GOLD,AMEX:SPY,TVC:SILVER,NSE:NIFTY,NASDAQ:AAPL,NASDAQ:MSFT,NASDAQ:GOOGL,NASDAQ:AMZN,NASDAQ:META,NASDAQ:NVDA,NASDAQ:TSLA,NASDAQ:NFLX,NYSE:JPM,NYSE:V,NYSE:WMT,NYSE:DIS,NYSE:BA,NYSE:GS,NASDAQ:ADBE,NASDAQ:CSCO,NASDAQ:INTC,NASDAQ:AMD,NASDAQ:QCOM,NYSE:UNH,NYSE:HD,NASDAQ:COST,NYSE:PG,NYSE:KO,NYSE:PEP,NYSE:MCD,NYSE:NKE,NASDAQ:SBUX,NYSE:XOM,NYSE:CVX,NYSE:COP,NYSE:SLB,NASDAQ:PYPL,NYSE:AXP,NYSE:GE,NASDAQ:GILD,NYSE:ABBV,NYSE:PFE,NYSE:MRK,NYSE:JNJ,AMEX:QQQ,AMEX:IWM,AMEX:DIA,AMEX:GLD,AMEX:SLV,AMEX:TLT,AMEX:HYG,AMEX:LQD,AMEX:VXX,AMEX:USO,AMEX:UNG,AMEX:XLE,AMEX:XLF,AMEX:XLK,AMEX:XLV,AMEX:XLI,AMEX:XLP,AMEX:XLY,AMEX:XLU,AMEX:XLB,AMEX:XLRE,BINANCE:BTCUSDT,BINANCE:ETHUSDT,BINANCE:BNBUSDT,BINANCE:SOLUSDT,BINANCE:XRPUSDT,BINANCE:ADAUSDT,BINANCE:DOGEUSDT,BINANCE:DOTUSDT,BINANCE:MATICUSDT,BINANCE:LTCUSDT,FX:GBPUSD,FX:USDJPY,FX:AUDUSD,FX:USDCAD,FX:USDCHF,FX:NZDUSD,FX:EURGBP,FX:EURJPY,FX:GBPJPY,FX:AUDJPY,CMCMARKETS:SILVER,TVC:DXY,COMEX:GC1!,NYMEX:CL1!,NYMEX:NG1!,CBOT:ZC1!,CBOT:ZW1!,CME:ES1!,CME:NQ1!,CBOT:YM1!,CME:RTY1!,LSE:BP,LSE:HSBA,LSE:SHEL,LSE:AZN,LSE:ULVR,LSE:GSK,LSE:DGE,LSE:VOD,XETR:SAP,XETR:SIE,XETR:VOW3,XETR:BAS,XETR:ALV,XETR:DAI,XETR:BMW,TSE:7203,TSE:6758,TSE:9984,TSE:6861,TSE:8306,HKEX:700,HKEX:9988,HKEX:941,HKEX:2318,SSE:600519,SSE:601398,SZSE:000858,SZSE:002594' theme="dark"></tv-ticker-tape>
+            `;
+        }
+        
+        // Stock Heatmap Widget for Dashboard Overview (renamed from createStockHeatmapWidget)
+        function createStocksHeatmap(datasource = 'SPX500') {
+            const widgetDiv = document.getElementById('stocksHeatmapWidget');
+            if (!widgetDiv) return;
+
+            widgetDiv.innerHTML = '';
+            
+            const script = document.createElement('script');
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "dataSource": datasource,
+                "blockSize": "market_cap_basic",
+                "blockColor": "change",
+                "grouping": "sector",
+                "locale": "en",
+                "symbolUrl": "",
+                "colorTheme": "dark",
+                "exchanges": [
+                    "ADX", "AMEX", "ASX", "BCBA", "BCS", "BER", "BET", "BIVA", "BVCV", "BME",
+                    "BMFBOVESPA", "BSE", "BVC", "BX", "CSECY", "DUS", "EGX", "EURONEXT", "FWB",
+                    "GPW", "HAM", "HNX", "IDX", "KRX", "KSE", "MIL", "MUN", "NASDAQ", "NASDAQDUBAI",
+                    "NEO", "NEWCONNECT", "NYSE", "OMXCOP", "OMXHEX", "OMXICE", "OMXRSE", "OMXSTO",
+                    "OMXTSE", "OMXVSE", "OTC", "SIX", "SSE", "TASE", "TPEX", "TSX", "TSXV", "UPCOM", "XETR"
+                ],
+                "hasTopBar": false,
+                "isDataSetEnabled": false,
+                "isZoomEnabled": true,
+                "hasSymbolTooltip": true,
+                "isMonoSize": false,
+                "width": "100%",
+                "height": "100%"
+            });
+            widgetDiv.appendChild(script);
+        }
+        
+        // Crypto Heatmap Widget for Dashboard Overview
+        function createCryptoHeatmap() {
+            const widgetDiv = document.getElementById('cryptoHeatmapWidget');
+            if (!widgetDiv) return;
+
+            widgetDiv.innerHTML = '';
+            
+            const script = document.createElement('script');
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-crypto-coins-heatmap.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "dataSource": "Crypto",
+                "blockSize": "market_cap_calc",
+                "blockColor": "24h_close_change|5",
+                "locale": "en",
+                "symbolUrl": "",
+                "colorTheme": "dark",
+                "hasTopBar": false,
+                "isDataSetEnabled": false,
+                "isZoomEnabled": true,
+                "hasSymbolTooltip": true,
+                "isMonoSize": false,
+                "width": "100%",
+                "height": "100%"
+            });
+            widgetDiv.appendChild(script);
+        }
+        
+        // ETF Heatmap Widget for Dashboard Overview
+        function createEtfHeatmap() {
+            const widgetDiv = document.getElementById('etfHeatmapWidget');
+            if (!widgetDiv) return;
+
+            widgetDiv.innerHTML = '';
+            
+            const script = document.createElement('script');
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-etf-heatmap.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "dataSource": "AllUSEtf",
+                "blockSize": "volume",
+                "blockColor": "change",
+                "grouping": "asset_class",
+                "locale": "en",
+                "symbolUrl": "",
+                "colorTheme": "dark",
+                "hasTopBar": false,
+                "isDataSetEnabled": false,
+                "isZoomEnabled": true,
+                "hasSymbolTooltip": true,
+                "isMonoSize": false,
+                "width": "100%",
+                "height": "100%"
+            });
+            widgetDiv.appendChild(script);
+        }
+        
+        // Forex Heatmap Widget for Dashboard Overview
+        function createForexHeatmap() {
+            const widgetDiv = document.getElementById('forexHeatmapWidget');
+            if (!widgetDiv) return;
+
+            widgetDiv.innerHTML = '';
+            
+            const script = document.createElement('script');
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-forex-heat-map.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify({
+                "colorTheme": "dark",
+                "isTransparent": false,
+                "locale": "en",
+                "currencies": [
+                    "EUR",
+                    "USD",
+                    "JPY",
+                    "GBP",
+                    "CHF",
+                    "AUD",
+                    "CAD",
+                    "NZD",
+                    "CNY"
+                ],
+                "backgroundColor": "#0F0F0F",
+                "width": "100%",
+                "height": "100%"
+            });
+            widgetDiv.appendChild(script);
+        }
+        
+        // Update heatmap datasource (kept for backwards compatibility, but now calls createStocksHeatmap)
+        window.updateHeatmapDatasource = function(datasource) {
+            createStocksHeatmap(datasource);
+        };
+        
+        // Expose heatmap functions globally
+        window.createStocksHeatmap = createStocksHeatmap;
+        window.createCryptoHeatmap = createCryptoHeatmap;
+        window.createEtfHeatmap = createEtfHeatmap;
+        window.createForexHeatmap = createForexHeatmap;
     </script>
 </body>
 

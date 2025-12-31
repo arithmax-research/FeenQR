@@ -2,72 +2,297 @@
 @inject IJSRuntime JS
 @implements IDisposable
 
-<PageTitle>FeenQR - Home</PageTitle>
+<PageTitle>FeenQR - Market Summary</PageTitle>
 
 <style>
-    .chart-container {
+    .market-dashboard {
         position: fixed;
+        left: 280px;
         top: 0;
         right: 0;
         bottom: 0;
-        left: 280px;
-        background: inherit;
-        margin: 0;
+        background: #0f0f0f;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 24px;
+        box-sizing: border-box;
+    }
+
+    .exchange-selector {
+        margin-bottom: 0;
         padding: 0;
+        background: transparent;
+        border-radius: 0;
+        display: block;
+    }
+
+    .ticker-tape-header {
+        margin-bottom: 24px;
+        padding: 0;
+        background: rgba(18, 18, 18, 0.95);
+        border-radius: 8px;
+        min-height: 60px;
+    }
+
+    .market-summary-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 0;
+        padding: 0;
+        flex-wrap: wrap;
+    }
+
+    .exchange-selector-control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .exchange-selector label {
+        color: #fff;
+        margin: 0;
+        font-weight: 500;
+        font-size: 15px;
+    }
+
+    .exchange-selector select {
+        padding: 8px 12px;
+        background: #1a1a1a;
+        color: #fff;
+        border: 1px solid #333;
+        border-radius: 4px;
+        font-size: 14px;
+        min-width: 180px;
+    }
+
+    .exchange-selector select:focus {
+        outline: none;
+        border-color: #2962ff;
+    }
+
+    .ticker-tape-container {
+        width: 100%;
+        min-height: 60px;
         overflow: hidden;
     }
 
-    #tradingViewChart {
-        width: 100%;
+    .widgets-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    .widget-container {
+        background: rgba(18, 18, 18, 0.95);
+        border-radius: 8px;
+        padding: 20px;
+        min-height: 600px;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0;
+    }
+
+    .widget-container.full-width {
+        grid-column: 1 / -1;
+        min-height: 150px;
+        margin-bottom: 24px;
+    }
+
+    .widget-container.full-width:first-of-type {
+        margin-bottom: 24px;
+    }
+
+    .widget-title {
+        color: #fff;
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 16px 0;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #333;
+    }
+
+    .tradingview-widget-container {
+        flex: 1;
+        position: relative;
+        min-height: 0;
+        background: #0f0f0f;
+    }
+
+    .tradingview-widget-container__widget {
         height: 100%;
+        background: #0f0f0f;
+    }
+
+    #marketSummaryWidget {
+        min-height: 120px;
+        background: #0f0f0f;
+    }
+
+    #economicMapWidget {
+        background: #0f0f0f;
+    }
+
+    @@media (max-width: 1200px) {
+        .widgets-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     @@media (max-width: 768px) {
-        .chart-container {
+        .market-dashboard {
             left: 0;
+            padding: 16px;
+        }
+        
+        .widgets-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .exchange-selector {
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .widget-container {
+            padding: 16px;
+            min-height: 500px;
         }
     }
 </style>
 
-<div class="chart-container">
-    <div id="tradingViewChart"></div>
+<div class="market-dashboard">
+    <!-- Ticker Tape Header Strip -->
+    <div class="ticker-tape-header">
+        <div class="ticker-tape-container">
+            <div id="tickerTapeWidget"></div>
+        </div>
+    </div>
+
+    <!-- Chart 1: Market Summary with Exchange Selector -->
+    <div class="widget-container full-width">
+        <div class="widget-title" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <span>Market Summary - @selectedExchange</span>
+            <div class="exchange-selector">
+                <div class="exchange-selector-control">
+                    <label for="exchangeSelect">Exchange:</label>
+                    <select id="exchangeSelect" @onchange="OnExchangeChanged">
+                        <option value="NYSE">NYSE</option>
+                        <option value="NASDAQ">NASDAQ</option>
+                        <option value="LSE">LSE</option>
+                        <option value="TSE">TSE</option>
+                        <option value="HKEX">HKEX</option>
+                        <option value="SSE">SSE</option>
+                        <option value="SZSE">SZSE</option>
+                        <option value="Euronext">Euronext</option>
+                        <option value="BMV">BMV</option>
+                        <option value="BOVESPA">BOVESPA</option>
+                        <option value="TSX">TSX</option>
+                        <option value="ASX">ASX</option>
+                        <option value="BSE">BSE</option>
+                        <option value="NSE">NSE</option>
+                        <option value="KRX">KRX</option>
+                        <option value="SIX">SIX</option>
+                        <option value="BME">BME</option>
+                        <option value="JSE">JSE</option>
+                        <option value="MOEX">MOEX</option>
+                        <option value="TWSE">TWSE</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div id="marketSummaryWidget"></div>
+    </div>
+
+    <div class="widgets-grid">
+        <!-- Chart 2: Market Overview -->
+        <div class="widget-container">
+            <div class="widget-title">Market Overview</div>
+            <div class="tradingview-widget-container" id="marketOverview">
+                <div class="tradingview-widget-container__widget" id="marketOverviewWidget"></div>
+            </div>
+        </div>
+
+        <!-- Chart 3: Economic Map -->
+        <div class="widget-container">
+            <div class="widget-title">Economic Map</div>
+            <div id="economicMapWidget"></div>
+        </div>
+
+        <!-- Chart 4: Economic Calendar -->
+        <div class="widget-container">
+            <div class="widget-title">Economic Calendar</div>
+            <div class="tradingview-widget-container" id="economicCalendar">
+                <div class="tradingview-widget-container__widget" id="economicCalendarWidget"></div>
+            </div>
+        </div>
+
+        <!-- Chart 5: News Timeline -->
+        <div class="widget-container">
+            <div class="widget-title">Latest News</div>
+            <div class="tradingview-widget-container" id="newsTimeline">
+                <div class="tradingview-widget-container__widget" id="newsTimelineWidget"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 6: Forex Screener (Full Width) -->
+    <div class="widget-container full-width">
+        <div class="widget-title">Forex Screener</div>
+        <div class="tradingview-widget-container" id="forexScreener">
+            <div class="tradingview-widget-container__widget" id="forexScreenerWidget"></div>
+        </div>
+    </div>
+
+    <!-- Chart 7: Crypto Markets (Full Width) -->
+    <div class="widget-container full-width">
+        <div class="widget-title">Crypto Markets</div>
+        <div class="tradingview-widget-container" id="cryptoMarkets">
+            <div class="tradingview-widget-container__widget" id="cryptoMarketsWidget"></div>
+        </div>
+    </div>
 </div>
 
 @code {
-    private bool chartInitialized = false;
+    private bool initialized = false;
+    private string selectedExchange = "NYSE";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !chartInitialized)
+        if (firstRender && !initialized)
         {
-            chartInitialized = true;
-            await InitializeChart();
-            
-            // Monitor theme changes via window.currentTheme
-            await JS.InvokeVoidAsync("eval", @"
-                window.currentTheme = window.currentTheme || 'dark';
-                setInterval(() => {
-                    const chart = document.getElementById('tradingViewChart');
-                    if (chart && chart.dataset.theme !== window.currentTheme) {
-                        chart.dataset.theme = window.currentTheme;
-                        chart.innerHTML = '';
-                        window.createAdvancedChart('tradingViewChart', 'NASDAQ:AAPL', '60');
-                    }
-                }, 500);
-            ");
+            initialized = true;
+            await InitializeMarketWidgets();
         }
     }
 
-    private async Task InitializeChart()
+    private async Task OnExchangeChanged(ChangeEventArgs e)
+    {
+        selectedExchange = e.Value?.ToString() ?? "NYSE";
+        await UpdateMarketSummary();
+        StateHasChanged();
+    }
+
+    private async Task UpdateMarketSummary()
+    {
+        await JS.InvokeVoidAsync("updateMarketSummary", selectedExchange);
+    }
+
+    private async Task InitializeMarketWidgets()
     {
         try
         {
-            await JS.InvokeVoidAsync("createAdvancedChart", "tradingViewChart", "NASDAQ:AAPL", "60");
-            Console.WriteLine("Trading chart initialized");
+            await Task.Delay(500);
+            
+            await JS.InvokeVoidAsync("initializeTradingViewWidgets", selectedExchange);
+            await JS.InvokeVoidAsync("createTickerTapeWidget");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Chart initialization error: {ex.Message}");
+            Console.WriteLine($"Market widgets initialization error: {ex.Message}");
         }
     }
 

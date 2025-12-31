@@ -22,14 +22,14 @@ fi
 if [ "$MODE" = "web" ]; then
     echo " Starting Web interface..."
     echo " Checking for webapp..."
-    if [ ! -d "../FeenQR.WebApp" ]; then
-        echo " Error: Webapp not found at ../FeenQR.WebApp"
+    if [ ! -d "WebApp" ]; then
+        echo " Error: Webapp not found at WebApp"
         echo " Please ensure the webapp is built and available."
         exit 1
     fi
-    echo " Webapp will be available at http://localhost:5157"
+    echo " Webapp will be available at http://localhost:5228"
     echo ""
-    cd ../FeenQR.WebApp/Client
+    cd WebApp/Server
     dotnet run
 else
     echo " Building backend..."

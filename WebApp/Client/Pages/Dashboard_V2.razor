@@ -1,0 +1,306 @@
+@page "/dashboard-v2"
+@inject IJSRuntime JS
+
+<PageTitle>FeenQR - Dashboard V2 (API Test)</PageTitle>
+
+<style>
+    .dashboard-container {
+        position: fixed;
+        left: 280px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: #0f1117;
+        overflow-y: auto;
+    }
+
+    .dashboard-header {
+        background: rgba(18, 18, 18, 0.95);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .symbol-input-group {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .symbol-input-group label {
+        font-size: 0.875rem;
+        color: #9ca3af;
+        font-weight: 600;
+    }
+
+    .symbol-input {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        color: #f9fafb;
+        font-size: 1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        width: 150px;
+    }
+
+    .analyze-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 6px;
+        padding: 0.5rem 1.5rem;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .analyze-btn:hover {
+        transform: scale(1.05);
+    }
+
+    .current-symbol {
+        margin-left: auto;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #4fc3f7;
+    }
+
+    .dashboard-content {
+        padding: 2rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 2rem;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    .widget-section {
+        background: rgba(26, 29, 41, 0.8);
+        border-radius: 12px;
+        padding: 0;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+    }
+
+    .widget-section.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .section-title {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 1rem 1.5rem;
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #e0e0e0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .widget-content {
+        padding: 1.5rem;
+    }
+
+    .tradingview-chart {
+        width: 100%;
+        height: 500px;
+        background: #1a1d29;
+        border-radius: 8px;
+    }
+
+    .quick-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        border-radius: 8px;
+        padding: 1.5rem;
+        border: 1px solid rgba(102, 126, 234, 0.2);
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #b0bec5;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #f9fafb;
+    }
+
+    .info-message {
+        background: rgba(79, 195, 247, 0.1);
+        border: 1px solid rgba(79, 195, 247, 0.3);
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        color: #4fc3f7;
+        font-size: 0.875rem;
+    }
+</style>
+
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div class="symbol-input-group">
+            <label>Symbol:</label>
+            <input type="text" 
+                   class="symbol-input" 
+                   @bind="inputSymbol" 
+                   @bind:event="oninput"
+                   placeholder="AAPL"
+                   maxlength="10" />
+            <button class="analyze-btn" @onclick="UpdateSymbol">Analyze</button>
+        </div>
+        <div class="current-symbol">@currentSymbol</div>
+    </div>
+
+    <div class="dashboard-content">
+        <!-- Market Data Widget -->
+        <div class="widget-section">
+            <h3 class="section-title">📊 Market Data</h3>
+            <div class="widget-content">
+                <Client.Components.MarketDataWidget Symbol="@currentSymbol" />
+                <div class="info-message">
+                    <strong>Data Source:</strong> Yahoo Finance API (Real-time)
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Analysis Widget -->
+        <div class="widget-section">
+            <h3 class="section-title">📈 Technical Analysis</h3>
+            <div class="widget-content">
+                <Client.Components.TechnicalWidget Symbol="@currentSymbol" />
+                <div class="info-message">
+                    <strong>Data Source:</strong> Polygon.io (Historical + Indicators)
+                </div>
+            </div>
+        </div>
+
+        <!-- TradingView Chart -->
+        <div class="widget-section full-width">
+            <h3 class="section-title">📉 Price Chart</h3>
+            <div class="widget-content">
+                <div id="tradingview-chart" class="tradingview-chart"></div>
+                <div class="info-message">
+                    <strong>Chart Provider:</strong> TradingView Advanced Charts
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="widget-section full-width">
+            <h3 class="section-title">⚡ Quick Statistics</h3>
+            <div class="widget-content">
+                <div class="quick-stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Available APIs</div>
+                        <div class="stat-value">6</div>
+                        <div class="stat-label" style="margin-top: 0.5rem; font-size: 0.75rem;">
+                            Yahoo, Polygon, Alpaca, Databento, Alpha Vantage, IEX
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Backend Services</div>
+                        <div class="stat-value">91</div>
+                        <div class="stat-label" style="margin-top: 0.5rem; font-size: 0.75rem;">
+                            Full CLI functionality available
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Kernel Plugins</div>
+                        <div class="stat-value">80</div>
+                        <div class="stat-label" style="margin-top: 0.5rem; font-size: 0.75rem;">
+                            AI-powered analysis ready
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">CLI Commands</div>
+                        <div class="stat-value">50+</div>
+                        <div class="stat-label" style="margin-top: 0.5rem; font-size: 0.75rem;">
+                            Ready to migrate to web
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Placeholder: More widgets coming -->
+        <div class="widget-section full-width">
+            <h3 class="section-title">🚀 Coming Soon</h3>
+            <div class="widget-content">
+                <div style="text-align: center; padding: 2rem; color: #9ca3af;">
+                    <p style="font-size: 1.1rem; margin-bottom: 1rem;">More widgets in development:</p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+                        <div>📰 News & Sentiment (NewsSentimentAnalysisService)</div>
+                        <div>📊 Fundamental Analysis (EnhancedFundamentalAnalysisPlugin)</div>
+                        <div>💼 Portfolio Management (PortfolioOptimizationService)</div>
+                        <div>⚠️ Risk Analytics (AdvancedRiskService)</div>
+                        <div>📄 SEC Filings (SECFilingsService)</div>
+                        <div>🎯 Earnings Analysis (EarningsCallService)</div>
+                        <div>🤖 AI Research (ConversationalResearchPlugin)</div>
+                        <div>📈 Backtesting (AdvancedOptimizationPlugin)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string currentSymbol = "AAPL";
+    private string inputSymbol = "AAPL";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await InitializeTradingViewChart();
+        }
+    }
+
+    private async Task UpdateSymbol()
+    {
+        if (!string.IsNullOrWhiteSpace(inputSymbol))
+        {
+            currentSymbol = inputSymbol.ToUpper().Trim();
+            await UpdateTradingViewChart();
+            StateHasChanged();
+        }
+    }
+
+    private async Task InitializeTradingViewChart()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("initTradingViewChart", "tradingview-chart", currentSymbol);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing TradingView chart: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateTradingViewChart()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("updateTradingViewChart", currentSymbol);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating TradingView chart: {ex.Message}");
+        }
+    }
+}

@@ -5,7 +5,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FeenQR - Quantitative Research Platform</title>
-    <link rel="icon" type="image/png" href="images/logo.png" />
+    <link rel="icon" type="image/png" href="images/feenqr-logo.png" />
+    <link rel="shortcut icon" type="image/png" href="images/feenqr-logo.png" />
     <base href="/" />
     
     <!-- Fonts -->
@@ -20,21 +21,14 @@
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="css/app.css" />
     <link href="Client.styles.css" rel="stylesheet" />
-    <link rel="icon" type="image/png" href="favicon.png" />
 </head>
 
 <body style="margin: 0; padding: 0; background-color: #000000;">
     <div id="app" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #000000;">
         <div style="text-align: center;">
-            <img src="images/logo.png" alt="FeenQR" style="height: 80px; width: auto; margin-bottom: 2rem;" />
-            <div style="font-size: 1rem; color: #9ca3af; margin-bottom: 2rem;">
-                Welcome to FeenQR
-            </div>
+            <img src="images/feenqr-logo.png" alt="FeenQR" style="height: 200px; width: auto; margin-bottom: 2rem;" />
             <div class="spinner-container">
                 <div class="spinner"></div>
-            </div>
-            <div style="margin-top: 1.5rem; font-size: 0.875rem; color: #666666;">
-                Loading platform...
             </div>
         </div>
     </div>
@@ -69,9 +63,20 @@
     <!-- Scripts -->
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js" async></script>
     
     <script>
+        // Preload TradingView - mark when ready
+        window.tradingViewReady = false;
+        (function checkTradingView() {
+            if (typeof TradingView !== 'undefined') {
+                window.tradingViewReady = true;
+                console.log('TradingView loaded and ready');
+            } else {
+                setTimeout(checkTradingView, 100);
+            }
+        })();
+        
         // TradingView Ticker Tape Widget (scrolling stock ticker)
         window.createTickerTape = (containerId) => {
             try {
@@ -203,6 +208,159 @@
                 return true;
             } catch (e) {
                 console.error('Error creating advanced chart:', e);
+                return false;
+            }
+        };
+
+        // TradingView Company Profile Widget
+        window.createCompanyProfile = (containerId, symbol = 'NASDAQ:AAPL') => {
+            try {
+                const container = document.getElementById(containerId);
+                if (!container) {
+                    console.error('Container not found:', containerId);
+                    return false;
+                }
+                container.innerHTML = '';
+                
+                new TradingView.CompanyProfile({
+                    "symbol": symbol,
+                    "colorTheme": "dark",
+                    "isTransparent": true,
+                    "locale": "en",
+                    "width": "100%",
+                    "height": "100%",
+                    "container_id": containerId
+                });
+                return true;
+            } catch (e) {
+                console.error('Error creating company profile:', e);
+                return false;
+            }
+        };
+
+        // TradingView Symbol Info Widget
+        window.createSymbolInfo = (containerId, symbol = 'NASDAQ:AAPL') => {
+            try {
+                const container = document.getElementById(containerId);
+                if (!container) {
+                    console.error('Container not found:', containerId);
+                    return false;
+                }
+                container.innerHTML = '';
+                
+                new TradingView.SymbolInfo({
+                    "symbol": symbol,
+                    "colorTheme": "dark",
+                    "isTransparent": true,
+                    "locale": "en",
+                    "width": "100%",
+                    "height": "100%",
+                    "container_id": containerId
+                });
+                return true;
+            } catch (e) {
+                console.error('Error creating symbol info:', e);
+                return false;
+            }
+        };
+
+        // TradingView Financials Widget
+        window.createFinancials = (containerId, symbol = 'NASDAQ:AAPL') => {
+            try {
+                const container = document.getElementById(containerId);
+                if (!container) {
+                    console.error('Container not found:', containerId);
+                    return false;
+                }
+                container.innerHTML = '';
+                
+                new TradingView.Financials({
+                    "symbol": symbol,
+                    "colorTheme": "dark",
+                    "isTransparent": true,
+                    "displayMode": "regular",
+                    "locale": "en",
+                    "width": "100%",
+                    "height": "100%",
+                    "container_id": containerId
+                });
+                return true;
+            } catch (e) {
+                console.error('Error creating financials:', e);
+                return false;
+            }
+        };
+
+        // TradingView Technical Analysis Widget
+        window.createTechnicalAnalysis = (containerId, symbol = 'NASDAQ:AAPL') => {
+            try {
+                const container = document.getElementById(containerId);
+                if (!container) {
+                    console.error('Container not found:', containerId);
+                    return false;
+                }
+                container.innerHTML = '';
+                
+                new TradingView.TechnicalAnalysis({
+                    "symbol": symbol,
+                    "colorTheme": "dark",
+                    "isTransparent": true,
+                    "showIntervalTabs": true,
+                    "locale": "en",
+                    "width": "100%",
+                    "height": "100%",
+                    "container_id": containerId
+                });
+                return true;
+            } catch (e) {
+                console.error('Error creating technical analysis:', e);
+                return false;
+            }
+        };
+
+        // Universal widget refresher - auto-detects widget type and reinitializes
+        window.refreshTradingViewWidget = (containerId, symbol) => {
+            try {
+                const container = document.getElementById(containerId);
+                if (!container) {
+                    console.warn('Container not found:', containerId);
+                    return false;
+                }
+
+                // Determine widget type from container ID and create appropriate widget
+                const id = containerId.toLowerCase();
+                
+                // Company Profile widgets
+                if (id.includes('companyprofile') || id.includes('profile') || id.includes('businessdesc')) {
+                    return window.createCompanyProfile(containerId, symbol);
+                } 
+                // Symbol Info widgets (key metrics, valuation, profitability, etc.)
+                else if (id.includes('keymetrics') || id.includes('metrics') || id.includes('info') ||
+                         id.includes('valuation') || id.includes('profitability') || id.includes('health')) {
+                    return window.createSymbolInfo(containerId, symbol);
+                } 
+                // Financials widgets (income, balance, cash flow)
+                else if (id.includes('income') || id.includes('balance') || id.includes('cashflow') ||
+                         id.includes('financial') && !id.includes('health')) {
+                    return window.createFinancials(containerId, symbol);
+                } 
+                // Technical Analysis widgets
+                else if (id.includes('technical') && !id.includes('chart') || 
+                         id.includes('momentum') || id.includes('volatility')) {
+                    return window.createTechnicalAnalysis(containerId, symbol);
+                } 
+                // Chart widgets (including moving averages, volume)
+                else if (id.includes('chart') || id.includes('price') || id.includes('performance') ||
+                         id.includes('moving') || id.includes('volume') || id.includes('market')) {
+                    return window.createTradingViewChart(containerId, symbol, 'D', '100%');
+                } 
+                else {
+                    // Default to creating a chart
+                    console.log('Defaulting to chart for:', containerId);
+                    return window.createTradingViewChart(containerId, symbol, 'D', '100%');
+                }
+            } catch (e) {
+                console.error('Error refreshing widget:', containerId, e);
                 return false;
             }
         };

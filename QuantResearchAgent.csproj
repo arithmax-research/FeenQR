@@ -10,11 +10,14 @@
     <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
   </PropertyGroup>
 
-  <!-- Exclude FeenQR.Web subfolder to prevent compilation conflicts -->
+  <!-- Exclude FeenQR.Web and WebApp subfolders to prevent compilation conflicts -->
   <ItemGroup>
     <Compile Remove="FeenQR.Web/**/*.cs" />
     <EmbeddedResource Remove="FeenQR.Web/**/*" />
     <None Remove="FeenQR.Web/**/*" />
+    <Compile Remove="WebApp/**/*.cs" />
+    <EmbeddedResource Remove="WebApp/**/*" />
+    <None Remove="WebApp/**/*" />
   </ItemGroup>
 
   <ItemGroup>

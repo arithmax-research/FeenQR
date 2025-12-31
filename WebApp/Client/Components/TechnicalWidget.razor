@@ -1,0 +1,329 @@
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<div class="technical-widget">
+    <h3 class="widget-title">Technical Indicators</h3>
+    
+    @if (isLoading)
+    {
+        <div class="loading">Analyzing technical indicators...</div>
+    }
+    else if (error != null)
+    {
+        <div class="error">@error</div>
+    }
+    else if (technicalData != null)
+    {
+        <div class="indicators-grid">
+            <div class="indicator-card">
+                <div class="indicator-label">RSI (14)</div>
+                <div class="indicator-value @GetRSIClass(technicalData.RSI)">
+                    @technicalData.RSI?.ToString("N2")
+                </div>
+                <div class="indicator-signal">@GetRSISignal(technicalData.RSI)</div>
+            </div>
+
+            <div class="indicator-card">
+                <div class="indicator-label">MACD</div>
+                <div class="indicator-value @(technicalData.MACD_Histogram >= 0 ? "bullish" : "bearish")">
+                    @technicalData.MACD?.ToString("N2")
+                </div>
+                <div class="indicator-signal">@GetMACDSignal(technicalData.MACD_Histogram)</div>
+            </div>
+
+            <div class="indicator-card">
+                <div class="indicator-label">SMA 50</div>
+                <div class="indicator-value">$@technicalData.SMA50?.ToString("N2")</div>
+                <div class="indicator-signal">@GetSMASignal(technicalData.Price, technicalData.SMA50)</div>
+            </div>
+
+            <div class="indicator-card">
+                <div class="indicator-label">SMA 200</div>
+                <div class="indicator-value">$@technicalData.SMA200?.ToString("N2")</div>
+                <div class="indicator-signal">@GetSMASignal(technicalData.Price, technicalData.SMA200)</div>
+            </div>
+
+            <div class="indicator-card">
+                <div class="indicator-label">Bollinger Bands</div>
+                <div class="indicator-value-small">
+                    <div>Upper: $@technicalData.BB_Upper?.ToString("N2")</div>
+                    <div>Middle: $@technicalData.BB_Middle?.ToString("N2")</div>
+                    <div>Lower: $@technicalData.BB_Lower?.ToString("N2")</div>
+                </div>
+            </div>
+
+            <div class="indicator-card">
+                <div class="indicator-label">ATR (14)</div>
+                <div class="indicator-value">@technicalData.ATR?.ToString("N2")</div>
+                <div class="indicator-signal">Volatility: @GetVolatilityLevel(technicalData.ATR)</div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Symbol { get; set; } = "AAPL";
+
+    private TechnicalData? technicalData;
+    private bool isLoading = true;
+    private string? error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadTechnicalData();
+    }
+
+    private async Task LoadTechnicalData()
+    {
+        isLoading = true;
+        error = null;
+        
+        try
+        {
+            // For now, use market data to build technical indicators
+            // In production, you'd have a dedicated technical analysis endpoint
+            var response = await Http.GetAsync($"/api/MarketData/polygon/aggregates/{Symbol}?timespan=day");
+            if (response.IsSuccessStatusCode)
+            {
+                var bars = await response.Content.ReadFromJsonAsync<List<PolygonBar>>();
+                if (bars != null && bars.Count > 0)
+                {
+                    technicalData = CalculateTechnicalIndicators(bars);
+                }
+                else
+                {
+                    error = "No historical data available";
+                }
+            }
+            else
+            {
+                error = $"Failed to load technical data for {Symbol}";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private TechnicalData CalculateTechnicalIndicators(List<PolygonBar> bars)
+    {
+        // Simple calculations - in production, use TechnicalAnalysisService
+        var closes = bars.Select(b => (double)b.Close).ToArray();
+        var currentPrice = (decimal)closes.Last();
+        
+        return new TechnicalData
+        {
+            Price = currentPrice,
+            RSI = CalculateRSI(closes, 14),
+            MACD = 0, // Placeholder
+            MACD_Histogram = 0,
+            SMA50 = closes.Length >= 50 ? (decimal)closes.TakeLast(50).Average() : null,
+            SMA200 = closes.Length >= 200 ? (decimal)closes.TakeLast(200).Average() : null,
+            BB_Upper = null,
+            BB_Middle = null,
+            BB_Lower = null,
+            ATR = CalculateATR(bars, 14)
+        };
+    }
+
+    private decimal? CalculateRSI(double[] closes, int period)
+    {
+        if (closes.Length < period + 1) return null;
+        
+        var gains = 0.0;
+        var losses = 0.0;
+        
+        for (int i = closes.Length - period; i < closes.Length; i++)
+        {
+            var change = closes[i] - closes[i - 1];
+            if (change > 0) gains += change;
+            else losses -= change;
+        }
+        
+        var avgGain = gains / period;
+        var avgLoss = losses / period;
+        
+        if (avgLoss == 0) return 100;
+        var rs = avgGain / avgLoss;
+        return (decimal)(100 - (100 / (1 + rs)));
+    }
+
+    private decimal? CalculateATR(List<PolygonBar> bars, int period)
+    {
+        if (bars.Count < period + 1) return null;
+        
+        var trs = new List<double>();
+        for (int i = bars.Count - period; i < bars.Count; i++)
+        {
+            var high = (double)bars[i].High;
+            var low = (double)bars[i].Low;
+            var prevClose = i > 0 ? (double)bars[i - 1].Close : low;
+            
+            var tr = Math.Max(high - low, Math.Max(Math.Abs(high - prevClose), Math.Abs(low - prevClose)));
+            trs.Add(tr);
+        }
+        
+        return (decimal)trs.Average();
+    }
+
+    private string GetRSIClass(decimal? rsi)
+    {
+        if (rsi == null) return "";
+        if (rsi > 70) return "overbought";
+        if (rsi < 30) return "oversold";
+        return "neutral";
+    }
+
+    private string GetRSISignal(decimal? rsi)
+    {
+        if (rsi == null) return "N/A";
+        if (rsi > 70) return "Overbought";
+        if (rsi < 30) return "Oversold";
+        return "Neutral";
+    }
+
+    private string GetMACDSignal(decimal? histogram)
+    {
+        if (histogram == null) return "N/A";
+        return histogram >= 0 ? "Bullish" : "Bearish";
+    }
+
+    private string GetSMASignal(decimal? price, decimal? sma)
+    {
+        if (price == null || sma == null) return "N/A";
+        return price > sma ? "Above (Bullish)" : "Below (Bearish)";
+    }
+
+    private string GetVolatilityLevel(decimal? atr)
+    {
+        if (atr == null) return "N/A";
+        if (atr > 5) return "High";
+        if (atr > 2) return "Medium";
+        return "Low";
+    }
+
+    public class TechnicalData
+    {
+        public decimal? Price { get; set; }
+        public decimal? RSI { get; set; }
+        public decimal? MACD { get; set; }
+        public decimal? MACD_Histogram { get; set; }
+        public decimal? SMA50 { get; set; }
+        public decimal? SMA200 { get; set; }
+        public decimal? BB_Upper { get; set; }
+        public decimal? BB_Middle { get; set; }
+        public decimal? BB_Lower { get; set; }
+        public decimal? ATR { get; set; }
+    }
+
+    public class PolygonBar
+    {
+        public decimal Open { get; set; }
+        public decimal High { get; set; }
+        public decimal Low { get; set; }
+        public decimal Close { get; set; }
+        public long Volume { get; set; }
+        public long Timestamp { get; set; }
+    }
+}
+
+<style>
+    .technical-widget {
+        background: #1a1d29;
+        border-radius: 12px;
+        padding: 20px;
+        color: white;
+    }
+
+    .widget-title {
+        margin: 0 0 20px 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #4fc3f7;
+    }
+
+    .indicators-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+    }
+
+    .indicator-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .indicator-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(79, 195, 247, 0.2);
+    }
+
+    .indicator-label {
+        font-size: 12px;
+        color: #b0bec5;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+
+    .indicator-value {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+
+    .indicator-value-small {
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    .indicator-value-small div {
+        margin: 2px 0;
+    }
+
+    .indicator-signal {
+        font-size: 11px;
+        opacity: 0.7;
+        font-style: italic;
+    }
+
+    .overbought {
+        color: #ff6b6b;
+    }
+
+    .oversold {
+        color: #51cf66;
+    }
+
+    .neutral {
+        color: #ffd43b;
+    }
+
+    .bullish {
+        color: #51cf66;
+    }
+
+    .bearish {
+        color: #ff6b6b;
+    }
+
+    .loading, .error {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+        font-size: 14px;
+    }
+
+    .error {
+        color: #ff6b6b;
+    }
+</style>

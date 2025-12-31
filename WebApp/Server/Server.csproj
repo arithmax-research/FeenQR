@@ -11,9 +11,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.35.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Core\Core.csproj" />
     <ProjectReference Include="..\Client\Client.csproj" />
-    <ProjectReference Include="../../FeenQR/QuantResearchAgent.csproj" />
   </ItemGroup>
 
 </Project>
