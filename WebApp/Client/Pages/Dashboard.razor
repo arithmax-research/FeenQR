@@ -430,9 +430,22 @@
         <!-- Price Comparison Chart Widget -->
         <div class="grid-stack-item" gs-w="6" gs-h="8" gs-x="0" gs-y="0">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Side-by-Side Price Comparison@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
+                <div class="widget-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                    <span>Side-by-Side Price Comparison@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</span>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="text" 
+                               id="comparisonSymbolInput" 
+                               placeholder="Add ticker (e.g., MSFT)" 
+                               style="padding: 0.4rem 0.6rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; color: #f9fafb; font-size: 0.85rem; width: 150px;"
+                               @onkeypress="HandleComparisonKeyPress" />
+                        <button @onclick="AddComparisonSymbol" 
+                                style="padding: 0.4rem 0.8rem; background: rgba(136, 136, 136, 0.2); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; color: #f9fafb; font-size: 0.85rem; cursor: pointer; white-space: nowrap;">
+                            Add
+                        </button>
+                    </div>
+                </div>
                 <div class="widget-body" style="padding: 0;">
-                    <div id="marketDataChart" class="chart-container"></div>
+                    <div id="comparisonChart" class="chart-container"></div>
                 </div>
             </div>
         </div>
@@ -893,6 +906,28 @@
         ");
     }
     
+    private async Task AddComparisonSymbol()
+    {
+        await JS.InvokeVoidAsync("eval", @"
+            const input = document.getElementById('comparisonSymbolInput');
+            if (input && input.value.trim()) {
+                const ticker = input.value.trim().toUpperCase();
+                if (window.addComparisonSymbol) {
+                    window.addComparisonSymbol(ticker);
+                    input.value = '';
+                }
+            }
+        ");
+    }
+    
+    private async Task HandleComparisonKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await AddComparisonSymbol();
+        }
+    }
+    
     private async Task OnStockDatasourceChanged(ChangeEventArgs e)
     {
         var datasource = e.Value?.ToString();
@@ -1058,6 +1093,19 @@
                 setTimeout(() => {{
                     if (window.createScreenerWidget) {{
                         window.createScreenerWidget('{screenerMarket}');
+                    }}
+                }}, 200);
+            ");
+        }
+        
+        // Initialize comparison chart if on comparison tab
+        if (tab == "comparison")
+        {
+            var baseSymbol = string.IsNullOrWhiteSpace(currentSymbol) ? "" : GetTradingViewSymbol(currentSymbol);
+            await JS.InvokeVoidAsync("eval", $@"
+                setTimeout(() => {{
+                    if (window.createComparisonChart) {{
+                        window.createComparisonChart('{baseSymbol}');
                     }}
                 }}, 200);
             ");
