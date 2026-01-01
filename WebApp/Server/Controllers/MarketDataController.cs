@@ -175,7 +175,7 @@ public class MarketDataController : ControllerBase
             var fromDate = from ?? DateTime.UtcNow.AddMonths(-3);
             var toDate = to ?? DateTime.UtcNow;
             
-            var aggregates = await _polygonService.GetAggregatesAsync(symbol, timespan, fromDate, toDate);
+            var aggregates = await _polygonService.GetAggregatesAsync(symbol, 1, timespan, fromDate, toDate);
             if (aggregates == null || aggregates.Count == 0)
             {
                 return NotFound(new { Error = $"No aggregates found for symbol: {symbol}" });
@@ -213,8 +213,9 @@ public class MarketDataController : ControllerBase
     {
         try
         {
-            var data = await _databentoService.GetMarketDataAsync(symbol);
-            if (data == null)
+            // DataBentoService doesn't have GetMarketDataAsync - use GetOHLCVAsync instead
+            var data = await _databentoService.GetOHLCVAsync(symbol, DateTime.UtcNow.AddDays(-30), DateTime.UtcNow);
+            if (data == null || data.Count == 0)
             {
                 return NotFound(new { Error = $"No data found for symbol: {symbol}" });
             }

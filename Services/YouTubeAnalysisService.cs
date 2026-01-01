@@ -92,7 +92,7 @@ public class YouTubeAnalysisService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Technical content analysis failed for video {VideoTitle}, continuing with basic analysis", episode.Name);
+                _logger.LogDebug(ex, "Technical content analysis failed for video {VideoTitle}, continuing with basic analysis", episode.Name);
                 
                 // Provide basic fallback analysis when web search fails
                 episode.TechnicalInsights = new List<string>

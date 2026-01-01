@@ -256,9 +256,6 @@
             <button class="tab-btn @(activeTab == "financials" ? "active" : "")" @onclick='() => SwitchTab("financials")'>Financials</button>
             <button class="tab-btn @(activeTab == "technical" ? "active" : "")" @onclick='() => SwitchTab("technical")'>Technical Analysis</button>
             <button class="tab-btn @(activeTab == "comparison" ? "active" : "")" @onclick='() => SwitchTab("comparison")'>Comparison Analysis</button>
-            <button class="tab-btn @(activeTab == "ownership" ? "active" : "")" @onclick='() => SwitchTab("ownership")'>Ownership</button>
-            <button class="tab-btn @(activeTab == "calendar" ? "active" : "")" @onclick='() => SwitchTab("calendar")'>Company Calendar</button>
-            <button class="tab-btn @(activeTab == "estimate" ? "active" : "")" @onclick='() => SwitchTab("estimate")'>Estimate</button>
             <button class="tab-btn @(activeTab == "screeners" ? "active" : "")" @onclick='() => SwitchTab("screeners")'>Screeners</button>
         </div>
     </div>
@@ -333,72 +330,53 @@
         <!-- FINANCIALS/FUNDAMENTAL ANALYSIS TAB WIDGETS -->
         @if (activeTab == "financials")
         {
-        <!-- Income Statement Widget (TradingView Financials) -->
-        <div class="grid-stack-item" gs-w="4" gs-h="4" gs-x="0" gs-y="0">
+        <!-- Advanced Chart for Financials Tab with Symbol Selector -->
+        <div class="grid-stack-item" gs-w="12" gs-h="6" gs-x="0" gs-y="0">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Income Statement@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
+                <div class="widget-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Price Chart - @currentSymbol</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input 
+                            type="text" 
+                            @bind="customSymbolInput" 
+                            @bind:event="oninput"
+                            @onkeypress="HandleFinancialsKeyPress"
+                            placeholder="Enter ticker (e.g., NVDA)" 
+                            style="padding: 6px 12px; background: #1a1a1a; color: #fff; border: 1px solid #333; border-radius: 4px; font-size: 14px; width: 150px;"
+                        />
+                        <button 
+                            @onclick="UpdateFinancialsSymbol" 
+                            style="padding: 6px 12px; background: #2962ff; color: #fff; border: none; border-radius: 4px; font-size: 14px; cursor: pointer;">
+                            Go
+                        </button>
+                    </div>
+                </div>
                 <div class="widget-body" style="padding: 0;">
-                    <div id="incomeStatementWidget" class="tradingview-widget" style="height: 100%; width: 100%;">
+                    <div id="financialsAdvancedChart" class="tradingview-widget-container" style="height: 100%; width: 100%;">
+                        <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Symbol Profile Widget (TradingView Key Facts) -->
+        <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="0" gs-y="6">
+            <div class="grid-stack-item-content">
+                <div class="widget-header">Company Profile@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
+                <div class="widget-body" style="padding: 0;">
+                    <div id="symbolProfileWidget" class="tradingview-widget" style="height: 100%; width: 100%;">
                         <div class="widget-loading"><div class="loading-spinner"></div></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Balance Sheet Widget (TradingView Financials) -->
-        <div class="grid-stack-item" gs-w="4" gs-h="4" gs-x="4" gs-y="0">
+        <!-- Financials Overview Widget (TradingView Fundamentals) -->
+        <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="6" gs-y="6">
             <div class="grid-stack-item-content">
-                <div class="widget-header">Balance Sheet@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
+                <div class="widget-header">Fundamentals Overview@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
                 <div class="widget-body" style="padding: 0;">
-                    <div id="balanceSheetWidget" class="tradingview-widget" style="height: 100%; width: 100%;">
-                        <div class="widget-loading"><div class="loading-spinner"></div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Cash Flow Statement Widget (TradingView Financials) -->
-        <div class="grid-stack-item" gs-w="4" gs-h="4" gs-x="8" gs-y="0">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Cash Flow Statement@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body" style="padding: 0;">
-                    <div id="cashFlowWidget" class="tradingview-widget" style="height: 100%; width: 100%;">
-                        <div class="widget-loading"><div class="loading-spinner"></div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Valuation Ratios Widget (TradingView) -->
-        <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="0" gs-y="4">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Valuation Ratios@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body" style="padding: 0;">
-                    <div id="valuationRatiosWidget" class="tradingview-widget" style="height: 100%; width: 100%;">
-                        <div class="widget-loading"><div class="loading-spinner"></div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Profitability Metrics Widget (TradingView) -->
-        <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="4" gs-y="4">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Profitability Metrics@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body" style="padding: 0;">
-                    <div id="profitabilityWidget" class="tradingview-widget" style="height: 100%; width: 100%;">
-                        <div class="widget-loading"><div class="loading-spinner"></div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Financial Health Widget (TradingView) -->
-        <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="8" gs-y="4">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Financial Health@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body" style="padding: 0;">
-                    <div id="financialHealthWidget" class="tradingview-widget" style="height: 100%; width: 100%;">
+                    <div id="financialsOverviewWidget" class="tradingview-widget" style="height: 100%; width: 100%;">
                         <div class="widget-loading"><div class="loading-spinner"></div></div>
                     </div>
                 </div>
@@ -471,336 +449,11 @@
         </div>
         }
 
-        <!-- OWNERSHIP TAB WIDGETS -->
-        @if (activeTab == "ownership")
-        {
-        <!-- Price Chart Widget -->
-        <div class="grid-stack-item" gs-w="6" gs-h="4" gs-x="0" gs-y="0">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Price Chart@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body" style="padding: 0;">
-                    <div id="marketDataChart" class="chart-container"></div>
-                </div>
-            </div>
-        </div>
 
-        <!-- AI Ownership Assistant -->
-        <div class="grid-stack-item" gs-w="6" gs-h="4" gs-x="6" gs-y="0">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">AI Ownership Analysis@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body" style="padding: 0;">
-                    <div class="chat-container">
-                        <div class="chat-messages" id="chatMessages">
-                            <div class="chat-message">
-                                <strong>AI:</strong> @(string.IsNullOrEmpty(currentSymbol) ? "Analyze ownership structure - major shareholders, institutional holdings, insider transactions!" : $"Analyze {currentSymbol} ownership structure - major shareholders, institutional holdings, insider transactions!")
-                            </div>
-                        </div>
-                        <div class="chat-input-area">
-                            <input type="text" class="chat-input" placeholder="Ask about ownership..." id="chatInput" />
-                            <button class="chat-btn">Send</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Institutional Ownership Widget -->
-        <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="0" gs-y="4">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Institutional Ownership@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Total</div>
-                            <div style="font-size: 1.1rem; font-weight: 600;">63.5%</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Top Holder</div>
-                            <div style="font-size: 0.9rem; font-weight: 600;">Vanguard</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Change (Q)</div>
-                            <div style="font-size: 1.1rem; font-weight: 600; color: #10b981;">+2.3%</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Holders</div>
-                            <div style="font-size: 1.1rem; font-weight: 600;">4,231</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Insider Trading Widget -->
-        <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="4" gs-y="4">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Insider Transactions@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body">
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <div style="padding: 0.5rem; background: rgba(128, 128, 128, 0.1); border-radius: 6px;">
-                            <div style="font-size: 0.8rem; font-weight: 600;">Tim Cook - CEO</div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Sold 50,000 shares</div>
-                            <div style="font-size: 0.7rem; opacity: 0.5;">Dec 15, 2024</div>
-                        </div>
-                        <div style="padding: 0.5rem; background: rgba(128, 128, 128, 0.1); border-radius: 6px;">
-                            <div style="font-size: 0.8rem; font-weight: 600;">Luca Maestri - CFO</div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Sold 25,000 shares</div>
-                            <div style="font-size: 0.7rem; opacity: 0.5;">Dec 10, 2024</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Top Holders Widget -->
-        <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="8" gs-y="4">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Top 5 Institutional Holders</div>
-                <div class="widget-body">
-                    <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="font-size: 0.85rem;">Vanguard Group</span>
-                            <span style="font-size: 0.85rem; font-weight: 600;">8.4%</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="font-size: 0.85rem;">BlackRock</span>
-                            <span style="font-size: 0.85rem; font-weight: 600;">6.8%</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="font-size: 0.85rem;">Berkshire Hathaway</span>
-                            <span style="font-size: 0.85rem; font-weight: 600;">5.9%</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="font-size: 0.85rem;">State Street</span>
-                            <span style="font-size: 0.85rem; font-weight: 600;">4.2%</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="font-size: 0.85rem;">Fidelity</span>
-                            <span style="font-size: 0.85rem; font-weight: 600;">3.7%</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        }
 
-        <!-- COMPANY CALENDAR TAB WIDGETS -->
-        @if (activeTab == "calendar")
-        {
-        <!-- Price Chart Widget -->
-        <div class="grid-stack-item" gs-w="6" gs-h="4" gs-x="0" gs-y="0">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Price Chart@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body" style="padding: 0;">
-                    <div id="marketDataChart" class="chart-container"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- AI Calendar Assistant -->
-        <div class="grid-stack-item" gs-w="6" gs-h="4" gs-x="6" gs-y="0">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">AI Calendar Analysis@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body" style="padding: 0;">
-                    <div class="chat-container">
-                        <div class="chat-messages" id="chatMessages">
-                            <div class="chat-message">
-                                <strong>AI:</strong> @(string.IsNullOrEmpty(currentSymbol) ? "Important dates - earnings reports, dividend payments, stock splits, and key events!" : $"Important dates for {currentSymbol} - earnings reports, dividend payments, stock splits, and key events!")
-                            </div>
-                        </div>
-                        <div class="chat-input-area">
-                            <input type="text" class="chat-input" placeholder="Ask about events..." id="chatInput" />
-                            <button class="chat-btn">Send</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Earnings Calendar Widget -->
-        <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="0" gs-y="4">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Earnings Report Dates@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body">
-                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Next Earnings</div>
-                            <div style="font-size: 1.2rem; font-weight: 600;">Jan 31, 2025</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Fiscal Quarter</div>
-                            <div style="font-size: 1rem; font-weight: 600;">Q4 2024</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">EPS Estimate</div>
-                            <div style="font-size: 1rem; font-weight: 600;">$2.15</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Dividend Info Widget -->
-        <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="4" gs-y="4">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Dividend Schedule</div>
-                <div class="widget-body">
-                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Dividend Yield</div>
-                            <div style="font-size: 1.2rem; font-weight: 600;">0.52%</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Next Ex-Date</div>
-                            <div style="font-size: 1rem; font-weight: 600;">Feb 9, 2025</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Payment Date</div>
-                            <div style="font-size: 1rem; font-weight: 600;">Feb 13, 2025</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Upcoming Events Widget -->
-        <div class="grid-stack-item" gs-w="4" gs-h="3" gs-x="8" gs-y="4">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Upcoming Events</div>
-                <div class="widget-body">
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <div style="padding: 0.5rem; background: rgba(128, 128, 128, 0.1); border-radius: 6px;">
-                            <div style="font-weight: 600;">Product Launch</div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">March 2025</div>
-                        </div>
-                        <div style="padding: 0.5rem; background: rgba(128, 128, 128, 0.1); border-radius: 6px;">
-                            <div style="font-weight: 600;">Shareholder Meeting</div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">February 28, 2025</div>
-                        </div>
-                        <div style="padding: 0.5rem; background: rgba(128, 128, 128, 0.1); border-radius: 6px;">
-                            <div style="font-weight: 600;">Conference Call</div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Jan 31, 2025 5PM ET</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        }
-
-        <!-- ESTIMATES TAB WIDGETS -->
-        @if (activeTab == "estimate")
-        {
-        <!-- Price Chart Widget -->
-        <div class="grid-stack-item" gs-w="6" gs-h="4" gs-x="0" gs-y="0">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Price Chart@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body" style="padding: 0;">
-                    <div id="marketDataChart" class="chart-container"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- AI Estimate Assistant -->
-        <div class="grid-stack-item" gs-w="6" gs-h="4" gs-x="6" gs-y="0">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">AI Analyst Consensus@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body" style="padding: 0;">
-                    <div class="chat-container">
-                        <div class="chat-messages" id="chatMessages">
-                            <div class="chat-message">
-                                <strong>AI:</strong> @(string.IsNullOrEmpty(currentSymbol) ? "Analyst consensus - EPS/revenue estimates, price targets, ratings, and compare actual vs expectations!" : $"Analyst consensus for {currentSymbol} - EPS/revenue estimates, price targets, ratings, and compare actual vs expectations!")
-                            </div>
-                        </div>
-                        <div class="chat-input-area">
-                            <input type="text" class="chat-input" placeholder="Ask about analyst estimates..." id="chatInput" />
-                            <button class="chat-btn">Send</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Analyst Estimates Widget -->
-        <div class="grid-stack-item" gs-w="4" gs-h="4" gs-x="0" gs-y="4">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Analyst Ratings & Price Targets@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body">
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
-                            <div style="text-align: center;">
-                                <div style="font-size: 0.75rem; opacity: 0.7;">Strong Buy</div>
-                                <div style="font-size: 1.5rem; font-weight: 600; color: #10b981;">15</div>
-                            </div>
-                            <div style="text-align: center;">
-                                <div style="font-size: 0.75rem; opacity: 0.7;">Hold</div>
-                                <div style="font-size: 1.5rem; font-weight: 600;">8</div>
-                            </div>
-                            <div style="text-align: center;">
-                                <div style="font-size: 0.75rem; opacity: 0.7;">Sell</div>
-                                <div style="font-size: 1.5rem; font-weight: 600; color: #ef4444;">2</div>
-                            </div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Price Target</div>
-                            <div style="font-size: 1.2rem; font-weight: 600;">$195.00</div>
-                            <div style="font-size: 0.75rem; color: #10b981;">+12.5% upside</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Price Target Range Widget -->
-        <div class="grid-stack-item" gs-w="4" gs-h="4" gs-x="4" gs-y="4">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Price Target Range</div>
-                <div class="widget-body">
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">High Target</div>
-                            <div style="font-size: 1.3rem; font-weight: 600; color: #10b981;">$225.00</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Average Target</div>
-                            <div style="font-size: 1.3rem; font-weight: 600;">$195.00</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Low Target</div>
-                            <div style="font-size: 1.3rem; font-weight: 600; color: #ef4444;">$165.00</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Current Price</div>
-                            <div style="font-size: 1.1rem; font-weight: 600;">$185.50</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Earnings Revisions Widget -->
-        <div class="grid-stack-item" gs-w="4" gs-h="4" gs-x="8" gs-y="4">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Earnings Revisions (30 days)</div>
-                <div class="widget-body">
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Upgrades</div>
-                            <div style="font-size: 1.5rem; font-weight: 600; color: #10b981;">7</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Downgrades</div>
-                            <div style="font-size: 1.5rem; font-weight: 600; color: #ef4444;">2</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">EPS Revisions</div>
-                            <div style="font-size: 1.2rem; font-weight: 600; color: #10b981;">+$0.08</div>
-                            <div style="font-size: 0.75rem; opacity: 0.7;">Average increase</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        }
 
         @if (activeTab == "screeners")
         {
@@ -844,7 +497,7 @@
 <script src="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack-all.js"></script>
 
 @code {
-    private string currentSymbol = "";
+    private string currentSymbol = "NASDAQ:AAPL";
     private string activeTab = "overview";
     private string heatmapType = "stocks";
     private string screenerMarket = "america";
@@ -959,6 +612,45 @@
         await LoadAllData();
         await InitializeCharts();
         StateHasChanged();
+    }
+
+    private async Task UpdateFinancialsSymbol()
+    {
+        if (string.IsNullOrWhiteSpace(customSymbolInput)) return;
+        
+        // Format the symbol to TradingView format
+        var ticker = customSymbolInput.Trim().ToUpper();
+        currentSymbol = ticker.Contains(':') ? ticker : $"NASDAQ:{ticker}";
+        
+        // Update all three widgets
+        await JS.InvokeVoidAsync("eval", $@"
+            const symbol = '{currentSymbol}';
+            
+            // Update the advanced chart
+            if (window.createDashboardAdvancedChart) {{
+                window.createDashboardAdvancedChart('financialsAdvancedChart', symbol);
+            }}
+            
+            // Update symbol profile widget
+            if (window.refreshTradingViewWidget) {{
+                window.refreshTradingViewWidget('symbolProfileWidget', symbol);
+            }}
+            
+            // Update financials overview widget  
+            if (window.refreshTradingViewWidget) {{
+                window.refreshTradingViewWidget('financialsOverviewWidget', symbol);
+            }}
+        ");
+        
+        StateHasChanged();
+    }
+
+    private async Task HandleFinancialsKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await UpdateFinancialsSymbol();
+        }
     }
 
     private async Task LoadAllData()
@@ -1086,6 +778,8 @@
         StateHasChanged();
         await Task.Delay(100); // Wait for DOM update
         
+        var tvSymbol = GetTradingViewSymbol(currentSymbol);
+        
         // Initialize screener widget if on screeners tab
         if (tab == "screeners")
         {
@@ -1106,6 +800,36 @@
                 setTimeout(() => {{
                     if (window.createComparisonChart) {{
                         window.createComparisonChart('{baseSymbol}');
+                    }}
+                }}, 200);
+            ");
+        }
+        
+        // Initialize ownership tab widgets
+        if (tab == "ownership")
+        {
+            await JS.InvokeVoidAsync("eval", $@"
+                setTimeout(() => {{
+                    if (window.createTopStoriesWidget) {{
+                        window.createTopStoriesWidget('topStoriesWidget');
+                    }}
+                    if (window.createStockScreenerWidget) {{
+                        window.createStockScreenerWidget('stockScreenerWidget');
+                    }}
+                }}, 200);
+            ");
+        }
+        
+        // Initialize calendar tab widgets
+        if (tab == "calendar")
+        {
+            await JS.InvokeVoidAsync("eval", $@"
+                setTimeout(() => {{
+                    if (window.createEconomicCalendarWidget) {{
+                        window.createEconomicCalendarWidget('economicCalendarWidget');
+                    }}
+                    if (window.createTimelineWidget) {{
+                        window.createTimelineWidget('timelineWidget', '{tvSymbol}');
                     }}
                 }}, 200);
             ");
@@ -1276,12 +1000,9 @@
                         'marketDataChart',
                         
                         // Financials tab widgets
-                        'incomeStatementWidget',
-                        'balanceSheetWidget',
-                        'cashFlowWidget',
-                        'valuationRatiosWidget',
-                        'profitabilityWidget',
-                        'financialHealthWidget',
+                        'financialsAdvancedChart',
+                        'symbolProfileWidget',
+                        'financialsOverviewWidget',
                         
                         // Technical Analysis tab widgets
                         'technicalAdvancedChart'
@@ -1291,6 +1012,32 @@
                     if (document.getElementById('stocksHeatmapWidget')) {{
                         if (typeof createStocksHeatmap === 'function') {{
                             createStocksHeatmap('SPX500');
+                        }}
+                    }}
+                    
+                    // Initialize ownership tab widgets
+                    if (document.getElementById('topStoriesWidget')) {{
+                        if (typeof window.createTopStoriesWidget === 'function') {{
+                            window.createTopStoriesWidget('topStoriesWidget');
+                        }}
+                    }}
+                    
+                    if (document.getElementById('stockScreenerWidget')) {{
+                        if (typeof window.createStockScreenerWidget === 'function') {{
+                            window.createStockScreenerWidget('stockScreenerWidget');
+                        }}
+                    }}
+                    
+                    // Initialize calendar tab widgets
+                    if (document.getElementById('economicCalendarWidget')) {{
+                        if (typeof window.createEconomicCalendarWidget === 'function') {{
+                            window.createEconomicCalendarWidget('economicCalendarWidget');
+                        }}
+                    }}
+                    
+                    if (document.getElementById('timelineWidget')) {{
+                        if (typeof window.createTimelineWidget === 'function') {{
+                            window.createTimelineWidget('timelineWidget', '{tvSymbol}');
                         }}
                     }}
                     

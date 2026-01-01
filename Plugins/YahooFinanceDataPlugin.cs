@@ -30,11 +30,19 @@ namespace QuantResearchAgent.Plugins
             var validTickers = tickers.Where(IsValidTicker).ToList();
             if (!validTickers.Any()) return new List<SecurityInfo>();
             
-            var baseUrl = _configuration["NewsApi:BaseUrl"] ?? "http://127.0.0.1:5000";
-            var url = $"{baseUrl}/securities?tickers={string.Join(",", validTickers)}";
-            var response = await _httpClient.GetStringAsync(url);
-            var results = JsonSerializer.Deserialize<List<SecurityInfo>>(response) ?? new List<SecurityInfo>();
-            return results.Take(maxResults).ToList();
+            try
+            {
+                var baseUrl = _configuration["NewsApi:BaseUrl"] ?? "http://127.0.0.1:5000";
+                var url = $"{baseUrl}/securities?tickers={string.Join(",", validTickers)}";
+                var response = await _httpClient.GetStringAsync(url);
+                var results = JsonSerializer.Deserialize<List<SecurityInfo>>(response) ?? new List<SecurityInfo>();
+                return results.Take(maxResults).ToList();
+            }
+            catch (HttpRequestException)
+            {
+                // NewsApi service not available - return empty list to gracefully degrade
+                return new List<SecurityInfo>();
+            }
         }
 
         // Legacy method for compatibility (calls new method with default tickers)

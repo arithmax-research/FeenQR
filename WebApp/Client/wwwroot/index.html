@@ -303,19 +303,198 @@
         window.refreshTradingViewWidget = (containerId, symbol) => {
             console.log('Refreshing widget:', containerId, symbol);
             
-            // Handle the advanced chart widgets specially
-            if (containerId === 'technicalAdvancedChart') {
-                return window.createDashboardAdvancedChart(containerId, symbol);
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.error('Container not found:', containerId);
+                return false;
             }
             
-            // For other widgets, use the standard chart creation
-            return window.createTradingViewChart(containerId, symbol, 'D', 400);
+            // Clear existing content
+            container.innerHTML = '<div class="widget-loading"><div class="loading-spinner"></div></div>';
+            
+            try {
+                // Handle Symbol Profile widget
+                if (containerId === 'symbolProfileWidget') {
+                    const script = document.createElement('script');
+                    script.type = 'text/javascript';
+                    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-profile.js';
+                    script.async = true;
+                    script.innerHTML = JSON.stringify({
+                        "symbol": symbol,
+                        "width": "100%",
+                        "height": "100%",
+                        "colorTheme": "dark",
+                        "isTransparent": false,
+                        "locale": "en"
+                    });
+                    container.innerHTML = '';
+                    container.appendChild(script);
+                    return true;
+                }
+                
+                // Handle Financials Overview widget
+                if (containerId === 'financialsOverviewWidget') {
+                    const script = document.createElement('script');
+                    script.type = 'text/javascript';
+                    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-financials.js';
+                    script.async = true;
+                    script.innerHTML = JSON.stringify({
+                        "symbol": symbol,
+                        "colorTheme": "dark",
+                        "isTransparent": false,
+                        "displayMode": "regular",
+                        "width": "100%",
+                        "height": "100%",
+                        "locale": "en"
+                    });
+                    container.innerHTML = '';
+                    container.appendChild(script);
+                    return true;
+                }
+                
+                // Handle the advanced chart widgets for both technical tab and financials tab
+                if (containerId === 'technicalAdvancedChart' || containerId === 'financialsAdvancedChart') {
+                    return window.createDashboardAdvancedChart(containerId, symbol);
+                }
+                
+                // For other widgets, use the standard chart creation
+                return window.createTradingViewChart(containerId, symbol, 'D', 400);
+            } catch (e) {
+                console.error('Error refreshing widget:', containerId, e);
+                container.innerHTML = '<div style="color: #888; padding: 20px; text-align: center;">Error loading widget</div>';
+                return false;
+            }
         };
 
         // Update TradingView Chart symbol (used by Dashboard_V2)
         window.updateTradingViewChart = (symbol) => {
             console.log('Updating TradingView chart with symbol:', symbol);
             return window.createTradingViewChart('tradingview-chart', symbol, 'D', 500);
+        };
+
+        // Top Stories Widget
+        window.createTopStoriesWidget = (containerId) => {
+            try {
+                const container = document.getElementById(containerId);
+                if (!container) return false;
+                container.innerHTML = '';
+                
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
+                script.async = true;
+                script.innerHTML = JSON.stringify({
+                    "feedMode": "all_symbols",
+                    "isTransparent": false,
+                    "displayMode": "regular",
+                    "width": "100%",
+                    "height": "100%",
+                    "colorTheme": "dark",
+                    "locale": "en"
+                });
+                
+                container.appendChild(script);
+                return true;
+            } catch (e) {
+                console.error('Error creating top stories widget:', e);
+                return false;
+            }
+        };
+
+        // Stock Screener Widget
+        window.createStockScreenerWidget = (containerId) => {
+            try {
+                const container = document.getElementById(containerId);
+                if (!container) return false;
+                container.innerHTML = '';
+                
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-screener.js';
+                script.async = true;
+                script.innerHTML = JSON.stringify({
+                    "width": "100%",
+                    "height": "100%",
+                    "defaultColumn": "most_capitalization",
+                    "defaultScreen": "most_capitalized",
+                    "market": "america",
+                    "showToolbar": true,
+                    "colorTheme": "dark",
+                    "locale": "en",
+                    "isTransparent": false
+                });
+                
+                container.appendChild(script);
+                return true;
+            } catch (e) {
+                console.error('Error creating stock screener widget:', e);
+                return false;
+            }
+        };
+
+        // Economic Calendar Widget
+        window.createEconomicCalendarWidget = (containerId) => {
+            try {
+                const container = document.getElementById(containerId);
+                if (!container) return false;
+                container.innerHTML = '';
+                
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-events.js';
+                script.async = true;
+                script.innerHTML = JSON.stringify({
+                    "width": "100%",
+                    "height": "100%",
+                    "colorTheme": "dark",
+                    "isTransparent": false,
+                    "locale": "en",
+                    "importanceFilter": "-1,0,1",
+                    "countryFilter": "us,eu,gb,jp,cn,de,fr,it,ca,au"
+                });
+                
+                container.appendChild(script);
+                return true;
+            } catch (e) {
+                console.error('Error creating economic calendar widget:', e);
+                return false;
+            }
+        };
+
+        // Timeline Widget for Company Events
+        window.createTimelineWidget = (containerId, symbol = '') => {
+            try {
+                const container = document.getElementById(containerId);
+                if (!container) return false;
+                container.innerHTML = '';
+                
+                // If no symbol, show message
+                if (!symbol || symbol === '') {
+                    container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #9ca3af; font-size: 0.9rem;">Select a symbol to view company timeline</div>';
+                    return false;
+                }
+                
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
+                script.async = true;
+                script.innerHTML = JSON.stringify({
+                    "feedMode": "symbol",
+                    "symbol": symbol,
+                    "isTransparent": false,
+                    "displayMode": "regular",
+                    "width": "100%",
+                    "height": "100%",
+                    "colorTheme": "dark",
+                    "locale": "en"
+                });
+                
+                container.appendChild(script);
+                return true;
+            } catch (e) {
+                console.error('Error creating timeline widget:', e);
+                return false;
+            }
         };
 
         // Market Overview Widget
@@ -1216,6 +1395,13 @@
                 console.log('Added comparison symbol:', formattedTicker);
             } catch (e) {
                 console.error('Error adding comparison symbol:', e);
+            }
+        };
+
+        // AskFeen scroll helper
+        window.scrollToBottom = function(element) {
+            if (element) {
+                element.scrollTop = element.scrollHeight;
             }
         };
     </script>

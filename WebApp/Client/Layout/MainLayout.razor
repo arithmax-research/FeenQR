@@ -17,6 +17,7 @@
         <MudNavMenu Style="@GetNavMenuStyle()">
             <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" IconColor="Color.Default">Home</MudNavLink>
             <MudNavLink Href="/dashboard" Icon="@Icons.Material.Filled.Dashboard" IconColor="Color.Default">Dashboard</MudNavLink>
+            <MudNavLink Href="/research" Icon="@Icons.Material.Filled.MenuBook" IconColor="Color.Default">Research</MudNavLink>
             <MudNavLink Href="/backtesting" Icon="@Icons.Material.Filled.HistoryToggleOff" IconColor="Color.Default">Backtesting</MudNavLink>
             <MudNavLink Href="/execution" Icon="@Icons.Material.Filled.Bolt" IconColor="Color.Default">Execution</MudNavLink>
             <MudNavLink Href="/order-management" Icon="@Icons.Material.Filled.Assignment" IconColor="Color.Default">Order Management</MudNavLink>
@@ -61,6 +62,8 @@
         @Body
     </MudMainContent>
 </MudLayout>
+
+<AskFeen />
 
 @code {
     private bool drawerOpen = true;

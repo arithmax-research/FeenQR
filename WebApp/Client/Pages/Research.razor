@@ -1,0 +1,1107 @@
+@page "/research"
+@inject IJSRuntime JS
+@inject HttpClient Http
+
+<PageTitle>FeenQR - Research</PageTitle>
+
+<style>
+    .research-container {
+        width: 100%;
+        height: 100vh;
+        background: #0a0a0a;
+        color: #ffffff;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .research-header {
+        padding: 1.5rem 2rem;
+        background: #000000;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        flex-shrink: 0;
+    }
+
+    .tab-navigation {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .tab-btn {
+        padding: 0.75rem 1.5rem;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #9ca3af;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .tab-btn:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #ffffff;
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .tab-btn.active {
+        background: #1a73e8;
+        color: #ffffff;
+        border-color: #1a73e8;
+    }
+
+    .research-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 2rem;
+    }
+
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .feature-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+        transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+    }
+
+    .feature-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .feature-description {
+        font-size: 0.9rem;
+        color: #9ca3af;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+
+    .feature-status {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+
+    .status-available {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-partial {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+        border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .status-coming-soon {
+        background: rgba(107, 114, 128, 0.2);
+        color: #9ca3af;
+        border: 1px solid rgba(107, 114, 128, 0.3);
+    }
+
+    .feature-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .action-btn {
+        flex: 1;
+        padding: 0.5rem 1rem;
+        background: rgba(26, 115, 232, 0.1);
+        border: 1px solid rgba(26, 115, 232, 0.3);
+        color: #1a73e8;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .action-btn:hover {
+        background: rgba(26, 115, 232, 0.2);
+        border-color: rgba(26, 115, 232, 0.5);
+    }
+
+    .action-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .section-header {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: #ffffff;
+    }
+
+    .chat-interface {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        gap: 1rem;
+    }
+
+    .chat-input {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 0.95rem;
+    }
+
+    .chat-input:focus {
+        outline: none;
+        border-color: #1a73e8;
+        background: rgba(255, 255, 255, 0.07);
+    }
+
+    .chat-submit {
+        padding: 0.75rem 2rem;
+        background: #1a73e8;
+        border: none;
+        color: #ffffff;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+    }
+
+    .chat-submit:hover {
+        background: #1557b0;
+    }
+</style>
+
+<div class="research-container">
+    <div class="research-header">
+        <div class="tab-navigation">
+            <button class="tab-btn @(activeTab == "ai-assistant" ? "active" : "")" @onclick='() => SwitchTab("ai-assistant")'>AI Assistant</button>
+            <button class="tab-btn @(activeTab == "video-analysis" ? "active" : "")" @onclick='() => SwitchTab("video-analysis")'>Video Analysis</button>
+            <button class="tab-btn @(activeTab == "academic-papers" ? "active" : "")" @onclick='() => SwitchTab("academic-papers")'>Academic Papers</button>
+            <button class="tab-btn @(activeTab == "research-synthesis" ? "active" : "")" @onclick='() => SwitchTab("research-synthesis")'>Research Synthesis</button>
+            <button class="tab-btn @(activeTab == "research-reports" ? "active" : "")" @onclick='() => SwitchTab("research-reports")'>Research Reports</button>
+        </div>
+    </div>
+
+    <div class="research-content">
+        @if (activeTab == "ai-assistant")
+        {
+            <div class="section-header">
+                AI Research Assistant
+            </div>
+
+            <div class="chat-interface">
+                <input type="text" class="chat-input" placeholder="Ask me anything about markets, stocks, research papers, or trading strategies..." @bind="chatQuery" @onkeypress="HandleChatKeyPress" />
+                <button class="chat-submit" @onclick="SendChatQuery">Research</button>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Chat Assistant
+                    </div>
+                    <div class="feature-description">
+                        Interactive AI assistant for general research queries, market analysis, and strategic insights. Supports DeepSeek and OpenAI models.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="OpenChatAssistant">Open Chat</button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Quick Research
+                    </div>
+                    <div class="feature-description">
+                        Get instant answers to specific research questions with AI-powered quick research that synthesizes information from multiple sources.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="StartQuickResearch">Start Research</button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Research LLM
+                    </div>
+                    <div class="feature-description">
+                        Advanced LLM-powered research engine for deep market analysis, strategy development, and quantitative insights.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="LaunchResearchLLM">Launch</button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Research Query Builder
+                    </div>
+                    <div class="feature-description">
+                        Build complex research queries with natural language and get structured insights from academic papers, market data, and news.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="BuildResearchQuery">Build Query</button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (activeTab == "video-analysis")
+        {
+            <div class="section-header">
+                Video Analysis & Learning
+            </div>
+
+            <div class="chat-interface">
+                <input type="text" class="chat-input" placeholder="Enter YouTube URL or search for finance videos..." @bind="videoQuery" />
+                <button class="chat-submit" @onclick="AnalyzeVideo">Analyze</button>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        YouTube Video Analysis
+                    </div>
+                    <div class="feature-description">
+                        Analyze YouTube videos for trading strategies, market insights, and educational content. Extract key points and actionable insights.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="AnalyzeVideoFeature">Analyze Video</button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Quantopian Video Library
+                    </div>
+                    <div class="feature-description">
+                        Access and analyze Quantopian's educational video library. Learn from expert quantitative traders and researchers.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="BrowseQuantopianLibrary">Browse Library</button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Finance Video Search
+                    </div>
+                    <div class="feature-description">
+                        Search across multiple finance video platforms. Find relevant content for your research and trading strategies.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="SearchFinanceVideos">Search Videos</button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (activeTab == "academic-papers")
+        {
+            <div class="section-header">
+                Academic Research Papers
+            </div>
+
+            <div class="chat-interface">
+                <input type="text" class="chat-input" placeholder="Search for research papers (e.g., momentum investing, factor models, portfolio optimization)..." @bind="paperQuery" />
+                <button class="chat-submit" @onclick="SearchPapers">Search Papers</button>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Paper Search
+                    </div>
+                    <div class="feature-description">
+                        Search academic papers from arXiv, SSRN, and Google Scholar. Find cutting-edge quantitative finance research.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="SearchAcademicPapers">Search Papers</button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Paper Analysis
+                    </div>
+                    <div class="feature-description">
+                        AI-powered analysis of research papers. Extract key findings, methodologies, and actionable trading strategies.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="AnalyzePaper">Analyze Paper</button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Research Synthesis
+                    </div>
+                    <div class="feature-description">
+                        Synthesize findings from multiple papers. Create comprehensive literature reviews and research summaries.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="SynthesizePapers">Synthesize</button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (activeTab == "research-synthesis")
+        {
+            <div class="section-header">
+                Research Synthesis & Analysis
+            </div>
+
+            <div class="chat-interface">
+                <input type="text" class="chat-input" placeholder="Enter research topic or strategy (e.g., mean reversion strategies, machine learning in trading)..." @bind="synthesisQuery" />
+                <button class="chat-submit" @onclick="SynthesizeResearch">Synthesize</button>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Research Synthesis
+                    </div>
+                    <div class="feature-description">
+                        Combine insights from multiple sources including papers, news, market data, and historical analysis to create comprehensive research.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="SynthesizeResearchFeature">Synthesize Research</button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Quick Research
+                    </div>
+                    <div class="feature-description">
+                        Get rapid research insights on specific topics, stocks, or strategies. Perfect for time-sensitive analysis.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="QuickResearchFeature">Quick Research</button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Research Query System
+                    </div>
+                    <div class="feature-description">
+                        Advanced query system for targeted research. Build complex queries with filters, date ranges, and source preferences.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="BuildQuerySystem">Build Query</button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (activeTab == "research-reports")
+        {
+            <div class="section-header">
+                Research Reports & Documentation
+            </div>
+
+            <div class="chat-interface">
+                <input type="text" class="chat-input" placeholder="Enter symbol or topic for research report (e.g., AAPL, tech sector outlook, Q1 2026)..." @bind="reportQuery" />
+                <button class="chat-submit" @onclick="GenerateReport">Generate Report</button>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Research Report Generator
+                    </div>
+                    <div class="feature-description">
+                        Generate comprehensive research reports combining technical analysis, fundamentals, sentiment, and market trends.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="GenerateResearchReport">Generate Report</button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Strategy Research Reports
+                    </div>
+                    <div class="feature-description">
+                        Create detailed strategy research reports with backtests, performance metrics, and risk analysis.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="CreateStrategyReport">Create Strategy Report</button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-status status-available">AVAILABLE</span>
+                    <div class="feature-title">
+                        Report Library
+                    </div>
+                    <div class="feature-description">
+                        Access your generated research reports. Export to PDF, share with team, or integrate with your workflow.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" @onclick="ViewReportLibrary">View Reports</button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-status status-coming-soon">COMING SOON</span>
+                    <div class="feature-title">
+                        Automated Report Scheduling
+                    </div>
+                    <div class="feature-description">
+                        Schedule automated research reports. Get daily, weekly, or monthly reports delivered to your inbox.
+                    </div>
+                    <div class="feature-actions">
+                        <button class="action-btn" disabled>Coming Soon</button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string activeTab = "ai-assistant";
+    private string chatQuery = "";
+    private string videoQuery = "";
+    private string paperQuery = "";
+    private string synthesisQuery = "";
+    private string reportQuery = "";
+    private bool isLoading = false;
+    private string? lastResult = null;
+
+    private void SwitchTab(string tab)
+    {
+        activeTab = tab;
+        lastResult = null;
+        StateHasChanged();
+    }
+
+    private async Task HandleChatKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SendChatQuery();
+        }
+    }
+
+    private async Task SendChatQuery()
+    {
+        if (string.IsNullOrWhiteSpace(chatQuery)) return;
+        
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/quick-research", new { Query = chatQuery });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Chat Query Result: {lastResult}");
+            chatQuery = "";
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AnalyzeVideo()
+    {
+        if (string.IsNullOrWhiteSpace(videoQuery)) return;
+        
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/analyze-video", new { VideoUrl = videoQuery });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Video Analysis Result: {lastResult}");
+            videoQuery = "";
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SearchPapers()
+    {
+        if (string.IsNullOrWhiteSpace(paperQuery)) return;
+        
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/research-papers", new { Query = paperQuery, MaxResults = 20 });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Paper Search Result: {lastResult}");
+            paperQuery = "";
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SynthesizeResearch()
+    {
+        if (string.IsNullOrWhiteSpace(synthesisQuery)) return;
+        
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/research-synthesis", new { Topic = synthesisQuery, PaperUrls = new List<string>(), MaxPapers = 10 });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Research Synthesis Result: {lastResult}");
+            synthesisQuery = "";
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task GenerateReport()
+    {
+        if (string.IsNullOrWhiteSpace(reportQuery)) return;
+        
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/research-report", new { Symbol = reportQuery, ReportType = "comprehensive" });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Report Result: {lastResult}");
+            reportQuery = "";
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // AI Assistant tab methods
+    private async Task OpenChatAssistant()
+    {
+        await JS.InvokeVoidAsync("console.log", "Opening Chat Assistant...");
+        // Focus on chat input
+        await JS.InvokeVoidAsync("eval", "document.querySelector('.chat-input')?.focus()");
+    }
+
+    private async Task StartQuickResearch()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/quick-research", new { Query = chatQuery });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Quick Research: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LaunchResearchLLM()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/research-llm", new { Query = chatQuery });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Research LLM: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task BuildResearchQuery()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/research-query", new { Query = chatQuery });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Research Query: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // Video Analysis tab methods
+    private async Task AnalyzeVideoFeature()
+    {
+        if (string.IsNullOrWhiteSpace(videoQuery)) return;
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/analyze-video", new { VideoUrl = videoQuery });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Video Analysis: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task BrowseQuantopianLibrary()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.GetAsync("api/research/quantopian-videos");
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Quantopian Videos: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SearchFinanceVideos()
+    {
+        if (string.IsNullOrWhiteSpace(videoQuery)) return;
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/search-finance-videos", new { Query = videoQuery, MaxResults = 10 });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Finance Videos: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // Academic Papers tab methods
+    private async Task SearchAcademicPapers()
+    {
+        if (string.IsNullOrWhiteSpace(paperQuery)) return;
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/research-papers", new { Query = paperQuery, MaxResults = 20 });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Paper Search: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AnalyzePaper()
+    {
+        if (string.IsNullOrWhiteSpace(paperQuery)) return;
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/analyze-paper", new { PaperUrl = paperQuery });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Paper Analysis: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SynthesizePapers()
+    {
+        if (string.IsNullOrWhiteSpace(paperQuery)) return;
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/research-synthesis", new { Topic = paperQuery, PaperUrls = new List<string>(), MaxPapers = 10 });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Paper Synthesis: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // Research Synthesis tab methods
+    private async Task SynthesizeResearchFeature()
+    {
+        if (string.IsNullOrWhiteSpace(synthesisQuery)) return;
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/research-synthesis", new { Topic = synthesisQuery, PaperUrls = new List<string>(), MaxPapers = 10 });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Research Synthesis: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task QuickResearchFeature()
+    {
+        if (string.IsNullOrWhiteSpace(synthesisQuery)) return;
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/quick-research", new { Query = synthesisQuery });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Quick Research: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task BuildQuerySystem()
+    {
+        if (string.IsNullOrWhiteSpace(synthesisQuery)) return;
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/research-query", new { Query = synthesisQuery });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Query System: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // Research Reports tab methods
+    private async Task GenerateResearchReport()
+    {
+        if (string.IsNullOrWhiteSpace(reportQuery)) return;
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/research-report", new { Symbol = reportQuery, ReportType = "comprehensive" });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Research Report: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CreateStrategyReport()
+    {
+        if (string.IsNullOrWhiteSpace(reportQuery)) return;
+
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/research-report", new { Symbol = reportQuery, ReportType = "strategy" });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Strategy Report: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ViewReportLibrary()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.GetAsync("api/research/report-library");
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadAsStringAsync();
+            lastResult = result;
+            
+            await JS.InvokeVoidAsync("console.log", $"Report Library: {result}");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    public class ResearchResponse
+    {
+        public string Result { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+        public string Type { get; set; } = string.Empty;
+    }
+}

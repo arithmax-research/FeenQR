@@ -1,0 +1,744 @@
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<div class="askfeen-container @(isExpanded ? "expanded" : "collapsed")">
+    @if (isExpanded)
+    {
+        <div class="askfeen-chat">
+            <div class="askfeen-header">
+                <div class="askfeen-title">
+                    <div class="askfeen-avatar"></div>
+                    <div>
+                        <div class="askfeen-name">AskFeen</div>
+                        <div class="askfeen-status">@statusText</div>
+                    </div>
+                </div>
+                <button class="askfeen-btn-minimize" @onclick="ToggleExpand">
+                    <span class="minimize-icon"></span>
+                </button>
+            </div>
+
+            <div class="askfeen-messages" @ref="messagesContainer">
+                @foreach (var message in messages)
+                {
+                    <div class="askfeen-message @(message.IsUser ? "user" : "assistant")">
+                        @if (!message.IsUser)
+                        {
+                            <div class="message-avatar"></div>
+                        }
+                        <div class="message-content">
+                            <div class="message-text">@message.Text</div>
+                            <div class="message-time">@message.Timestamp.ToString("HH:mm")</div>
+                        </div>
+                    </div>
+                }
+                
+                @if (isLoading)
+                {
+                    <div class="askfeen-message assistant">
+                        <div class="message-avatar"></div>
+                        <div class="message-content">
+                            <div class="message-text typing-indicator">
+                                <span></span><span></span><span></span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="askfeen-suggestions">
+                @foreach (var suggestion in currentSuggestions)
+                {
+                    <button class="suggestion-chip" @onclick="() => SendSuggestion(suggestion)">
+                        @suggestion
+                    </button>
+                }
+            </div>
+
+            <div class="askfeen-input">
+                <input 
+                    type="text" 
+                    placeholder="Ask me anything..."
+                    @bind="userInput"
+                    @bind:event="oninput"
+                    @onkeydown="HandleKeyDown"
+                    disabled="@isLoading"
+                />
+                <button class="askfeen-btn-send" @onclick="SendMessage" disabled="@(string.IsNullOrWhiteSpace(userInput) || isLoading)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <button class="askfeen-button" @onclick="ToggleExpand">
+            <div class="askfeen-button-content">
+                <div class="askfeen-button-avatar"></div>
+                <span class="askfeen-button-text">Ask Feen</span>
+            </div>
+            @if (unreadCount > 0)
+            {
+                <div class="askfeen-badge">@unreadCount</div>
+            }
+        </button>
+    }
+</div>
+
+@code {
+    private ElementReference messagesContainer;
+    private bool isExpanded = false;
+    private bool isLoading = false;
+    private string userInput = "";
+    private string statusText = "Online";
+    private int unreadCount = 0;
+    
+    private List<ChatMessage> messages = new List<ChatMessage>();
+    private List<string> currentSuggestions = new List<string>();
+
+    private readonly List<string> defaultSuggestions = new List<string>
+    {
+        "Show portfolio",
+        "Latest market news",
+        "Technical analysis",
+        "Risk metrics"
+    };
+
+    private readonly List<string> navigationSuggestions = new List<string>
+    {
+        "Go to dashboard",
+        "View charts",
+        "Check alerts",
+        "Open optimizer"
+    };
+
+    protected override void OnInitialized()
+    {
+        currentSuggestions = defaultSuggestions;
+        
+        // Welcome message
+        messages.Add(new ChatMessage
+        {
+            Text = "Hi, I'm AskFeen. I can help you navigate FeenQR, analyze markets, or answer questions about your portfolio. What would you like to know?",
+            IsUser = false,
+            Timestamp = DateTime.Now
+        });
+    }
+
+    private void ToggleExpand()
+    {
+        isExpanded = !isExpanded;
+        
+        if (isExpanded)
+        {
+            unreadCount = 0;
+        }
+        
+        StateHasChanged();
+        
+        if (isExpanded)
+        {
+            _ = ScrollToBottom();
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(userInput) && !isLoading)
+        {
+            await SendMessage();
+        }
+    }
+
+    private async Task SendSuggestion(string suggestion)
+    {
+        userInput = suggestion;
+        await SendMessage();
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(userInput) || isLoading)
+            return;
+
+        var message = userInput.Trim();
+        userInput = "";
+        
+        // Add user message
+        messages.Add(new ChatMessage
+        {
+            Text = message,
+            IsUser = true,
+            Timestamp = DateTime.Now
+        });
+        
+        StateHasChanged();
+        await ScrollToBottom();
+        
+        isLoading = true;
+        statusText = "Thinking...";
+        StateHasChanged();
+
+        try
+        {
+            // Check for navigation commands
+            var response = await ProcessUserMessage(message);
+            
+            messages.Add(new ChatMessage
+            {
+                Text = response,
+                IsUser = false,
+                Timestamp = DateTime.Now
+            });
+
+            // Update suggestions based on context
+            UpdateSuggestions(message);
+        }
+        catch (Exception ex)
+        {
+            messages.Add(new ChatMessage
+            {
+                Text = "I apologize, but I encountered an error. Please try again.",
+                IsUser = false,
+                Timestamp = DateTime.Now
+            });
+        }
+        finally
+        {
+            isLoading = false;
+            statusText = "Online";
+            StateHasChanged();
+            await ScrollToBottom();
+        }
+    }
+
+    private async Task<string> ProcessUserMessage(string message)
+    {
+        var lowerMessage = message.ToLower();
+
+        // Navigation commands
+        if (lowerMessage.Contains("dashboard") || lowerMessage.Contains("go to dashboard"))
+        {
+            await JS.InvokeVoidAsync("eval", "window.location.href = '/dashboard';");
+            return "Taking you to the dashboard now.";
+        }
+        
+        if (lowerMessage.Contains("portfolio"))
+        {
+            if (lowerMessage.Contains("show") || lowerMessage.Contains("view") || lowerMessage.Contains("open"))
+            {
+                await JS.InvokeVoidAsync("eval", "window.location.href = '/dashboard';");
+                return "Opening your portfolio on the dashboard.";
+            }
+            return "Your portfolio contains real-time positions, performance metrics, and risk analytics. Would you like me to navigate you there?";
+        }
+
+        if (lowerMessage.Contains("chart") || lowerMessage.Contains("technical"))
+        {
+            await JS.InvokeVoidAsync("eval", "window.location.href = '/technical-analysis';");
+            return "Opening technical analysis charts.";
+        }
+
+        if (lowerMessage.Contains("news"))
+        {
+            await JS.InvokeVoidAsync("eval", "window.location.href = '/dashboard';");
+            return "Here are the latest market news updates on your dashboard.";
+        }
+
+        if (lowerMessage.Contains("alert"))
+        {
+            await JS.InvokeVoidAsync("eval", "window.location.href = '/alerts';");
+            return "Opening your alerts and triggers.";
+        }
+
+        if (lowerMessage.Contains("risk"))
+        {
+            await JS.InvokeVoidAsync("eval", "window.location.href = '/risk-analysis';");
+            return "Navigating to risk analysis tools.";
+        }
+
+        if (lowerMessage.Contains("optimizer") || lowerMessage.Contains("optimi"))
+        {
+            await JS.InvokeVoidAsync("eval", "window.location.href = '/optimizer';");
+            return "Opening the portfolio optimizer.";
+        }
+
+        if (lowerMessage.Contains("backtest"))
+        {
+            await JS.InvokeVoidAsync("eval", "window.location.href = '/backtesting';");
+            return "Taking you to the backtesting module.";
+        }
+
+        // Help commands
+        if (lowerMessage.Contains("help") || lowerMessage.Contains("what can you do"))
+        {
+            return "I can help you:\n- Navigate to different sections (dashboard, charts, alerts, etc.)\n- Explain features and tools\n- Provide market insights\n- Answer questions about your portfolio\n- Guide you through technical and fundamental analysis\n\nJust ask me anything!";
+        }
+
+        // Call the API for AI-powered responses
+        try
+        {
+            var request = new { Message = message };
+            var response = await Http.PostAsJsonAsync("api/chat/deepseek", request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ChatResponse>();
+                return result?.Message ?? "I'm not sure how to respond to that. Can you rephrase?";
+            }
+        }
+        catch
+        {
+            // Fallback response
+        }
+
+        return "I'm here to help! You can ask me about navigating FeenQR, analyzing markets, or understanding your portfolio. What would you like to know?";
+    }
+
+    private void UpdateSuggestions(string lastMessage)
+    {
+        var lowerMessage = lastMessage.ToLower();
+
+        if (lowerMessage.Contains("portfolio") || lowerMessage.Contains("position"))
+        {
+            currentSuggestions = new List<string>
+            {
+                "Show risk metrics",
+                "Performance analysis",
+                "Optimize portfolio",
+                "View allocations"
+            };
+        }
+        else if (lowerMessage.Contains("market") || lowerMessage.Contains("stock"))
+        {
+            currentSuggestions = new List<string>
+            {
+                "Technical analysis",
+                "Latest news",
+                "Market sentiment",
+                "Price alerts"
+            };
+        }
+        else if (lowerMessage.Contains("risk"))
+        {
+            currentSuggestions = new List<string>
+            {
+                "Calculate VaR",
+                "Stress test",
+                "Correlation matrix",
+                "Risk attribution"
+            };
+        }
+        else
+        {
+            currentSuggestions = navigationSuggestions;
+        }
+    }
+
+    private async Task ScrollToBottom()
+    {
+        try
+        {
+            await Task.Delay(100);
+            await JS.InvokeVoidAsync("scrollToBottom", messagesContainer);
+        }
+        catch { }
+    }
+
+    private class ChatMessage
+    {
+        public string Text { get; set; } = "";
+        public bool IsUser { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+
+    private class ChatResponse
+    {
+        public string Message { get; set; } = "";
+        public DateTime Timestamp { get; set; }
+    }
+}
+
+<style>
+    .askfeen-container {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 1000;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .askfeen-button {
+        background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+        border: none;
+        border-radius: 28px;
+        padding: 12px 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+
+    .askfeen-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(25, 118, 210, 0.5);
+    }
+
+    .askfeen-button-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: white;
+        font-weight: 600;
+    }
+
+    .askfeen-button-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .askfeen-button-text {
+        font-size: 15px;
+        letter-spacing: 0.2px;
+    }
+
+    .askfeen-badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background: #dc004e;
+        color: white;
+        border-radius: 12px;
+        padding: 2px 6px;
+        font-size: 11px;
+        font-weight: 700;
+        min-width: 20px;
+        text-align: center;
+    }
+
+    .askfeen-chat {
+        width: 380px;
+        height: 600px;
+        background: #1e1e1e;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @@keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .askfeen-header {
+        background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+        padding: 16px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .askfeen-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: white;
+    }
+
+    .askfeen-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .askfeen-name {
+        font-weight: 700;
+        font-size: 16px;
+        letter-spacing: 0.3px;
+    }
+
+    .askfeen-status {
+        font-size: 12px;
+        opacity: 0.9;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .askfeen-status::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #4caf50;
+        display: inline-block;
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .askfeen-btn-minimize {
+        background: rgba(255, 255, 255, 0.15);
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .askfeen-btn-minimize:hover {
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    .minimize-icon {
+        width: 16px;
+        height: 2px;
+        background: white;
+        border-radius: 1px;
+    }
+
+    .askfeen-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        background: #121212;
+    }
+
+    .askfeen-messages::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .askfeen-messages::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .askfeen-messages::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+    }
+
+    .askfeen-message {
+        display: flex;
+        gap: 10px;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .askfeen-message.user {
+        justify-content: flex-end;
+    }
+
+    .askfeen-message.user .message-content {
+        background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+        color: white;
+        border-radius: 18px 18px 4px 18px;
+    }
+
+    .message-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+        border: 2px solid rgba(25, 118, 210, 0.3);
+        flex-shrink: 0;
+    }
+
+    .message-content {
+        background: #2a2a2a;
+        padding: 12px 16px;
+        border-radius: 18px 18px 18px 4px;
+        max-width: 70%;
+    }
+
+    .message-text {
+        color: #ffffff;
+        font-size: 14px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    .message-time {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 6px;
+    }
+
+    .typing-indicator {
+        display: flex;
+        gap: 4px;
+        padding: 8px 0;
+    }
+
+    .typing-indicator span {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.6);
+        animation: bounce 1.4s infinite ease-in-out;
+    }
+
+    .typing-indicator span:nth-child(1) {
+        animation-delay: -0.32s;
+    }
+
+    .typing-indicator span:nth-child(2) {
+        animation-delay: -0.16s;
+    }
+
+    @@keyframes bounce {
+        0%, 80%, 100% {
+            transform: scale(0.8);
+            opacity: 0.5;
+        }
+        40% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .askfeen-suggestions {
+        display: flex;
+        gap: 8px;
+        padding: 12px 20px;
+        overflow-x: auto;
+        background: #1a1a1a;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .askfeen-suggestions::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .askfeen-suggestions::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 2px;
+    }
+
+    .suggestion-chip {
+        background: rgba(25, 118, 210, 0.15);
+        border: 1px solid rgba(25, 118, 210, 0.3);
+        color: #1976d2;
+        padding: 8px 14px;
+        border-radius: 16px;
+        font-size: 13px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+
+    .suggestion-chip:hover {
+        background: rgba(25, 118, 210, 0.25);
+        border-color: rgba(25, 118, 210, 0.5);
+        transform: translateY(-1px);
+    }
+
+    .askfeen-input {
+        display: flex;
+        gap: 12px;
+        padding: 16px 20px;
+        background: #1e1e1e;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .askfeen-input input {
+        flex: 1;
+        background: #2a2a2a;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 12px 18px;
+        color: white;
+        font-size: 14px;
+        outline: none;
+        transition: all 0.2s;
+    }
+
+    .askfeen-input input:focus {
+        border-color: #1976d2;
+        background: #323232;
+    }
+
+    .askfeen-input input::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .askfeen-input input:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .askfeen-btn-send {
+        background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+        border: none;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .askfeen-btn-send:hover:not(:disabled) {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
+    }
+
+    .askfeen-btn-send:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    @@media (max-width: 768px) {
+        .askfeen-chat {
+            width: calc(100vw - 32px);
+            height: calc(100vh - 100px);
+        }
+
+        .askfeen-container {
+            bottom: 16px;
+            right: 16px;
+        }
+    }
+</style>
