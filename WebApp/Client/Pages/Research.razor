@@ -1,4 +1,5 @@
 @page "/research"
+@using System.Text.RegularExpressions
 @inject IJSRuntime JS
 @inject HttpClient Http
 
@@ -479,6 +480,26 @@
                     <div class="progress-text">Searching academic papers...</div>
                 </div>
             }
+            else if (foundPapers.Any())
+            {
+                <div class="results-display">
+                    <h3 style="color: #4CAF50; margin-bottom: 20px;">Found @foundPapers.Count Papers</h3>
+                    @foreach (var paper in foundPapers)
+                    {
+                        <div style="background: #1a1a1a; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 3px solid #4CAF50;">
+                            <h4 style="color: #4CAF50; margin: 0 0 10px 0;">@paper.Title</h4>
+                            <p style="color: #888; font-size: 0.9em; margin: 5px 0;">@paper.Snippet</p>
+                            <div style="margin-top: 10px; display: flex; gap: 10px;">
+                                <a href="@paper.Url" target="_blank" class="action-btn" style="font-size: 0.85em; padding: 8px 12px;">📄 View Paper</a>
+                                <button class="action-btn" style="font-size: 0.85em; padding: 8px 12px; background: #2196F3;" 
+                                        @onclick="() => DeepAnalyzePaper(paper)" disabled="@isLoading">
+                                    🔬 Deep Analyze
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
             else if (!string.IsNullOrEmpty(lastResult))
             {
                 <div class="results-display">
@@ -688,6 +709,14 @@
     private string? lastResult = null;
     private IBrowserFile? selectedPdf;
     private string selectedPdfName = "";
+    private List<PaperResult> foundPapers = new();
+
+    public class PaperResult
+    {
+        public string Title { get; set; } = "";
+        public string Url { get; set; } = "";
+        public string Snippet { get; set; } = "";
+    }
 
     private void SwitchTab(string tab)
     {
@@ -769,19 +798,104 @@
         try
         {
             isLoading = true;
+            foundPapers.Clear();
+            lastResult = "";
             StateHasChanged();
 
             var response = await Http.PostAsJsonAsync("api/research/research-papers", new { Query = paperQuery, MaxResults = 20 });
             response.EnsureSuccessStatusCode();
             
             var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
-            lastResult = result?.Result;
             
-            await JS.InvokeVoidAsync("console.log", $"Paper Search Result: {lastResult}");
+            // Parse the result to extract individual papers
+            if (!string.IsNullOrWhiteSpace(result?.Result))
+            {
+                ParsePapersFromResult(result.Result);
+            }
+            
+            if (!foundPapers.Any())
+            {
+                lastResult = result?.Result ?? "No papers found";
+            }
+            
+            await JS.InvokeVoidAsync("console.log", $"Found {foundPapers.Count} papers");
             paperQuery = "";
         }
         catch (Exception ex)
         {
+            lastResult = $"Error: {ex.Message}";
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ParsePapersFromResult(string result)
+    {
+        var lines = result.Split('\n');
+        PaperResult? currentPaper = null;
+        
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            
+            // Look for numbered papers like "1. Paper Title"
+            if (Regex.IsMatch(trimmed, @"^\d+\.\s+"))
+            {
+                if (currentPaper != null)
+                {
+                    foundPapers.Add(currentPaper);
+                }
+                
+                currentPaper = new PaperResult
+                {
+                    Title = Regex.Replace(trimmed, @"^\d+\.\s+", "")
+                };
+            }
+            else if (currentPaper != null && trimmed.StartsWith("URL:"))
+            {
+                currentPaper.Url = trimmed.Replace("URL:", "").Trim();
+            }
+            else if (currentPaper != null && trimmed.StartsWith("Abstract/Summary:"))
+            {
+                currentPaper.Snippet = trimmed.Replace("Abstract/Summary:", "").Trim();
+            }
+        }
+        
+        if (currentPaper != null)
+        {
+            foundPapers.Add(currentPaper);
+        }
+    }
+
+    private async Task DeepAnalyzePaper(PaperResult paper)
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/deep-analyze-paper", new 
+            { 
+                Url = paper.Url,
+                Title = paper.Title,
+                StrategyName = paper.Title
+            });
+            
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result ?? "No analysis generated";
+            foundPapers.Clear(); // Clear to show analysis result
+            
+            await JS.InvokeVoidAsync("console.log", "Deep analysis complete");
+        }
+        catch (Exception ex)
+        {
+            lastResult = $"Error in deep analysis: {ex.Message}";
             await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
         }
         finally

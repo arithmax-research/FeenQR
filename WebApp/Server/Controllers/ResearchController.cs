@@ -263,6 +263,58 @@ namespace Server.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
+        [HttpPost("deep-analyze-paper")]
+        public async Task<IActionResult> DeepAnalyzePaper([FromBody] DeepAnalyzeRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(request.Url))
+                {
+                    return Ok(new ResearchResponse
+                    {
+                        Result = "Paper URL is required",
+                        Timestamp = DateTime.UtcNow,
+                        Type = "deep-analysis"
+                    });
+                }
+
+                _logger.LogInformation("Deep analyzing paper: {Url}", request.Url);
+
+                // Extract strategy from paper URL (downloads PDF and analyzes)
+                var strategy = await _academicResearchService.ExtractStrategyFromPaperAsync(
+                    request.Url,
+                    request.StrategyName ?? "Extracted Strategy"
+                );
+
+                var result = $"DEEP ANALYSIS: {request.Title ?? "Research Paper"}\n";
+                result += "═══════════════════════════════════════════════════════════════\n\n";
+                result += $"Source: {request.Url}\n\n";
+                result += $"Strategy Name: {strategy.Name}\n\n";
+                result += $"Description: {strategy.Description}\n\n";
+                result += "IMPLEMENTATION:\n";
+                result += "───────────────────────────────────────────────────────────────\n";
+                result += $"{strategy.Implementation}\n\n";
+                result += $"Analyzed: {strategy.ExtractionDate:yyyy-MM-dd HH:mm:ss} UTC\n";
+
+                return Ok(new ResearchResponse
+                {
+                    Result = result,
+                    Timestamp = DateTime.UtcNow,
+                    Type = "deep-analysis"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in deep paper analysis for {Url}", request.Url);
+                return Ok(new ResearchResponse
+                {
+                    Result = $"Error analyzing paper: {ex.Message}\n\nThis could be due to:\n- PDF download failed\n- Paper is behind paywall\n- Network timeout\n- PDF is scanned/image-based",
+                    Timestamp = DateTime.UtcNow,
+                    Type = "deep-analysis"
+                });
+            }
+        }
+
         [HttpPost("analyze-pdf")]
         public async Task<IActionResult> AnalyzePdf(IFormFile file)
         {
@@ -507,6 +559,13 @@ namespace Server.Controllers
         public string Topic { get; set; } = string.Empty;
         public List<string> PaperUrls { get; set; } = new();
         public int MaxPapers { get; set; } = 10;
+    }
+
+    public class DeepAnalyzeRequest
+    {
+        public string Url { get; set; } = string.Empty;
+        public string? Title { get; set; }
+        public string? StrategyName { get; set; }
     }
 
     public class ReportRequest

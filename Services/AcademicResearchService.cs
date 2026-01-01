@@ -309,20 +309,40 @@ public class AcademicResearchService
     {
         try
         {
-            // Try to download PDF or HTML content
+            _logger.LogInformation("Downloading paper from {Url}", url);
+            
             var response = await _httpClient.GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync();
-
-                // If it's a PDF, we'd need PDF parsing (simplified here)
-                if (url.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                // Check if it's a PDF
+                if (url.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) || 
+                    response.Content.Headers.ContentType?.MediaType == "application/pdf")
                 {
-                    // In practice, use a PDF parsing library
-                    return "PDF content extraction would be implemented here";
+                    // Download PDF and extract text
+                    var pdfBytes = await response.Content.ReadAsByteArrayAsync();
+                    
+                    using (var document = UglyToad.PdfPig.PdfDocument.Open(pdfBytes))
+                    {
+                        var textBuilder = new StringBuilder();
+                        foreach (var page in document.GetPages())
+                        {
+                            textBuilder.AppendLine($"\n--- Page {page.Number} ---");
+                            textBuilder.AppendLine(page.Text);
+                        }
+                        
+                        var extractedText = textBuilder.ToString();
+                        _logger.LogInformation("Extracted {Length} characters from PDF", extractedText.Length);
+                        return extractedText;
+                    }
                 }
 
+                // For HTML or text content
+                var content = await response.Content.ReadAsStringAsync();
                 return content;
+            }
+            else
+            {
+                _logger.LogWarning("Failed to download paper: HTTP {StatusCode}", response.StatusCode);
             }
         }
         catch (Exception ex)
