@@ -312,20 +312,8 @@
             @if (isLoading)
             {
                 <div class="progress-container">
-                    <div class="progress-dots">
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "thinking" || completedPhases.Contains("thinking") ? (completedPhases.Contains("thinking") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "thinking" || completedPhases.Contains("thinking") ? (completedPhases.Contains("thinking") ? "completed" : "active") : "")">Thinking</span>
-                        </div>
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "searching" || completedPhases.Contains("searching") ? (completedPhases.Contains("searching") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "searching" || completedPhases.Contains("searching") ? (completedPhases.Contains("searching") ? "completed" : "active") : "")">Searching</span>
-                        </div>
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "analyzing" || completedPhases.Contains("analyzing") ? (completedPhases.Contains("analyzing") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "analyzing" || completedPhases.Contains("analyzing") ? (completedPhases.Contains("analyzing") ? "completed" : "active") : "")">Analyzing</span>
-                        </div>
-                    </div>
+                    <div class="spinner"></div>
+                    <div class="progress-text">Researching your query...</div>
                 </div>
             }
             else if (!string.IsNullOrEmpty(lastResult))
@@ -404,20 +392,8 @@
             @if (isLoading)
             {
                 <div class="progress-container">
-                    <div class="progress-dots">
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "thinking" || completedPhases.Contains("thinking") ? (completedPhases.Contains("thinking") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "thinking" || completedPhases.Contains("thinking") ? (completedPhases.Contains("thinking") ? "completed" : "active") : "")">Thinking</span>
-                        </div>
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "searching" || completedPhases.Contains("searching") ? (completedPhases.Contains("searching") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "searching" || completedPhases.Contains("searching") ? (completedPhases.Contains("searching") ? "completed" : "active") : "")">Searching</span>
-                        </div>
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "analyzing" || completedPhases.Contains("analyzing") ? (completedPhases.Contains("analyzing") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "analyzing" || completedPhases.Contains("analyzing") ? (completedPhases.Contains("analyzing") ? "completed" : "active") : "")">Analyzing</span>
-                        </div>
-                    </div>
+                    <div class="spinner"></div>
+                    <div class="progress-text">Analyzing video content...</div>
                 </div>
             }
             else if (!string.IsNullOrEmpty(lastResult))
@@ -480,23 +456,27 @@
                 <button class="chat-submit" @onclick="SearchPapers">Search Papers</button>
             </div>
 
+            <div class="chat-interface" style="margin-top: 20px; border-top: 2px solid #2a2a2a; padding-top: 20px;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <InputFile OnChange="OnPdfSelected" accept=".pdf" id="pdfUpload" style="display: none;" />
+                    <label for="pdfUpload" class="chat-submit" style="cursor: pointer; margin: 0;">
+                        📄 Select PDF
+                    </label>
+                    @if (!string.IsNullOrEmpty(selectedPdfName))
+                    {
+                        <span style="color: #4CAF50;">@selectedPdfName</span>
+                        <button class="chat-submit" @onclick="AnalyzePdf" disabled="@isLoading">
+                            Analyze PDF
+                        </button>
+                    }
+                </div>
+            </div>
+
             @if (isLoading)
             {
                 <div class="progress-container">
-                    <div class="progress-dots">
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "thinking" || completedPhases.Contains("thinking") ? (completedPhases.Contains("thinking") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "thinking" || completedPhases.Contains("thinking") ? (completedPhases.Contains("thinking") ? "completed" : "active") : "")">Thinking</span>
-                        </div>
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "searching" || completedPhases.Contains("searching") ? (completedPhases.Contains("searching") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "searching" || completedPhases.Contains("searching") ? (completedPhases.Contains("searching") ? "completed" : "active") : "")">Searching</span>
-                        </div>
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "analyzing" || completedPhases.Contains("analyzing") ? (completedPhases.Contains("analyzing") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "analyzing" || completedPhases.Contains("analyzing") ? (completedPhases.Contains("analyzing") ? "completed" : "active") : "")">Analyzing</span>
-                        </div>
-                    </div>
+                    <div class="spinner"></div>
+                    <div class="progress-text">Searching academic papers...</div>
                 </div>
             }
             else if (!string.IsNullOrEmpty(lastResult))
@@ -562,20 +542,8 @@
             @if (isLoading)
             {
                 <div class="progress-container">
-                    <div class="progress-dots">
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "thinking" || completedPhases.Contains("thinking") ? (completedPhases.Contains("thinking") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "thinking" || completedPhases.Contains("thinking") ? (completedPhases.Contains("thinking") ? "completed" : "active") : "")">Thinking</span>
-                        </div>
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "searching" || completedPhases.Contains("searching") ? (completedPhases.Contains("searching") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "searching" || completedPhases.Contains("searching") ? (completedPhases.Contains("searching") ? "completed" : "active") : "")">Searching</span>
-                        </div>
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "analyzing" || completedPhases.Contains("analyzing") ? (completedPhases.Contains("analyzing") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "analyzing" || completedPhases.Contains("analyzing") ? (completedPhases.Contains("analyzing") ? "completed" : "active") : "")">Analyzing</span>
-                        </div>
-                    </div>
+                    <div class="spinner"></div>
+                    <div class="progress-text">Synthesizing research...</div>
                 </div>
             }
             else if (!string.IsNullOrEmpty(lastResult))
@@ -641,20 +609,8 @@
             @if (isLoading)
             {
                 <div class="progress-container">
-                    <div class="progress-dots">
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "thinking" || completedPhases.Contains("thinking") ? (completedPhases.Contains("thinking") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "thinking" || completedPhases.Contains("thinking") ? (completedPhases.Contains("thinking") ? "completed" : "active") : "")">Thinking</span>
-                        </div>
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "searching" || completedPhases.Contains("searching") ? (completedPhases.Contains("searching") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "searching" || completedPhases.Contains("searching") ? (completedPhases.Contains("searching") ? "completed" : "active") : "")">Searching</span>
-                        </div>
-                        <div class="progress-phase">
-                            <div class="progress-dot @(currentPhase == "analyzing" || completedPhases.Contains("analyzing") ? (completedPhases.Contains("analyzing") ? "completed" : "active") : "")"></div>
-                            <span class="progress-label @(currentPhase == "analyzing" || completedPhases.Contains("analyzing") ? (completedPhases.Contains("analyzing") ? "completed" : "active") : "")">Analyzing</span>
-                        </div>
-                    </div>
+                    <div class="spinner"></div>
+                    <div class="progress-text">Generating report...</div>
                 </div>
             }
             else if (!string.IsNullOrEmpty(lastResult))
@@ -730,32 +686,13 @@
     private string reportQuery = "";
     private bool isLoading = false;
     private string? lastResult = null;
-    private string currentPhase = "";
-    private List<string> completedPhases = new List<string>();
-
-    private async Task SetPhase(string phase)
-    {
-        currentPhase = phase;
-        await Task.Delay(50);
-        StateHasChanged();
-    }
-
-    private async Task CompletePhase(string phase)
-    {
-        if (!completedPhases.Contains(phase))
-        {
-            completedPhases.Add(phase);
-        }
-        await Task.Delay(50);
-        StateHasChanged();
-    }
+    private IBrowserFile? selectedPdf;
+    private string selectedPdfName = "";
 
     private void SwitchTab(string tab)
     {
         activeTab = tab;
         lastResult = null;
-        currentPhase = "";
-        completedPhases.Clear();
         StateHasChanged();
     }
 
@@ -774,23 +711,14 @@
         try
         {
             isLoading = true;
-            completedPhases.Clear();
-            await SetPhase("thinking");
-
-            await Task.Delay(500);
-            await CompletePhase("thinking");
-            await SetPhase("searching");
+            StateHasChanged();
 
             var response = await Http.PostAsJsonAsync("api/research/quick-research", new { Query = chatQuery });
             response.EnsureSuccessStatusCode();
             
-            await CompletePhase("searching");
-            await SetPhase("analyzing");
-            
             var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
             lastResult = result?.Result;
             
-            await CompletePhase("analyzing");
             await JS.InvokeVoidAsync("console.log", $"Chat Query Result: {lastResult}");
             chatQuery = "";
         }
@@ -801,7 +729,6 @@
         finally
         {
             isLoading = false;
-            currentPhase = "";
             StateHasChanged();
         }
     }
@@ -813,23 +740,14 @@
         try
         {
             isLoading = true;
-            completedPhases.Clear();
-            await SetPhase("thinking");
-
-            await Task.Delay(500);
-            await CompletePhase("thinking");
-            await SetPhase("searching");
+            StateHasChanged();
 
             var response = await Http.PostAsJsonAsync("api/research/analyze-video", new { VideoUrl = videoQuery });
             response.EnsureSuccessStatusCode();
             
-            await CompletePhase("searching");
-            await SetPhase("analyzing");
-            
             var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
             lastResult = result?.Result;
             
-            await CompletePhase("analyzing");
             await JS.InvokeVoidAsync("console.log", $"Video Analysis Result: {lastResult}");
             videoQuery = "";
         }
@@ -840,7 +758,6 @@
         finally
         {
             isLoading = false;
-            currentPhase = "";
             StateHasChanged();
         }
     }
@@ -865,6 +782,53 @@
         }
         catch (Exception ex)
         {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnPdfSelected(InputFileChangeEventArgs e)
+    {
+        selectedPdf = e.File;
+        selectedPdfName = e.File.Name;
+        StateHasChanged();
+    }
+
+    private async Task AnalyzePdf()
+    {
+        if (selectedPdf == null) return;
+
+        try
+        {
+            isLoading = true;
+            lastResult = "";
+            StateHasChanged();
+
+            // Read PDF file (max 10MB)
+            var buffer = new byte[selectedPdf.Size];
+            await selectedPdf.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).ReadAsync(buffer);
+
+            // Create multipart form content
+            using var content = new MultipartFormDataContent();
+            var fileContent = new ByteArrayContent(buffer);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+            content.Add(fileContent, "file", selectedPdf.Name);
+
+            var response = await Http.PostAsync("api/research/analyze-pdf", content);
+            response.EnsureSuccessStatusCode();
+
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result ?? "No analysis generated";
+            
+            await JS.InvokeVoidAsync("console.log", $"PDF Analysis Result: {lastResult}");
+        }
+        catch (Exception ex)
+        {
+            lastResult = $"Error analyzing PDF: {ex.Message}";
             await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
         }
         finally

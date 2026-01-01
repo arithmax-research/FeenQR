@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuantResearchAgent.Services;
 using QuantResearchAgent.Core;
+using System.Text;
 
 namespace Server.Controllers
 {
@@ -262,12 +263,98 @@ namespace Server.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
+        [HttpPost("analyze-pdf")]
+        public async Task<IActionResult> AnalyzePdf(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return Ok(new ResearchResponse
+                    {
+                        Result = "No file uploaded",
+                        Timestamp = DateTime.UtcNow,
+                        Type = "pdf-analysis"
+                    });
+                }
 
+                if (!file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Ok(new ResearchResponse
+                    {
+                        Result = "Only PDF files are supported",
+                        Timestamp = DateTime.UtcNow,
+                        Type = "pdf-analysis"
+                    });
+                }
+
+                // Read PDF content
+                using var memoryStream = new MemoryStream();
+                await file.CopyToAsync(memoryStream);
+                var pdfBytes = memoryStream.ToArray();
+
+                // Extract text from PDF using PdfPig
+                string pdfText;
+                using (var document = UglyToad.PdfPig.PdfDocument.Open(pdfBytes))
+                {
+                    var textBuilder = new StringBuilder();
+                    foreach (var page in document.GetPages())
+                    {
+                        textBuilder.AppendLine($"\n--- Page {page.Number} ---");
+                        textBuilder.AppendLine(page.Text);
+                    }
+                    pdfText = textBuilder.ToString();
+                }
+
+                if (string.IsNullOrWhiteSpace(pdfText))
+                {
+                    return Ok(new ResearchResponse
+                    {
+                        Result = "Could not extract text from PDF. The file might be scanned/image-based.",
+                        Timestamp = DateTime.UtcNow,
+                        Type = "pdf-analysis"
+                    });
+                }
+
+                // Analyze with AI using AcademicResearchService
+                var strategy = await _academicResearchService.ExtractStrategyFromPaperAsync(
+                    file.FileName, // Use filename as identifier
+                    file.FileName.Replace(".pdf", ""),
+                    pdfText // Pass extracted text directly
+                );
+
+                var result = $"PAPER ANALYSIS: {file.FileName}\n";
+                result += "═══════════════════════════════════════════════════════════════\n\n";
+                result += $"Strategy: {strategy.Name}\n\n";
+                result += $"Description: {strategy.Description}\n\n";
+                result += $"Implementation:\n{strategy.Implementation}\n\n";
+                result += $"Extracted: {strategy.ExtractionDate}\n";
+
+                return Ok(new ResearchResponse
+                {
+                    Result = result,
+                    Timestamp = DateTime.UtcNow,
+                    Type = "pdf-analysis"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error analyzing PDF");
+                return Ok(new ResearchResponse
+                {
+                    Result = $"Error analyzing PDF: {ex.Message}",
+                    Timestamp = DateTime.UtcNow,
+                    Type = "pdf-analysis"
+                });
+            }
+        }
         [HttpPost("research-synthesis")]
         public async Task<IActionResult> ResearchSynthesis([FromBody] SynthesisRequest request)
         {
             try
             {
+                _logger.LogInformation("Research synthesis requested for topic: {Topic}", request.Topic);
+                
                 var network = await _academicResearchService.BuildCitationNetworkAsync(request.Topic, request.MaxPapers);
                 
                 var result = $"CITATION NETWORK ANALYSIS: {network.Topic.ToUpper()}\n";
@@ -296,6 +383,16 @@ namespace Server.Controllers
                         result += "\n───────────────────────────────────────────────────────────────\n\n";
                     }
                 }
+                else
+                {
+                    result += "No papers found. This may be due to:\n";
+                    result += "- API quota limits\n";
+                    result += "- Network connectivity issues\n";
+                    result += "- Topic too specific or no matching papers\n\n";
+                    result += "Try a broader topic or check API configurations.\n";
+                }
+                
+                _logger.LogInformation("Research synthesis completed for topic: {Topic} with {Count} papers", request.Topic, network.Papers.Count);
                 
                 return Ok(new ResearchResponse
                 {
@@ -306,8 +403,13 @@ namespace Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error synthesizing research");
-                return StatusCode(500, new { error = ex.Message });
+                _logger.LogError(ex, "Error synthesizing research for topic: {Topic}", request.Topic);
+                return Ok(new ResearchResponse
+                {
+                    Result = $"Error synthesizing research for topic '{request.Topic}':\n\n{ex.Message}\n\nPlease check:\n- API keys and quotas\n- Network connectivity\n- Server logs for detailed error information",
+                    Timestamp = DateTime.UtcNow,
+                    Type = "research-synthesis-error"
+                });
             }
         }
 

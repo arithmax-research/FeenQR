@@ -71,6 +71,40 @@ public class AcademicResearchService
     }
 
     /// <summary>
+    /// Extract quantitative trading strategies from paper text (uploaded PDF)
+    /// </summary>
+    public async Task<ResearchStrategy> ExtractStrategyFromPaperAsync(
+        string paperName,
+        string strategyName,
+        string paperContent)
+    {
+        try
+        {
+            _logger.LogInformation("Extracting strategy from uploaded paper: {Name}", paperName);
+
+            if (string.IsNullOrWhiteSpace(paperContent))
+            {
+                throw new InvalidOperationException("Paper content is empty");
+            }
+
+            // Extract quantitative content using AI
+            var quantitativeContent = await ExtractQuantitativeContentAsync(paperContent);
+
+            // Generate strategy implementation
+            var strategy = await GenerateStrategyFromContentAsync(
+                quantitativeContent, strategyName, paperName);
+
+            _logger.LogInformation("Successfully extracted strategy {Strategy} from uploaded paper", strategyName);
+            return strategy;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to extract strategy from uploaded paper {Name}", paperName);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Replicate an academic study with modern data
     /// </summary>
     public async Task<StudyReplication> ReplicateAcademicStudyAsync(
@@ -169,30 +203,63 @@ public class AcademicResearchService
             // Search for comprehensive set of papers
             var papers = await _academicAgent.SearchAcademicPapersAsync(topic, maxPapers);
 
-            // Analyze each paper for key findings
+            // Parse the search results into paper analyses without AI analysis (too slow/expensive)
             var paperAnalyses = new List<PaperAnalysis>();
-            foreach (var paperInfo in papers.Split('\n').Where(line => !string.IsNullOrWhiteSpace(line)))
+            var lines = papers.Split('\n').Where(line => !string.IsNullOrWhiteSpace(line) && !line.Contains("===") && !line.Contains("ACADEMIC PAPERS")).ToList();
+            
+            string currentTitle = "";
+            string currentUrl = "";
+            string currentSnippet = "";
+            
+            foreach (var line in lines)
             {
-                var analysis = await AnalyzePaperFindingsAsync(paperInfo);
-                if (analysis != null)
+                if (line.TrimStart().StartsWith("URL:"))
                 {
-                    paperAnalyses.Add(analysis);
+                    currentUrl = line.Replace("URL:", "").Trim();
+                }
+                else if (line.TrimStart().StartsWith("Abstract/Summary:"))
+                {
+                    currentSnippet = line.Replace("Abstract/Summary:", "").Trim();
+                }
+                else if (line.TrimStart().Length > 0 && !line.TrimStart().StartsWith("URL:") && !line.TrimStart().StartsWith("Abstract/Summary:"))
+                {
+                    // New paper title
+                    if (!string.IsNullOrWhiteSpace(currentTitle) && !string.IsNullOrWhiteSpace(currentUrl))
+                    {
+                        paperAnalyses.Add(new PaperAnalysis
+                        {
+                            PaperTitle = currentTitle,
+                            KeyFindings = currentSnippet,
+                            AnalysisDate = DateTime.UtcNow
+                        });
+                    }
+                    currentTitle = line.Trim();
+                    currentUrl = "";
+                    currentSnippet = "";
                 }
             }
-
-            // Synthesize findings
-            var synthesis = await SynthesizeLiteratureFindingsAsync(paperAnalyses, topic);
+            
+            // Add the last paper
+            if (!string.IsNullOrWhiteSpace(currentTitle) && !string.IsNullOrWhiteSpace(currentUrl))
+            {
+                paperAnalyses.Add(new PaperAnalysis
+                {
+                    PaperTitle = currentTitle,
+                    KeyFindings = currentSnippet,
+                    AnalysisDate = DateTime.UtcNow
+                });
+            }
 
             var review = new LiteratureReview
             {
                 Topic = topic,
                 PaperAnalyses = paperAnalyses,
-                Synthesis = synthesis,
+                Synthesis = papers, // Use the raw search results as synthesis
                 ReviewDate = DateTime.UtcNow,
                 TotalPapersAnalyzed = paperAnalyses.Count
             };
 
-            _logger.LogInformation("Literature review completed with {Count} papers analyzed", paperAnalyses.Count);
+            _logger.LogInformation("Literature review completed with {Count} papers found", paperAnalyses.Count);
             return review;
         }
         catch (Exception ex)
