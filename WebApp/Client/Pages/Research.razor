@@ -243,68 +243,39 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
         gap: 1rem;
-        padding: 2rem;
+        padding: 3rem;
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 12px;
         margin-bottom: 2rem;
     }
 
-    .progress-dots {
-        display: flex;
-        gap: 2rem;
-        align-items: center;
-    }
-
-    .progress-phase {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .progress-dot {
-        width: 12px;
-        height: 12px;
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-top: 4px solid #10b981;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.2);
-        transition: all 0.3s ease;
+        animation: spin 1s linear infinite;
     }
 
-    .progress-dot.active {
-        background: #10b981;
-        box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-        animation: pulse 1.5s ease-in-out infinite;
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 
-    .progress-dot.completed {
-        background: #10b981;
-    }
-
-    .progress-label {
-        font-size: 0.75rem;
-        color: #9ca3af;
+    .progress-text {
+        color: #10b981;
+        font-size: 0.95rem;
         font-weight: 500;
+        animation: fadeInOut 2s ease-in-out infinite;
     }
 
-    .progress-label.active {
-        color: #10b981;
-    }
-
-    .progress-label.completed {
-        color: #10b981;
-    }
-
-    @@keyframes pulse {
-        0%, 100% {
-            transform: scale(1);
-            opacity: 1;
-        }
-        50% {
-            transform: scale(1.2);
-            opacity: 0.8;
-        }
+    @@keyframes fadeInOut {
+        0%, 100% { opacity: 0.5; }
+        50% { opacity: 1; }
     }
 
     .no-results {
