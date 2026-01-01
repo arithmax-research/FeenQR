@@ -180,13 +180,14 @@ public class YouTubeAnalysisPlugin
     {
         try
         {
-            var videoUrls = await _youtubeService.SearchFinanceVideosAsync(query, maxResults);
-            if (!videoUrls.Any())
+            var videoResults = await _youtubeService.SearchFinanceVideosAsync(query, maxResults);
+            if (!videoResults.Any())
             {
                 return $"No finance videos found for query: {query}";
             }
-            var result = $"Found {videoUrls.Count} finance videos for '{query}':\n\n";
-            result += string.Join("\n", videoUrls.Select((url, index) => $"{index + 1}. {url}"));
+            var result = $"Found {videoResults.Count} finance videos for '{query}':\n\n";
+            result += string.Join("\n", videoResults.Select((video, index) => 
+                $"{index + 1}. {video.Title}\n   {video.Url}\n   {video.Snippet}\n"));
             return result;
         }
         catch (Exception ex)

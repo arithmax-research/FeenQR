@@ -96,12 +96,30 @@ namespace Server.Controllers
             try
             {
                 var podcastResult = await _youtubeAnalysisService.AnalyzeVideoAsync(request.VideoUrl);
+                
+                // Extract URLs from insights and signals
+                var allText = string.Join(" ", podcastResult.TechnicalInsights.Concat(podcastResult.TradingSignals));
+                var urlPattern = @"https?://[^\s]+";
+                var urls = System.Text.RegularExpressions.Regex.Matches(allText, urlPattern)
+                    .Select(m => m.Value)
+                    .Distinct()
+                    .ToList();
+
                 var result = $"Video: {podcastResult.Name}\n" +
                            $"Description: {podcastResult.Description}\n" +
                            $"Published: {podcastResult.PublishedDate:yyyy-MM-dd}\n" +
                            $"Sentiment: {podcastResult.SentimentScore:F2}\n\n" +
                            $"Technical Insights:\n{string.Join("\n", podcastResult.TechnicalInsights)}\n\n" +
                            $"Trading Signals:\n{string.Join("\n", podcastResult.TradingSignals)}";
+
+                // Append links at the end if found
+                if (urls.Any())
+                {
+                    result += $"\n\n===== LINKS FOUND IN ANALYSIS =====\n";
+                    result += $"The following URLs were discovered during analysis:\n\n";
+                    result += string.Join("\n", urls.Select((url, i) => $"{i + 1}. {url}"));
+                    result += $"\n\nTip: You can parse these URLs for deeper analysis using our URL analyzer feature.";
+                }
                 
                 return Ok(new ResearchResponse
                 {
@@ -145,7 +163,19 @@ namespace Server.Controllers
             try
             {
                 var videos = await _youtubeAnalysisService.SearchFinanceVideosAsync(request.Query, request.MaxResults);
-                var result = $"Found {videos.Count} finance videos:\n\n{string.Join("\n", videos)}";
+                
+                var result = $"Found {videos.Count} finance videos:\n\n";
+                result += "═══════════════════════════════════════════════════════════════\n\n";
+                
+                for (int i = 0; i < videos.Count; i++)
+                {
+                    var video = videos[i];
+                    result += $"VIDEO {i + 1}:\n";
+                    result += $"Title: {video.Title}\n";
+                    result += $"Link:  {video.Url}\n";
+                    result += $"Description: {video.Snippet}\n";
+                    result += "\n───────────────────────────────────────────────────────────────\n\n";
+                }
                 
                 return Ok(new ResearchResponse
                 {
@@ -169,9 +199,30 @@ namespace Server.Controllers
             {
                 // Use literature review generation as a proxy for paper search
                 var literatureReview = await _academicResearchService.GenerateLiteratureReviewAsync(request.Query, request.MaxResults);
-                var result = $"Literature Review: {literatureReview.Topic}\n\n" +
-                           $"Papers analyzed: {literatureReview.PaperAnalyses.Count}\n\n" +
-                           $"{literatureReview.Synthesis}";
+                
+                var result = $"ACADEMIC PAPERS SEARCH: {literatureReview.Topic.ToUpper()}\n";
+                result += "═══════════════════════════════════════════════════════════════\n\n";
+                result += $"Papers analyzed: {literatureReview.PaperAnalyses.Count}\n\n";
+                
+                if (literatureReview.PaperAnalyses.Any())
+                {
+                    result += "KEY FINDINGS:\n\n";
+                    for (int i = 0; i < Math.Min(10, literatureReview.PaperAnalyses.Count); i++)
+                    {
+                        var paper = literatureReview.PaperAnalyses[i];
+                        result += $"{i + 1}. {paper.PaperTitle}\n";
+                        if (!string.IsNullOrWhiteSpace(paper.KeyFindings))
+                        {
+                            result += $"   Key Findings: {paper.KeyFindings}\n";
+                        }
+                        result += "\n───────────────────────────────────────────────────────────────\n\n";
+                    }
+                }
+                
+                if (!string.IsNullOrWhiteSpace(literatureReview.Synthesis))
+                {
+                    result += $"\n\nSYNTHESIS:\n{literatureReview.Synthesis}";
+                }
                 
                 return Ok(new ResearchResponse
                 {
@@ -218,10 +269,33 @@ namespace Server.Controllers
             try
             {
                 var network = await _academicResearchService.BuildCitationNetworkAsync(request.Topic, request.MaxPapers);
-                var result = $"Citation Network Analysis: {network.Topic}\n\n" +
-                           $"Papers analyzed: {network.Papers.Count}\n\n" +
-                           $"Central Papers:\n" +
-                           string.Join("\n", network.Papers.Take(10).Select(p => $"- {p.Title} ({p.Authors})"));
+                
+                var result = $"CITATION NETWORK ANALYSIS: {network.Topic.ToUpper()}\n";
+                result += "═══════════════════════════════════════════════════════════════\n\n";
+                result += $"Papers analyzed: {network.Papers.Count}\n\n";
+                
+                if (network.Papers.Any())
+                {
+                    result += "CENTRAL PAPERS:\n\n";
+                    for (int i = 0; i < Math.Min(10, network.Papers.Count); i++)
+                    {
+                        var paper = network.Papers[i];
+                        result += $"{i + 1}. {paper.Title}\n";
+                        if (paper.Authors.Any())
+                        {
+                            result += $"   Authors: {string.Join(", ", paper.Authors)}\n";
+                        }
+                        if (paper.PublicationYear > 0)
+                        {
+                            result += $"   Year: {paper.PublicationYear}\n";
+                        }
+                        if (!string.IsNullOrWhiteSpace(paper.Journal))
+                        {
+                            result += $"   Journal: {paper.Journal}\n";
+                        }
+                        result += "\n───────────────────────────────────────────────────────────────\n\n";
+                    }
+                }
                 
                 return Ok(new ResearchResponse
                 {

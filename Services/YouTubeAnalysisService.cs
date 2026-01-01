@@ -179,7 +179,7 @@ public class YouTubeAnalysisService
     /// <summary>
     /// Search for finance-related videos on YouTube
     /// </summary>
-    public async Task<List<string>> SearchFinanceVideosAsync(string query, int maxResults = 5)
+    public async Task<List<WebSearchResult>> SearchFinanceVideosAsync(string query, int maxResults = 5)
     {
         try
         {
@@ -190,12 +190,17 @@ public class YouTubeAnalysisService
             var response = await _httpClient.GetStringAsync(url);
             var searchResult = JsonSerializer.Deserialize<YouTubeSearchResponse>(response);
             
-            var videoUrls = searchResult?.Items?.Select(item => $"https://www.youtube.com/watch?v={item.Id.VideoId}").ToList() ?? new List<string>();
-            
-            if (videoUrls.Any())
+            var videoResults = searchResult?.Items?.Select(item => new WebSearchResult
             {
-                _logger.LogInformation("Found {Count} finance videos for query: {Query} via YouTube API", videoUrls.Count, query);
-                return videoUrls;
+                Title = item.Snippet.Title ?? "No Title",
+                Url = $"https://www.youtube.com/watch?v={item.Id.VideoId}",
+                Snippet = item.Snippet.Description ?? "No Description"
+            }).ToList() ?? new List<WebSearchResult>();
+            
+            if (videoResults.Any())
+            {
+                _logger.LogInformation("Found {Count} finance videos for query: {Query} via YouTube API", videoResults.Count, query);
+                return videoResults;
             }
             
             _logger.LogWarning("No videos found via YouTube API for {Query}, trying Google Search fallback", query);
@@ -204,20 +209,19 @@ public class YouTubeAnalysisService
             var googleQuery = $"site:youtube.com {query} trading finance investment analysis";
             var webResults = await _webSearchPlugin.SearchAsync(googleQuery, maxResults);
             
-            var youtubeUrls = webResults
+            var youtubeResults = webResults
                 .Where(r => r.Url.Contains("youtube.com/watch"))
-                .Select(r => r.Url)
                 .Take(maxResults)
                 .ToList();
             
-            if (youtubeUrls.Any())
+            if (youtubeResults.Any())
             {
-                _logger.LogInformation("Found {Count} finance videos for query: {Query} via Google Search", youtubeUrls.Count, query);
-                return youtubeUrls;
+                _logger.LogInformation("Found {Count} finance videos for query: {Query} via Google Search", youtubeResults.Count, query);
+                return youtubeResults;
             }
             
             _logger.LogWarning("No finance videos found for query: {Query} in both YouTube API and Google Search", query);
-            return new List<string>();
+            return new List<WebSearchResult>();
         }
         catch (Exception ex)
         {
@@ -228,19 +232,18 @@ public class YouTubeAnalysisService
             {
                 var googleQuery = $"site:youtube.com {query} trading finance";
                 var webResults = await _webSearchPlugin.SearchAsync(googleQuery, maxResults);
-                var youtubeUrls = webResults
+                var youtubeResults = webResults
                     .Where(r => r.Url.Contains("youtube.com/watch"))
-                    .Select(r => r.Url)
                     .Take(maxResults)
                     .ToList();
                 
-                _logger.LogInformation("Fallback Google Search found {Count} videos for {Query}", youtubeUrls.Count, query);
-                return youtubeUrls;
+                _logger.LogInformation("Fallback Google Search found {Count} videos for {Query}", youtubeResults.Count, query);
+                return youtubeResults;
             }
             catch (Exception fallbackEx)
             {
                 _logger.LogError(fallbackEx, "Google Search fallback also failed for query: {Query}", query);
-                return new List<string>();
+                return new List<WebSearchResult>();
             }
         }
     }
