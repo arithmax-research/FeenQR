@@ -466,8 +466,11 @@
                     @if (!string.IsNullOrEmpty(selectedPdfName))
                     {
                         <span style="color: #4CAF50;">@selectedPdfName</span>
-                        <button class="chat-submit" @onclick="AnalyzePdf" disabled="@isLoading">
-                            Analyze PDF
+                        <button class="chat-submit" style="background: #FF9800;" @onclick="() => AnalyzePdf(false)" disabled="@isLoading">
+                            💡 Quick Insights
+                        </button>
+                        <button class="chat-submit" @onclick="() => AnalyzePdf(true)" disabled="@isLoading">
+                            🔬 Full Analysis
                         </button>
                     }
                 </div>
@@ -489,11 +492,15 @@
                         <div style="background: #1a1a1a; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 3px solid #4CAF50;">
                             <h4 style="color: #4CAF50; margin: 0 0 10px 0;">@paper.Title</h4>
                             <p style="color: #888; font-size: 0.9em; margin: 5px 0;">@paper.Snippet</p>
-                            <div style="margin-top: 10px; display: flex; gap: 10px;">
-                                <a href="@paper.Url" target="_blank" class="action-btn" style="font-size: 0.85em; padding: 8px 12px;">📄 View Paper</a>
+                            <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+                                <a href="@paper.Url" target="_blank" class="action-btn" style="font-size: 0.85em; padding: 8px 12px;">📄 View</a>
+                                <button class="action-btn" style="font-size: 0.85em; padding: 8px 12px; background: #FF9800;" 
+                                        @onclick="() => GetQuickInsights(paper)" disabled="@isLoading">
+                                    💡 Quick Insights
+                                </button>
                                 <button class="action-btn" style="font-size: 0.85em; padding: 8px 12px; background: #2196F3;" 
                                         @onclick="() => DeepAnalyzePaper(paper)" disabled="@isLoading">
-                                    🔬 Deep Analyze
+                                    🔬 Strategy Extract
                                 </button>
                             </div>
                         </div>
@@ -871,6 +878,39 @@
         }
     }
 
+    private async Task GetQuickInsights(PaperResult paper)
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/research/quick-insights", new 
+            { 
+                Url = paper.Url,
+                Title = paper.Title
+            });
+            
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            lastResult = result?.Result ?? "No insights generated";
+            foundPapers.Clear(); // Clear to show insights
+            
+            await JS.InvokeVoidAsync("console.log", "Quick insights complete");
+        }
+        catch (Exception ex)
+        {
+            lastResult = $"Error getting insights: {ex.Message}";
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
     private async Task DeepAnalyzePaper(PaperResult paper)
     {
         try
@@ -912,7 +952,7 @@
         StateHasChanged();
     }
 
-    private async Task AnalyzePdf()
+    private async Task AnalyzePdf(bool fullAnalysis = true)
     {
         if (selectedPdf == null) return;
 
@@ -931,8 +971,10 @@
             var fileContent = new ByteArrayContent(buffer);
             fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
             content.Add(fileContent, "file", selectedPdf.Name);
+            content.Add(new StringContent(fullAnalysis.ToString()), "fullAnalysis");
 
-            var response = await Http.PostAsync("api/research/analyze-pdf", content);
+            var endpoint = fullAnalysis ? "api/research/analyze-pdf" : "api/research/analyze-pdf-quick";
+            var response = await Http.PostAsync(endpoint, content);
             response.EnsureSuccessStatusCode();
 
             var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();

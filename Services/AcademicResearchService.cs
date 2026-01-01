@@ -105,6 +105,54 @@ public class AcademicResearchService
     }
 
     /// <summary>
+    /// Get quick insights from a research paper (lighter analysis than full strategy extraction)
+    /// </summary>
+    public async Task<string> GetQuickInsightsAsync(string paperUrl, string paperTitle)
+    {
+        try
+        {
+            _logger.LogInformation("Getting quick insights for paper: {Url}", paperUrl);
+
+            // Download paper content
+            var paperContent = await DownloadPaperContentAsync(paperUrl);
+            if (string.IsNullOrWhiteSpace(paperContent))
+            {
+                throw new InvalidOperationException("Could not download paper content");
+            }
+
+            // Limit content to prevent token overflow (use first ~6000 chars)
+            var limitedContent = paperContent.Substring(0, Math.Min(6000, paperContent.Length));
+
+            var prompt = $@"
+Analyze this research paper and provide concise insights:
+
+Paper: {paperTitle}
+
+Content Preview:
+{limitedContent}
+
+Provide:
+1. MAIN FINDINGS (2-3 key takeaways)
+2. METHODOLOGY (brief overview of approach)
+3. KEY RESULTS (important metrics, outcomes)
+4. PRACTICAL APPLICATIONS (how this can be used)
+5. LIMITATIONS (if mentioned)
+
+Keep it concise and actionable. Focus on what's useful for quantitative research.";
+
+            var result = await _kernel.InvokePromptAsync(prompt);
+            
+            _logger.LogInformation("Successfully generated quick insights for {Title}", paperTitle);
+            return result.ToString();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get quick insights from paper {Url}", paperUrl);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Replicate an academic study with modern data
     /// </summary>
     public async Task<StudyReplication> ReplicateAcademicStudyAsync(

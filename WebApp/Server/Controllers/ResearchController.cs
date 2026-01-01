@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using QuantResearchAgent.Services;
 using QuantResearchAgent.Core;
 using System.Text;
+using Microsoft.SemanticKernel;
 
 namespace Server.Controllers
 {
@@ -263,6 +264,54 @@ namespace Server.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
+        [HttpPost("quick-insights")]
+        public async Task<IActionResult> GetQuickInsights([FromBody] QuickInsightsRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(request.Url))
+                {
+                    return Ok(new ResearchResponse
+                    {
+                        Result = "Paper URL is required",
+                        Timestamp = DateTime.UtcNow,
+                        Type = "quick-insights"
+                    });
+                }
+
+                _logger.LogInformation("Getting quick insights for paper: {Url}", request.Url);
+
+                // Get quick insights from paper (lighter analysis)
+                var insights = await _academicResearchService.GetQuickInsightsAsync(
+                    request.Url,
+                    request.Title ?? "Research Paper"
+                );
+
+                var result = $"QUICK INSIGHTS: {request.Title ?? "Research Paper"}\n";
+                result += "═══════════════════════════════════════════════════════════════\n\n";
+                result += $"Source: {request.Url}\n\n";
+                result += insights;
+                result += $"\n\nGenerated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC\n";
+
+                return Ok(new ResearchResponse
+                {
+                    Result = result,
+                    Timestamp = DateTime.UtcNow,
+                    Type = "quick-insights"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting quick insights for {Url}", request.Url);
+                return Ok(new ResearchResponse
+                {
+                    Result = $"Error getting insights: {ex.Message}\n\nThis could be due to:\n- PDF download failed\n- Paper is behind paywall\n- Network timeout\n- PDF is scanned/image-based",
+                    Timestamp = DateTime.UtcNow,
+                    Type = "quick-insights"
+                });
+            }
+        }
+
         [HttpPost("deep-analyze-paper")]
         public async Task<IActionResult> DeepAnalyzePaper([FromBody] DeepAnalyzeRequest request)
         {
@@ -311,6 +360,110 @@ namespace Server.Controllers
                     Result = $"Error analyzing paper: {ex.Message}\n\nThis could be due to:\n- PDF download failed\n- Paper is behind paywall\n- Network timeout\n- PDF is scanned/image-based",
                     Timestamp = DateTime.UtcNow,
                     Type = "deep-analysis"
+                });
+            }
+        }
+
+        [HttpPost("analyze-pdf-quick")]
+        public async Task<IActionResult> AnalyzePdfQuick(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return Ok(new ResearchResponse
+                    {
+                        Result = "No file uploaded",
+                        Timestamp = DateTime.UtcNow,
+                        Type = "pdf-quick-insights"
+                    });
+                }
+
+                if (!file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Ok(new ResearchResponse
+                    {
+                        Result = "Only PDF files are supported",
+                        Timestamp = DateTime.UtcNow,
+                        Type = "pdf-quick-insights"
+                    });
+                }
+
+                // Read PDF content
+                using var memoryStream = new MemoryStream();
+                await file.CopyToAsync(memoryStream);
+                var pdfBytes = memoryStream.ToArray();
+
+                // Extract text from PDF using PdfPig
+                string pdfText;
+                using (var document = UglyToad.PdfPig.PdfDocument.Open(pdfBytes))
+                {
+                    var textBuilder = new StringBuilder();
+                    // Only read first 10 pages for quick insights
+                    var pagesToRead = Math.Min(10, document.NumberOfPages);
+                    for (int i = 1; i <= pagesToRead; i++)
+                    {
+                        var page = document.GetPage(i);
+                        textBuilder.AppendLine($"\n--- Page {page.Number} ---");
+                        textBuilder.AppendLine(page.Text);
+                    }
+                    pdfText = textBuilder.ToString();
+                }
+
+                if (string.IsNullOrWhiteSpace(pdfText))
+                {
+                    return Ok(new ResearchResponse
+                    {
+                        Result = "Could not extract text from PDF. The file might be scanned/image-based.",
+                        Timestamp = DateTime.UtcNow,
+                        Type = "pdf-quick-insights"
+                    });
+                }
+
+                // Limit to 6000 chars for quick analysis
+                var limitedText = pdfText.Substring(0, Math.Min(6000, pdfText.Length));
+
+                // Get quick insights using AI
+                var prompt = $@"
+Analyze this research paper and provide concise insights:
+
+Paper: {file.FileName}
+
+Content Preview:
+{limitedText}
+
+Provide:
+1. MAIN FINDINGS (2-3 key takeaways)
+2. METHODOLOGY (brief overview of approach)
+3. KEY RESULTS (important metrics, outcomes)
+4. PRACTICAL APPLICATIONS (how this can be used)
+5. LIMITATIONS (if mentioned)
+
+Keep it concise and actionable. Focus on what's useful for quantitative research.";
+
+                var kernel = HttpContext.RequestServices.GetRequiredService<Kernel>();
+                var insights = await kernel.InvokePromptAsync(prompt);
+
+                var result = $"QUICK INSIGHTS: {file.FileName}\n";
+                result += "═══════════════════════════════════════════════════════════════\n\n";
+                result += insights.ToString();
+                result += $"\n\nGenerated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC\n";
+
+                return Ok(new ResearchResponse
+                {
+                    Result = result,
+                    Timestamp = DateTime.UtcNow,
+                    Type = "pdf-quick-insights"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting quick insights from PDF");
+                return Ok(new ResearchResponse
+                {
+                    Result = $"Error analyzing PDF: {ex.Message}",
+                    Timestamp = DateTime.UtcNow,
+                    Type = "pdf-quick-insights"
                 });
             }
         }
@@ -559,6 +712,12 @@ namespace Server.Controllers
         public string Topic { get; set; } = string.Empty;
         public List<string> PaperUrls { get; set; } = new();
         public int MaxPapers { get; set; } = 10;
+    }
+
+    public class QuickInsightsRequest
+    {
+        public string Url { get; set; } = string.Empty;
+        public string? Title { get; set; }
     }
 
     public class DeepAnalyzeRequest
