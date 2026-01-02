@@ -1,0 +1,1024 @@
+@page "/technical-analysis"
+@using System.Text.Json
+@inject IJSRuntime JS
+@inject HttpClient Http
+
+<PageTitle>FeenQR - Technical Analysis</PageTitle>
+
+<style>
+    .ta-container {
+        position: fixed;
+        left: 280px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: inherit;
+        overflow-x: hidden;
+        overflow-y: auto;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ta-header {
+        background: rgba(18, 18, 18, 0.95);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 1rem 1.5rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        flex-shrink: 0;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .tab-navigation {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .tab-btn {
+        background: transparent;
+        border: none;
+        padding: 0.5rem 1rem;
+        color: #9ca3af;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+        color: #f9fafb;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+        color: #f9fafb;
+        border-bottom-color: #888888;
+    }
+
+    .ta-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        margin: 0 auto;
+        max-width: 1400px;
+        width: 100%;
+    }
+
+    .section-header {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: #ffffff;
+    }
+
+    .input-group {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .input-field {
+        flex: 1;
+        min-width: 200px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 0.95rem;
+    }
+
+    .input-field:focus {
+        outline: none;
+        border-color: #1a73e8;
+        background: rgba(255, 255, 255, 0.07);
+    }
+
+    .select-field {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        cursor: pointer;
+    }
+
+    .submit-btn {
+        padding: 0.75rem 2rem;
+        background: #1a73e8;
+        border: none;
+        color: #ffffff;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .submit-btn:hover {
+        background: #1557b0;
+    }
+
+    .submit-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .results-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .signal-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+
+    .signal-buy {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .signal-sell {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .signal-neutral {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+        border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .indicator-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .indicator-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .indicator-label {
+        color: #9ca3af;
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+
+    .indicator-value {
+        color: #ffffff;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
+    .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1.5rem;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .comparison-table th {
+        color: #9ca3af;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+    }
+
+    .comparison-table td {
+        color: #ffffff;
+        font-size: 0.95rem;
+    }
+
+    .loading-indicator {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        padding: 3rem;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-top: 4px solid #1a73e8;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .progress-text {
+        color: #1a73e8;
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+
+    .reasoning-section {
+        background: rgba(26, 115, 232, 0.1);
+        border: 1px solid rgba(26, 115, 232, 0.3);
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-top: 1.5rem;
+        color: #e5e7eb;
+        line-height: 1.6;
+    }
+
+    .pattern-list {
+        list-style: none;
+        padding: 0;
+        margin-top: 1rem;
+    }
+
+    .pattern-item {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        color: #10b981;
+        font-weight: 500;
+    }
+
+    .multi-symbol-input {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .symbol-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(26, 115, 232, 0.2);
+        border: 1px solid rgba(26, 115, 232, 0.3);
+        color: #1a73e8;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        margin: 0.25rem;
+        font-weight: 500;
+    }
+
+    .remove-chip {
+        background: none;
+        border: none;
+        color: #1a73e8;
+        cursor: pointer;
+        font-size: 1.1rem;
+        padding: 0;
+        line-height: 1;
+    }
+
+    .symbol-chips-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .chart-tab {
+        position: fixed;
+        left: 280px;
+        top: 60px;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        margin: 0;
+    }
+
+    .tradingview-widget-container {
+        position: absolute !important;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 100% !important;
+        width: 100% !important;
+    }
+
+    .tradingview-widget-container__widget {
+        height: 100% !important;
+        width: 100% !important;
+    }
+</style>
+
+<div class="ta-container">
+    <div class="ta-header">
+        <div class="tab-navigation">
+            <button class="tab-btn @(activeTab == "analysis" ? "active" : "")" @onclick='() => SwitchTab("analysis")'>Analysis</button>
+            <button class="tab-btn @(activeTab == "indicators" ? "active" : "")" @onclick='() => SwitchTab("indicators")'>Indicators</button>
+            <button class="tab-btn @(activeTab == "compare" ? "active" : "")" @onclick='() => SwitchTab("compare")'>Compare</button>
+            <button class="tab-btn @(activeTab == "patterns" ? "active" : "")" @onclick='() => SwitchTab("patterns")'>Patterns</button>
+            <button class="tab-btn @(activeTab == "long-term" ? "active" : "")" @onclick='() => SwitchTab("long-term")'>Long-Term</button>
+            <button class="tab-btn @(activeTab == "chart" ? "active" : "")" @onclick='() => SwitchTab("chart")'>Chart</button>
+        </div>
+    </div>
+
+    <div class="ta-content">
+        @if (activeTab == "analysis")
+        {
+            <div class="section-header">
+                Technical Analysis
+            </div>
+
+            <div class="input-group">
+                <input type="text" class="input-field" placeholder="Enter symbol (e.g., AAPL)" @bind="symbol" @onkeypress="HandleKeyPress" />
+                <select class="select-field" @bind="lookbackDays">
+                    <option value="30">30 Days</option>
+                    <option value="60">60 Days</option>
+                    <option value="100" selected>100 Days</option>
+                    <option value="200">200 Days</option>
+                    <option value="365">1 Year</option>
+                </select>
+                <button class="submit-btn" @onclick="AnalyzeSymbol" disabled="@isLoading">
+                    @(isLoading ? "Analyzing..." : "Analyze")
+                </button>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading-indicator">
+                    <div class="spinner"></div>
+                    <div class="progress-text">Analyzing @symbol...</div>
+                </div>
+            }
+            else if (analysisResult != null)
+            {
+                <div class="results-card">
+                    <h2 style="margin-bottom: 1rem; color: #ffffff;">@analysisResult.Symbol - $@analysisResult.CurrentPrice.ToString("F2")</h2>
+                    
+                    <span class="signal-badge @GetSignalClass(analysisResult.OverallSignal)">
+                        @analysisResult.OverallSignal
+                    </span>
+                    
+                    <p style="color: #9ca3af; margin-top: 0.5rem;">
+                        Signal Strength: @analysisResult.SignalStrength.ToString("F2") | 
+                        @analysisResult.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC
+                    </p>
+
+                    <div class="indicator-grid">
+                        @foreach (var indicator in GetKeyIndicators(analysisResult.Indicators))
+                        {
+                            <div class="indicator-card">
+                                <div class="indicator-label">@indicator.Key</div>
+                                <div class="indicator-value">@FormatIndicatorValue(indicator.Value)</div>
+                            </div>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(analysisResult.Reasoning))
+                    {
+                        <div class="reasoning-section">
+                            <strong>Analysis:</strong><br />
+                            @analysisResult.Reasoning
+                        </div>
+                    }
+                </div>
+            }
+        }
+
+        @if (activeTab == "indicators")
+        {
+            <div class="section-header">
+                Detailed Indicators
+            </div>
+
+            <div class="input-group">
+                <input type="text" class="input-field" placeholder="Enter symbol (e.g., AAPL)" @bind="symbol" />
+                <select class="select-field" @bind="indicatorCategory">
+                    <option value="all">All Indicators</option>
+                    <option value="trend">Trend Indicators</option>
+                    <option value="momentum">Momentum Indicators</option>
+                    <option value="volume">Volume Indicators</option>
+                    <option value="volatility">Volatility Indicators</option>
+                </select>
+                <button class="submit-btn" @onclick="GetIndicators" disabled="@isLoading">
+                    @(isLoading ? "Loading..." : "Get Indicators")
+                </button>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading-indicator">
+                    <div class="spinner"></div>
+                    <div class="progress-text">Fetching indicators...</div>
+                </div>
+            }
+            else if (indicatorResult != null)
+            {
+                <div class="results-card">
+                    <h2 style="margin-bottom: 1rem; color: #ffffff;">
+                        @indicatorResult.Symbol - @indicatorResult.Category.ToUpper() Indicators
+                    </h2>
+                    
+                    <div class="indicator-grid">
+                        @foreach (var indicator in indicatorResult.Indicators)
+                        {
+                            <div class="indicator-card">
+                                <div class="indicator-label">@FormatIndicatorName(indicator.Key)</div>
+                                <div class="indicator-value">@FormatIndicatorValue(indicator.Value)</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+
+        @if (activeTab == "compare")
+        {
+            <div class="section-header">
+                Compare Symbols
+            </div>
+
+            <div class="multi-symbol-input">
+                <div class="input-group">
+                    <input type="text" class="input-field" placeholder="Enter symbol to add (e.g., AAPL)" @bind="newSymbol" @onkeypress="HandleCompareKeyPress" />
+                    <button class="submit-btn" @onclick="AddSymbol">Add Symbol</button>
+                </div>
+                
+                @if (compareSymbols.Any())
+                {
+                    <div class="symbol-chips-container">
+                        @foreach (var sym in compareSymbols)
+                        {
+                            <span class="symbol-chip">
+                                @sym
+                                <button class="remove-chip" @onclick="() => RemoveSymbol(sym)">×</button>
+                            </span>
+                        }
+                    </div>
+                    
+                    <button class="submit-btn" @onclick="CompareSymbols" disabled="@isLoading">
+                        @(isLoading ? "Comparing..." : "Compare")
+                    </button>
+                }
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading-indicator">
+                    <div class="spinner"></div>
+                    <div class="progress-text">Comparing symbols...</div>
+                </div>
+            }
+            else if (compareResult != null && compareResult.Comparisons.Any())
+            {
+                <div class="results-card">
+                    <h2 style="margin-bottom: 1rem; color: #ffffff;">Comparison Results</h2>
+                    
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Price</th>
+                                <th>Signal</th>
+                                <th>Strength</th>
+                                <th>RSI</th>
+                                <th>MACD</th>
+                                <th>SMA 50</th>
+                                <th>SMA 200</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var comp in compareResult.Comparisons)
+                            {
+                                <tr>
+                                    <td><strong>@comp.Symbol</strong></td>
+                                    <td>$@comp.CurrentPrice.ToString("F2")</td>
+                                    <td>
+                                        <span class="signal-badge @GetSignalClass(comp.OverallSignal)">
+                                            @comp.OverallSignal
+                                        </span>
+                                    </td>
+                                    <td>@comp.SignalStrength.ToString("F2")</td>
+                                    <td>@comp.RSI.ToString("F1")</td>
+                                    <td>@comp.MACD.ToString("F4")</td>
+                                    <td>$@comp.SMA50.ToString("F2")</td>
+                                    <td>$@comp.SMA200.ToString("F2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+
+        @if (activeTab == "patterns")
+        {
+            <div class="section-header">
+                Pattern Recognition
+            </div>
+
+            <div class="input-group">
+                <input type="text" class="input-field" placeholder="Enter symbol (e.g., AAPL)" @bind="symbol" />
+                <button class="submit-btn" @onclick="GetPatterns" disabled="@isLoading">
+                    @(isLoading ? "Detecting..." : "Detect Patterns")
+                </button>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading-indicator">
+                    <div class="spinner"></div>
+                    <div class="progress-text">Detecting patterns...</div>
+                </div>
+            }
+            else if (patternResult != null)
+            {
+                <div class="results-card">
+                    <h2 style="margin-bottom: 1rem; color: #ffffff;">
+                        @patternResult.Symbol - Pattern Analysis
+                    </h2>
+                    
+                    @if (patternResult.Patterns.Any())
+                    {
+                        <ul class="pattern-list">
+                            @foreach (var pattern in patternResult.Patterns)
+                            {
+                                <li class="pattern-item">@pattern</li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p style="color: #9ca3af; font-style: italic;">No patterns detected for @patternResult.Symbol</p>
+                    }
+                </div>
+            }
+        }
+
+        @if (activeTab == "long-term")
+        {
+            <div class="section-header">
+                Long-Term Technical Analysis (7 Years)
+            </div>
+
+            <div class="input-group">
+                <input type="text" class="input-field" placeholder="Enter symbol (e.g., AAPL)" @bind="symbol" />
+                <button class="submit-btn" @onclick="AnalyzeSymbolLongTerm" disabled="@isLoading">
+                    @(isLoading ? "Analyzing..." : "Analyze Long-Term")
+                </button>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading-indicator">
+                    <div class="spinner"></div>
+                    <div class="progress-text">Performing long-term analysis...</div>
+                </div>
+            }
+            else if (analysisResult != null)
+            {
+                <div class="results-card">
+                    <h2 style="margin-bottom: 1rem; color: #ffffff;">@analysisResult.Symbol - Long-Term Analysis</h2>
+                    
+                    <span class="signal-badge @GetSignalClass(analysisResult.OverallSignal)">
+                        @analysisResult.OverallSignal
+                    </span>
+                    
+                    <p style="color: #9ca3af; margin-top: 0.5rem;">
+                        Current Price: $@analysisResult.CurrentPrice.ToString("F2") | 
+                        Signal Strength: @analysisResult.SignalStrength.ToString("F2")
+                    </p>
+
+                    <div class="indicator-grid">
+                        @foreach (var indicator in GetKeyIndicators(analysisResult.Indicators))
+                        {
+                            <div class="indicator-card">
+                                <div class="indicator-label">@indicator.Key</div>
+                                <div class="indicator-value">@FormatIndicatorValue(indicator.Value)</div>
+                            </div>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(analysisResult.Reasoning))
+                    {
+                        <div class="reasoning-section">
+                            <strong>Long-Term Analysis:</strong><br />
+                            @analysisResult.Reasoning
+                        </div>
+                    }
+                </div>
+            }
+        }
+        else if (activeTab == "chart")
+        {
+            <div class="chart-tab">
+                <div class="tradingview-widget-container" style="height:100%;width:100%">
+                    <div id="technicalAnalysisChartWidget" class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string activeTab = "analysis";
+    private bool isLoading = false;
+
+    // Input fields
+    private string symbol = "AAPL";
+    private int lookbackDays = 100;
+    private string indicatorCategory = "all";
+    private string newSymbol = "";
+    private List<string> compareSymbols = new();
+
+    // Results
+    private TechnicalAnalysisResponse? analysisResult;
+    private IndicatorResponse? indicatorResult;
+    private CompareResponse? compareResult;
+    private PatternResponse? patternResult;
+
+    private void SwitchTab(string tab)
+    {
+        activeTab = tab;
+        ClearResults();
+        
+        if (tab == "chart")
+        {
+            _ = InitializeChart();
+        }
+    }
+
+    private async Task InitializeChart()
+    {
+        try
+        {
+            await Task.Delay(100); // Small delay to ensure DOM is ready
+            
+            var chartSymbol = symbol.Contains(':') ? symbol : $"NASDAQ:{symbol}";
+            
+            await JS.InvokeVoidAsync("eval", $@"
+                (function() {{
+                    const container = document.getElementById('technicalAnalysisChartWidget');
+                    if (!container) return;
+                    
+                    // Clear existing content
+                    container.innerHTML = '';
+                    
+                    // Create script element
+                    const script = document.createElement('script');
+                    script.type = 'text/javascript';
+                    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+                    script.async = true;
+                    script.innerHTML = JSON.stringify({{
+                        'allow_symbol_change': true,
+                        'calendar': false,
+                        'details': true,
+                        'hide_side_toolbar': false,
+                        'hide_top_toolbar': false,
+                        'hide_legend': false,
+                        'hide_volume': false,
+                        'hotlist': true,
+                        'interval': 'D',
+                        'locale': 'en',
+                        'save_image': true,
+                        'style': '1',
+                        'symbol': '{chartSymbol}',
+                        'theme': 'dark',
+                        'timezone': 'Etc/UTC',
+                        'backgroundColor': '#0F0F0F',
+                        'gridColor': 'rgba(242, 242, 242, 0.06)',
+                        'watchlist': [],
+                        'withdateranges': true,
+                        'compareSymbols': [],
+                        'studies': [],
+                        'autosize': true
+                    }});
+                    
+                    container.appendChild(script);
+                }}());
+            ");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Chart initialization error: {{ex.Message}}");
+        }
+    }
+
+    private void ClearResults()
+    {
+        analysisResult = null;
+        indicatorResult = null;
+        compareResult = null;
+        patternResult = null;
+    }
+
+    private string SanitizeSymbol(string inputSymbol)
+    {
+        // Extract just the ticker symbol (e.g., "NASDAQ:AAPL" -> "AAPL")
+        return inputSymbol.Contains(':') 
+            ? inputSymbol.Split(':')[1].ToUpper() 
+            : inputSymbol.ToUpper();
+    }
+
+    private async Task AnalyzeSymbol()
+    {
+        if (string.IsNullOrWhiteSpace(symbol)) return;
+
+        isLoading = true;
+        try
+        {
+            var cleanSymbol = SanitizeSymbol(symbol);
+            var response = await Http.PostAsJsonAsync("/api/technicalanalysis/analyze", new
+            {
+                Symbol = cleanSymbol,
+                LookbackDays = lookbackDays
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                analysisResult = await response.Content.ReadFromJsonAsync<TechnicalAnalysisResponse>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task GetIndicators()
+    {
+        if (string.IsNullOrWhiteSpace(symbol)) return;
+
+        isLoading = true;
+        try
+        {
+            var cleanSymbol = SanitizeSymbol(symbol);
+            var response = await Http.PostAsJsonAsync("/api/technicalanalysis/indicators", new
+            {
+                Symbol = cleanSymbol,
+                Category = indicatorCategory
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                indicatorResult = await response.Content.ReadFromJsonAsync<IndicatorResponse>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void AddSymbol()
+    {
+        if (!string.IsNullOrWhiteSpace(newSymbol))
+        {
+            var cleanSymbol = SanitizeSymbol(newSymbol);
+            if (!compareSymbols.Contains(cleanSymbol))
+            {
+                compareSymbols.Add(cleanSymbol);
+                newSymbol = "";
+            }
+        }
+    }
+
+    private void RemoveSymbol(string sym)
+    {
+        compareSymbols.Remove(sym);
+    }
+
+    private async Task CompareSymbols()
+    {
+        if (!compareSymbols.Any()) return;
+
+        isLoading = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/technicalanalysis/compare", new
+            {
+                Symbols = compareSymbols,
+                LookbackDays = lookbackDays
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                compareResult = await response.Content.ReadFromJsonAsync<CompareResponse>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task GetPatterns()
+    {
+        if (string.IsNullOrWhiteSpace(symbol)) return;
+
+        isLoading = true;
+        try
+        {
+            var cleanSymbol = SanitizeSymbol(symbol);
+            var response = await Http.PostAsJsonAsync("/api/technicalanalysis/patterns", new
+            {
+                Symbol = cleanSymbol
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                patternResult = await response.Content.ReadFromJsonAsync<PatternResponse>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task AnalyzeSymbolLongTerm()
+    {
+        if (string.IsNullOrWhiteSpace(symbol)) return;
+
+        isLoading = true;
+        try
+        {
+            var cleanSymbol = SanitizeSymbol(symbol);
+            var response = await Http.PostAsJsonAsync("/api/technicalanalysis/analyze-long", new
+            {
+                Symbol = cleanSymbol
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                analysisResult = await response.Content.ReadFromJsonAsync<TechnicalAnalysisResponse>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await AnalyzeSymbol();
+        }
+    }
+
+    private async Task HandleCompareKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AddSymbol();
+        }
+    }
+
+    // Helper methods
+    private string GetSignalClass(string signal)
+    {
+        return signal.ToLower() switch
+        {
+            "buy" or "strongbuy" => "signal-buy",
+            "sell" or "strongsell" => "signal-sell",
+            _ => "signal-neutral"
+        };
+    }
+
+
+
+    private Dictionary<string, object> GetKeyIndicators(Dictionary<string, object> indicators)
+    {
+        var keyIndicators = new[] { "RSI", "MACD", "MACD_Signal", "SMA_20", "SMA_50", "SMA_200", 
+            "ATR", "BB_Upper", "BB_Middle", "BB_Lower", "OBV", "ADX" };
+        
+        return indicators
+            .Where(kvp => keyIndicators.Contains(kvp.Key))
+            .Take(12)
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+    }
+
+    private string FormatIndicatorValue(object value)
+    {
+        if (value == null) return "N/A";
+        
+        if (value is double d)
+        {
+            return d > 1000 ? d.ToString("N0") : d.ToString("F2");
+        }
+        if (value is decimal dec)
+        {
+            return dec > 1000 ? dec.ToString("N0") : dec.ToString("F2");
+        }
+        
+        return value.ToString() ?? "N/A";
+    }
+
+    private string FormatIndicatorName(string name)
+    {
+        return name.Replace("_", " ");
+    }
+
+    // Response models (must match controller)
+    public class TechnicalAnalysisResponse
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public double CurrentPrice { get; set; }
+        public string OverallSignal { get; set; } = string.Empty;
+        public double SignalStrength { get; set; }
+        public string Reasoning { get; set; } = string.Empty;
+        public Dictionary<string, object> Indicators { get; set; } = new();
+        public DateTime Timestamp { get; set; }
+        public string Type { get; set; } = string.Empty;
+    }
+
+    public class IndicatorResponse
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public Dictionary<string, object> Indicators { get; set; } = new();
+        public DateTime Timestamp { get; set; }
+        public string Type { get; set; } = string.Empty;
+    }
+
+    public class CompareResponse
+    {
+        public List<TechnicalAnalysisComparison> Comparisons { get; set; } = new();
+        public DateTime Timestamp { get; set; }
+        public string Type { get; set; } = string.Empty;
+    }
+
+    public class TechnicalAnalysisComparison
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public double CurrentPrice { get; set; }
+        public string OverallSignal { get; set; } = string.Empty;
+        public double SignalStrength { get; set; }
+        public double RSI { get; set; }
+        public double MACD { get; set; }
+        public double SMA50 { get; set; }
+        public double SMA200 { get; set; }
+    }
+
+    public class PatternResponse
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public List<string> Patterns { get; set; } = new();
+        public DateTime Timestamp { get; set; }
+        public string Type { get; set; } = string.Empty;
+    }
+}

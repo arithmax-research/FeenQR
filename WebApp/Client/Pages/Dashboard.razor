@@ -254,7 +254,6 @@
         <div class="tab-navigation">
             <button class="tab-btn @(activeTab == "overview" ? "active" : "")" @onclick='() => SwitchTab("overview")'>Market Overview</button>
             <button class="tab-btn @(activeTab == "financials" ? "active" : "")" @onclick='() => SwitchTab("financials")'>Financials</button>
-            <button class="tab-btn @(activeTab == "technical" ? "active" : "")" @onclick='() => SwitchTab("technical")'>Technical Analysis</button>
             <button class="tab-btn @(activeTab == "comparison" ? "active" : "")" @onclick='() => SwitchTab("comparison")'>Comparison Analysis</button>
             <button class="tab-btn @(activeTab == "screeners" ? "active" : "")" @onclick='() => SwitchTab("screeners")'>Screeners</button>
         </div>
@@ -386,21 +385,7 @@
 
         }
 
-        <!-- TECHNICAL ANALYSIS (TA) TAB WIDGETS -->
-        @if (activeTab == "technical")
-        {
-        <!-- Advanced TradingView Chart -->
-        <div class="grid-stack-item" gs-w="12" gs-h="12" gs-x="0" gs-y="0">
-            <div class="grid-stack-item-content">
-                <div class="widget-header">Advanced Chart@(string.IsNullOrEmpty(currentSymbol) ? "" : $" - {currentSymbol}")</div>
-                <div class="widget-body" style="padding: 0;">
-                    <div id="technicalAdvancedChart" class="tradingview-widget-container" style="height: 100%; width: 100%;">
-                        <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        }
+
 
         <!-- COMPARISON ANALYSIS TAB WIDGETS -->
         @if (activeTab == "comparison")

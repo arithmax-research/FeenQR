@@ -275,14 +275,19 @@ public class TechnicalAnalysisService
         result.Indicators["Choppiness_Index"] = chop ?? 0;
 
         // Historical Volatility (simplified)
-        var returns = quotes.TakeLast(30).Select((q, i) => 
-            i > 0 ? Math.Log((double)q.Close / (double)quotes[quotes.Count - 30 + i - 1].Close) : 0
-        ).Skip(1).ToList();
-        
-        if (returns.Any())
+        var volatilityPeriod = Math.Min(30, quotes.Count);
+        if (volatilityPeriod > 1)
         {
-            var volatility = returns.StandardDeviation() * Math.Sqrt(252);
-            result.Indicators["Historical_Volatility"] = volatility;
+            var recentQuotes = quotes.TakeLast(volatilityPeriod).ToList();
+            var returns = recentQuotes.Select((q, i) => 
+                i > 0 ? Math.Log((double)q.Close / (double)recentQuotes[i - 1].Close) : 0
+            ).Skip(1).ToList();
+            
+            if (returns.Any())
+            {
+                var volatility = returns.StandardDeviation() * Math.Sqrt(252);
+                result.Indicators["Historical_Volatility"] = volatility;
+            }
         }
 
         return Task.CompletedTask;
