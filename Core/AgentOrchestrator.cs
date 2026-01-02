@@ -563,7 +563,7 @@ public class AgentOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "RAG analysis failed", ex);
+            _logger.LogError(ex, "RAG analysis failed");
             return $"RAG Analysis Error: {ex.Message}";
         }
     }
@@ -580,7 +580,7 @@ public class AgentOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Agentic analysis failed", ex);
+            _logger.LogError(ex, "Agentic analysis failed");
             return $"Agentic Analysis Error: {ex.Message}";
         }
     }
@@ -605,7 +605,7 @@ public class AgentOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "RAGentic YouTube analysis failed", ex);
+            _logger.LogError(ex, "RAGentic YouTube analysis failed");
             return $"RAGentic Analysis Error: {ex.Message}";
         }
     }
@@ -637,7 +637,7 @@ public class AgentOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Comprehensive market analysis failed", ex);
+            _logger.LogError(ex, "Comprehensive market analysis failed");
             return $"Comprehensive Analysis Error: {ex.Message}";
         }
     }
@@ -654,7 +654,7 @@ public class AgentOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Learning from outcome failed", ex);
+            _logger.LogError(ex, "Learning from outcome failed");
         }
     }
 

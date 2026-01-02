@@ -1,0 +1,1010 @@
+@page "/fundamental-analysis"
+@using System.Text.Json
+@inject HttpClient Http
+
+<PageTitle>FeenQR - Fundamental Analysis</PageTitle>
+
+<style>
+    .fa-container {
+        position: fixed;
+        left: 280px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: inherit;
+        overflow-x: hidden;
+        overflow-y: auto;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .fa-header {
+        background: rgba(18, 18, 18, 0.95);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 1rem 1.5rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        flex-shrink: 0;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .tab-navigation {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .tab-btn {
+        background: transparent;
+        border: none;
+        padding: 0.5rem 1rem;
+        color: #9ca3af;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+        color: #1a73e8;
+        border-bottom-color: rgba(26, 115, 232, 0.3);
+    }
+
+    .tab-btn.active {
+        color: #1a73e8;
+        border-bottom-color: #1a73e8;
+    }
+
+    .fa-content {
+        flex: 1;
+        padding: 2rem;
+        overflow-y: auto;
+    }
+
+    .input-section {
+        background: rgba(255, 255, 255, 0.02);
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .input-group {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .input-field {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .input-field label {
+        display: block;
+        color: #9ca3af;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+
+    .input-field input,
+    .input-field select {
+        width: 100%;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        color: #fff;
+        font-size: 0.875rem;
+    }
+
+    .btn-primary {
+        background: #1a73e8;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+        background: #1557b0;
+    }
+
+    .btn-primary:disabled {
+        background: #555;
+        cursor: not-allowed;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #9ca3af;
+    }
+
+    .results-card {
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 8px;
+        padding: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 1rem;
+    }
+
+    .results-card h3 {
+        color: #fff;
+        font-size: 1.125rem;
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .metric-item {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 1rem;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .metric-label {
+        color: #9ca3af;
+        font-size: 0.813rem;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+
+    .metric-value {
+        color: #fff;
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+
+    .metric-value.positive {
+        color: #10b981;
+    }
+
+    .metric-value.negative {
+        color: #ef4444;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        color: #9ca3af;
+        font-size: 0.875rem;
+    }
+
+    .info-value {
+        color: #fff;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .comparison-table th {
+        color: #9ca3af;
+        font-size: 0.813rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .comparison-table td {
+        color: #fff;
+        font-size: 0.875rem;
+    }
+
+    .symbol-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(26, 115, 232, 0.2);
+        border: 1px solid rgba(26, 115, 232, 0.3);
+        color: #1a73e8;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        margin: 0.25rem;
+        font-weight: 500;
+    }
+
+    .remove-chip {
+        background: none;
+        border: none;
+        color: #1a73e8;
+        cursor: pointer;
+        font-size: 1.1rem;
+        padding: 0;
+        line-height: 1;
+    }
+
+    .symbol-chips-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .description-text {
+        color: #d1d5db;
+        font-size: 0.938rem;
+        line-height: 1.6;
+        margin-top: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 6px;
+    }
+</style>
+
+<div class="fa-container">
+    <div class="fa-header">
+        <div class="tab-navigation">
+            <button class="tab-btn @(activeTab == "overview" ? "active" : "")" @onclick='() => SwitchTab("overview")'>Overview</button>
+            <button class="tab-btn @(activeTab == "financials" ? "active" : "")" @onclick='() => SwitchTab("financials")'>Financials</button>
+            <button class="tab-btn @(activeTab == "valuation" ? "active" : "")" @onclick='() => SwitchTab("valuation")'>Valuation</button>
+            <button class="tab-btn @(activeTab == "analyst" ? "active" : "")" @onclick='() => SwitchTab("analyst")'>Analyst</button>
+            <button class="tab-btn @(activeTab == "compare" ? "active" : "")" @onclick='() => SwitchTab("compare")'>Compare</button>
+        </div>
+    </div>
+
+    <div class="fa-content">
+        @if (activeTab == "overview")
+        {
+            <div class="input-section">
+                <div class="input-group">
+                    <div class="input-field">
+                        <label>Symbol</label>
+                        <input type="text" @bind="symbol" @bind:event="oninput" placeholder="Enter symbol (e.g., AAPL)" />
+                    </div>
+                    <button class="btn-primary" @onclick="GetOverview" disabled="@isLoading">
+                        @(isLoading ? "Loading..." : "Analyze")
+                    </button>
+                </div>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading">
+                    <p>Fetching company overview...</p>
+                </div>
+            }
+            else if (overviewResult != null)
+            {
+                <div class="results-card">
+                    <h3>@overviewResult.CompanyName (@overviewResult.Symbol)</h3>
+                    
+                    <div class="info-row">
+                        <span class="info-label">Industry</span>
+                        <span class="info-value">@overviewResult.Industry</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Sector</span>
+                        <span class="info-value">@overviewResult.Sector</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Exchange</span>
+                        <span class="info-value">@overviewResult.Exchange</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Country</span>
+                        <span class="info-value">@overviewResult.Country</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">CEO</span>
+                        <span class="info-value">@overviewResult.Ceo</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Employees</span>
+                        <span class="info-value">@overviewResult.Employees.ToString("N0")</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Website</span>
+                        <span class="info-value">@overviewResult.Website</span>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(overviewResult.Description))
+                    {
+                        <div class="description-text">
+                            @overviewResult.Description
+                        </div>
+                    }
+                </div>
+
+                <div class="results-card">
+                    <h3>Key Metrics</h3>
+                    <div class="metric-grid">
+                        <div class="metric-item">
+                            <div class="metric-label">Market Cap</div>
+                            <div class="metric-value">$@FormatLargeNumber(overviewResult.MarketCap)</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">P/E Ratio</div>
+                            <div class="metric-value">@overviewResult.PeRatio.ToString("F2")</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">PEG Ratio</div>
+                            <div class="metric-value">@overviewResult.PegRatio.ToString("F2")</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">EPS</div>
+                            <div class="metric-value">$@overviewResult.Eps.ToString("F2")</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Beta</div>
+                            <div class="metric-value">@overviewResult.Beta.ToString("F2")</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Dividend Yield</div>
+                            <div class="metric-value">@((overviewResult.DividendYield * 100).ToString("F2"))%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="results-card">
+                    <h3>Profitability Metrics</h3>
+                    <div class="metric-grid">
+                        <div class="metric-item">
+                            <div class="metric-label">Profit Margin</div>
+                            <div class="metric-value positive">@((overviewResult.ProfitMargin * 100).ToString("F2"))%</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Operating Margin</div>
+                            <div class="metric-value positive">@((overviewResult.OperatingMarginTTM * 100).ToString("F2"))%</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">ROA</div>
+                            <div class="metric-value positive">@((overviewResult.ReturnOnAssetsTTM * 100).ToString("F2"))%</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">ROE</div>
+                            <div class="metric-value positive">@((overviewResult.ReturnOnEquityTTM * 100).ToString("F2"))%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="results-card">
+                    <h3>Growth Metrics</h3>
+                    <div class="metric-grid">
+                        <div class="metric-item">
+                            <div class="metric-label">Quarterly Revenue Growth (YOY)</div>
+                            <div class="metric-value @(overviewResult.QuarterlyRevenueGrowthYOY > 0 ? "positive" : "negative")">
+                                @((overviewResult.QuarterlyRevenueGrowthYOY * 100).ToString("F2"))%
+                            </div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Quarterly Earnings Growth (YOY)</div>
+                            <div class="metric-value @(overviewResult.QuarterlyEarningsGrowthYOY > 0 ? "positive" : "negative")">
+                                @((overviewResult.QuarterlyEarningsGrowthYOY * 100).ToString("F2"))%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else if (activeTab == "financials")
+        {
+            <div class="input-section">
+                <div class="input-group">
+                    <div class="input-field">
+                        <label>Symbol</label>
+                        <input type="text" @bind="symbol" @bind:event="oninput" placeholder="Enter symbol (e.g., AAPL)" />
+                    </div>
+                    <button class="btn-primary" @onclick="GetFinancials" disabled="@isLoading">
+                        @(isLoading ? "Loading..." : "Get Financials")
+                    </button>
+                </div>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading">
+                    <p>Fetching financial statements...</p>
+                </div>
+            }
+            else if (financialsResult != null)
+            {
+                <div class="results-card">
+                    <h3>Financial Statements for @financialsResult.Symbol</h3>
+                    <p class="description-text">
+                        Financial statements data including income statements, balance sheets, and cash flow statements.
+                        Last updated: @financialsResult.LastUpdated.ToString("yyyy-MM-dd HH:mm")
+                    </p>
+                    
+                    @if (financialsResult.IncomeStatements != null && financialsResult.IncomeStatements.Any())
+                    {
+                        <div style="margin-top: 1.5rem;">
+                            <h4 style="color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Income Statements Available</h4>
+                            <p style="color: #fff;">@financialsResult.IncomeStatements.Count statements loaded</p>
+                        </div>
+                    }
+                    
+                    @if (financialsResult.BalanceSheets != null && financialsResult.BalanceSheets.Any())
+                    {
+                        <div style="margin-top: 1.5rem;">
+                            <h4 style="color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Balance Sheets Available</h4>
+                            <p style="color: #fff;">@financialsResult.BalanceSheets.Count statements loaded</p>
+                        </div>
+                    }
+                    
+                    @if (financialsResult.CashFlowStatements != null && financialsResult.CashFlowStatements.Any())
+                    {
+                        <div style="margin-top: 1.5rem;">
+                            <h4 style="color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Cash Flow Statements Available</h4>
+                            <p style="color: #fff;">@financialsResult.CashFlowStatements.Count statements loaded</p>
+                        </div>
+                    }
+                </div>
+            }
+        }
+        else if (activeTab == "valuation")
+        {
+            <div class="input-section">
+                <div class="input-group">
+                    <div class="input-field">
+                        <label>Symbol</label>
+                        <input type="text" @bind="symbol" @bind:event="oninput" placeholder="Enter symbol (e.g., AAPL)" />
+                    </div>
+                    <button class="btn-primary" @onclick="GetValuation" disabled="@isLoading">
+                        @(isLoading ? "Loading..." : "Get Valuation")
+                    </button>
+                </div>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading">
+                    <p>Analyzing valuation...</p>
+                </div>
+            }
+            else if (valuationResult != null)
+            {
+                <div class="results-card">
+                    <h3>Valuation Analysis for @valuationResult.Symbol</h3>
+                    
+                    <div class="metric-grid">
+                        <div class="metric-item">
+                            <div class="metric-label">Current Price</div>
+                            <div class="metric-value">$@valuationResult.CurrentPrice.ToString("F2")</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Intrinsic Value</div>
+                            <div class="metric-value">$@valuationResult.IntrinsicValue.ToString("F2")</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Fair Value</div>
+                            <div class="metric-value">$@valuationResult.FairValue.ToString("F2")</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Recommendation</div>
+                            <div class="metric-value @GetRecommendationClass(valuationResult.Recommendation)">
+                                @valuationResult.Recommendation
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(valuationResult.Reasoning))
+                    {
+                        <div class="description-text">
+                            <strong>Analysis:</strong><br />
+                            @valuationResult.Reasoning
+                        </div>
+                    }
+                </div>
+
+                @if (valuationResult.ValuationMetrics != null)
+                {
+                    <div class="results-card">
+                        <h3>Valuation Metrics</h3>
+                        <div class="metric-grid">
+                            @foreach (var metric in valuationResult.ValuationMetrics)
+                            {
+                                <div class="metric-item">
+                                    <div class="metric-label">@FormatMetricName(metric.Key)</div>
+                                    <div class="metric-value">@FormatMetricValue(metric.Value)</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        }
+        else if (activeTab == "analyst")
+        {
+            <div class="input-section">
+                <div class="input-group">
+                    <div class="input-field">
+                        <label>Symbol</label>
+                        <input type="text" @bind="symbol" @bind:event="oninput" placeholder="Enter symbol (e.g., AAPL)" />
+                    </div>
+                    <button class="btn-primary" @onclick="GetAnalyst" disabled="@isLoading">
+                        @(isLoading ? "Loading..." : "Get Analyst Data")
+                    </button>
+                </div>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading">
+                    <p>Fetching analyst data...</p>
+                </div>
+            }
+            else if (analystResult != null)
+            {
+                <div class="results-card">
+                    <h3>Analyst Analysis for @analystResult.Symbol</h3>
+                    
+                    <div class="metric-grid">
+                        <div class="metric-item">
+                            <div class="metric-label">Consensus Rating</div>
+                            <div class="metric-value">@analystResult.ConsensusRating</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Average Target Price</div>
+                            <div class="metric-value">$@analystResult.AverageTargetPrice.ToString("F2")</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">High Target Price</div>
+                            <div class="metric-value">$@analystResult.HighTargetPrice.ToString("F2")</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Low Target Price</div>
+                            <div class="metric-value">$@analystResult.LowTargetPrice.ToString("F2")</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">Number of Analysts</div>
+                            <div class="metric-value">@analystResult.NumberOfAnalysts</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 2rem;">
+                        <h4 style="color: #9ca3af; margin-bottom: 1rem;">Rating Distribution</h4>
+                        <div class="metric-grid">
+                            <div class="metric-item">
+                                <div class="metric-label">Buy Ratings</div>
+                                <div class="metric-value positive">@analystResult.BuyRatings</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Hold Ratings</div>
+                                <div class="metric-value">@analystResult.HoldRatings</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Sell Ratings</div>
+                                <div class="metric-value negative">@analystResult.SellRatings</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else if (activeTab == "compare")
+        {
+            <div class="input-section">
+                <div class="input-group">
+                    <div class="input-field">
+                        <label>Add Symbol to Compare</label>
+                        <input type="text" @bind="newSymbol" @bind:event="oninput" placeholder="Enter symbol" 
+                               @onkeypress="@(e => { if (e.Key == "Enter") AddSymbol(); })" />
+                    </div>
+                    <button class="btn-primary" @onclick="AddSymbol">Add Symbol</button>
+                </div>
+
+                @if (compareSymbols.Any())
+                {
+                    <div class="symbol-chips-container" style="margin-top: 1rem;">
+                        @foreach (var sym in compareSymbols)
+                        {
+                            <div class="symbol-chip">
+                                @sym
+                                <button class="remove-chip" @onclick="() => RemoveSymbol(sym)">×</button>
+                            </div>
+                        }
+                    </div>
+
+                    <button class="btn-primary" @onclick="CompareCompanies" disabled="@(isLoading || compareSymbols.Count < 2)" style="margin-top: 1rem;">
+                        @(isLoading ? "Loading..." : "Compare Companies")
+                    </button>
+                }
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading">
+                    <p>Comparing companies...</p>
+                </div>
+            }
+            else if (compareResult != null && compareResult.Comparisons != null)
+            {
+                <div class="results-card">
+                    <h3>Company Comparison</h3>
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    <th>@comparison.Symbol</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Market Cap</td>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    <td>$@FormatLargeNumber(comparison.MarketCap)</td>
+                                }
+                            </tr>
+                            <tr>
+                                <td>P/E Ratio</td>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    <td>@comparison.PeRatio.ToString("F2")</td>
+                                }
+                            </tr>
+                            <tr>
+                                <td>EPS</td>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    <td>$@comparison.Eps.ToString("F2")</td>
+                                }
+                            </tr>
+                            <tr>
+                                <td>ROE</td>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    <td>@((comparison.Roe * 100).ToString("F2"))%</td>
+                                }
+                            </tr>
+                            <tr>
+                                <td>Profit Margin</td>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    <td>@((comparison.ProfitMargin * 100).ToString("F2"))%</td>
+                                }
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private string activeTab = "overview";
+    private bool isLoading = false;
+
+    // Input fields
+    private string symbol = "AAPL";
+    private string newSymbol = "";
+    private List<string> compareSymbols = new();
+
+    // Results
+    private CompanyOverviewResponse? overviewResult;
+    private FinancialsResponse? financialsResult;
+    private ValuationResponse? valuationResult;
+    private AnalystResponse? analystResult;
+    private CompareResponse? compareResult;
+
+    private void SwitchTab(string tab)
+    {
+        activeTab = tab;
+        ClearResults();
+    }
+
+    private void ClearResults()
+    {
+        overviewResult = null;
+        financialsResult = null;
+        valuationResult = null;
+        analystResult = null;
+        compareResult = null;
+    }
+
+    private string SanitizeSymbol(string inputSymbol)
+    {
+        return inputSymbol.Contains(':') 
+            ? inputSymbol.Split(':')[1].ToUpper() 
+            : inputSymbol.ToUpper();
+    }
+
+    private async Task GetOverview()
+    {
+        if (string.IsNullOrWhiteSpace(symbol)) return;
+
+        isLoading = true;
+        try
+        {
+            var cleanSymbol = SanitizeSymbol(symbol);
+            var response = await Http.PostAsJsonAsync("/api/fundamentalanalysis/overview", new
+            {
+                Symbol = cleanSymbol
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                overviewResult = await response.Content.ReadFromJsonAsync<CompanyOverviewResponse>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task GetFinancials()
+    {
+        if (string.IsNullOrWhiteSpace(symbol)) return;
+
+        isLoading = true;
+        try
+        {
+            var cleanSymbol = SanitizeSymbol(symbol);
+            var response = await Http.PostAsJsonAsync("/api/fundamentalanalysis/financials", new
+            {
+                Symbol = cleanSymbol
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                financialsResult = await response.Content.ReadFromJsonAsync<FinancialsResponse>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task GetValuation()
+    {
+        if (string.IsNullOrWhiteSpace(symbol)) return;
+
+        isLoading = true;
+        try
+        {
+            var cleanSymbol = SanitizeSymbol(symbol);
+            var response = await Http.PostAsJsonAsync("/api/fundamentalanalysis/valuation", new
+            {
+                Symbol = cleanSymbol
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                valuationResult = await response.Content.ReadFromJsonAsync<ValuationResponse>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task GetAnalyst()
+    {
+        if (string.IsNullOrWhiteSpace(symbol)) return;
+
+        isLoading = true;
+        try
+        {
+            var cleanSymbol = SanitizeSymbol(symbol);
+            var response = await Http.PostAsJsonAsync("/api/fundamentalanalysis/analyst", new
+            {
+                Symbol = cleanSymbol
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                analystResult = await response.Content.ReadFromJsonAsync<AnalystResponse>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void AddSymbol()
+    {
+        if (!string.IsNullOrWhiteSpace(newSymbol))
+        {
+            var cleanSymbol = SanitizeSymbol(newSymbol);
+            if (!compareSymbols.Contains(cleanSymbol))
+            {
+                compareSymbols.Add(cleanSymbol);
+                newSymbol = "";
+            }
+        }
+    }
+
+    private void RemoveSymbol(string sym)
+    {
+        compareSymbols.Remove(sym);
+    }
+
+    private async Task CompareCompanies()
+    {
+        if (!compareSymbols.Any()) return;
+
+        isLoading = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/fundamentalanalysis/compare", new
+            {
+                Symbols = compareSymbols
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                compareResult = await response.Content.ReadFromJsonAsync<CompareResponse>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string FormatLargeNumber(double number)
+    {
+        if (number >= 1_000_000_000_000)
+            return $"{(number / 1_000_000_000_000):F2}T";
+        if (number >= 1_000_000_000)
+            return $"{(number / 1_000_000_000):F2}B";
+        if (number >= 1_000_000)
+            return $"{(number / 1_000_000):F2}M";
+        return number.ToString("N0");
+    }
+
+    private string FormatMetricName(string key)
+    {
+        return System.Text.RegularExpressions.Regex.Replace(key, "([a-z])([A-Z])", "$1 $2");
+    }
+
+    private string FormatMetricValue(object value)
+    {
+        if (value is double d)
+            return d.ToString("F2");
+        if (value is decimal dec)
+            return dec.ToString("F2");
+        return value?.ToString() ?? "N/A";
+    }
+
+    private string GetRecommendationClass(string recommendation)
+    {
+        return recommendation?.ToLower() switch
+        {
+            "buy" or "strong buy" => "positive",
+            "sell" or "strong sell" => "negative",
+            _ => ""
+        };
+    }
+
+    // Response models
+    public class CompanyOverviewResponse
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public string CompanyName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Industry { get; set; } = string.Empty;
+        public string Sector { get; set; } = string.Empty;
+        public string Exchange { get; set; } = string.Empty;
+        public string Country { get; set; } = string.Empty;
+        public string Website { get; set; } = string.Empty;
+        public string Ceo { get; set; } = string.Empty;
+        public long Employees { get; set; }
+        public double MarketCap { get; set; }
+        public double PeRatio { get; set; }
+        public double PegRatio { get; set; }
+        public double Eps { get; set; }
+        public double Beta { get; set; }
+        public double DividendYield { get; set; }
+        public double ProfitMargin { get; set; }
+        public double OperatingMarginTTM { get; set; }
+        public double ReturnOnAssetsTTM { get; set; }
+        public double ReturnOnEquityTTM { get; set; }
+        public double QuarterlyRevenueGrowthYOY { get; set; }
+        public double QuarterlyEarningsGrowthYOY { get; set; }
+    }
+
+    public class FinancialsResponse
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public List<object> IncomeStatements { get; set; } = new();
+        public List<object> BalanceSheets { get; set; } = new();
+        public List<object> CashFlowStatements { get; set; } = new();
+        public DateTime LastUpdated { get; set; }
+    }
+
+    public class ValuationResponse
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public double CurrentPrice { get; set; }
+        public double IntrinsicValue { get; set; }
+        public double FairValue { get; set; }
+        public Dictionary<string, object> ValuationMetrics { get; set; } = new();
+        public string Recommendation { get; set; } = string.Empty;
+        public string Reasoning { get; set; } = string.Empty;
+    }
+
+    public class AnalystResponse
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public string ConsensusRating { get; set; } = string.Empty;
+        public double AverageTargetPrice { get; set; }
+        public double HighTargetPrice { get; set; }
+        public double LowTargetPrice { get; set; }
+        public int NumberOfAnalysts { get; set; }
+        public int BuyRatings { get; set; }
+        public int HoldRatings { get; set; }
+        public int SellRatings { get; set; }
+    }
+
+    public class CompareResponse
+    {
+        public List<CompanyComparison> Comparisons { get; set; } = new();
+    }
+
+    public class CompanyComparison
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public double MarketCap { get; set; }
+        public double PeRatio { get; set; }
+        public double Eps { get; set; }
+        public double Roe { get; set; }
+        public double ProfitMargin { get; set; }
+    }
+}

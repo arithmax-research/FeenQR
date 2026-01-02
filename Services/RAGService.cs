@@ -105,7 +105,7 @@ public class RAGService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to store content in RAG memory", ex);
+            _logger.LogError(ex, "Failed to store content in RAG memory");
         }
     }
 

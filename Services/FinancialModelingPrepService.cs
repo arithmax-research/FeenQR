@@ -28,7 +28,7 @@ public class FinancialModelingPrepService
         _httpClient = httpClient;
         _logger = logger;
         _configuration = configuration;
-        _apiKey = _configuration["FinancialModelingPrep:ApiKey"] ?? "demo";
+        _apiKey = _configuration["FMP:ApiKey"] ?? "demo";
 
         // Set user agent for API requests
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("FeenQR/1.0");
@@ -41,7 +41,7 @@ public class FinancialModelingPrepService
     {
         try
         {
-            var url = $"https://financialmodelingprep.com/api/v3/profile/{symbol}?apikey={_apiKey}";
+            var url = $"https://financialmodelingprep.com/stable/profile?symbol={symbol}&apikey={_apiKey}";
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -68,7 +68,7 @@ public class FinancialModelingPrepService
     {
         try
         {
-            var url = $"https://financialmodelingprep.com/api/v3/quote/{symbol}?apikey={_apiKey}";
+            var url = $"https://financialmodelingprep.com/stable/quote?symbol={symbol}&apikey={_apiKey}";
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -95,7 +95,7 @@ public class FinancialModelingPrepService
     {
         try
         {
-            var url = $"https://financialmodelingprep.com/api/v3/income-statement/{symbol}?limit={limit}&apikey={_apiKey}";
+            var url = $"https://financialmodelingprep.com/stable/income-statement?symbol={symbol}&limit={limit}&apikey={_apiKey}";
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -121,7 +121,7 @@ public class FinancialModelingPrepService
     {
         try
         {
-            var url = $"https://financialmodelingprep.com/api/v3/balance-sheet-statement/{symbol}?limit={limit}&apikey={_apiKey}";
+            var url = $"https://financialmodelingprep.com/stable/balance-sheet-statement?symbol={symbol}&limit={limit}&apikey={_apiKey}";
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -147,7 +147,7 @@ public class FinancialModelingPrepService
     {
         try
         {
-            var url = $"https://financialmodelingprep.com/api/v3/cash-flow-statement/{symbol}?limit={limit}&apikey={_apiKey}";
+            var url = $"https://financialmodelingprep.com/stable/cash-flow-statement?symbol={symbol}&limit={limit}&apikey={_apiKey}";
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -173,7 +173,7 @@ public class FinancialModelingPrepService
     {
         try
         {
-            var url = $"https://financialmodelingprep.com/api/v3/key-metrics/{symbol}?limit={limit}&apikey={_apiKey}";
+            var url = $"https://financialmodelingprep.com/stable/key-metrics?symbol={symbol}&limit={limit}&apikey={_apiKey}";
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -199,7 +199,7 @@ public class FinancialModelingPrepService
     {
         try
         {
-            var url = $"https://financialmodelingprep.com/api/v3/ratios/{symbol}?limit={limit}&apikey={_apiKey}";
+            var url = $"https://financialmodelingprep.com/stable/ratios?symbol={symbol}&limit={limit}&apikey={_apiKey}";
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -225,7 +225,7 @@ public class FinancialModelingPrepService
     {
         try
         {
-            var url = $"https://financialmodelingprep.com/api/v3/historical-price-full/{symbol}?from={from}&to={to}&apikey={_apiKey}";
+            var url = $"https://financialmodelingprep.com/stable/historical-price-full/{symbol}?from={from}&to={to}&apikey={_apiKey}";
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -252,7 +252,7 @@ public class FinancialModelingPrepService
     {
         try
         {
-            var url = $"https://financialmodelingprep.com/api/v3/analyst-estimates/{symbol}?limit={limit}&apikey={_apiKey}";
+            var url = $"https://financialmodelingprep.com/stable/analyst-estimates?symbol={symbol}&limit={limit}&apikey={_apiKey}";
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -279,7 +279,7 @@ public class FinancialModelingPrepService
         try
         {
             var queryParams = BuildScreenerQueryString(criteria);
-            var url = $"https://financialmodelingprep.com/api/v3/stock-screener?{queryParams}&apikey={_apiKey}";
+            var url = $"https://financialmodelingprep.com/stable/stock-screener?{queryParams}&apikey={_apiKey}";
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -305,7 +305,7 @@ public class FinancialModelingPrepService
     {
         try
         {
-            var url = $"https://financialmodelingprep.com/api/v3/quotes/index?apikey={_apiKey}";
+            var url = $"https://financialmodelingprep.com/stable/quotes/index?apikey={_apiKey}";
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -345,22 +345,22 @@ public class FinancialModelingPrepService
 // Data models for Financial Modeling Prep API responses
 public class FMPCompanyProfile
 {
-    public required string Symbol { get; set; }
-    public required string CompanyName { get; set; }
-    public required string Industry { get; set; }
-    public required string Sector { get; set; }
-    public required string Website { get; set; }
-    public required string Description { get; set; }
-    public required string CEO { get; set; }
+    public string Symbol { get; set; }
+    public string CompanyName { get; set; }
+    public string Industry { get; set; }
+    public string Sector { get; set; }
+    public string Website { get; set; }
+    public string Description { get; set; }
+    public string CEO { get; set; }
     public long FullTimeEmployees { get; set; }
-    public required string Phone { get; set; }
-    public required string Address { get; set; }
-    public required string City { get; set; }
-    public required string State { get; set; }
-    public required string Zip { get; set; }
-    public required string Country { get; set; }
-    public required string Image { get; set; }
-    public required string IpoDate { get; set; }
+    public string Phone { get; set; }
+    public string Address { get; set; }
+    public string City { get; set; }
+    public string State { get; set; }
+    public string Zip { get; set; }
+    public string Country { get; set; }
+    public string Image { get; set; }
+    public string IpoDate { get; set; }
     public bool IsActivelyTrading { get; set; }
 }
 

@@ -621,6 +621,42 @@ public class EnhancedFundamentalAnalysisService
 
         return concerns;
     }
+
+    public async Task<string> CompareCompaniesFundamentalAsync(string[] symbols)
+    {
+        try
+        {
+            var comparisons = new List<object>();
+
+            foreach (var symbol in symbols)
+            {
+                var overview = await GetComprehensiveCompanyOverviewAsync(symbol);
+                var valuation = await GetComprehensiveValuationAnalysisAsync(symbol);
+
+                if (overview != null && valuation != null)
+                {
+                    comparisons.Add(new
+                    {
+                        symbol = symbol,
+                        companyName = overview.CompanyName,
+                        marketCap = overview.MarketCap,
+                        peRatio = overview.PERatio,
+                        currentPrice = valuation.CurrentPrice,
+                        intrinsicValue = valuation.IntrinsicValue,
+                        fairValue = valuation.FairValue,
+                        recommendation = valuation.Recommendation
+                    });
+                }
+            }
+
+            return System.Text.Json.JsonSerializer.Serialize(comparisons);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error comparing companies fundamental analysis");
+            return "Error comparing companies";
+        }
+    }
 }
 
 // Data models for enhanced analysis
@@ -749,6 +785,14 @@ public class EnhancedValuationAnalysis
     public decimal UpsidePotential { get; set; }
     public decimal DistanceFrom52WeekHigh { get; set; }
     public DateTime AnalysisDate { get; set; }
+    public decimal IntrinsicValue { get; set; }
+    public decimal FairValue { get; set; }
+    public object ValuationMetrics { get; set; }
+    public object GrowthMetrics { get; set; }
+    public object ProfitabilityMetrics { get; set; }
+    public object FinancialHealthMetrics { get; set; }
+    public string Recommendation { get; set; }
+    public string Reasoning { get; set; }
 }
 
 public class EnhancedTechnicalAnalysis
@@ -795,6 +839,17 @@ public class EnhancedAnalystAnalysis
     public required FMPAnalystEstimates LatestEstimates { get; set; }
     public required List<FMPAnalystEstimates> AllEstimates { get; set; }
     public DateTime AnalysisDate { get; set; }
+    public string ConsensusRating { get; set; }
+    public decimal AverageTargetPrice { get; set; }
+    public decimal HighTargetPrice { get; set; }
+    public decimal LowTargetPrice { get; set; }
+    public int NumberOfAnalysts { get; set; }
+    public int BuyRatings { get; set; }
+    public int HoldRatings { get; set; }
+    public int SellRatings { get; set; }
+    public object Estimates { get; set; }
+    public int Upgrades { get; set; }
+    public int Downgrades { get; set; }
 }
 
 public class EnhancedFundamentalReport

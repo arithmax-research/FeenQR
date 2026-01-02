@@ -214,7 +214,7 @@ Focus on efficient and cost-effective trade execution.",
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "YouTube content analysis failed", ex);
+            _logger.LogError(ex, "YouTube content analysis failed");
             throw;
         }
     }
@@ -260,7 +260,7 @@ Learning Summary:";
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Learning from outcome failed", ex);
+            _logger.LogError(ex, "Learning from outcome failed");
         }
     }
 

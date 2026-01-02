@@ -48,11 +48,16 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<LeanDataService>();
 builder.Services.AddSingleton<AlpacaService>();
 builder.Services.AddSingleton<AlphaVantageService>();
+builder.Services.AddSingleton<IEXCloudService>();
+builder.Services.AddSingleton<FinancialModelingPrepService>();
 builder.Services.AddSingleton<YahooFinanceService>();
 builder.Services.AddSingleton<PolygonService>();
 builder.Services.AddSingleton<DataBentoService>();
 builder.Services.AddSingleton<DeepSeekService>();
 builder.Services.AddSingleton<OpenAIService>();
+
+// Register Fundamental Analysis services
+builder.Services.AddSingleton<EnhancedFundamentalAnalysisService>();
 
 // Register research dependencies
 builder.Services.AddSingleton<MarketDataService>();
