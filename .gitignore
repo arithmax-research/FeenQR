@@ -10,3 +10,6 @@ bin/
 **/bin/
 **/obj/
 **/publish/
+
+/General_Transitions/
+/Pitchdeck/
