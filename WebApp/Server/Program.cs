@@ -50,6 +50,7 @@ builder.Services.AddSingleton<AlpacaService>();
 builder.Services.AddSingleton<AlphaVantageService>();
 builder.Services.AddSingleton<FinancialModelingPrepService>();
 builder.Services.AddSingleton<YahooFinanceService>();
+builder.Services.AddSingleton<YFinanceApiService>();
 builder.Services.AddSingleton<PolygonService>();
 builder.Services.AddSingleton<DataBentoService>();
 builder.Services.AddSingleton<DeepSeekService>();
