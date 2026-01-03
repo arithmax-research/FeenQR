@@ -267,6 +267,50 @@
         background: rgba(255, 255, 255, 0.02);
         border-radius: 6px;
     }
+
+    .table-container {
+        overflow-x: auto;
+        margin-top: 1rem;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .financial-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+
+    .financial-table th {
+        background: rgba(26, 115, 232, 0.1);
+        color: #9ca3af;
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .financial-table td {
+        padding: 0.75rem;
+        color: #fff;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .financial-table tr:hover {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .financial-table td:nth-child(3),
+    .financial-table td:nth-child(4),
+    .financial-table td:nth-child(5),
+    .financial-table td:nth-child(6),
+    .financial-table td:nth-child(7) {
+        text-align: right;
+        font-family: 'Courier New', monospace;
+    }
 </style>
 
 <div class="fa-container">
@@ -446,24 +490,108 @@
                     @if (financialsResult.IncomeStatements != null && financialsResult.IncomeStatements.Any())
                     {
                         <div style="margin-top: 1.5rem;">
-                            <h4 style="color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Income Statements Available</h4>
-                            <p style="color: #fff;">@financialsResult.IncomeStatements.Count statements loaded</p>
+                            <h4 style="color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Income Statements</h4>
+                            <div class="table-container">
+                                <table class="financial-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Period</th>
+                                            <th>Revenue</th>
+                                            <th>Gross Profit</th>
+                                            <th>Operating Income</th>
+                                            <th>Net Income</th>
+                                            <th>EPS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var statement in financialsResult.IncomeStatements.OrderByDescending(s => s.Date))
+                                        {
+                                            <tr>
+                                                <td>@statement.Date</td>
+                                                <td>@statement.Period</td>
+                                                <td>$@statement.Revenue.ToString("N0")</td>
+                                                <td>$@statement.GrossProfit.ToString("N0")</td>
+                                                <td>$@statement.OperatingIncome.ToString("N0")</td>
+                                                <td>$@statement.NetIncome.ToString("N0")</td>
+                                                <td>$@statement.EPS.ToString("F2")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     }
                     
                     @if (financialsResult.BalanceSheets != null && financialsResult.BalanceSheets.Any())
                     {
                         <div style="margin-top: 1.5rem;">
-                            <h4 style="color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Balance Sheets Available</h4>
-                            <p style="color: #fff;">@financialsResult.BalanceSheets.Count statements loaded</p>
+                            <h4 style="color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Balance Sheets</h4>
+                            <div class="table-container">
+                                <table class="financial-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Period</th>
+                                            <th>Total Assets</th>
+                                            <th>Total Liabilities</th>
+                                            <th>Total Equity</th>
+                                            <th>Cash & Equivalents</th>
+                                            <th>Total Debt</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var statement in financialsResult.BalanceSheets.OrderByDescending(s => s.Date))
+                                        {
+                                            <tr>
+                                                <td>@statement.Date</td>
+                                                <td>@statement.Period</td>
+                                                <td>$@statement.TotalAssets.ToString("N0")</td>
+                                                <td>$@statement.TotalLiabilities.ToString("N0")</td>
+                                                <td>$@statement.TotalEquity.ToString("N0")</td>
+                                                <td>$@statement.CashAndEquivalents.ToString("N0")</td>
+                                                <td>$@statement.TotalDebt.ToString("N0")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     }
                     
                     @if (financialsResult.CashFlowStatements != null && financialsResult.CashFlowStatements.Any())
                     {
                         <div style="margin-top: 1.5rem;">
-                            <h4 style="color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Cash Flow Statements Available</h4>
-                            <p style="color: #fff;">@financialsResult.CashFlowStatements.Count statements loaded</p>
+                            <h4 style="color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.5rem;">Cash Flow Statements</h4>
+                            <div class="table-container">
+                                <table class="financial-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Period</th>
+                                            <th>Operating CF</th>
+                                            <th>Investing CF</th>
+                                            <th>Financing CF</th>
+                                            <th>Free Cash Flow</th>
+                                            <th>Net Change in Cash</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var statement in financialsResult.CashFlowStatements.OrderByDescending(s => s.Date))
+                                        {
+                                            <tr>
+                                                <td>@statement.Date</td>
+                                                <td>@statement.Period</td>
+                                                <td>$@statement.OperatingCashFlow.ToString("N0")</td>
+                                                <td>$@statement.InvestingCashFlow.ToString("N0")</td>
+                                                <td>$@statement.FinancingCashFlow.ToString("N0")</td>
+                                                <td>$@statement.FreeCashFlow.ToString("N0")</td>
+                                                <td>$@statement.NetChangeInCash.ToString("N0")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     }
                 </div>
@@ -963,10 +1091,50 @@
     public class FinancialsResponse
     {
         public string Symbol { get; set; } = string.Empty;
-        public List<object> IncomeStatements { get; set; } = new();
-        public List<object> BalanceSheets { get; set; } = new();
-        public List<object> CashFlowStatements { get; set; } = new();
+        public List<IncomeStatement> IncomeStatements { get; set; } = new();
+        public List<BalanceSheet> BalanceSheets { get; set; } = new();
+        public List<CashFlowStatement> CashFlowStatements { get; set; } = new();
         public DateTime LastUpdated { get; set; }
+    }
+
+    public class IncomeStatement
+    {
+        public string Date { get; set; } = string.Empty;
+        public string Period { get; set; } = string.Empty;
+        public long Revenue { get; set; }
+        public long CostOfRevenue { get; set; }
+        public long GrossProfit { get; set; }
+        public long OperatingExpenses { get; set; }
+        public long OperatingIncome { get; set; }
+        public long NetIncome { get; set; }
+        public decimal EPS { get; set; }
+        public decimal EPSDiluted { get; set; }
+    }
+
+    public class BalanceSheet
+    {
+        public string Date { get; set; } = string.Empty;
+        public string Period { get; set; } = string.Empty;
+        public long TotalAssets { get; set; }
+        public long TotalLiabilities { get; set; }
+        public long TotalEquity { get; set; }
+        public long CashAndEquivalents { get; set; }
+        public long TotalCurrentAssets { get; set; }
+        public long TotalCurrentLiabilities { get; set; }
+        public long LongTermDebt { get; set; }
+        public long TotalDebt { get; set; }
+    }
+
+    public class CashFlowStatement
+    {
+        public string Date { get; set; } = string.Empty;
+        public string Period { get; set; } = string.Empty;
+        public long OperatingCashFlow { get; set; }
+        public long InvestingCashFlow { get; set; }
+        public long FinancingCashFlow { get; set; }
+        public long FreeCashFlow { get; set; }
+        public long CapitalExpenditure { get; set; }
+        public long NetChangeInCash { get; set; }
     }
 
     public class ValuationResponse

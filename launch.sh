@@ -3,13 +3,13 @@
 # Arithmax Research Agent - Launcher
 # Supports both CLI and Web modes
 
-echo "Arithmax Research Agent"
+echo "FeenQR"
 echo "======================="
 echo ""
 
 # Check if we're in the right directory
 if [ ! -f "QuantResearchAgent.csproj" ]; then
-    echo " Error: Please run this script from the ArithmaxResearchChest root directory"
+    echo " Error: Please run this script from the FeenQR root directory"
     exit 1
 fi
 
