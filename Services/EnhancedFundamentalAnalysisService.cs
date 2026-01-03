@@ -262,6 +262,77 @@ public class EnhancedFundamentalAnalysisService
             analysis.DistanceFrom52WeekHigh = analysis.FiftyTwoWeekHigh > 0 ?
                 ((analysis.CurrentPrice - analysis.FiftyTwoWeekHigh) / analysis.FiftyTwoWeekHigh) * 100 : 0;
 
+            // Calculate intrinsic value and fair value
+            analysis.IntrinsicValue = metrics.GrahamNumber ?? 0.0m; // Graham Number as intrinsic value
+            analysis.FairValue = ratios.PriceFairValue; // FMP's fair value estimate
+
+            // Generate recommendation based on current price vs fair value
+            if (analysis.FairValue > 0)
+            {
+                var premium = (analysis.CurrentPrice - analysis.FairValue) / analysis.FairValue;
+                if (premium < -0.2m) // More than 20% undervalued
+                {
+                    analysis.Recommendation = "STRONG BUY";
+                    analysis.Reasoning = $"Stock is {Math.Abs(premium):P1} undervalued based on fair value of ${analysis.FairValue:F2}";
+                }
+                else if (premium < -0.1m) // 10-20% undervalued
+                {
+                    analysis.Recommendation = "BUY";
+                    analysis.Reasoning = $"Stock is {Math.Abs(premium):P1} undervalued based on fair value of ${analysis.FairValue:F2}";
+                }
+                else if (premium < 0.1m) // Within 10% of fair value
+                {
+                    analysis.Recommendation = "HOLD";
+                    analysis.Reasoning = $"Stock is fairly valued at ${analysis.FairValue:F2}";
+                }
+                else if (premium < 0.2m) // 10-20% overvalued
+                {
+                    analysis.Recommendation = "SELL";
+                    analysis.Reasoning = $"Stock is {premium:P1} overvalued based on fair value of ${analysis.FairValue:F2}";
+                }
+                else // More than 20% overvalued
+                {
+                    analysis.Recommendation = "STRONG SELL";
+                    analysis.Reasoning = $"Stock is {premium:P1} overvalued based on fair value of ${analysis.FairValue:F2}";
+                }
+            }
+            else
+            {
+                analysis.Recommendation = "HOLD";
+                analysis.Reasoning = "Unable to determine fair value for recommendation";
+            }
+
+            // Set metric objects for API response
+            analysis.ValuationMetrics = new
+            {
+                peRatio = analysis.PERatio,
+                priceToBook = analysis.PriceToBook,
+                priceToSales = analysis.PriceToSales,
+                evToEbitda = analysis.EVToEBITDA,
+                evToRevenue = analysis.EVToRevenue
+            };
+
+            analysis.GrowthMetrics = new
+            {
+                epsGrowth = analysis.EPSGrowth,
+                revenueGrowth = analysis.RevenueGrowth
+            };
+
+            analysis.ProfitabilityMetrics = new
+            {
+                roe = analysis.ROE,
+                roa = analysis.ROA,
+                profitMargin = analysis.ProfitMargin,
+                operatingMargin = analysis.OperatingMargin
+            };
+
+            analysis.FinancialHealthMetrics = new
+            {
+                debtToEquity = analysis.DebtToEquity,
+                currentRatio = analysis.CurrentRatio,
+                interestCoverage = analysis.InterestCoverage
+            };
+
             return analysis;
         }
         catch (Exception ex)
