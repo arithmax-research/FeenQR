@@ -163,11 +163,9 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<DynamicFactorPlugin>(),
                     sp.GetRequiredService<TradingTemplateGeneratorPlugin>(),
                     sp.GetRequiredService<AlphaVantageService>(),
-                    sp.GetRequiredService<IEXCloudService>(),
                     sp.GetRequiredService<FinancialModelingPrepService>(),
                     sp.GetRequiredService<EnhancedFundamentalAnalysisService>(),
                     sp.GetRequiredService<AlphaVantagePlugin>(),
-                    sp.GetRequiredService<IEXCloudPlugin>(),
                     sp.GetRequiredService<FinancialModelingPrepPlugin>(),
                     sp.GetRequiredService<EnhancedFundamentalAnalysisPlugin>(),
                     sp.GetRequiredService<AdvancedRiskAnalyticsService>(),
@@ -460,13 +458,6 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<IConfiguration>()
                 )
             );
-            services.AddSingleton<IEXCloudService>(sp =>
-                new IEXCloudService(
-                    sp.GetRequiredService<HttpClient>(),
-                    sp.GetRequiredService<ILogger<IEXCloudService>>(),
-                    sp.GetRequiredService<IConfiguration>()
-                )
-            );
             services.AddSingleton<FinancialModelingPrepService>(sp =>
                 new FinancialModelingPrepService(
                     sp.GetRequiredService<HttpClient>(),
@@ -477,7 +468,6 @@ namespace QuantResearchAgent
             services.AddSingleton<EnhancedFundamentalAnalysisService>(sp =>
                 new EnhancedFundamentalAnalysisService(
                     sp.GetRequiredService<AlphaVantageService>(),
-                    sp.GetRequiredService<IEXCloudService>(),
                     sp.GetRequiredService<FinancialModelingPrepService>(),
                     sp.GetRequiredService<ILogger<EnhancedFundamentalAnalysisService>>()
                 )
@@ -485,7 +475,6 @@ namespace QuantResearchAgent
 
             // Add Phase 12 Research Platforms Integration plugins
             services.AddSingleton<AlphaVantagePlugin>();
-            services.AddSingleton<IEXCloudPlugin>();
             services.AddSingleton<FinancialModelingPrepPlugin>();
             services.AddSingleton<EnhancedFundamentalAnalysisPlugin>();
 

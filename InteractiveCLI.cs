@@ -99,11 +99,9 @@ public class InteractiveCLI
     private readonly DynamicFactorPlugin _dynamicFactorPlugin;
     private readonly TradingTemplateGeneratorPlugin _tradingTemplateGeneratorPlugin;
     private readonly AlphaVantageService _alphaVantageService;
-    private readonly IEXCloudService _iexCloudService;
     private readonly FinancialModelingPrepService _financialModelingPrepService;
     private readonly EnhancedFundamentalAnalysisService _enhancedFundamentalAnalysisService;
     private readonly AlphaVantagePlugin _alphaVantagePlugin;
-    private readonly IEXCloudPlugin _iexCloudPlugin;
     private readonly FinancialModelingPrepPlugin _financialModelingPrepPlugin;
     private readonly EnhancedFundamentalAnalysisPlugin _enhancedFundamentalAnalysisPlugin;
     private readonly AdvancedRiskAnalyticsService _advancedRiskAnalyticsService;
@@ -202,11 +200,9 @@ public class InteractiveCLI
         DynamicFactorPlugin dynamicFactorPlugin,
         TradingTemplateGeneratorPlugin tradingTemplateGeneratorPlugin,
         AlphaVantageService alphaVantageService,
-        IEXCloudService iexCloudService,
         FinancialModelingPrepService financialModelingPrepService,
         EnhancedFundamentalAnalysisService enhancedFundamentalAnalysisService,
         AlphaVantagePlugin alphaVantagePlugin,
-        IEXCloudPlugin iexCloudPlugin,
         FinancialModelingPrepPlugin financialModelingPrepPlugin,
         EnhancedFundamentalAnalysisPlugin enhancedFundamentalAnalysisPlugin,
         AdvancedRiskAnalyticsService advancedRiskAnalyticsService,
@@ -304,11 +300,9 @@ public class InteractiveCLI
         _dynamicFactorPlugin = dynamicFactorPlugin;
         _tradingTemplateGeneratorPlugin = tradingTemplateGeneratorPlugin;
         _alphaVantageService = alphaVantageService;
-        _iexCloudService = iexCloudService;
         _financialModelingPrepService = financialModelingPrepService;
         _enhancedFundamentalAnalysisService = enhancedFundamentalAnalysisService;
         _alphaVantagePlugin = alphaVantagePlugin;
-        _iexCloudPlugin = iexCloudPlugin;
         _financialModelingPrepPlugin = financialModelingPrepPlugin;
         _enhancedFundamentalAnalysisPlugin = enhancedFundamentalAnalysisPlugin;
         _advancedRiskAnalyticsService = advancedRiskAnalyticsService;
@@ -1617,10 +1611,6 @@ public class InteractiveCLI
                 case "alpha-vantage":
                     await AlphaVantageCommand(parts);
                     break;
-                case "iex":
-                case "iex-data":
-                    await IEXDataCommand(parts);
-                    break;
                 case "fmp":
                 case "fmp-data":
                     await FMPDataCommand(parts);
@@ -2562,11 +2552,9 @@ public class InteractiveCLI
         
         // Phase 11 services and plugins
         var alphaVantageService = serviceProvider.GetRequiredService<AlphaVantageService>();
-        var iexCloudService = serviceProvider.GetRequiredService<IEXCloudService>();
         var financialModelingPrepService = serviceProvider.GetRequiredService<FinancialModelingPrepService>();
         var enhancedFundamentalAnalysisService = serviceProvider.GetRequiredService<EnhancedFundamentalAnalysisService>();
         var alphaVantagePlugin = serviceProvider.GetRequiredService<AlphaVantagePlugin>();
-        var iexCloudPlugin = serviceProvider.GetRequiredService<IEXCloudPlugin>();
         var financialModelingPrepPlugin = serviceProvider.GetRequiredService<FinancialModelingPrepPlugin>();
         var enhancedFundamentalAnalysisPlugin = serviceProvider.GetRequiredService<EnhancedFundamentalAnalysisPlugin>();
         
@@ -2590,7 +2578,7 @@ public class InteractiveCLI
         var realTimeAlertingPlugin = serviceProvider.GetRequiredService<RealTimeAlertingPlugin>();
         var complianceMonitoringPlugin = serviceProvider.GetRequiredService<ComplianceMonitoringPlugin>();
         
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, optionsFlowService, volatilityTradingService, advancedMicrostructureService, latencyArbitrageService, optionsFlowPlugin, volatilityTradingPlugin, advancedMicrostructurePlugin, latencyArbitragePlugin, conversationalResearchPlugin, automatedReportingPlugin, marketRegimePlugin, anomalyDetectionPlugin, dynamicFactorPlugin, tradingTemplateGeneratorPlugin, alphaVantageService, iexCloudService, financialModelingPrepService, enhancedFundamentalAnalysisService, alphaVantagePlugin, iexCloudPlugin, financialModelingPrepPlugin, enhancedFundamentalAnalysisPlugin, advancedRiskAnalyticsService, counterpartyRiskService, performanceAttributionService, benchmarkingService, advancedRiskAnalyticsPlugin, counterpartyRiskPlugin, performanceAttributionPlugin, benchmarkingPlugin, liveStrategyService, eventDrivenTradingService, realTimeAlertingService, complianceMonitoringService, liveStrategyPlugin, eventDrivenTradingPlugin, realTimeAlertingPlugin, complianceMonitoringPlugin));
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, optionsFlowService, volatilityTradingService, advancedMicrostructureService, latencyArbitrageService, optionsFlowPlugin, volatilityTradingPlugin, advancedMicrostructurePlugin, latencyArbitragePlugin, conversationalResearchPlugin, automatedReportingPlugin, marketRegimePlugin, anomalyDetectionPlugin, dynamicFactorPlugin, tradingTemplateGeneratorPlugin, alphaVantageService, financialModelingPrepService, enhancedFundamentalAnalysisService, alphaVantagePlugin, financialModelingPrepPlugin, enhancedFundamentalAnalysisPlugin, advancedRiskAnalyticsService, counterpartyRiskService, performanceAttributionService, benchmarkingService, advancedRiskAnalyticsPlugin, counterpartyRiskPlugin, performanceAttributionPlugin, benchmarkingPlugin, liveStrategyService, eventDrivenTradingService, realTimeAlertingService, complianceMonitoringService, liveStrategyPlugin, eventDrivenTradingPlugin, realTimeAlertingPlugin, complianceMonitoringPlugin));
     }
 
     // Alpaca Commands
@@ -2657,18 +2645,6 @@ public class InteractiveCLI
         PrintSectionHeader("Alpha Vantage Financial Data");
         Console.WriteLine($"Symbol: {symbol}");
         var function = _kernel.Plugins["AlphaVantagePlugin"]["GetComprehensiveQuote"];
-        var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
-        Console.WriteLine(result.ToString());
-        PrintSectionFooter();
-    }
-
-    private async Task IEXDataCommand(string[] parts)
-    {
-        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
-        
-        PrintSectionHeader("IEX Cloud Market Data");
-        Console.WriteLine($"Symbol: {symbol}");
-        var function = _kernel.Plugins["IEXCloudPlugin"]["GetQuote"];
         var result = await _kernel.InvokeAsync(function, new() { ["symbol"] = symbol });
         Console.WriteLine(result.ToString());
         PrintSectionFooter();

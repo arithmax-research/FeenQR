@@ -30,8 +30,7 @@ public class IEXCloudService
         _configuration = configuration;
         _apiKey = _configuration["IEXCloud:ApiKey"] ?? "pk_test";
 
-        // Set user agent for API requests
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("FeenQR/1.0");
+        // User agent is already set in Program.cs
     }
 
     /// <summary>

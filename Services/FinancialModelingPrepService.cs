@@ -19,6 +19,7 @@ public class FinancialModelingPrepService
     private readonly ILogger<FinancialModelingPrepService> _logger;
     private readonly IConfiguration _configuration;
     private readonly string _apiKey;
+    private readonly JsonSerializerOptions _jsonOptions;
 
     public FinancialModelingPrepService(
         HttpClient httpClient,
@@ -29,6 +30,12 @@ public class FinancialModelingPrepService
         _logger = logger;
         _configuration = configuration;
         _apiKey = _configuration["FMP:ApiKey"] ?? "demo";
+
+        // Configure JSON deserializer to be case-insensitive
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
         // Set user agent for API requests
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("FeenQR/1.0");
@@ -51,7 +58,7 @@ public class FinancialModelingPrepService
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            var profiles = JsonSerializer.Deserialize<List<FMPCompanyProfile>>(content);
+            var profiles = JsonSerializer.Deserialize<List<FMPCompanyProfile>>(content, _jsonOptions);
             return profiles?.Count > 0 ? profiles[0] : null;
         }
         catch (Exception ex)
@@ -78,7 +85,7 @@ public class FinancialModelingPrepService
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            var quotes = JsonSerializer.Deserialize<List<FMPQuote>>(content);
+            var quotes = JsonSerializer.Deserialize<List<FMPQuote>>(content, _jsonOptions);
             return quotes?.Count > 0 ? quotes[0] : null;
         }
         catch (Exception ex)
@@ -105,7 +112,7 @@ public class FinancialModelingPrepService
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<FMPIncomeStatement>>(content);
+            return JsonSerializer.Deserialize<List<FMPIncomeStatement>>(content, _jsonOptions);
         }
         catch (Exception ex)
         {
@@ -131,7 +138,7 @@ public class FinancialModelingPrepService
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<FMPBalanceSheet>>(content);
+            return JsonSerializer.Deserialize<List<FMPBalanceSheet>>(content, _jsonOptions);
         }
         catch (Exception ex)
         {
@@ -157,7 +164,7 @@ public class FinancialModelingPrepService
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<FMPCashFlow>>(content);
+            return JsonSerializer.Deserialize<List<FMPCashFlow>>(content, _jsonOptions);
         }
         catch (Exception ex)
         {
@@ -183,7 +190,7 @@ public class FinancialModelingPrepService
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<FMPKeyMetrics>>(content);
+            return JsonSerializer.Deserialize<List<FMPKeyMetrics>>(content, _jsonOptions);
         }
         catch (Exception ex)
         {
@@ -209,7 +216,7 @@ public class FinancialModelingPrepService
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<FMPFinancialRatios>>(content);
+            return JsonSerializer.Deserialize<List<FMPFinancialRatios>>(content, _jsonOptions);
         }
         catch (Exception ex)
         {
@@ -235,7 +242,7 @@ public class FinancialModelingPrepService
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            var data = JsonSerializer.Deserialize<FMPHistoricalResponse>(content);
+            var data = JsonSerializer.Deserialize<FMPHistoricalResponse>(content, _jsonOptions);
             return data?.Historical ?? new List<FMPHistoricalPrice>();
         }
         catch (Exception ex)
@@ -262,7 +269,7 @@ public class FinancialModelingPrepService
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<FMPAnalystEstimates>>(content);
+            return JsonSerializer.Deserialize<List<FMPAnalystEstimates>>(content, _jsonOptions);
         }
         catch (Exception ex)
         {
@@ -289,7 +296,7 @@ public class FinancialModelingPrepService
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<FMPStockScreener>>(content);
+            return JsonSerializer.Deserialize<List<FMPStockScreener>>(content, _jsonOptions);
         }
         catch (Exception ex)
         {
@@ -315,7 +322,7 @@ public class FinancialModelingPrepService
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<FMPMarketIndex>>(content);
+            return JsonSerializer.Deserialize<List<FMPMarketIndex>>(content, _jsonOptions);
         }
         catch (Exception ex)
         {
@@ -352,7 +359,7 @@ public class FMPCompanyProfile
     public string Website { get; set; }
     public string Description { get; set; }
     public string CEO { get; set; }
-    public long FullTimeEmployees { get; set; }
+    public string FullTimeEmployees { get; set; }
     public string Phone { get; set; }
     public string Address { get; set; }
     public string City { get; set; }
@@ -366,8 +373,8 @@ public class FMPCompanyProfile
 
 public class FMPQuote
 {
-    public required string Symbol { get; set; }
-    public required string Name { get; set; }
+    public string Symbol { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public decimal ChangesPercentage { get; set; }
     public decimal Change { get; set; }
@@ -380,12 +387,12 @@ public class FMPQuote
     public decimal PriceAvg200 { get; set; }
     public long Volume { get; set; }
     public long AvgVolume { get; set; }
-    public required string Exchange { get; set; }
+    public string Exchange { get; set; } = string.Empty;
     public decimal Open { get; set; }
     public decimal PreviousClose { get; set; }
     public decimal Eps { get; set; }
     public decimal Pe { get; set; }
-    public required string EarningsAnnouncement { get; set; }
+    public string EarningsAnnouncement { get; set; } = string.Empty;
     public long SharesOutstanding { get; set; }
     public long Timestamp { get; set; }
 }

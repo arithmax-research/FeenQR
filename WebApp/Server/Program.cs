@@ -48,7 +48,6 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<LeanDataService>();
 builder.Services.AddSingleton<AlpacaService>();
 builder.Services.AddSingleton<AlphaVantageService>();
-builder.Services.AddSingleton<IEXCloudService>();
 builder.Services.AddSingleton<FinancialModelingPrepService>();
 builder.Services.AddSingleton<YahooFinanceService>();
 builder.Services.AddSingleton<PolygonService>();
@@ -111,6 +110,7 @@ app.UseStaticFiles(new StaticFileOptions
 
 app.UseCors("AllowBlazorWasm");
 app.UseRouting();
+
 app.MapControllers();
 app.MapFallbackToFile("index.html");
 

@@ -15,18 +15,15 @@ namespace QuantResearchAgent.Services;
 public class EnhancedFundamentalAnalysisService
 {
     private readonly AlphaVantageService _alphaVantageService;
-    private readonly IEXCloudService _iexCloudService;
     private readonly FinancialModelingPrepService _fmpService;
     private readonly ILogger<EnhancedFundamentalAnalysisService> _logger;
 
     public EnhancedFundamentalAnalysisService(
         AlphaVantageService alphaVantageService,
-        IEXCloudService iexCloudService,
         FinancialModelingPrepService fmpService,
         ILogger<EnhancedFundamentalAnalysisService> logger)
     {
         _alphaVantageService = alphaVantageService;
-        _iexCloudService = iexCloudService;
         _fmpService = fmpService;
         _logger = logger;
     }
@@ -39,60 +36,62 @@ public class EnhancedFundamentalAnalysisService
         try
         {
             // Get data from multiple sources in parallel
-            var alphaVantageTask = _alphaVantageService.GetCompanyOverviewAsync(symbol);
-            var iexCompanyTask = _iexCloudService.GetCompanyAsync(symbol);
             var fmpProfileTask = _fmpService.GetCompanyProfileAsync(symbol);
+            var fmpKeyMetricsTask = _fmpService.GetKeyMetricsAsync(symbol, 1); // Get latest metrics
+            var fmpRatiosTask = _fmpService.GetFinancialRatiosAsync(symbol, 1); // Get latest ratios
+            var fmpQuoteTask = _fmpService.GetQuoteAsync(symbol);
 
-            await Task.WhenAll(alphaVantageTask, iexCompanyTask, fmpProfileTask);
+            await Task.WhenAll(fmpProfileTask, fmpKeyMetricsTask, fmpRatiosTask, fmpQuoteTask);
 
-            var alphaOverview = await alphaVantageTask;
-            var iexCompany = await iexCompanyTask;
             var fmpProfile = await fmpProfileTask;
+            var fmpKeyMetrics = await fmpKeyMetricsTask;
+            var fmpRatios = await fmpRatiosTask;
+            var fmpQuote = await fmpQuoteTask;
 
             // Combine data from all sources
             var overview = new EnhancedCompanyOverview
             {
                 Symbol = symbol,
-                CompanyName = alphaOverview?.Name ?? iexCompany?.CompanyName ?? fmpProfile?.CompanyName,
-                Description = alphaOverview?.Description ?? fmpProfile?.Description,
-                Industry = alphaOverview?.Industry ?? fmpProfile?.Industry,
-                Sector = alphaOverview?.Sector ?? fmpProfile?.Sector,
-                Exchange = alphaOverview?.Exchange ?? iexCompany?.Exchange,
-                Country = alphaOverview?.Country ?? fmpProfile?.Country,
-                Website = alphaOverview?.Website ?? fmpProfile?.Website,
+                CompanyName = fmpProfile?.CompanyName,
+                Description = fmpProfile?.Description,
+                Industry = fmpProfile?.Industry,
+                Sector = fmpProfile?.Sector,
+                Exchange = fmpQuote?.Exchange,
+                Country = fmpProfile?.Country,
+                Website = fmpProfile?.Website,
                 CEO = fmpProfile?.CEO,
-                Employees = fmpProfile?.FullTimeEmployees ?? 0,
-                MarketCap = alphaOverview?.MarketCapitalization ?? 0,
-                PERatio = alphaOverview?.PERatio ?? 0,
-                PEGRatio = alphaOverview?.PEGRatio ?? 0,
-                BookValue = alphaOverview?.BookValue ?? 0,
-                DividendPerShare = alphaOverview?.DividendPerShare ?? 0,
-                DividendYield = alphaOverview?.DividendYield ?? 0,
-                EPS = alphaOverview?.EPS ?? 0,
-                RevenuePerShareTTM = alphaOverview?.RevenuePerShareTTM ?? 0,
-                ProfitMargin = alphaOverview?.ProfitMargin ?? 0,
-                OperatingMarginTTM = alphaOverview?.OperatingMarginTTM ?? 0,
-                ReturnOnAssetsTTM = alphaOverview?.ReturnOnAssetsTTM ?? 0,
-                ReturnOnEquityTTM = alphaOverview?.ReturnOnEquityTTM ?? 0,
-                QuarterlyEarningsGrowthYOY = alphaOverview?.QuarterlyEarningsGrowthYOY ?? 0,
-                QuarterlyRevenueGrowthYOY = alphaOverview?.QuarterlyRevenueGrowthYOY ?? 0,
-                AnalystTargetPrice = alphaOverview?.AnalystTargetPrice ?? 0,
-                TrailingPE = alphaOverview?.TrailingPE ?? 0,
-                ForwardPE = alphaOverview?.ForwardPE ?? 0,
-                PriceToSalesRatioTTM = alphaOverview?.PriceToSalesRatioTTM ?? 0,
-                PriceToBookRatio = alphaOverview?.PriceToBookRatio ?? 0,
-                EVToRevenue = alphaOverview?.EVToRevenue ?? 0,
-                EVToEBITDA = alphaOverview?.EVToEBITDA ?? 0,
-                Beta = alphaOverview?.Beta ?? 0,
-                FiftyTwoWeekHigh = alphaOverview?.FiftyTwoWeekHigh ?? 0,
-                FiftyTwoWeekLow = alphaOverview?.FiftyTwoWeekLow ?? 0,
-                FiftyDayMovingAverage = alphaOverview?.FiftyDayMovingAverage ?? 0,
-                TwoHundredDayMovingAverage = alphaOverview?.TwoHundredDayMovingAverage ?? 0,
-                SharesOutstanding = alphaOverview?.SharesOutstanding ?? 0,
-                DividendDate = alphaOverview?.DividendDate,
-                ExDividendDate = alphaOverview?.ExDividendDate,
-                LastSplitFactor = alphaOverview?.LastSplitFactor,
-                LastSplitDate = alphaOverview?.LastSplitDate,
+                Employees = int.TryParse(fmpProfile?.FullTimeEmployees, out var emp) ? emp : 0,
+                MarketCap = (long)(fmpQuote?.MarketCap ?? fmpKeyMetrics?.FirstOrDefault()?.MarketCap ?? 0),
+                PERatio = fmpKeyMetrics?.FirstOrDefault()?.PeRatio ?? 0,
+                PEGRatio = fmpRatios?.FirstOrDefault()?.PriceEarningsToGrowthRatio ?? 0,
+                BookValue = fmpKeyMetrics?.FirstOrDefault()?.BookValuePerShare ?? 0,
+                DividendPerShare = fmpKeyMetrics?.FirstOrDefault()?.DividendYield ?? 0,
+                DividendYield = fmpRatios?.FirstOrDefault()?.DividendYield ?? 0,
+                EPS = fmpKeyMetrics?.FirstOrDefault()?.NetIncomePerShare ?? 0,
+                RevenuePerShareTTM = fmpKeyMetrics?.FirstOrDefault()?.RevenuePerShare ?? 0,
+                ProfitMargin = fmpRatios?.FirstOrDefault()?.NetProfitMargin ?? 0,
+                OperatingMarginTTM = fmpRatios?.FirstOrDefault()?.OperatingMargin ?? 0,
+                ReturnOnAssetsTTM = fmpRatios?.FirstOrDefault()?.ReturnOnAssets ?? 0,
+                ReturnOnEquityTTM = fmpRatios?.FirstOrDefault()?.ReturnOnEquity ?? 0,
+                QuarterlyEarningsGrowthYOY = 0, // Not available in FMP basic plan
+                QuarterlyRevenueGrowthYOY = 0, // Not available in FMP basic plan
+                AnalystTargetPrice = 0, // Not available in FMP basic plan
+                TrailingPE = fmpKeyMetrics?.FirstOrDefault()?.PeRatio ?? 0,
+                ForwardPE = 0, // Not available in FMP basic plan
+                PriceToSalesRatioTTM = fmpKeyMetrics?.FirstOrDefault()?.PriceToSalesRatio ?? 0,
+                PriceToBookRatio = fmpKeyMetrics?.FirstOrDefault()?.PbRatio ?? 0,
+                EVToRevenue = fmpKeyMetrics?.FirstOrDefault()?.EvToSales ?? 0,
+                EVToEBITDA = fmpKeyMetrics?.FirstOrDefault()?.EnterpriseValueOverEBITDA ?? 0,
+                Beta = 0, // Not available in FMP basic plan
+                FiftyTwoWeekHigh = fmpQuote?.YearHigh ?? 0,
+                FiftyTwoWeekLow = fmpQuote?.YearLow ?? 0,
+                FiftyDayMovingAverage = fmpQuote?.PriceAvg50 ?? 0,
+                TwoHundredDayMovingAverage = fmpQuote?.PriceAvg200 ?? 0,
+                SharesOutstanding = fmpQuote?.SharesOutstanding ?? 0,
+                DividendDate = null, // Not available in FMP basic plan
+                ExDividendDate = null, // Not available in FMP basic plan
+                LastSplitFactor = null, // Not available in FMP basic plan
+                LastSplitDate = null, // Not available in FMP basic plan
                 IpoDate = fmpProfile?.IpoDate,
                 IsActivelyTrading = fmpProfile?.IsActivelyTrading ?? false
             };
@@ -113,31 +112,56 @@ public class EnhancedFundamentalAnalysisService
     {
         try
         {
-            // Get data from multiple sources
-            var alphaIncomeTask = _alphaVantageService.GetIncomeStatementAsync(symbol);
-            var alphaBalanceTask = _alphaVantageService.GetBalanceSheetAsync(symbol);
-            var alphaCashFlowTask = _alphaVantageService.GetCashFlowAsync(symbol);
+            // Get data from FMP
             var fmpIncomeTask = _fmpService.GetIncomeStatementAsync(symbol, 4);
             var fmpBalanceTask = _fmpService.GetBalanceSheetAsync(symbol, 4);
             var fmpCashFlowTask = _fmpService.GetCashFlowAsync(symbol, 4);
 
-            await Task.WhenAll(alphaIncomeTask, alphaBalanceTask, alphaCashFlowTask,
-                              fmpIncomeTask, fmpBalanceTask, fmpCashFlowTask);
+            await Task.WhenAll(fmpIncomeTask, fmpBalanceTask, fmpCashFlowTask);
 
-            var alphaIncome = await alphaIncomeTask;
-            var alphaBalance = await alphaBalanceTask;
-            var alphaCashFlow = await alphaCashFlowTask;
             var fmpIncome = await fmpIncomeTask;
             var fmpBalance = await fmpBalanceTask;
             var fmpCashFlow = await fmpCashFlowTask;
 
-            // Combine and validate data
+            // Convert FMP data to Enhanced types
             var statements = new EnhancedFinancialStatements
             {
                 Symbol = symbol,
-                IncomeStatements = CombineIncomeStatements(alphaIncome?.FirstOrDefault(), fmpIncome),
-                BalanceSheets = CombineBalanceSheets(alphaBalance?.FirstOrDefault(), fmpBalance),
-                CashFlowStatements = CombineCashFlowStatements(alphaCashFlow?.FirstOrDefault(), fmpCashFlow),
+                IncomeStatements = fmpIncome?.Select(f => new EnhancedIncomeStatement
+                {
+                    Date = f.Date,
+                    Period = f.Period,
+                    Revenue = f.Revenue,
+                    CostOfRevenue = f.CostOfRevenue,
+                    GrossProfit = f.GrossProfit,
+                    OperatingExpenses = f.OperatingExpenses,
+                    OperatingIncome = f.OperatingIncome,
+                    NetIncome = f.NetIncome,
+                    EPS = f.Eps,
+                    EPSDiluted = f.Epsdiluted
+                }).ToList() ?? new List<EnhancedIncomeStatement>(),
+                BalanceSheets = fmpBalance?.Select(f => new EnhancedBalanceSheet
+                {
+                    Date = f.Date,
+                    Period = f.Period,
+                    TotalAssets = f.TotalAssets,
+                    TotalLiabilities = f.TotalLiabilities,
+                    TotalEquity = f.TotalEquity,
+                    CashAndEquivalents = f.CashAndCashEquivalents,
+                    TotalCurrentAssets = f.TotalCurrentAssets,
+                    TotalCurrentLiabilities = f.TotalCurrentLiabilities,
+                    TotalDebt = f.ShortTermDebt + f.LongTermDebt,
+                    LongTermDebt = f.LongTermDebt
+                }).ToList() ?? new List<EnhancedBalanceSheet>(),
+                CashFlowStatements = fmpCashFlow?.Select(f => new EnhancedCashFlow
+                {
+                    Date = f.Date,
+                    Period = f.Period,
+                    OperatingCashFlow = f.OperatingCashFlow,
+                    InvestingCashFlow = f.NetCashUsedForInvestingActivites,
+                    FinancingCashFlow = f.NetCashUsedProvidedByFinancingActivities,
+                    FreeCashFlow = f.FreeCashFlow
+                }).ToList() ?? new List<EnhancedCashFlow>(),
                 LastUpdated = DateTime.UtcNow
             };
 
@@ -157,25 +181,25 @@ public class EnhancedFundamentalAnalysisService
     {
         try
         {
-            // Get current quote and key metrics
+            // Get current quote and key metrics from FMP
             var fmpQuoteTask = _fmpService.GetQuoteAsync(symbol);
             var fmpMetricsTask = _fmpService.GetKeyMetricsAsync(symbol, 1);
             var fmpRatiosTask = _fmpService.GetFinancialRatiosAsync(symbol, 1);
-            var alphaOverviewTask = _alphaVantageService.GetCompanyOverviewAsync(symbol);
+            var fmpProfileTask = _fmpService.GetCompanyProfileAsync(symbol);
 
-            await Task.WhenAll(fmpQuoteTask, fmpMetricsTask, fmpRatiosTask, alphaOverviewTask);
+            await Task.WhenAll(fmpQuoteTask, fmpMetricsTask, fmpRatiosTask, fmpProfileTask);
 
             var quote = await fmpQuoteTask;
             var metrics = (await fmpMetricsTask)?.FirstOrDefault();
             var ratios = (await fmpRatiosTask)?.FirstOrDefault();
-            var overview = await alphaOverviewTask;
+            var profile = await fmpProfileTask;
 
             if (quote == null || metrics == null || ratios == null)
             {
                 return null;
             }
 
-            // Calculate valuation metrics
+            // Calculate valuation metrics using FMP data
             var analysis = new EnhancedValuationAnalysis
             {
                 Symbol = symbol,
@@ -188,12 +212,12 @@ public class EnhancedFundamentalAnalysisService
                 PriceToBook = metrics.PbRatio,
                 PriceToSales = metrics.PriceToSalesRatio,
                 EVToEBITDA = metrics.EnterpriseValueOverEBITDA,
-                EVToRevenue = overview?.EVToRevenue ?? 0,
+                EVToRevenue = metrics.EvToSales,
 
-                // Growth metrics
+                // Growth metrics (not available from FMP, set to 0)
                 EPS = quote.Eps,
-                EPSGrowth = overview?.QuarterlyEarningsGrowthYOY ?? 0,
-                RevenueGrowth = overview?.QuarterlyRevenueGrowthYOY ?? 0,
+                EPSGrowth = 0, // FMP doesn't provide growth data
+                RevenueGrowth = 0, // FMP doesn't provide growth data
 
                 // Profitability
                 ROE = metrics.Roe,
@@ -209,10 +233,10 @@ public class EnhancedFundamentalAnalysisService
                 // Market data
                 FiftyTwoWeekHigh = quote.YearHigh,
                 FiftyTwoWeekLow = quote.YearLow,
-                Beta = overview?.Beta ?? 0,
+                Beta = 0, // FMP doesn't provide beta data
 
                 // Analyst estimates
-                AnalystTargetPrice = overview?.AnalystTargetPrice ?? 0,
+                AnalystTargetPrice = 0, // FMP doesn't provide analyst target price
                 DividendYield = metrics.DividendYield,
 
                 AnalysisDate = DateTime.UtcNow
@@ -334,13 +358,9 @@ public class EnhancedFundamentalAnalysisService
             // Get analyst estimates from FMP
             var estimatesTask = _fmpService.GetAnalystEstimatesAsync(symbol, 4);
 
-            // Get company overview for analyst data
-            var overviewTask = _alphaVantageService.GetCompanyOverviewAsync(symbol);
-
-            await Task.WhenAll(estimatesTask, overviewTask);
+            await Task.WhenAll(estimatesTask);
 
             var estimates = await estimatesTask;
-            var overview = await overviewTask;
 
             if (estimates == null || estimates.Count == 0)
             {
@@ -350,8 +370,8 @@ public class EnhancedFundamentalAnalysisService
             var analysis = new EnhancedAnalystAnalysis
             {
                 Symbol = symbol,
-                AnalystTargetPrice = overview?.AnalystTargetPrice ?? 0,
-                AnalystRatingStrongBuy = 0, // Would need additional API for ratings
+                AnalystTargetPrice = 0, // FMP doesn't provide target price data
+                AnalystRatingStrongBuy = 0, // FMP doesn't provide rating data
                 AnalystRatingBuy = 0,
                 AnalystRatingHold = 0,
                 AnalystRatingSell = 0,

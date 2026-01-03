@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuantResearchAgent.Services;
 
-namespace Server.Controllers;
+namespace Server;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -16,6 +16,79 @@ public class FundamentalAnalysisController : ControllerBase
     {
         _fundamentalService = fundamentalService;
         _logger = logger;
+    }
+
+    [HttpGet("test")]
+    public IActionResult Test()
+    {
+        return Ok("API is working");
+    }
+
+    [HttpGet("company-overview")]
+    public async Task<IActionResult> GetCompanyOverview([FromQuery] string symbol)
+    {
+        try
+        {
+            _logger.LogInformation("Getting company overview for {Symbol}", symbol);
+            var overview = await _fundamentalService.GetComprehensiveCompanyOverviewAsync(symbol);
+            
+            if (overview == null)
+            {
+                return NotFound(new { error = $"No data found for symbol {symbol}" });
+            }
+
+            return Ok(new
+            {
+                symbol = overview.Symbol,
+                companyName = overview.CompanyName,
+                description = overview.Description,
+                industry = overview.Industry,
+                sector = overview.Sector,
+                exchange = overview.Exchange,
+                country = overview.Country,
+                website = overview.Website,
+                ceo = overview.CEO,
+                employees = overview.Employees,
+                marketCap = overview.MarketCap,
+                peRatio = overview.PERatio,
+                pegRatio = overview.PEGRatio,
+                bookValue = overview.BookValue,
+                dividendPerShare = overview.DividendPerShare,
+                dividendYield = overview.DividendYield,
+                eps = overview.EPS,
+                revenuePerShareTTM = overview.RevenuePerShareTTM,
+                profitMargin = overview.ProfitMargin,
+                operatingMarginTTM = overview.OperatingMarginTTM,
+                returnOnAssetsTTM = overview.ReturnOnAssetsTTM,
+                returnOnEquityTTM = overview.ReturnOnEquityTTM,
+                quarterlyEarningsGrowthYOY = overview.QuarterlyEarningsGrowthYOY,
+                quarterlyRevenueGrowthYOY = overview.QuarterlyRevenueGrowthYOY,
+                analystTargetPrice = overview.AnalystTargetPrice,
+                trailingPE = overview.TrailingPE,
+                forwardPE = overview.ForwardPE,
+                priceToSalesRatioTTM = overview.PriceToSalesRatioTTM,
+                priceToBookRatio = overview.PriceToBookRatio,
+                evToRevenue = overview.EVToRevenue,
+                evToEBITDA = overview.EVToEBITDA,
+                beta = overview.Beta,
+                fiftyTwoWeekHigh = overview.FiftyTwoWeekHigh,
+                fiftyTwoWeekLow = overview.FiftyTwoWeekLow,
+                fiftyDayMovingAverage = overview.FiftyDayMovingAverage,
+                twoHundredDayMovingAverage = overview.TwoHundredDayMovingAverage,
+                sharesOutstanding = overview.SharesOutstanding,
+                dividendDate = overview.DividendDate,
+                exDividendDate = overview.ExDividendDate,
+                lastSplitFactor = overview.LastSplitFactor,
+                lastSplitDate = overview.LastSplitDate,
+                ipoDate = overview.IpoDate,
+                isActivelyTrading = overview.IsActivelyTrading
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting company overview for {Symbol}", symbol);
+            return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+        }
     }
 
     [HttpPost("overview")]
