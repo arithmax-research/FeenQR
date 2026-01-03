@@ -112,7 +112,10 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseCors("AllowBlazorWasm");
 app.UseRouting();
 
+// API routes must come BEFORE the fallback
 app.MapControllers();
+
+// Only fallback to SPA for non-API routes
 app.MapFallbackToFile("index.html");
 
 app.Run();

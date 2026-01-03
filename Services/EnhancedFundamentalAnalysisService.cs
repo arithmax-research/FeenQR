@@ -86,28 +86,28 @@ public class EnhancedFundamentalAnalysisService
                 MarketCap = fmpQuote?.MarketCap > 0.0m ? (long)fmpQuote.MarketCap : (long.TryParse(alphaVantageOverview?.MarketCapitalization, out var mc) ? mc : (yfinance?.MarketCap ?? 0L)),
                 
                 // P/E Ratio - triple fallback: FMP -> Alpha Vantage -> YFinance
-                PERatio = keyMetrics?.PeRatio ?? ParseDecimal(alphaVantageOverview?.PERatio) ?? yfinance?.TrailingPE ?? 0m,
+                PERatio = keyMetrics?.PeRatio ?? (ParseDecimal(alphaVantageOverview?.PERatio) > 0 ? ParseDecimal(alphaVantageOverview?.PERatio) : (yfinance?.TrailingPE ?? 0m)),
                 
                 // PEG Ratio - triple fallback
-                PEGRatio = ratios?.PriceEarningsToGrowthRatio ?? ParseDecimal(alphaVantageOverview?.PEGRatio) ?? yfinance?.PegRatio ?? 0m,
+                PEGRatio = ratios?.PriceEarningsToGrowthRatio ?? (ParseDecimal(alphaVantageOverview?.PEGRatio) > 0 ? ParseDecimal(alphaVantageOverview?.PEGRatio) : (yfinance?.PegRatio ?? 0m)),
                 
-                BookValue = keyMetrics?.BookValuePerShare ?? ParseDecimal(alphaVantageOverview?.BookValue) ?? yfinance?.PriceToBook ?? 0m,
-                DividendPerShare = keyMetrics?.DividendYield ?? ParseDecimal(alphaVantageOverview?.DividendPerShare) ?? 0m,
-                DividendYield = ratios?.DividendYield ?? ParseDecimal(alphaVantageOverview?.DividendYield) ?? yfinance?.DividendYield ?? 0m,
+                BookValue = keyMetrics?.BookValuePerShare ?? (ParseDecimal(alphaVantageOverview?.BookValue) > 0 ? ParseDecimal(alphaVantageOverview?.BookValue) : (yfinance?.PriceToBook ?? 0m)),
+                DividendPerShare = keyMetrics?.DividendYield ?? (ParseDecimal(alphaVantageOverview?.DividendPerShare) > 0 ? ParseDecimal(alphaVantageOverview?.DividendPerShare) : 0m),
+                DividendYield = ratios?.DividendYield ?? (ParseDecimal(alphaVantageOverview?.DividendYield) > 0 ? ParseDecimal(alphaVantageOverview?.DividendYield) : (yfinance?.DividendYield ?? 0m)),
                 
                 // EPS - triple fallback
-                EPS = keyMetrics?.NetIncomePerShare ?? ParseDecimal(alphaVantageOverview?.EPS) ?? (yfinance?.TrailingPE > 0 && yfinance?.CurrentPrice > 0 ? yfinance.CurrentPrice / yfinance.TrailingPE : 0m),
+                EPS = keyMetrics?.NetIncomePerShare ?? (ParseDecimal(alphaVantageOverview?.EPS) > 0 ? ParseDecimal(alphaVantageOverview?.EPS) : (yfinance?.TrailingPE > 0 && yfinance?.CurrentPrice > 0 ? yfinance.CurrentPrice / yfinance.TrailingPE : 0m)),
                 
-                RevenuePerShareTTM = keyMetrics?.RevenuePerShare ?? ParseDecimal(alphaVantageOverview?.RevenuePerShareTTM) ?? 0m,
+                RevenuePerShareTTM = keyMetrics?.RevenuePerShare ?? (ParseDecimal(alphaVantageOverview?.RevenuePerShareTTM) > 0 ? ParseDecimal(alphaVantageOverview?.RevenuePerShareTTM) : 0m),
                 
                 // Profitability Metrics - triple fallback
-                ProfitMargin = ratios?.NetProfitMargin ?? ParseDecimal(alphaVantageOverview?.ProfitMargin) ?? 0m,
-                OperatingMarginTTM = ratios?.OperatingMargin ?? ParseDecimal(alphaVantageOverview?.OperatingMarginTTM) ?? 0m,
-                ReturnOnAssetsTTM = ratios?.ReturnOnAssets ?? ParseDecimal(alphaVantageOverview?.ReturnOnAssetsTTM) ?? 0m,
-                ReturnOnEquityTTM = ratios?.ReturnOnEquity ?? ParseDecimal(alphaVantageOverview?.ReturnOnEquityTTM) ?? yfinance?.ReturnOnEquity ?? 0m,
+                ProfitMargin = ratios?.NetProfitMargin ?? (ParseDecimal(alphaVantageOverview?.ProfitMargin) > 0 ? ParseDecimal(alphaVantageOverview?.ProfitMargin) : 0m),
+                OperatingMarginTTM = ratios?.OperatingMargin ?? (ParseDecimal(alphaVantageOverview?.OperatingMarginTTM) > 0 ? ParseDecimal(alphaVantageOverview?.OperatingMarginTTM) : 0m),
+                ReturnOnAssetsTTM = ratios?.ReturnOnAssets ?? (ParseDecimal(alphaVantageOverview?.ReturnOnAssetsTTM) > 0 ? ParseDecimal(alphaVantageOverview?.ReturnOnAssetsTTM) : 0m),
+                ReturnOnEquityTTM = ratios?.ReturnOnEquity ?? (ParseDecimal(alphaVantageOverview?.ReturnOnEquityTTM) > 0 ? ParseDecimal(alphaVantageOverview?.ReturnOnEquityTTM) : (yfinance?.ReturnOnEquity ?? 0m)),
                 
-                QuarterlyEarningsGrowthYOY = ParseDecimal(alphaVantageOverview?.QuarterlyEarningsGrowthYOY) ?? yfinance?.EarningsGrowth ?? 0m,
-                QuarterlyRevenueGrowthYOY = ParseDecimal(alphaVantageOverview?.QuarterlyRevenueGrowthYOY) ?? yfinance?.RevenueGrowth ?? 0m,
+                QuarterlyEarningsGrowthYOY = (ParseDecimal(alphaVantageOverview?.QuarterlyEarningsGrowthYOY) > 0 ? ParseDecimal(alphaVantageOverview?.QuarterlyEarningsGrowthYOY) : (yfinance?.EarningsGrowth ?? 0m)),
+                QuarterlyRevenueGrowthYOY = (ParseDecimal(alphaVantageOverview?.QuarterlyRevenueGrowthYOY) > 0 ? ParseDecimal(alphaVantageOverview?.QuarterlyRevenueGrowthYOY) : (yfinance?.RevenueGrowth ?? 0m)),
                 AnalystTargetPrice = ParseDecimal(alphaVantageOverview?.AnalystTargetPrice),
                 TrailingPE = keyMetrics?.PeRatio ?? ParseDecimal(alphaVantageOverview?.PERatio) ?? yfinance?.TrailingPE ?? 0m,
                 ForwardPE = ParseDecimal(alphaVantageOverview?.ForwardPE) ?? yfinance?.ForwardPE ?? 0m,
@@ -115,9 +115,9 @@ public class EnhancedFundamentalAnalysisService
                 PriceToBookRatio = keyMetrics?.PbRatio ?? ParseDecimal(alphaVantageOverview?.PriceToBookRatio) ?? yfinance?.PriceToBook ?? 0m,
                 EVToRevenue = keyMetrics?.EvToSales ?? ParseDecimal(alphaVantageOverview?.EVToRevenue) ?? 0m,
                 EVToEBITDA = keyMetrics?.EnterpriseValueOverEBITDA ?? ParseDecimal(alphaVantageOverview?.EVToEBITDA) ?? 0m,
-                Beta = ParseDecimal(alphaVantageOverview?.Beta) ?? yfinance?.Beta ?? 0m,
-                FiftyTwoWeekHigh = fmpQuote?.YearHigh ?? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekHigh) ?? yfinance?.FiftyTwoWeekHigh ?? 0m,
-                FiftyTwoWeekLow = fmpQuote?.YearLow ?? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekLow) ?? yfinance?.FiftyTwoWeekLow ?? 0m,
+                Beta = ParseDecimal(alphaVantageOverview?.Beta) ?? (yfinance?.Beta ?? 0m),
+                FiftyTwoWeekHigh = fmpQuote?.YearHigh ?? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekHigh) ?? (yfinance?.FiftyTwoWeekHigh ?? 0m),
+                FiftyTwoWeekLow = fmpQuote?.YearLow ?? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekLow) ?? (yfinance?.FiftyTwoWeekLow ?? 0m),
                 FiftyDayMovingAverage = fmpQuote?.PriceAvg50 ?? ParseDecimal(alphaVantageOverview?.FiftyDayMovingAverage) ?? 0m,
                 TwoHundredDayMovingAverage = fmpQuote?.PriceAvg200 ?? ParseDecimal(alphaVantageOverview?.TwoHundredDayMovingAverage) ?? 0m,
                 SharesOutstanding = fmpQuote?.SharesOutstanding > 0 ? fmpQuote.SharesOutstanding : (long.TryParse(alphaVantageOverview?.SharesOutstanding, out var so) ? so : (yfinance?.SharesOutstanding ?? 0L)),
