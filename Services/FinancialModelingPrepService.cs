@@ -580,13 +580,13 @@ public class FMPCashFlow
     public long? PurchasesOfInvestments { get; set; }
     public long? SalesMaturitiesOfInvestments { get; set; }
     public long? OtherInvestingActivites { get; set; }
-    public long? NetCashUsedForInvestingActivites { get; set; }
+    public long? NetCashProvidedByInvestingActivities { get; set; }
     public long? DebtRepayment { get; set; }
     public long? CommonStockIssued { get; set; }
     public long? CommonStockRepurchased { get; set; }
     public long? DividendsPaid { get; set; }
     public long? OtherFinancingActivites { get; set; }
-    public long? NetCashUsedProvidedByFinancingActivities { get; set; }
+    public long? NetCashProvidedByFinancingActivities { get; set; }
     public long? EffectOfForexChangesOnCash { get; set; }
     public long? NetChangeInCash { get; set; }
     public long? CashAtEndOfPeriod { get; set; }

@@ -147,8 +147,8 @@ Net Debt: ${sheet.NetDebt:N0}
         {
             result += $@"Period: {flow.Date} ({flow.Period})
 Operating Cash Flow: ${flow.NetCashProvidedByOperatingActivities:N0}
-Investing Cash Flow: ${flow.NetCashUsedForInvestingActivites:N0}
-Financing Cash Flow: ${flow.NetCashUsedProvidedByFinancingActivities:N0}
+Investing Cash Flow: ${flow.NetCashProvidedByInvestingActivities:N0}
+Financing Cash Flow: ${flow.NetCashProvidedByFinancingActivities:N0}
 Free Cash Flow: ${flow.FreeCashFlow:N0}
 Capital Expenditure: ${flow.CapitalExpenditure:N0}
 Net Change in Cash: ${flow.NetChangeInCash:N0}

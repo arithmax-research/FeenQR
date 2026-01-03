@@ -142,36 +142,38 @@ public class EnhancedFundamentalAnalysisService
                 {
                     Date = f.Date,
                     Period = f.Period,
-                    Revenue = (long)ParseDecimal(f.Revenue),
-                    CostOfRevenue = (long)ParseDecimal(f.CostOfRevenue),
-                    GrossProfit = (long)ParseDecimal(f.GrossProfit),
-                    OperatingExpenses = (long)ParseDecimal(f.OperatingExpenses),
-                    OperatingIncome = (long)ParseDecimal(f.OperatingIncome),
-                    NetIncome = (long)ParseDecimal(f.NetIncome),
-                    EPS = ParseDecimal(f.Eps),
-                    EPSDiluted = ParseDecimal(f.Epsdiluted)
+                    Revenue = f.Revenue ?? 0L,
+                    CostOfRevenue = f.CostOfRevenue ?? 0L,
+                    GrossProfit = f.GrossProfit ?? 0L,
+                    OperatingExpenses = f.OperatingExpenses ?? 0L,
+                    OperatingIncome = f.OperatingIncome ?? 0L,
+                    NetIncome = f.NetIncome ?? 0L,
+                    EPS = (decimal)(f.Eps ?? 0m),
+                    EPSDiluted = (decimal)(f.Epsdiluted ?? 0m)
                 }).ToList() ?? new List<EnhancedIncomeStatement>(),
                 BalanceSheets = fmpBalance?.Select(f => new EnhancedBalanceSheet
                 {
                     Date = f.Date,
                     Period = f.Period,
-                    TotalAssets = (long)ParseDecimal(f.TotalAssets),
-                    TotalLiabilities = (long)ParseDecimal(f.TotalLiabilities),
-                    TotalEquity = (long)ParseDecimal(f.TotalEquity),
-                    CashAndEquivalents = (long)ParseDecimal(f.CashAndCashEquivalents),
-                    TotalCurrentAssets = (long)ParseDecimal(f.TotalCurrentAssets),
-                    TotalCurrentLiabilities = (long)ParseDecimal(f.TotalCurrentLiabilities),
-                    TotalDebt = (long)(ParseDecimal(f.ShortTermDebt) + ParseDecimal(f.LongTermDebt)),
-                    LongTermDebt = (long)ParseDecimal(f.LongTermDebt)
+                    TotalAssets = f.TotalAssets ?? 0L,
+                    TotalLiabilities = f.TotalLiabilities ?? 0L,
+                    TotalEquity = f.TotalEquity ?? 0L,
+                    CashAndEquivalents = f.CashAndCashEquivalents ?? 0L,
+                    TotalCurrentAssets = f.TotalCurrentAssets ?? 0L,
+                    TotalCurrentLiabilities = f.TotalCurrentLiabilities ?? 0L,
+                    TotalDebt = (f.ShortTermDebt ?? 0L) + (f.LongTermDebt ?? 0L),
+                    LongTermDebt = f.LongTermDebt ?? 0L
                 }).ToList() ?? new List<EnhancedBalanceSheet>(),
                 CashFlowStatements = fmpCashFlow?.Select(f => new EnhancedCashFlow
                 {
                     Date = f.Date,
                     Period = f.Period,
-                    OperatingCashFlow = (long)ParseDecimal(f.OperatingCashFlow),
-                    InvestingCashFlow = (long)ParseDecimal(f.NetCashUsedForInvestingActivites),
-                    FinancingCashFlow = (long)ParseDecimal(f.NetCashUsedProvidedByFinancingActivities),
-                    FreeCashFlow = (long)ParseDecimal(f.FreeCashFlow)
+                    OperatingCashFlow = f.OperatingCashFlow ?? 0L,
+                    InvestingCashFlow = f.NetCashProvidedByInvestingActivities ?? 0L,
+                    FinancingCashFlow = f.NetCashProvidedByFinancingActivities ?? 0L,
+                    FreeCashFlow = f.FreeCashFlow ?? 0L,
+                    CapitalExpenditure = f.CapitalExpenditure ?? 0L,
+                    NetChangeInCash = f.NetChangeInCash ?? 0L
                 }).ToList() ?? new List<EnhancedCashFlow>(),
                 LastUpdated = DateTime.UtcNow
             };
@@ -462,14 +464,14 @@ public class EnhancedFundamentalAnalysisService
         {
             Date = f.Date,
             Period = f.Period,
-            Revenue = (long)ParseDecimal(f.Revenue),
-            CostOfRevenue = (long)ParseDecimal(f.CostOfRevenue),
-            GrossProfit = (long)ParseDecimal(f.GrossProfit),
-            OperatingExpenses = (long)ParseDecimal(f.OperatingExpenses),
-            OperatingIncome = (long)ParseDecimal(f.OperatingIncome),
-            NetIncome = (long)ParseDecimal(f.NetIncome),
-            EPS = ParseDecimal(f.Eps),
-            EPSDiluted = ParseDecimal(f.Epsdiluted)
+            Revenue = f.Revenue ?? 0L,
+            CostOfRevenue = f.CostOfRevenue ?? 0L,
+            GrossProfit = f.GrossProfit ?? 0L,
+            OperatingExpenses = f.OperatingExpenses ?? 0L,
+            OperatingIncome = f.OperatingIncome ?? 0L,
+            NetIncome = f.NetIncome ?? 0L,
+            EPS = f.Eps ?? 0m,
+            EPSDiluted = f.Epsdiluted ?? 0m
         }).ToList() ?? new List<EnhancedIncomeStatement>();
     }
 
@@ -481,14 +483,14 @@ public class EnhancedFundamentalAnalysisService
         {
             Date = f.Date,
             Period = f.Period,
-            TotalAssets = (long)ParseDecimal(f.TotalAssets),
-            TotalLiabilities = (long)ParseDecimal(f.TotalLiabilities),
-            TotalEquity = (long)ParseDecimal(f.TotalEquity),
-            CashAndEquivalents = (long)ParseDecimal(f.CashAndCashEquivalents),
-            TotalCurrentAssets = (long)ParseDecimal(f.TotalCurrentAssets),
-            TotalCurrentLiabilities = (long)ParseDecimal(f.TotalCurrentLiabilities),
-            LongTermDebt = (long)ParseDecimal(f.LongTermDebt),
-            TotalDebt = (long)ParseDecimal(f.TotalDebt)
+            TotalAssets = f.TotalAssets ?? 0L,
+            TotalLiabilities = f.TotalLiabilities ?? 0L,
+            TotalEquity = f.TotalEquity ?? 0L,
+            CashAndEquivalents = f.CashAndCashEquivalents ?? 0L,
+            TotalCurrentAssets = f.TotalCurrentAssets ?? 0L,
+            TotalCurrentLiabilities = f.TotalCurrentLiabilities ?? 0L,
+            LongTermDebt = f.LongTermDebt ?? 0L,
+            TotalDebt = f.TotalDebt ?? 0L
         }).ToList() ?? new List<EnhancedBalanceSheet>();
     }
 
@@ -500,12 +502,12 @@ public class EnhancedFundamentalAnalysisService
         {
             Date = f.Date,
             Period = f.Period,
-            OperatingCashFlow = (long)ParseDecimal(f.NetCashProvidedByOperatingActivities),
-            InvestingCashFlow = (long)ParseDecimal(f.NetCashUsedForInvestingActivites),
-            FinancingCashFlow = (long)ParseDecimal(f.NetCashUsedProvidedByFinancingActivities),
-            FreeCashFlow = (long)ParseDecimal(f.FreeCashFlow),
-            CapitalExpenditure = (long)ParseDecimal(f.CapitalExpenditure),
-            NetChangeInCash = (long)ParseDecimal(f.NetChangeInCash)
+            OperatingCashFlow = f.NetCashProvidedByOperatingActivities ?? 0L,
+            InvestingCashFlow = f.NetCashProvidedByInvestingActivities ?? 0L,
+            FinancingCashFlow = f.NetCashProvidedByFinancingActivities ?? 0L,
+            FreeCashFlow = f.FreeCashFlow ?? 0L,
+            CapitalExpenditure = f.CapitalExpenditure ?? 0L,
+            NetChangeInCash = f.NetChangeInCash ?? 0L
         }).ToList() ?? new List<EnhancedCashFlow>();
     }
 
