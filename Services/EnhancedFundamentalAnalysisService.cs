@@ -72,33 +72,33 @@ public class EnhancedFundamentalAnalysisService
                 Website = fmpProfile?.Website ?? alphaVantageOverview?.Website,
                 CEO = fmpProfile?.CEO,
                 Employees = int.TryParse(fmpProfile?.FullTimeEmployees, out var emp) ? emp : 0,
-                MarketCap = (long)(fmpQuote?.MarketCap ?? fmpKeyMetrics?.FirstOrDefault()?.MarketCap ?? (long.TryParse(alphaVantageOverview?.MarketCapitalization, out var mc) ? mc : 0L)),
-                PERatio = fmpKeyMetrics?.FirstOrDefault()?.PeRatio > 0 ? fmpKeyMetrics.FirstOrDefault().PeRatio : ParseDecimal(alphaVantageOverview?.PERatio),
-                PEGRatio = fmpRatios?.FirstOrDefault()?.PriceEarningsToGrowthRatio > 0 ? fmpRatios.FirstOrDefault().PriceEarningsToGrowthRatio : ParseDecimal(alphaVantageOverview?.PEGRatio),
-                BookValue = fmpKeyMetrics?.FirstOrDefault()?.BookValuePerShare ?? ParseDecimal(alphaVantageOverview?.BookValue),
-                DividendPerShare = fmpKeyMetrics?.FirstOrDefault()?.DividendYield ?? ParseDecimal(alphaVantageOverview?.DividendPerShare),
-                DividendYield = fmpRatios?.FirstOrDefault()?.DividendYield ?? ParseDecimal(alphaVantageOverview?.DividendYield),
-                EPS = fmpKeyMetrics?.FirstOrDefault()?.NetIncomePerShare is decimal eps && eps != 0 ? eps : ParseDecimal(alphaVantageOverview?.EPS),
-                RevenuePerShareTTM = fmpKeyMetrics?.FirstOrDefault()?.RevenuePerShare ?? ParseDecimal(alphaVantageOverview?.RevenuePerShareTTM),
-                ProfitMargin = fmpRatios?.FirstOrDefault()?.NetProfitMargin ?? ParseDecimal(alphaVantageOverview?.ProfitMargin),
-                OperatingMarginTTM = fmpRatios?.FirstOrDefault()?.OperatingMargin is decimal om && om != 0 ? om : ParseDecimal(alphaVantageOverview?.OperatingMarginTTM),
-                ReturnOnAssetsTTM = fmpRatios?.FirstOrDefault()?.ReturnOnAssets is decimal roa && roa != 0 ? roa : ParseDecimal(alphaVantageOverview?.ReturnOnAssetsTTM),
-                ReturnOnEquityTTM = fmpRatios?.FirstOrDefault()?.ReturnOnEquity is decimal roe && roe != 0 ? roe : ParseDecimal(alphaVantageOverview?.ReturnOnEquityTTM),
+                MarketCap = fmpQuote?.MarketCap > 0L ? fmpQuote.MarketCap : (long.TryParse(alphaVantageOverview?.MarketCapitalization, out var mc) ? mc : 0L),
+                PERatio = fmpKeyMetrics?.FirstOrDefault()?.PeRatio ?? 0.0m,
+                PEGRatio = fmpRatios?.FirstOrDefault()?.PriceEarningsToGrowthRatio ?? 0.0m,
+                BookValue = fmpKeyMetrics?.FirstOrDefault()?.BookValuePerShare ?? 0.0m,
+                DividendPerShare = fmpKeyMetrics?.FirstOrDefault()?.DividendYield ?? 0.0m,
+                DividendYield = fmpRatios?.FirstOrDefault()?.DividendYield ?? 0.0m,
+                EPS = fmpKeyMetrics?.FirstOrDefault()?.NetIncomePerShare ?? 0.0m,
+                RevenuePerShareTTM = fmpKeyMetrics?.FirstOrDefault()?.RevenuePerShare ?? 0.0m,
+                ProfitMargin = fmpRatios?.FirstOrDefault()?.NetProfitMargin ?? 0.0m,
+                OperatingMarginTTM = fmpRatios?.FirstOrDefault()?.OperatingMargin ?? 0.0m,
+                ReturnOnAssetsTTM = fmpRatios?.FirstOrDefault()?.ReturnOnAssets ?? 0.0m,
+                ReturnOnEquityTTM = fmpRatios?.FirstOrDefault()?.ReturnOnEquity ?? 0.0m,
                 QuarterlyEarningsGrowthYOY = ParseDecimal(alphaVantageOverview?.QuarterlyEarningsGrowthYOY),
                 QuarterlyRevenueGrowthYOY = ParseDecimal(alphaVantageOverview?.QuarterlyRevenueGrowthYOY),
                 AnalystTargetPrice = ParseDecimal(alphaVantageOverview?.AnalystTargetPrice),
-                TrailingPE = fmpKeyMetrics?.FirstOrDefault()?.PeRatio ?? ParseDecimal(alphaVantageOverview?.TrailingPE),
+                TrailingPE = fmpKeyMetrics?.FirstOrDefault()?.PeRatio ?? 0.0m,
                 ForwardPE = ParseDecimal(alphaVantageOverview?.ForwardPE),
-                PriceToSalesRatioTTM = fmpKeyMetrics?.FirstOrDefault()?.PriceToSalesRatio ?? ParseDecimal(alphaVantageOverview?.PriceToSalesRatioTTM),
-                PriceToBookRatio = fmpKeyMetrics?.FirstOrDefault()?.PbRatio ?? ParseDecimal(alphaVantageOverview?.PriceToBookRatio),
-                EVToRevenue = fmpKeyMetrics?.FirstOrDefault()?.EvToSales ?? ParseDecimal(alphaVantageOverview?.EVToRevenue),
-                EVToEBITDA = fmpKeyMetrics?.FirstOrDefault()?.EnterpriseValueOverEBITDA ?? ParseDecimal(alphaVantageOverview?.EVToEBITDA),
+                PriceToSalesRatioTTM = fmpKeyMetrics?.FirstOrDefault()?.PriceToSalesRatio ?? 0.0m,
+                PriceToBookRatio = fmpKeyMetrics?.FirstOrDefault()?.PbRatio ?? 0.0m,
+                EVToRevenue = fmpKeyMetrics?.FirstOrDefault()?.EvToSales ?? 0.0m,
+                EVToEBITDA = fmpKeyMetrics?.FirstOrDefault()?.EnterpriseValueOverEBITDA ?? 0.0m,
                 Beta = ParseDecimal(alphaVantageOverview?.Beta),
-                FiftyTwoWeekHigh = fmpQuote?.YearHigh ?? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekHigh),
-                FiftyTwoWeekLow = fmpQuote?.YearLow ?? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekLow),
-                FiftyDayMovingAverage = fmpQuote?.PriceAvg50 ?? ParseDecimal(alphaVantageOverview?.FiftyDayMovingAverage),
-                TwoHundredDayMovingAverage = fmpQuote?.PriceAvg200 ?? ParseDecimal(alphaVantageOverview?.TwoHundredDayMovingAverage),
-                SharesOutstanding = fmpQuote?.SharesOutstanding ?? (long.TryParse(alphaVantageOverview?.SharesOutstanding, out var so) ? so : 0L),
+                FiftyTwoWeekHigh = fmpQuote?.YearHigh ?? 0.0m,
+                FiftyTwoWeekLow = fmpQuote?.YearLow ?? 0.0m,
+                FiftyDayMovingAverage = fmpQuote?.PriceAvg50 ?? 0.0m,
+                TwoHundredDayMovingAverage = fmpQuote?.PriceAvg200 ?? 0.0m,
+                SharesOutstanding = fmpQuote?.SharesOutstanding > 0 ? fmpQuote.SharesOutstanding : (long.TryParse(alphaVantageOverview?.SharesOutstanding, out var so) ? so : 0L),
                 DividendDate = alphaVantageOverview?.DividendDate,
                 ExDividendDate = alphaVantageOverview?.ExDividendDate,
                 LastSplitFactor = alphaVantageOverview?.LastSplitFactor,
@@ -142,36 +142,36 @@ public class EnhancedFundamentalAnalysisService
                 {
                     Date = f.Date,
                     Period = f.Period,
-                    Revenue = f.Revenue,
-                    CostOfRevenue = f.CostOfRevenue,
-                    GrossProfit = f.GrossProfit,
-                    OperatingExpenses = f.OperatingExpenses,
-                    OperatingIncome = f.OperatingIncome,
-                    NetIncome = f.NetIncome,
-                    EPS = f.Eps,
-                    EPSDiluted = f.Epsdiluted
+                    Revenue = (long)ParseDecimal(f.Revenue),
+                    CostOfRevenue = (long)ParseDecimal(f.CostOfRevenue),
+                    GrossProfit = (long)ParseDecimal(f.GrossProfit),
+                    OperatingExpenses = (long)ParseDecimal(f.OperatingExpenses),
+                    OperatingIncome = (long)ParseDecimal(f.OperatingIncome),
+                    NetIncome = (long)ParseDecimal(f.NetIncome),
+                    EPS = ParseDecimal(f.Eps),
+                    EPSDiluted = ParseDecimal(f.Epsdiluted)
                 }).ToList() ?? new List<EnhancedIncomeStatement>(),
                 BalanceSheets = fmpBalance?.Select(f => new EnhancedBalanceSheet
                 {
                     Date = f.Date,
                     Period = f.Period,
-                    TotalAssets = f.TotalAssets,
-                    TotalLiabilities = f.TotalLiabilities,
-                    TotalEquity = f.TotalEquity,
-                    CashAndEquivalents = f.CashAndCashEquivalents,
-                    TotalCurrentAssets = f.TotalCurrentAssets,
-                    TotalCurrentLiabilities = f.TotalCurrentLiabilities,
-                    TotalDebt = f.ShortTermDebt + f.LongTermDebt,
-                    LongTermDebt = f.LongTermDebt
+                    TotalAssets = (long)ParseDecimal(f.TotalAssets),
+                    TotalLiabilities = (long)ParseDecimal(f.TotalLiabilities),
+                    TotalEquity = (long)ParseDecimal(f.TotalEquity),
+                    CashAndEquivalents = (long)ParseDecimal(f.CashAndCashEquivalents),
+                    TotalCurrentAssets = (long)ParseDecimal(f.TotalCurrentAssets),
+                    TotalCurrentLiabilities = (long)ParseDecimal(f.TotalCurrentLiabilities),
+                    TotalDebt = (long)(ParseDecimal(f.ShortTermDebt) + ParseDecimal(f.LongTermDebt)),
+                    LongTermDebt = (long)ParseDecimal(f.LongTermDebt)
                 }).ToList() ?? new List<EnhancedBalanceSheet>(),
                 CashFlowStatements = fmpCashFlow?.Select(f => new EnhancedCashFlow
                 {
                     Date = f.Date,
                     Period = f.Period,
-                    OperatingCashFlow = f.OperatingCashFlow,
-                    InvestingCashFlow = f.NetCashUsedForInvestingActivites,
-                    FinancingCashFlow = f.NetCashUsedProvidedByFinancingActivities,
-                    FreeCashFlow = f.FreeCashFlow
+                    OperatingCashFlow = (long)ParseDecimal(f.OperatingCashFlow),
+                    InvestingCashFlow = (long)ParseDecimal(f.NetCashUsedForInvestingActivites),
+                    FinancingCashFlow = (long)ParseDecimal(f.NetCashUsedProvidedByFinancingActivities),
+                    FreeCashFlow = (long)ParseDecimal(f.FreeCashFlow)
                 }).ToList() ?? new List<EnhancedCashFlow>(),
                 LastUpdated = DateTime.UtcNow
             };
@@ -219,11 +219,11 @@ public class EnhancedFundamentalAnalysisService
                 SharesOutstanding = quote.SharesOutstanding,
 
                 // Price multiples
-                PERatio = metrics.PeRatio,
-                PriceToBook = metrics.PbRatio,
-                PriceToSales = metrics.PriceToSalesRatio,
-                EVToEBITDA = metrics.EnterpriseValueOverEBITDA,
-                EVToRevenue = metrics.EvToSales,
+                PERatio = metrics.PeRatio ?? 0.0m,
+                PriceToBook = metrics.PbRatio ?? 0.0m,
+                PriceToSales = metrics.PriceToSalesRatio ?? 0.0m,
+                EVToEBITDA = metrics.EnterpriseValueOverEBITDA ?? 0.0m,
+                EVToRevenue = metrics.EvToSales ?? 0.0m,
 
                 // Growth metrics (not available from FMP, set to 0)
                 EPS = quote.Eps,
@@ -231,15 +231,15 @@ public class EnhancedFundamentalAnalysisService
                 RevenueGrowth = 0, // FMP doesn't provide growth data
 
                 // Profitability
-                ROE = metrics.Roe,
+                ROE = metrics.Roe ?? 0.0m,
                 ROA = ratios.ReturnOnAssets,
                 ProfitMargin = ratios.NetProfitMargin,
                 OperatingMargin = ratios.OperatingMargin,
 
                 // Financial health
-                DebtToEquity = metrics.DebtToEquity,
-                CurrentRatio = metrics.CurrentRatio,
-                InterestCoverage = metrics.InterestCoverage,
+                DebtToEquity = metrics.DebtToEquity ?? 0.0m,
+                CurrentRatio = metrics.CurrentRatio ?? 0.0m,
+                InterestCoverage = metrics.InterestCoverage ?? 0.0m,
 
                 // Market data
                 FiftyTwoWeekHigh = quote.YearHigh,
@@ -248,7 +248,7 @@ public class EnhancedFundamentalAnalysisService
 
                 // Analyst estimates
                 AnalystTargetPrice = 0, // FMP doesn't provide analyst target price
-                DividendYield = metrics.DividendYield,
+                DividendYield = metrics.DividendYield ?? 0.0m,
 
                 AnalysisDate = DateTime.UtcNow
             };
@@ -462,14 +462,14 @@ public class EnhancedFundamentalAnalysisService
         {
             Date = f.Date,
             Period = f.Period,
-            Revenue = f.Revenue,
-            CostOfRevenue = f.CostOfRevenue,
-            GrossProfit = f.GrossProfit,
-            OperatingExpenses = f.OperatingExpenses,
-            OperatingIncome = f.OperatingIncome,
-            NetIncome = f.NetIncome,
-            EPS = f.Eps,
-            EPSDiluted = f.Epsdiluted
+            Revenue = (long)ParseDecimal(f.Revenue),
+            CostOfRevenue = (long)ParseDecimal(f.CostOfRevenue),
+            GrossProfit = (long)ParseDecimal(f.GrossProfit),
+            OperatingExpenses = (long)ParseDecimal(f.OperatingExpenses),
+            OperatingIncome = (long)ParseDecimal(f.OperatingIncome),
+            NetIncome = (long)ParseDecimal(f.NetIncome),
+            EPS = ParseDecimal(f.Eps),
+            EPSDiluted = ParseDecimal(f.Epsdiluted)
         }).ToList() ?? new List<EnhancedIncomeStatement>();
     }
 
@@ -481,14 +481,14 @@ public class EnhancedFundamentalAnalysisService
         {
             Date = f.Date,
             Period = f.Period,
-            TotalAssets = f.TotalAssets,
-            TotalLiabilities = f.TotalLiabilities,
-            TotalEquity = f.TotalEquity,
-            CashAndEquivalents = f.CashAndCashEquivalents,
-            TotalCurrentAssets = f.TotalCurrentAssets,
-            TotalCurrentLiabilities = f.TotalCurrentLiabilities,
-            LongTermDebt = f.LongTermDebt,
-            TotalDebt = f.TotalDebt
+            TotalAssets = (long)ParseDecimal(f.TotalAssets),
+            TotalLiabilities = (long)ParseDecimal(f.TotalLiabilities),
+            TotalEquity = (long)ParseDecimal(f.TotalEquity),
+            CashAndEquivalents = (long)ParseDecimal(f.CashAndCashEquivalents),
+            TotalCurrentAssets = (long)ParseDecimal(f.TotalCurrentAssets),
+            TotalCurrentLiabilities = (long)ParseDecimal(f.TotalCurrentLiabilities),
+            LongTermDebt = (long)ParseDecimal(f.LongTermDebt),
+            TotalDebt = (long)ParseDecimal(f.TotalDebt)
         }).ToList() ?? new List<EnhancedBalanceSheet>();
     }
 
@@ -500,12 +500,12 @@ public class EnhancedFundamentalAnalysisService
         {
             Date = f.Date,
             Period = f.Period,
-            OperatingCashFlow = f.NetCashProvidedByOperatingActivities,
-            InvestingCashFlow = f.NetCashUsedForInvestingActivites,
-            FinancingCashFlow = f.NetCashUsedProvidedByFinancingActivities,
-            FreeCashFlow = f.FreeCashFlow,
-            CapitalExpenditure = f.CapitalExpenditure,
-            NetChangeInCash = f.NetChangeInCash
+            OperatingCashFlow = (long)ParseDecimal(f.NetCashProvidedByOperatingActivities),
+            InvestingCashFlow = (long)ParseDecimal(f.NetCashUsedForInvestingActivites),
+            FinancingCashFlow = (long)ParseDecimal(f.NetCashUsedProvidedByFinancingActivities),
+            FreeCashFlow = (long)ParseDecimal(f.FreeCashFlow),
+            CapitalExpenditure = (long)ParseDecimal(f.CapitalExpenditure),
+            NetChangeInCash = (long)ParseDecimal(f.NetChangeInCash)
         }).ToList() ?? new List<EnhancedCashFlow>();
     }
 

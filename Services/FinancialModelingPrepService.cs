@@ -31,11 +31,14 @@ public class FinancialModelingPrepService
         _configuration = configuration;
         _apiKey = _configuration["FMP:ApiKey"] ?? "demo";
 
-        // Configure JSON deserializer to be case-insensitive
+        // Configure JSON deserializer to be case-insensitive and use custom converters
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         };
+        _jsonOptions.Converters.Add(new FlexibleDecimalConverter());
+        _jsonOptions.Converters.Add(new FlexibleNullableDecimalConverter());
+        _jsonOptions.Converters.Add(new FlexibleNullableLongConverter());
 
         // Set user agent for API requests
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("FeenQR/1.0");
@@ -459,7 +462,7 @@ public class FMPQuote
     public decimal DayHigh { get; set; }
     public decimal YearLow { get; set; }
     public decimal YearHigh { get; set; }
-    public decimal MarketCap { get; set; }
+    public long MarketCap { get; set; }
     public decimal PriceAvg50 { get; set; }
     public decimal PriceAvg200 { get; set; }
     public long Volume { get; set; }
@@ -479,32 +482,32 @@ public class FMPIncomeStatement
     public required string Date { get; set; }
     public required string Symbol { get; set; }
     public required string Period { get; set; }
-    public long Revenue { get; set; }
-    public long CostOfRevenue { get; set; }
-    public long GrossProfit { get; set; }
-    public long GrossProfitRatio { get; set; }
-    public long ResearchAndDevelopmentExpenses { get; set; }
-    public long GeneralAndAdministrativeExpenses { get; set; }
-    public long SellingAndMarketingExpenses { get; set; }
-    public long OtherExpenses { get; set; }
-    public long OperatingExpenses { get; set; }
-    public long CostAndExpenses { get; set; }
-    public long InterestExpense { get; set; }
-    public long DepreciationAndAmortization { get; set; }
-    public long Ebitda { get; set; }
-    public long Ebitdaratio { get; set; }
-    public long OperatingIncome { get; set; }
-    public long OperatingIncomeRatio { get; set; }
-    public long TotalOtherIncomeExpensesNet { get; set; }
-    public long IncomeBeforeTax { get; set; }
-    public long IncomeBeforeTaxRatio { get; set; }
-    public long IncomeTaxExpense { get; set; }
-    public long NetIncome { get; set; }
-    public long NetIncomeRatio { get; set; }
-    public long Eps { get; set; }
-    public long Epsdiluted { get; set; }
-    public long WeightedAverageShsOut { get; set; }
-    public long WeightedAverageShsOutDil { get; set; }
+    public long? Revenue { get; set; }
+    public long? CostOfRevenue { get; set; }
+    public long? GrossProfit { get; set; }
+    public decimal? GrossProfitRatio { get; set; }
+    public long? ResearchAndDevelopmentExpenses { get; set; }
+    public long? GeneralAndAdministrativeExpenses { get; set; }
+    public long? SellingAndMarketingExpenses { get; set; }
+    public long? OtherExpenses { get; set; }
+    public long? OperatingExpenses { get; set; }
+    public long? CostAndExpenses { get; set; }
+    public long? InterestExpense { get; set; }
+    public long? DepreciationAndAmortization { get; set; }
+    public long? Ebitda { get; set; }
+    public decimal? Ebitdaratio { get; set; }
+    public long? OperatingIncome { get; set; }
+    public decimal? OperatingIncomeRatio { get; set; }
+    public long? TotalOtherIncomeExpensesNet { get; set; }
+    public long? IncomeBeforeTax { get; set; }
+    public decimal? IncomeBeforeTaxRatio { get; set; }
+    public long? IncomeTaxExpense { get; set; }
+    public long? NetIncome { get; set; }
+    public decimal? NetIncomeRatio { get; set; }
+    public decimal? Eps { get; set; }
+    public decimal? Epsdiluted { get; set; }
+    public long? WeightedAverageShsOut { get; set; }
+    public long? WeightedAverageShsOutDil { get; set; }
 }
 
 public class FMPBalanceSheet
@@ -512,48 +515,48 @@ public class FMPBalanceSheet
     public required string Date { get; set; }
     public required string Symbol { get; set; }
     public required string Period { get; set; }
-    public long CashAndCashEquivalents { get; set; }
-    public long ShortTermInvestments { get; set; }
-    public long CashAndShortTermInvestments { get; set; }
-    public long NetReceivables { get; set; }
-    public long Inventory { get; set; }
-    public long OtherCurrentAssets { get; set; }
-    public long TotalCurrentAssets { get; set; }
-    public long PropertyPlantEquipmentNet { get; set; }
-    public long Goodwill { get; set; }
-    public long IntangibleAssets { get; set; }
-    public long GoodwillAndIntangibleAssets { get; set; }
-    public long LongTermInvestments { get; set; }
-    public long TaxAssets { get; set; }
-    public long OtherNonCurrentAssets { get; set; }
-    public long TotalNonCurrentAssets { get; set; }
-    public long OtherAssets { get; set; }
-    public long TotalAssets { get; set; }
-    public long AccountPayables { get; set; }
-    public long ShortTermDebt { get; set; }
-    public long TaxPayables { get; set; }
-    public long DeferredRevenue { get; set; }
-    public long OtherCurrentLiabilities { get; set; }
-    public long TotalCurrentLiabilities { get; set; }
-    public long LongTermDebt { get; set; }
-    public long DeferredRevenueNonCurrent { get; set; }
-    public long DeferredTaxLiabilitiesNonCurrent { get; set; }
-    public long OtherNonCurrentLiabilities { get; set; }
-    public long TotalNonCurrentLiabilities { get; set; }
-    public long OtherLiabilities { get; set; }
-    public long TotalLiabilities { get; set; }
-    public long CommonStock { get; set; }
-    public long RetainedEarnings { get; set; }
-    public long AccumulatedOtherComprehensiveIncomeLoss { get; set; }
-    public long OthertotalStockholdersEquity { get; set; }
-    public long TotalStockholdersEquity { get; set; }
-    public long TotalLiabilitiesAndStockholdersEquity { get; set; }
-    public long MinorityInterest { get; set; }
-    public long TotalEquity { get; set; }
-    public long TotalLiabilitiesAndTotalEquity { get; set; }
-    public long TotalInvestments { get; set; }
-    public long TotalDebt { get; set; }
-    public long NetDebt { get; set; }
+    public long? CashAndCashEquivalents { get; set; }
+    public long? ShortTermInvestments { get; set; }
+    public long? CashAndShortTermInvestments { get; set; }
+    public long? NetReceivables { get; set; }
+    public long? Inventory { get; set; }
+    public long? OtherCurrentAssets { get; set; }
+    public long? TotalCurrentAssets { get; set; }
+    public long? PropertyPlantEquipmentNet { get; set; }
+    public long? Goodwill { get; set; }
+    public long? IntangibleAssets { get; set; }
+    public long? GoodwillAndIntangibleAssets { get; set; }
+    public long? LongTermInvestments { get; set; }
+    public long? TaxAssets { get; set; }
+    public long? OtherNonCurrentAssets { get; set; }
+    public long? TotalNonCurrentAssets { get; set; }
+    public long? OtherAssets { get; set; }
+    public long? TotalAssets { get; set; }
+    public long? AccountPayables { get; set; }
+    public long? ShortTermDebt { get; set; }
+    public long? TaxPayables { get; set; }
+    public long? DeferredRevenue { get; set; }
+    public long? OtherCurrentLiabilities { get; set; }
+    public long? TotalCurrentLiabilities { get; set; }
+    public long? LongTermDebt { get; set; }
+    public long? DeferredRevenueNonCurrent { get; set; }
+    public long? DeferredTaxLiabilitiesNonCurrent { get; set; }
+    public long? OtherNonCurrentLiabilities { get; set; }
+    public long? TotalNonCurrentLiabilities { get; set; }
+    public long? OtherLiabilities { get; set; }
+    public long? TotalLiabilities { get; set; }
+    public long? CommonStock { get; set; }
+    public long? RetainedEarnings { get; set; }
+    public long? AccumulatedOtherComprehensiveIncomeLoss { get; set; }
+    public long? OthertotalStockholdersEquity { get; set; }
+    public long? TotalStockholdersEquity { get; set; }
+    public long? TotalLiabilitiesAndStockholdersEquity { get; set; }
+    public long? MinorityInterest { get; set; }
+    public long? TotalEquity { get; set; }
+    public long? TotalLiabilitiesAndTotalEquity { get; set; }
+    public long? TotalInvestments { get; set; }
+    public long? TotalDebt { get; set; }
+    public long? NetDebt { get; set; }
 }
 
 public class FMPCashFlow
@@ -561,36 +564,36 @@ public class FMPCashFlow
     public required string Date { get; set; }
     public required string Symbol { get; set; }
     public required string Period { get; set; }
-    public long NetIncome { get; set; }
-    public long DepreciationAndAmortization { get; set; }
-    public long DeferredIncomeTax { get; set; }
-    public long StockBasedCompensation { get; set; }
-    public long ChangeInWorkingCapital { get; set; }
-    public long AccountsReceivables { get; set; }
-    public long Inventory { get; set; }
-    public long AccountsPayables { get; set; }
-    public long OtherWorkingCapital { get; set; }
-    public long OtherNonCashItems { get; set; }
-    public long NetCashProvidedByOperatingActivities { get; set; }
-    public long InvestmentsInPropertyPlantAndEquipment { get; set; }
-    public long AcquisitionsNet { get; set; }
-    public long PurchasesOfInvestments { get; set; }
-    public long SalesMaturitiesOfInvestments { get; set; }
-    public long OtherInvestingActivites { get; set; }
-    public long NetCashUsedForInvestingActivites { get; set; }
-    public long DebtRepayment { get; set; }
-    public long CommonStockIssued { get; set; }
-    public long CommonStockRepurchased { get; set; }
-    public long DividendsPaid { get; set; }
-    public long OtherFinancingActivites { get; set; }
-    public long NetCashUsedProvidedByFinancingActivities { get; set; }
-    public long EffectOfForexChangesOnCash { get; set; }
-    public long NetChangeInCash { get; set; }
-    public long CashAtEndOfPeriod { get; set; }
-    public long CashAtBeginningOfPeriod { get; set; }
-    public long OperatingCashFlow { get; set; }
-    public long CapitalExpenditure { get; set; }
-    public long FreeCashFlow { get; set; }
+    public long? NetIncome { get; set; }
+    public long? DepreciationAndAmortization { get; set; }
+    public long? DeferredIncomeTax { get; set; }
+    public long? StockBasedCompensation { get; set; }
+    public long? ChangeInWorkingCapital { get; set; }
+    public long? AccountsReceivables { get; set; }
+    public long? Inventory { get; set; }
+    public long? AccountsPayables { get; set; }
+    public long? OtherWorkingCapital { get; set; }
+    public long? OtherNonCashItems { get; set; }
+    public long? NetCashProvidedByOperatingActivities { get; set; }
+    public long? InvestmentsInPropertyPlantAndEquipment { get; set; }
+    public long? AcquisitionsNet { get; set; }
+    public long? PurchasesOfInvestments { get; set; }
+    public long? SalesMaturitiesOfInvestments { get; set; }
+    public long? OtherInvestingActivites { get; set; }
+    public long? NetCashUsedForInvestingActivites { get; set; }
+    public long? DebtRepayment { get; set; }
+    public long? CommonStockIssued { get; set; }
+    public long? CommonStockRepurchased { get; set; }
+    public long? DividendsPaid { get; set; }
+    public long? OtherFinancingActivites { get; set; }
+    public long? NetCashUsedProvidedByFinancingActivities { get; set; }
+    public long? EffectOfForexChangesOnCash { get; set; }
+    public long? NetChangeInCash { get; set; }
+    public long? CashAtEndOfPeriod { get; set; }
+    public long? CashAtBeginningOfPeriod { get; set; }
+    public long? OperatingCashFlow { get; set; }
+    public long? CapitalExpenditure { get; set; }
+    public long? FreeCashFlow { get; set; }
 }
 
 public class FMPKeyMetrics
@@ -598,63 +601,63 @@ public class FMPKeyMetrics
     public required string Date { get; set; }
     public required string Symbol { get; set; }
     public required string Period { get; set; }
-    public decimal RevenuePerShare { get; set; }
-    public decimal NetIncomePerShare { get; set; }
-    public decimal OperatingCashFlowPerShare { get; set; }
-    public decimal FreeCashFlowPerShare { get; set; }
-    public decimal CashPerShare { get; set; }
-    public decimal BookValuePerShare { get; set; }
-    public decimal TangibleBookValuePerShare { get; set; }
-    public decimal ShareholdersEquityPerShare { get; set; }
-    public decimal InterestDebtPerShare { get; set; }
-    public decimal MarketCap { get; set; }
-    public decimal EnterpriseValue { get; set; }
-    public decimal PeRatio { get; set; }
-    public decimal PriceToSalesRatio { get; set; }
-    public decimal Pocfratio { get; set; }
-    public decimal PfcfRatio { get; set; }
-    public decimal PbRatio { get; set; }
-    public decimal Ptbratio { get; set; }
-    public decimal EvToSales { get; set; }
-    public decimal EnterpriseValueOverEBITDA { get; set; }
-    public decimal EvToOperatingCashFlow { get; set; }
-    public decimal EvToFreeCashFlow { get; set; }
-    public decimal EarningsYield { get; set; }
-    public decimal FreeCashFlowYield { get; set; }
-    public decimal DebtToEquity { get; set; }
-    public decimal DebtToAssets { get; set; }
-    public decimal NetDebtToEBITDA { get; set; }
-    public decimal CurrentRatio { get; set; }
-    public decimal InterestCoverage { get; set; }
-    public decimal IncomeQuality { get; set; }
-    public decimal DividendYield { get; set; }
-    public decimal PayoutRatio { get; set; }
-    public decimal SalesGeneralAndAdministrativeToRevenue { get; set; }
-    public decimal ResearchAndDdevelopementToRevenue { get; set; }
-    public decimal IntangiblesToTotalAssets { get; set; }
-    public decimal CapexToOperatingCashFlow { get; set; }
-    public decimal CapexToRevenue { get; set; }
-    public decimal CapexToDepreciation { get; set; }
-    public decimal StockBasedCompensationToRevenue { get; set; }
-    public decimal GrahamNumber { get; set; }
-    public decimal Roic { get; set; }
-    public decimal ReturnOnTangibleAssets { get; set; }
-    public decimal GrahamNetNet { get; set; }
-    public decimal WorkingCapital { get; set; }
-    public decimal TangibleAssetValue { get; set; }
-    public decimal NetCurrentAssetValue { get; set; }
-    public decimal InvestedCapital { get; set; }
-    public decimal AverageReceivables { get; set; }
-    public decimal AveragePayables { get; set; }
-    public decimal AverageInventory { get; set; }
-    public decimal DaysSalesOutstanding { get; set; }
-    public decimal DaysPayablesOutstanding { get; set; }
-    public decimal DaysOfInventoryOnHand { get; set; }
-    public decimal ReceivablesTurnover { get; set; }
-    public decimal PayablesTurnover { get; set; }
-    public decimal InventoryTurnover { get; set; }
-    public decimal Roe { get; set; }
-    public decimal CapexPerShare { get; set; }
+    public decimal? RevenuePerShare { get; set; }
+    public decimal? NetIncomePerShare { get; set; }
+    public decimal? OperatingCashFlowPerShare { get; set; }
+    public decimal? FreeCashFlowPerShare { get; set; }
+    public decimal? CashPerShare { get; set; }
+    public decimal? BookValuePerShare { get; set; }
+    public decimal? TangibleBookValuePerShare { get; set; }
+    public decimal? ShareholdersEquityPerShare { get; set; }
+    public decimal? InterestDebtPerShare { get; set; }
+    public long? MarketCap { get; set; }
+    public long? EnterpriseValue { get; set; }
+    public decimal? PeRatio { get; set; }
+    public decimal? PriceToSalesRatio { get; set; }
+    public decimal? Pocfratio { get; set; }
+    public decimal? PfcfRatio { get; set; }
+    public decimal? PbRatio { get; set; }
+    public decimal? Ptbratio { get; set; }
+    public decimal? EvToSales { get; set; }
+    public decimal? EnterpriseValueOverEBITDA { get; set; }
+    public decimal? EvToOperatingCashFlow { get; set; }
+    public decimal? EvToFreeCashFlow { get; set; }
+    public decimal? EarningsYield { get; set; }
+    public decimal? FreeCashFlowYield { get; set; }
+    public decimal? DebtToEquity { get; set; }
+    public decimal? DebtToAssets { get; set; }
+    public decimal? NetDebtToEBITDA { get; set; }
+    public decimal? CurrentRatio { get; set; }
+    public decimal? InterestCoverage { get; set; }
+    public decimal? IncomeQuality { get; set; }
+    public decimal? DividendYield { get; set; }
+    public decimal? PayoutRatio { get; set; }
+    public decimal? SalesGeneralAndAdministrativeToRevenue { get; set; }
+    public decimal? ResearchAndDdevelopementToRevenue { get; set; }
+    public decimal? IntangiblesToTotalAssets { get; set; }
+    public decimal? CapexToOperatingCashFlow { get; set; }
+    public decimal? CapexToRevenue { get; set; }
+    public decimal? CapexToDepreciation { get; set; }
+    public decimal? StockBasedCompensationToRevenue { get; set; }
+    public decimal? GrahamNumber { get; set; }
+    public decimal? Roic { get; set; }
+    public decimal? ReturnOnTangibleAssets { get; set; }
+    public decimal? GrahamNetNet { get; set; }
+    public long? WorkingCapital { get; set; }
+    public long? TangibleAssetValue { get; set; }
+    public long? NetCurrentAssetValue { get; set; }
+    public long? InvestedCapital { get; set; }
+    public long? AverageReceivables { get; set; }
+    public long? AveragePayables { get; set; }
+    public long? AverageInventory { get; set; }
+    public decimal? DaysSalesOutstanding { get; set; }
+    public decimal? DaysPayablesOutstanding { get; set; }
+    public decimal? DaysOfInventoryOnHand { get; set; }
+    public decimal? ReceivablesTurnover { get; set; }
+    public decimal? PayablesTurnover { get; set; }
+    public decimal? InventoryTurnover { get; set; }
+    public decimal? Roe { get; set; }
+    public decimal? CapexPerShare { get; set; }
 }
 
 public class FMPFinancialRatios
@@ -727,7 +730,7 @@ public class FMPHistoricalPrice
     public decimal Close { get; set; }
     public decimal AdjClose { get; set; }
     public long Volume { get; set; }
-    public decimal UnadjustedVolume { get; set; }
+    public long UnadjustedVolume { get; set; }
     public decimal Change { get; set; }
     public decimal ChangePercent { get; set; }
     public required string Label { get; set; }
@@ -745,23 +748,23 @@ public class FMPAnalystEstimates
     public required string Date { get; set; }
     public required string Symbol { get; set; }
     public required string Period { get; set; }
-    public decimal EstimatedRevenueLow { get; set; }
-    public decimal EstimatedRevenueHigh { get; set; }
-    public decimal EstimatedRevenueAvg { get; set; }
-    public decimal EstimatedEbitdaLow { get; set; }
-    public decimal EstimatedEbitdaHigh { get; set; }
-    public decimal EstimatedEbitdaAvg { get; set; }
-    public decimal EstimatedEbitLow { get; set; }
-    public decimal EstimatedEbitHigh { get; set; }
-    public decimal EstimatedEbitAvg { get; set; }
-    public decimal EstimatedNetIncomeLow { get; set; }
-    public decimal EstimatedNetIncomeHigh { get; set; }
-    public decimal EstimatedNetIncomeAvg { get; set; }
+    public long EstimatedRevenueLow { get; set; }
+    public long EstimatedRevenueHigh { get; set; }
+    public long EstimatedRevenueAvg { get; set; }
+    public long EstimatedEbitdaLow { get; set; }
+    public long EstimatedEbitdaHigh { get; set; }
+    public long EstimatedEbitdaAvg { get; set; }
+    public long EstimatedEbitLow { get; set; }
+    public long EstimatedEbitHigh { get; set; }
+    public long EstimatedEbitAvg { get; set; }
+    public long EstimatedNetIncomeLow { get; set; }
+    public long EstimatedNetIncomeHigh { get; set; }
+    public long EstimatedNetIncomeAvg { get; set; }
     public decimal EstimatedEpsAvg { get; set; }
     public decimal EstimatedEpsHigh { get; set; }
     public decimal EstimatedEpsLow { get; set; }
-    public long NumberAnalystEstimatedRevenue { get; set; }
-    public long NumberAnalystsEstimatedEps { get; set; }
+    public int NumberAnalystEstimatedRevenue { get; set; }
+    public int NumberAnalystsEstimatedEps { get; set; }
 }
 
 public class FMPStockScreenerCriteria
@@ -806,7 +809,7 @@ public class FMPMarketIndex
     public decimal DayHigh { get; set; }
     public decimal YearLow { get; set; }
     public decimal YearHigh { get; set; }
-    public decimal MarketCap { get; set; }
+    public long MarketCap { get; set; }
     public decimal PriceAvg50 { get; set; }
     public decimal PriceAvg200 { get; set; }
     public long Volume { get; set; }
@@ -815,4 +818,98 @@ public class FMPMarketIndex
     public decimal Open { get; set; }
     public decimal PreviousClose { get; set; }
     public long Timestamp { get; set; }
+}
+
+/// <summary>
+/// Custom JSON converter that can handle both string and number values for decimal types
+/// </summary>
+public class FlexibleDecimalConverter : System.Text.Json.Serialization.JsonConverter<decimal>
+{
+    public override decimal Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+    {
+        if (reader.TokenType == System.Text.Json.JsonTokenType.String)
+        {
+            var stringValue = reader.GetString();
+            return string.IsNullOrEmpty(stringValue) ? 0m : decimal.TryParse(stringValue, out var result) ? result : 0m;
+        }
+        else if (reader.TokenType == System.Text.Json.JsonTokenType.Number)
+        {
+            return reader.GetDecimal();
+        }
+        return 0m;
+    }
+
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, decimal value, System.Text.Json.JsonSerializerOptions options)
+    {
+        writer.WriteNumberValue(value);
+    }
+}
+
+/// <summary>
+/// Custom JSON converter that can handle both string and number values for long types
+/// </summary>
+public class FlexibleNullableLongConverter : System.Text.Json.Serialization.JsonConverter<long?>
+{
+    public override long? Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+    {
+        if (reader.TokenType == System.Text.Json.JsonTokenType.Null)
+        {
+            return null;
+        }
+        if (reader.TokenType == System.Text.Json.JsonTokenType.String)
+        {
+            var stringValue = reader.GetString();
+            return string.IsNullOrEmpty(stringValue) ? null : long.TryParse(stringValue, out var result) ? result : null;
+        }
+        else if (reader.TokenType == System.Text.Json.JsonTokenType.Number)
+        {
+            return reader.GetInt64();
+        }
+        return null;
+    }
+
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, long? value, System.Text.Json.JsonSerializerOptions options)
+    {
+        if (value.HasValue)
+        {
+            writer.WriteNumberValue(value.Value);
+        }
+        else
+        {
+            writer.WriteNullValue();
+        }
+    }
+}
+
+public class FlexibleNullableDecimalConverter : System.Text.Json.Serialization.JsonConverter<decimal?>
+{
+    public override decimal? Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+    {
+        if (reader.TokenType == System.Text.Json.JsonTokenType.Null)
+        {
+            return null;
+        }
+        if (reader.TokenType == System.Text.Json.JsonTokenType.String)
+        {
+            var stringValue = reader.GetString();
+            return string.IsNullOrEmpty(stringValue) ? null : decimal.TryParse(stringValue, out var result) ? result : null;
+        }
+        else if (reader.TokenType == System.Text.Json.JsonTokenType.Number)
+        {
+            return reader.GetDecimal();
+        }
+        return null;
+    }
+
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, decimal? value, System.Text.Json.JsonSerializerOptions options)
+    {
+        if (value.HasValue)
+        {
+            writer.WriteNumberValue(value.Value);
+        }
+        else
+        {
+            writer.WriteNullValue();
+        }
+    }
 }
