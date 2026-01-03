@@ -28,6 +28,15 @@ public class EnhancedFundamentalAnalysisService
         _logger = logger;
     }
 
+    private decimal ParseDecimal(object value)
+    {
+        if (value is string s)
+            return decimal.TryParse(s, out var result) ? result : 0m;
+        if (value is decimal d)
+            return d;
+        return 0m;
+    }
+
     /// <summary>
     /// Get comprehensive company overview combining multiple data sources
     /// </summary>
@@ -40,58 +49,60 @@ public class EnhancedFundamentalAnalysisService
             var fmpKeyMetricsTask = _fmpService.GetKeyMetricsAsync(symbol, 1); // Get latest metrics
             var fmpRatiosTask = _fmpService.GetFinancialRatiosAsync(symbol, 1); // Get latest ratios
             var fmpQuoteTask = _fmpService.GetQuoteAsync(symbol);
+            var alphaVantageOverviewTask = _alphaVantageService.GetCompanyOverviewAsync(symbol);
 
-            await Task.WhenAll(fmpProfileTask, fmpKeyMetricsTask, fmpRatiosTask, fmpQuoteTask);
+            await Task.WhenAll(fmpProfileTask, fmpKeyMetricsTask, fmpRatiosTask, fmpQuoteTask, alphaVantageOverviewTask);
 
             var fmpProfile = await fmpProfileTask;
             var fmpKeyMetrics = await fmpKeyMetricsTask;
             var fmpRatios = await fmpRatiosTask;
             var fmpQuote = await fmpQuoteTask;
+            var alphaVantageOverview = await alphaVantageOverviewTask;
 
             // Combine data from all sources
             var overview = new EnhancedCompanyOverview
             {
                 Symbol = symbol,
-                CompanyName = fmpProfile?.CompanyName,
-                Description = fmpProfile?.Description,
-                Industry = fmpProfile?.Industry,
-                Sector = fmpProfile?.Sector,
-                Exchange = fmpQuote?.Exchange,
-                Country = fmpProfile?.Country,
-                Website = fmpProfile?.Website,
+                CompanyName = fmpProfile?.CompanyName ?? alphaVantageOverview?.Name,
+                Description = fmpProfile?.Description ?? alphaVantageOverview?.Description,
+                Industry = fmpProfile?.Industry ?? alphaVantageOverview?.Industry,
+                Sector = fmpProfile?.Sector ?? alphaVantageOverview?.Sector,
+                Exchange = fmpQuote?.Exchange ?? alphaVantageOverview?.Exchange,
+                Country = fmpProfile?.Country ?? alphaVantageOverview?.Country,
+                Website = fmpProfile?.Website ?? alphaVantageOverview?.Website,
                 CEO = fmpProfile?.CEO,
                 Employees = int.TryParse(fmpProfile?.FullTimeEmployees, out var emp) ? emp : 0,
-                MarketCap = (long)(fmpQuote?.MarketCap ?? fmpKeyMetrics?.FirstOrDefault()?.MarketCap ?? 0),
-                PERatio = fmpKeyMetrics?.FirstOrDefault()?.PeRatio ?? 0,
-                PEGRatio = fmpRatios?.FirstOrDefault()?.PriceEarningsToGrowthRatio ?? 0,
-                BookValue = fmpKeyMetrics?.FirstOrDefault()?.BookValuePerShare ?? 0,
-                DividendPerShare = fmpKeyMetrics?.FirstOrDefault()?.DividendYield ?? 0,
-                DividendYield = fmpRatios?.FirstOrDefault()?.DividendYield ?? 0,
-                EPS = fmpKeyMetrics?.FirstOrDefault()?.NetIncomePerShare ?? 0,
-                RevenuePerShareTTM = fmpKeyMetrics?.FirstOrDefault()?.RevenuePerShare ?? 0,
-                ProfitMargin = fmpRatios?.FirstOrDefault()?.NetProfitMargin ?? 0,
-                OperatingMarginTTM = fmpRatios?.FirstOrDefault()?.OperatingMargin ?? 0,
-                ReturnOnAssetsTTM = fmpRatios?.FirstOrDefault()?.ReturnOnAssets ?? 0,
-                ReturnOnEquityTTM = fmpRatios?.FirstOrDefault()?.ReturnOnEquity ?? 0,
-                QuarterlyEarningsGrowthYOY = 0, // Not available in FMP basic plan
-                QuarterlyRevenueGrowthYOY = 0, // Not available in FMP basic plan
-                AnalystTargetPrice = 0, // Not available in FMP basic plan
-                TrailingPE = fmpKeyMetrics?.FirstOrDefault()?.PeRatio ?? 0,
-                ForwardPE = 0, // Not available in FMP basic plan
-                PriceToSalesRatioTTM = fmpKeyMetrics?.FirstOrDefault()?.PriceToSalesRatio ?? 0,
-                PriceToBookRatio = fmpKeyMetrics?.FirstOrDefault()?.PbRatio ?? 0,
-                EVToRevenue = fmpKeyMetrics?.FirstOrDefault()?.EvToSales ?? 0,
-                EVToEBITDA = fmpKeyMetrics?.FirstOrDefault()?.EnterpriseValueOverEBITDA ?? 0,
-                Beta = 0, // Not available in FMP basic plan
-                FiftyTwoWeekHigh = fmpQuote?.YearHigh ?? 0,
-                FiftyTwoWeekLow = fmpQuote?.YearLow ?? 0,
-                FiftyDayMovingAverage = fmpQuote?.PriceAvg50 ?? 0,
-                TwoHundredDayMovingAverage = fmpQuote?.PriceAvg200 ?? 0,
-                SharesOutstanding = fmpQuote?.SharesOutstanding ?? 0,
-                DividendDate = null, // Not available in FMP basic plan
-                ExDividendDate = null, // Not available in FMP basic plan
-                LastSplitFactor = null, // Not available in FMP basic plan
-                LastSplitDate = null, // Not available in FMP basic plan
+                MarketCap = (long)(fmpQuote?.MarketCap ?? fmpKeyMetrics?.FirstOrDefault()?.MarketCap ?? (long.TryParse(alphaVantageOverview?.MarketCapitalization, out var mc) ? mc : 0L)),
+                PERatio = fmpKeyMetrics?.FirstOrDefault()?.PeRatio > 0 ? fmpKeyMetrics.FirstOrDefault().PeRatio : ParseDecimal(alphaVantageOverview?.PERatio),
+                PEGRatio = fmpRatios?.FirstOrDefault()?.PriceEarningsToGrowthRatio > 0 ? fmpRatios.FirstOrDefault().PriceEarningsToGrowthRatio : ParseDecimal(alphaVantageOverview?.PEGRatio),
+                BookValue = fmpKeyMetrics?.FirstOrDefault()?.BookValuePerShare ?? ParseDecimal(alphaVantageOverview?.BookValue),
+                DividendPerShare = fmpKeyMetrics?.FirstOrDefault()?.DividendYield ?? ParseDecimal(alphaVantageOverview?.DividendPerShare),
+                DividendYield = fmpRatios?.FirstOrDefault()?.DividendYield ?? ParseDecimal(alphaVantageOverview?.DividendYield),
+                EPS = fmpKeyMetrics?.FirstOrDefault()?.NetIncomePerShare is decimal eps && eps != 0 ? eps : ParseDecimal(alphaVantageOverview?.EPS),
+                RevenuePerShareTTM = fmpKeyMetrics?.FirstOrDefault()?.RevenuePerShare ?? ParseDecimal(alphaVantageOverview?.RevenuePerShareTTM),
+                ProfitMargin = fmpRatios?.FirstOrDefault()?.NetProfitMargin ?? ParseDecimal(alphaVantageOverview?.ProfitMargin),
+                OperatingMarginTTM = fmpRatios?.FirstOrDefault()?.OperatingMargin is decimal om && om != 0 ? om : ParseDecimal(alphaVantageOverview?.OperatingMarginTTM),
+                ReturnOnAssetsTTM = fmpRatios?.FirstOrDefault()?.ReturnOnAssets is decimal roa && roa != 0 ? roa : ParseDecimal(alphaVantageOverview?.ReturnOnAssetsTTM),
+                ReturnOnEquityTTM = fmpRatios?.FirstOrDefault()?.ReturnOnEquity is decimal roe && roe != 0 ? roe : ParseDecimal(alphaVantageOverview?.ReturnOnEquityTTM),
+                QuarterlyEarningsGrowthYOY = ParseDecimal(alphaVantageOverview?.QuarterlyEarningsGrowthYOY),
+                QuarterlyRevenueGrowthYOY = ParseDecimal(alphaVantageOverview?.QuarterlyRevenueGrowthYOY),
+                AnalystTargetPrice = ParseDecimal(alphaVantageOverview?.AnalystTargetPrice),
+                TrailingPE = fmpKeyMetrics?.FirstOrDefault()?.PeRatio ?? ParseDecimal(alphaVantageOverview?.TrailingPE),
+                ForwardPE = ParseDecimal(alphaVantageOverview?.ForwardPE),
+                PriceToSalesRatioTTM = fmpKeyMetrics?.FirstOrDefault()?.PriceToSalesRatio ?? ParseDecimal(alphaVantageOverview?.PriceToSalesRatioTTM),
+                PriceToBookRatio = fmpKeyMetrics?.FirstOrDefault()?.PbRatio ?? ParseDecimal(alphaVantageOverview?.PriceToBookRatio),
+                EVToRevenue = fmpKeyMetrics?.FirstOrDefault()?.EvToSales ?? ParseDecimal(alphaVantageOverview?.EVToRevenue),
+                EVToEBITDA = fmpKeyMetrics?.FirstOrDefault()?.EnterpriseValueOverEBITDA ?? ParseDecimal(alphaVantageOverview?.EVToEBITDA),
+                Beta = ParseDecimal(alphaVantageOverview?.Beta),
+                FiftyTwoWeekHigh = fmpQuote?.YearHigh ?? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekHigh),
+                FiftyTwoWeekLow = fmpQuote?.YearLow ?? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekLow),
+                FiftyDayMovingAverage = fmpQuote?.PriceAvg50 ?? ParseDecimal(alphaVantageOverview?.FiftyDayMovingAverage),
+                TwoHundredDayMovingAverage = fmpQuote?.PriceAvg200 ?? ParseDecimal(alphaVantageOverview?.TwoHundredDayMovingAverage),
+                SharesOutstanding = fmpQuote?.SharesOutstanding ?? (long.TryParse(alphaVantageOverview?.SharesOutstanding, out var so) ? so : 0L),
+                DividendDate = alphaVantageOverview?.DividendDate,
+                ExDividendDate = alphaVantageOverview?.ExDividendDate,
+                LastSplitFactor = alphaVantageOverview?.LastSplitFactor,
+                LastSplitDate = alphaVantageOverview?.LastSplitDate,
                 IpoDate = fmpProfile?.IpoDate,
                 IsActivelyTrading = fmpProfile?.IsActivelyTrading ?? false
             };

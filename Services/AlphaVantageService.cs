@@ -457,85 +457,85 @@ public class AlphaVantageCompanyOverview
     public string? Website { get; set; }
 
     [JsonPropertyName("MarketCapitalization")]
-    public long MarketCapitalization { get; set; }
+    public string? MarketCapitalization { get; set; }
 
     [JsonPropertyName("PERatio")]
-    public decimal PERatio { get; set; }
+    public string? PERatio { get; set; }
 
     [JsonPropertyName("PEGRatio")]
-    public decimal PEGRatio { get; set; }
+    public string? PEGRatio { get; set; }
 
     [JsonPropertyName("BookValue")]
-    public decimal BookValue { get; set; }
+    public string? BookValue { get; set; }
 
     [JsonPropertyName("DividendPerShare")]
-    public decimal DividendPerShare { get; set; }
+    public string? DividendPerShare { get; set; }
 
     [JsonPropertyName("DividendYield")]
-    public decimal DividendYield { get; set; }
+    public string? DividendYield { get; set; }
 
     [JsonPropertyName("EPS")]
-    public decimal EPS { get; set; }
+    public string? EPS { get; set; }
 
     [JsonPropertyName("RevenuePerShareTTM")]
-    public decimal RevenuePerShareTTM { get; set; }
+    public string? RevenuePerShareTTM { get; set; }
 
     [JsonPropertyName("ProfitMargin")]
-    public decimal ProfitMargin { get; set; }
+    public string? ProfitMargin { get; set; }
 
     [JsonPropertyName("OperatingMarginTTM")]
-    public decimal OperatingMarginTTM { get; set; }
+    public string? OperatingMarginTTM { get; set; }
 
     [JsonPropertyName("ReturnOnAssetsTTM")]
-    public decimal ReturnOnAssetsTTM { get; set; }
+    public string? ReturnOnAssetsTTM { get; set; }
 
     [JsonPropertyName("ReturnOnEquityTTM")]
-    public decimal ReturnOnEquityTTM { get; set; }
+    public string? ReturnOnEquityTTM { get; set; }
 
     [JsonPropertyName("QuarterlyEarningsGrowthYOY")]
-    public decimal QuarterlyEarningsGrowthYOY { get; set; }
+    public string? QuarterlyEarningsGrowthYOY { get; set; }
 
     [JsonPropertyName("QuarterlyRevenueGrowthYOY")]
-    public decimal QuarterlyRevenueGrowthYOY { get; set; }
+    public string? QuarterlyRevenueGrowthYOY { get; set; }
 
     [JsonPropertyName("AnalystTargetPrice")]
-    public decimal AnalystTargetPrice { get; set; }
+    public string? AnalystTargetPrice { get; set; }
 
     [JsonPropertyName("TrailingPE")]
-    public decimal TrailingPE { get; set; }
+    public string? TrailingPE { get; set; }
 
     [JsonPropertyName("ForwardPE")]
-    public decimal ForwardPE { get; set; }
+    public string? ForwardPE { get; set; }
 
     [JsonPropertyName("PriceToSalesRatioTTM")]
-    public decimal PriceToSalesRatioTTM { get; set; }
+    public string? PriceToSalesRatioTTM { get; set; }
 
     [JsonPropertyName("PriceToBookRatio")]
-    public decimal PriceToBookRatio { get; set; }
+    public string? PriceToBookRatio { get; set; }
 
     [JsonPropertyName("EVToRevenue")]
-    public decimal EVToRevenue { get; set; }
+    public string? EVToRevenue { get; set; }
 
     [JsonPropertyName("EVToEBITDA")]
-    public decimal EVToEBITDA { get; set; }
+    public string? EVToEBITDA { get; set; }
 
     [JsonPropertyName("Beta")]
-    public decimal Beta { get; set; }
+    public string? Beta { get; set; }
 
     [JsonPropertyName("FiftyTwoWeekHigh")]
-    public decimal FiftyTwoWeekHigh { get; set; }
+    public string? FiftyTwoWeekHigh { get; set; }
 
     [JsonPropertyName("FiftyTwoWeekLow")]
-    public decimal FiftyTwoWeekLow { get; set; }
+    public string? FiftyTwoWeekLow { get; set; }
 
     [JsonPropertyName("FiftyDayMovingAverage")]
-    public decimal FiftyDayMovingAverage { get; set; }
+    public string? FiftyDayMovingAverage { get; set; }
 
     [JsonPropertyName("TwoHundredDayMovingAverage")]
-    public decimal TwoHundredDayMovingAverage { get; set; }
+    public string? TwoHundredDayMovingAverage { get; set; }
 
     [JsonPropertyName("SharesOutstanding")]
-    public long SharesOutstanding { get; set; }
+    public string? SharesOutstanding { get; set; }
 
     [JsonPropertyName("DividendDate")]
     public string? DividendDate { get; set; }
