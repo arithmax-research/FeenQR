@@ -462,7 +462,7 @@ public class FMPQuote
     public decimal DayHigh { get; set; }
     public decimal YearLow { get; set; }
     public decimal YearHigh { get; set; }
-    public long MarketCap { get; set; }
+    public decimal MarketCap { get; set; }
     public decimal PriceAvg50 { get; set; }
     public decimal PriceAvg200 { get; set; }
     public long Volume { get; set; }

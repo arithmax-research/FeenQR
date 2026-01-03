@@ -59,7 +59,11 @@ public class EnhancedFundamentalAnalysisService
             var fmpQuote = await fmpQuoteTask;
             var alphaVantageOverview = await alphaVantageOverviewTask;
 
-            // Combine data from all sources
+            // Get the first key metrics result
+            var keyMetrics = fmpKeyMetrics?.FirstOrDefault();
+            var ratios = fmpRatios?.FirstOrDefault();
+
+            // Combine data from all sources with improved fallback logic
             var overview = new EnhancedCompanyOverview
             {
                 Symbol = symbol,
@@ -72,32 +76,43 @@ public class EnhancedFundamentalAnalysisService
                 Website = fmpProfile?.Website ?? alphaVantageOverview?.Website,
                 CEO = fmpProfile?.CEO,
                 Employees = int.TryParse(fmpProfile?.FullTimeEmployees, out var emp) ? emp : 0,
-                MarketCap = fmpQuote?.MarketCap > 0L ? fmpQuote.MarketCap : (long.TryParse(alphaVantageOverview?.MarketCapitalization, out var mc) ? mc : 0L),
-                PERatio = fmpKeyMetrics?.FirstOrDefault()?.PeRatio ?? 0.0m,
-                PEGRatio = fmpRatios?.FirstOrDefault()?.PriceEarningsToGrowthRatio ?? 0.0m,
-                BookValue = fmpKeyMetrics?.FirstOrDefault()?.BookValuePerShare ?? 0.0m,
-                DividendPerShare = fmpKeyMetrics?.FirstOrDefault()?.DividendYield ?? 0.0m,
-                DividendYield = fmpRatios?.FirstOrDefault()?.DividendYield ?? 0.0m,
-                EPS = fmpKeyMetrics?.FirstOrDefault()?.NetIncomePerShare ?? 0.0m,
-                RevenuePerShareTTM = fmpKeyMetrics?.FirstOrDefault()?.RevenuePerShare ?? 0.0m,
-                ProfitMargin = fmpRatios?.FirstOrDefault()?.NetProfitMargin ?? 0.0m,
-                OperatingMarginTTM = fmpRatios?.FirstOrDefault()?.OperatingMargin ?? 0.0m,
-                ReturnOnAssetsTTM = fmpRatios?.FirstOrDefault()?.ReturnOnAssets ?? 0.0m,
-                ReturnOnEquityTTM = fmpRatios?.FirstOrDefault()?.ReturnOnEquity ?? 0.0m,
+                MarketCap = fmpQuote?.MarketCap > 0.0m ? (long)fmpQuote.MarketCap : (long.TryParse(alphaVantageOverview?.MarketCapitalization, out var mc) ? mc : 0L),
+                
+                // P/E Ratio - fallback to Alpha Vantage if FMP doesn't have it
+                PERatio = keyMetrics?.PeRatio ?? ParseDecimal(alphaVantageOverview?.PERatio),
+                
+                // PEG Ratio - fallback to Alpha Vantage
+                PEGRatio = ratios?.PriceEarningsToGrowthRatio ?? ParseDecimal(alphaVantageOverview?.PEGRatio),
+                
+                BookValue = keyMetrics?.BookValuePerShare ?? ParseDecimal(alphaVantageOverview?.BookValue),
+                DividendPerShare = keyMetrics?.DividendYield ?? ParseDecimal(alphaVantageOverview?.DividendPerShare),
+                DividendYield = ratios?.DividendYield ?? ParseDecimal(alphaVantageOverview?.DividendYield),
+                
+                // EPS - fallback to Alpha Vantage
+                EPS = keyMetrics?.NetIncomePerShare ?? ParseDecimal(alphaVantageOverview?.EPS),
+                
+                RevenuePerShareTTM = keyMetrics?.RevenuePerShare ?? ParseDecimal(alphaVantageOverview?.RevenuePerShareTTM),
+                
+                // Profitability Metrics - fallback to Alpha Vantage
+                ProfitMargin = ratios?.NetProfitMargin ?? ParseDecimal(alphaVantageOverview?.ProfitMargin),
+                OperatingMarginTTM = ratios?.OperatingMargin ?? ParseDecimal(alphaVantageOverview?.OperatingMarginTTM),
+                ReturnOnAssetsTTM = ratios?.ReturnOnAssets ?? ParseDecimal(alphaVantageOverview?.ReturnOnAssetsTTM),
+                ReturnOnEquityTTM = ratios?.ReturnOnEquity ?? ParseDecimal(alphaVantageOverview?.ReturnOnEquityTTM),
+                
                 QuarterlyEarningsGrowthYOY = ParseDecimal(alphaVantageOverview?.QuarterlyEarningsGrowthYOY),
                 QuarterlyRevenueGrowthYOY = ParseDecimal(alphaVantageOverview?.QuarterlyRevenueGrowthYOY),
                 AnalystTargetPrice = ParseDecimal(alphaVantageOverview?.AnalystTargetPrice),
-                TrailingPE = fmpKeyMetrics?.FirstOrDefault()?.PeRatio ?? 0.0m,
+                TrailingPE = keyMetrics?.PeRatio ?? ParseDecimal(alphaVantageOverview?.PERatio),
                 ForwardPE = ParseDecimal(alphaVantageOverview?.ForwardPE),
-                PriceToSalesRatioTTM = fmpKeyMetrics?.FirstOrDefault()?.PriceToSalesRatio ?? 0.0m,
-                PriceToBookRatio = fmpKeyMetrics?.FirstOrDefault()?.PbRatio ?? 0.0m,
-                EVToRevenue = fmpKeyMetrics?.FirstOrDefault()?.EvToSales ?? 0.0m,
-                EVToEBITDA = fmpKeyMetrics?.FirstOrDefault()?.EnterpriseValueOverEBITDA ?? 0.0m,
+                PriceToSalesRatioTTM = keyMetrics?.PriceToSalesRatio ?? ParseDecimal(alphaVantageOverview?.PriceToSalesRatioTTM),
+                PriceToBookRatio = keyMetrics?.PbRatio ?? ParseDecimal(alphaVantageOverview?.PriceToBookRatio),
+                EVToRevenue = keyMetrics?.EvToSales ?? ParseDecimal(alphaVantageOverview?.EVToRevenue),
+                EVToEBITDA = keyMetrics?.EnterpriseValueOverEBITDA ?? ParseDecimal(alphaVantageOverview?.EVToEBITDA),
                 Beta = ParseDecimal(alphaVantageOverview?.Beta),
-                FiftyTwoWeekHigh = fmpQuote?.YearHigh ?? 0.0m,
-                FiftyTwoWeekLow = fmpQuote?.YearLow ?? 0.0m,
-                FiftyDayMovingAverage = fmpQuote?.PriceAvg50 ?? 0.0m,
-                TwoHundredDayMovingAverage = fmpQuote?.PriceAvg200 ?? 0.0m,
+                FiftyTwoWeekHigh = fmpQuote?.YearHigh ?? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekHigh),
+                FiftyTwoWeekLow = fmpQuote?.YearLow ?? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekLow),
+                FiftyDayMovingAverage = fmpQuote?.PriceAvg50 ?? ParseDecimal(alphaVantageOverview?.FiftyDayMovingAverage),
+                TwoHundredDayMovingAverage = fmpQuote?.PriceAvg200 ?? ParseDecimal(alphaVantageOverview?.TwoHundredDayMovingAverage),
                 SharesOutstanding = fmpQuote?.SharesOutstanding > 0 ? fmpQuote.SharesOutstanding : (long.TryParse(alphaVantageOverview?.SharesOutstanding, out var so) ? so : 0L),
                 DividendDate = alphaVantageOverview?.DividendDate,
                 ExDividendDate = alphaVantageOverview?.ExDividendDate,
@@ -220,10 +235,10 @@ public class EnhancedFundamentalAnalysisService
                 MarketCap = quote.MarketCap,
                 SharesOutstanding = quote.SharesOutstanding,
 
-                // Price multiples
-                PERatio = metrics.PeRatio ?? 0.0m,
-                PriceToBook = metrics.PbRatio ?? 0.0m,
-                PriceToSales = metrics.PriceToSalesRatio ?? 0.0m,
+                // Price multiples - use ratios data for valuation metrics
+                PERatio = ratios.PriceEarningsRatio > 0 ? ratios.PriceEarningsRatio : (quote.Eps > 0 ? (decimal)(quote.MarketCap / (quote.Eps * quote.SharesOutstanding)) : 0.0m),
+                PriceToBook = ratios.PriceToBookRatio > 0 ? ratios.PriceToBookRatio : 0.0m,
+                PriceToSales = ratios.PriceToSalesRatio > 0 ? ratios.PriceToSalesRatio : 0.0m,
                 EVToEBITDA = metrics.EnterpriseValueOverEBITDA ?? 0.0m,
                 EVToRevenue = metrics.EvToSales ?? 0.0m,
 
@@ -232,16 +247,16 @@ public class EnhancedFundamentalAnalysisService
                 EPSGrowth = 0, // FMP doesn't provide growth data
                 RevenueGrowth = 0, // FMP doesn't provide growth data
 
-                // Profitability
-                ROE = metrics.Roe ?? 0.0m,
+                // Profitability - use ratios data
+                ROE = metrics.Roe ?? ratios.ReturnOnEquity,
                 ROA = ratios.ReturnOnAssets,
                 ProfitMargin = ratios.NetProfitMargin,
                 OperatingMargin = ratios.OperatingMargin,
 
-                // Financial health
-                DebtToEquity = metrics.DebtToEquity ?? 0.0m,
-                CurrentRatio = metrics.CurrentRatio ?? 0.0m,
-                InterestCoverage = metrics.InterestCoverage ?? 0.0m,
+                // Financial health - use ratios data
+                DebtToEquity = metrics.DebtToEquity ?? ratios.DebtEquityRatio,
+                CurrentRatio = metrics.CurrentRatio ?? ratios.CurrentRatio,
+                InterestCoverage = metrics.InterestCoverage ?? ratios.InterestCoverage,
 
                 // Market data
                 FiftyTwoWeekHigh = quote.YearHigh,
@@ -250,7 +265,7 @@ public class EnhancedFundamentalAnalysisService
 
                 // Analyst estimates
                 AnalystTargetPrice = 0, // FMP doesn't provide analyst target price
-                DividendYield = metrics.DividendYield ?? 0.0m,
+                DividendYield = metrics.DividendYield ?? ratios.DividendYield,
 
                 AnalysisDate = DateTime.UtcNow
             };
@@ -264,7 +279,32 @@ public class EnhancedFundamentalAnalysisService
 
             // Calculate intrinsic value and fair value
             analysis.IntrinsicValue = metrics.GrahamNumber ?? 0.0m; // Graham Number as intrinsic value
-            analysis.FairValue = ratios.PriceFairValue; // FMP's fair value estimate
+
+            // Calculate fair value using multiple methods
+            decimal fairValue = 0.0m;
+
+            // Method 1: Use Graham Number (intrinsic value) as primary fair value
+            if (metrics.GrahamNumber.HasValue && metrics.GrahamNumber.Value > 0)
+            {
+                fairValue = metrics.GrahamNumber.Value;
+                _logger.LogInformation($"Using Graham Number as fair value for {symbol}: ${fairValue:F2}");
+            }
+            // Method 2: Calculate using industry average P/E ratios if we have EPS
+            else if (analysis.PERatio > 0 && quote.Eps > 0)
+            {
+                // Use a conservative industry average P/E ratio (around 15-20 for tech)
+                var industryAvgPE = symbol.Contains("AAPL") || symbol.Contains("MSFT") || symbol.Contains("NVDA") ? 25.0m : 15.0m;
+                fairValue = industryAvgPE * quote.Eps;
+                _logger.LogInformation($"Calculated fair value for {symbol} using industry average P/E ({industryAvgPE}): ${fairValue:F2}");
+            }
+            // Method 3: Use current P/E ratio if available
+            else if (ratios.PriceEarningsRatio > 0 && quote.Eps > 0)
+            {
+                fairValue = ratios.PriceEarningsRatio * quote.Eps;
+                _logger.LogInformation($"Calculated fair value for {symbol} using current P/E ratio: ${fairValue:F2}");
+            }
+
+            analysis.FairValue = fairValue;
 
             // Generate recommendation based on current price vs fair value
             if (analysis.FairValue > 0)
