@@ -154,7 +154,14 @@ public class FinancialModelingPrepService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning($"FMP API error: {response.StatusCode}");
+                if (response.StatusCode == System.Net.HttpStatusCode.PaymentRequired)
+                {
+                    _logger.LogWarning("FMP API free tier limit exceeded (402 Payment Required). Falling back to Alpha Vantage.");
+                }
+                else
+                {
+                    _logger.LogWarning($"FMP API error: {response.StatusCode}");
+                }
                 return new List<FMPBalanceSheet>();
             }
 
@@ -180,7 +187,14 @@ public class FinancialModelingPrepService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning($"FMP API error: {response.StatusCode}");
+                if (response.StatusCode == System.Net.HttpStatusCode.PaymentRequired)
+                {
+                    _logger.LogWarning("FMP API free tier limit exceeded (402 Payment Required). Falling back to Alpha Vantage.");
+                }
+                else
+                {
+                    _logger.LogWarning($"FMP API error: {response.StatusCode}");
+                }
                 return new List<FMPCashFlow>();
             }
 
@@ -272,7 +286,14 @@ public class FinancialModelingPrepService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning($"FMP API error: {response.StatusCode}");
+                if (response.StatusCode == System.Net.HttpStatusCode.PaymentRequired)
+                {
+                    _logger.LogWarning("FMP API free tier limit exceeded (402 Payment Required). Falling back to Alpha Vantage.");
+                }
+                else
+                {
+                    _logger.LogWarning($"FMP API error: {response.StatusCode}");
+                }
                 return new List<FMPHistoricalPrice>();
             }
 
@@ -299,7 +320,14 @@ public class FinancialModelingPrepService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning($"FMP API error: {response.StatusCode}");
+                if (response.StatusCode == System.Net.HttpStatusCode.PaymentRequired)
+                {
+                    _logger.LogWarning("FMP API free tier limit exceeded (402 Payment Required). Falling back to Alpha Vantage.");
+                }
+                else
+                {
+                    _logger.LogWarning($"FMP API error: {response.StatusCode}");
+                }
                 return new List<FMPAnalystEstimates>();
             }
 
@@ -326,7 +354,14 @@ public class FinancialModelingPrepService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning($"FMP API error: {response.StatusCode}");
+                if (response.StatusCode == System.Net.HttpStatusCode.PaymentRequired)
+                {
+                    _logger.LogWarning("FMP API free tier limit exceeded (402 Payment Required). Falling back to Alpha Vantage.");
+                }
+                else
+                {
+                    _logger.LogWarning($"FMP API error: {response.StatusCode}");
+                }
                 return new List<FMPStockScreener>();
             }
 
@@ -352,7 +387,14 @@ public class FinancialModelingPrepService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning($"FMP API error: {response.StatusCode}");
+                if (response.StatusCode == System.Net.HttpStatusCode.PaymentRequired)
+                {
+                    _logger.LogWarning("FMP API free tier limit exceeded (402 Payment Required). Falling back to Alpha Vantage.");
+                }
+                else
+                {
+                    _logger.LogWarning($"FMP API error: {response.StatusCode}");
+                }
                 return new List<FMPMarketIndex>();
             }
 
