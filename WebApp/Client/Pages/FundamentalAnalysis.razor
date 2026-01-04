@@ -643,10 +643,17 @@
                         </div>
                     </div>
 
-                    @if (!string.IsNullOrWhiteSpace(valuationResult.Reasoning))
+                    @if (!string.IsNullOrWhiteSpace(valuationResult.AIAnalysis))
+                    {
+                        <div class="description-text" style="margin-top: 1.5rem;">
+                            <h4 style="color: #9ca3af; margin-bottom: 1rem; font-size: 1.1rem;">AI Valuation Analysis</h4>
+                            <div style="white-space: pre-wrap; line-height: 1.8;">@((MarkupString)System.Text.RegularExpressions.Regex.Replace(valuationResult.AIAnalysis, @"\*\*(.+?)\*\*", "<strong>$1</strong>"))</div>
+                        </div>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(valuationResult.Reasoning))
                     {
                         <div class="description-text">
-                            <strong>Analysis:</strong><br />
+                            <strong>Quick Analysis:</strong><br />
                             @valuationResult.Reasoning
                         </div>
                     }
@@ -1146,6 +1153,7 @@
         public Dictionary<string, object> ValuationMetrics { get; set; } = new();
         public string Recommendation { get; set; } = string.Empty;
         public string Reasoning { get; set; } = string.Empty;
+        public string AIAnalysis { get; set; } = string.Empty;
     }
 
     public class AnalystResponse

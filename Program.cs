@@ -472,7 +472,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<YFinanceApiService>(),
                     sp.GetRequiredService<AlpacaService>(),
                     sp.GetRequiredService<DataBentoService>(),
-                    sp.GetRequiredService<ILogger<EnhancedFundamentalAnalysisService>>()
+                    sp.GetRequiredService<ILogger<EnhancedFundamentalAnalysisService>>(),
+                    sp.GetRequiredService<LLMRouterService>()
                 )
             );
 

@@ -21,7 +21,6 @@ public class EnhancedFundamentalAnalysisService
     private readonly AlpacaService _alpacaService;
     private readonly DataBentoService _databentoService;
     private readonly ILogger<EnhancedFundamentalAnalysisService> _logger;
-    private readonly LLMRouterService _llmService;
 
     public EnhancedFundamentalAnalysisService(
         AlphaVantageService alphaVantageService,
@@ -29,8 +28,7 @@ public class EnhancedFundamentalAnalysisService
         YFinanceApiService yfinanceService,
         AlpacaService alpacaService,
         DataBentoService databentoService,
-        ILogger<EnhancedFundamentalAnalysisService> logger,
-        LLMRouterService llmService)
+        ILogger<EnhancedFundamentalAnalysisService> logger)
     {
         _alphaVantageService = alphaVantageService;
         _fmpService = fmpService;
@@ -38,7 +36,6 @@ public class EnhancedFundamentalAnalysisService
         _alpacaService = alpacaService;
         _databentoService = databentoService;
         _logger = logger;
-        _llmService = llmService;
     }
 
     private decimal ParseDecimal(object value)
@@ -363,9 +360,6 @@ public class EnhancedFundamentalAnalysisService
                 analysis.Recommendation = "HOLD";
                 analysis.Reasoning = "Unable to determine fair value for recommendation";
             }
-
-            // Generate AI analysis
-            analysis.AIAnalysis = await GenerateValuationAIAnalysisAsync(analysis);
 
             // Set metric objects for API response
             analysis.ValuationMetrics = new
@@ -791,56 +785,6 @@ public class EnhancedFundamentalAnalysisService
         return concerns;
     }
 
-
-    private async Task<string> GenerateValuationAIAnalysisAsync(EnhancedValuationAnalysis analysis)
-    {
-        var prompt = $@"You are a professional financial analyst specializing in equity valuation. Provide a comprehensive valuation analysis for {analysis.Symbol} in 4-5 well-structured paragraphs.
-
-STOCK: {analysis.Symbol}
-CURRENT PRICE: ${analysis.CurrentPrice:F2}
-FAIR VALUE: ${analysis.FairValue:F2}
-INTRINSIC VALUE: ${analysis.IntrinsicValue:F2}
-RECOMMENDATION: {analysis.Recommendation}
-
-VALUATION MULTIPLES:
-P/E: {analysis.PERatio:F2}, Forward P/E: {analysis.ForwardPE:F2}, PEG: {analysis.PEGRatio:F2}
-P/B: {analysis.PriceToBook:F2}, P/TangibleBook: {analysis.PriceToTangibleBook:F2}
-P/S: {analysis.PriceToSales:F2}, P/FCF: {analysis.PriceToFreeCashFlow:F2}
-EV/EBITDA: {analysis.EVToEBITDA:F2}, EV/Revenue: {analysis.EVToRevenue:F2}, EV/FCF: {analysis.EVToFCF:F2}
-
-GROWTH: EPS Growth {analysis.EPSGrowth:P2}, Revenue Growth {analysis.RevenueGrowth:P2}
-PROFITABILITY: ROE {analysis.ROE:P2}, ROA {analysis.ROA:P2}, Net Margin {analysis.ProfitMargin:P2}, Operating Margin {analysis.OperatingMargin:P2}, Gross Margin {analysis.GrossProfitMargin:P2}
-FINANCIAL HEALTH: D/E {analysis.DebtToEquity:F2}, Current Ratio {analysis.CurrentRatio:F2}, Quick Ratio {analysis.QuickRatio:F2}, Interest Coverage {analysis.InterestCoverage:F2}
-
-Format response in clean markdown with:
-**1. VALUATION ASSESSMENT** - Analyze multiples, determine if over/under/fairly valued
-**2. GROWTH AND EARNINGS QUALITY** - Evaluate growth sustainability and FCF generation
-**3. PROFITABILITY AND EFFICIENCY** - Assess margins and operational efficiency
-**4. FINANCIAL HEALTH AND RISK** - Analyze balance sheet strength and identify red flags
-**5. INVESTMENT RECOMMENDATION** - Provide clear recommendation with entry price, targets, and risks
-
-Use **bold** for headers, bullet points for lists, justify the {analysis.Recommendation} recommendation.";
-
-        try
-        {
-            _logger.LogInformation("Generating valuation AI analysis for {Symbol}", analysis.Symbol);
-            var aiAnalysis = await _llmService.GetChatCompletionAsync(prompt, "openai");
-            
-            if (string.IsNullOrWhiteSpace(aiAnalysis))
-            {
-                _logger.LogWarning("LLM returned empty valuation analysis for {Symbol}, retrying...", analysis.Symbol);
-                aiAnalysis = await _llmService.GetChatCompletionAsync(prompt, "openai");
-            }
-            
-            return aiAnalysis?.Trim() ?? $"Unable to generate detailed valuation analysis for {analysis.Symbol}. {analysis.Reasoning}";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error generating valuation AI analysis for {Symbol}", analysis.Symbol);
-            return $"Valuation analysis temporarily unavailable. {analysis.Reasoning}";
-        }
-    }
-
     public async Task<string> CompareCompaniesFundamentalAsync(string[] symbols)
     {
         try
@@ -1012,26 +956,6 @@ public class EnhancedValuationAnalysis
     public object FinancialHealthMetrics { get; set; }
     public string Recommendation { get; set; }
     public string Reasoning { get; set; }
-    public string AIAnalysis { get; set; }
-    
-    // Additional valuation metrics
-    public decimal PEGRatio { get; set; }
-    public decimal ForwardPE { get; set; }
-    public decimal PriceToFreeCashFlow { get; set; }
-    public decimal EnterpriseValue { get; set; }
-    public decimal EVToFCF { get; set; }
-    public decimal PriceToTangibleBook { get; set; }
-    public decimal DividendPayoutRatio { get; set; }
-    public decimal FreeCashFlowPerShare { get; set; }
-    public decimal BookValuePerShare { get; set; }
-    public decimal TangibleBookValuePerShare { get; set; }
-    public decimal QuickRatio { get; set; }
-    public decimal GrossProfitMargin { get; set; }
-    public decimal EBITDA { get; set; }
-    public decimal EBITDAMargin { get; set; }
-    public decimal AssetTurnover { get; set; }
-    public decimal InventoryTurnover { get; set; }
-    public decimal WorkingCapital { get; set; }
 }
 
 public class EnhancedTechnicalAnalysis

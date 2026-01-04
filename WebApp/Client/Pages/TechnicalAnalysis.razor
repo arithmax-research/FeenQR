@@ -446,6 +446,18 @@
             }
             else if (indicatorResult != null)
             {
+                @if (!string.IsNullOrEmpty(indicatorAnalysis))
+                {
+                    <div class="results-card" style="margin-bottom: 1.5rem;">
+                        <h2 style="margin-bottom: 0.5rem; color: #ffffff;">
+                            AI Analysis
+                        </h2>
+                        <div style="background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; padding: 1rem; border-radius: 0.5rem; color: #e5e7eb; line-height: 1.6;">
+                            @indicatorAnalysis
+                        </div>
+                    </div>
+                }
+                
                 <div class="results-card">
                     <h2 style="margin-bottom: 1rem; color: #ffffff;">
                         @indicatorResult.Symbol - @indicatorResult.Category.ToUpper() Indicators
@@ -666,6 +678,7 @@
     // Results
     private TechnicalAnalysisResponse? analysisResult;
     private IndicatorResponse? indicatorResult;
+    private string? indicatorAnalysis; // AI analysis for indicators
     private CompareResponse? compareResult;
     private PatternResponse? patternResult;
 
@@ -786,18 +799,38 @@
         if (string.IsNullOrWhiteSpace(symbol)) return;
 
         isLoading = true;
+        indicatorAnalysis = null; // Clear previous analysis
         try
         {
             var cleanSymbol = SanitizeSymbol(symbol);
-            var response = await Http.PostAsJsonAsync("/api/technicalanalysis/indicators", new
+            
+            // Fetch both indicators and analysis in parallel
+            var indicatorsTask = Http.PostAsJsonAsync("/api/technicalanalysis/indicators", new
             {
                 Symbol = cleanSymbol,
                 Category = indicatorCategory
             });
-
-            if (response.IsSuccessStatusCode)
+            
+            var analysisTask = Http.PostAsJsonAsync("/api/technicalanalysis/analyze", new
             {
-                indicatorResult = await response.Content.ReadFromJsonAsync<IndicatorResponse>();
+                Symbol = cleanSymbol,
+                LookbackDays = 100
+            });
+
+            await Task.WhenAll(indicatorsTask, analysisTask);
+            
+            var indicatorsResponse = await indicatorsTask;
+            var analysisResponse = await analysisTask;
+
+            if (indicatorsResponse.IsSuccessStatusCode)
+            {
+                indicatorResult = await indicatorsResponse.Content.ReadFromJsonAsync<IndicatorResponse>();
+            }
+            
+            if (analysisResponse.IsSuccessStatusCode)
+            {
+                var fullAnalysis = await analysisResponse.Content.ReadFromJsonAsync<TechnicalAnalysisResponse>();
+                indicatorAnalysis = fullAnalysis?.Reasoning;
             }
         }
         catch (Exception ex)
