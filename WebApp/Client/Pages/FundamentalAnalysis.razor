@@ -856,8 +856,18 @@
             }
             else if (compareResult != null && compareResult.Comparisons != null)
             {
+                <!-- AI-Powered Comparative Analysis -->
+                @if (!string.IsNullOrEmpty(compareResult.Analysis))
+                {
+                    <div class="results-card" style="margin-bottom: 2rem;">
+                        <h3>Comparative Investment Analysis</h3>
+                        <div style="color: #d1d5db; line-height: 1.8; white-space: pre-wrap; padding: 1rem; background: rgba(31, 41, 55, 0.5); border-radius: 8px; border-left: 4px solid var(--accent-color);">@compareResult.Analysis</div>
+                    </div>
+                }
+
+                <!-- Comparison Table -->
                 <div class="results-card">
-                    <h3>Company Comparison</h3>
+                    <h3>Key Metrics Comparison</h3>
                     <table class="comparison-table">
                         <thead>
                             <tr>
@@ -870,38 +880,111 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td>Market Cap</td>
+                                <td><strong>Company</strong></td>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    <td>@comparison.CompanyName</td>
+                                }
+                            </tr>
+                            <tr>
+                                <td><strong>Sector / Industry</strong></td>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    <td>@comparison.Sector<br/><span style="font-size: 0.85em; color: #9ca3af;">@comparison.Industry</span></td>
+                                }
+                            </tr>
+                            <tr style="border-top: 2px solid rgba(255,255,255,0.1);">
+                                <td><strong>Current Price</strong></td>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    <td>$@comparison.CurrentPrice.ToString("F2")</td>
+                                }
+                            </tr>
+                            <tr>
+                                <td><strong>Market Cap</strong></td>
                                 @foreach (var comparison in compareResult.Comparisons)
                                 {
                                     <td>$@FormatLargeNumber(comparison.MarketCap)</td>
                                 }
                             </tr>
-                            <tr>
-                                <td>P/E Ratio</td>
+                            <tr style="border-top: 2px solid rgba(255,255,255,0.1);">
+                                <td><strong>P/E Ratio</strong></td>
                                 @foreach (var comparison in compareResult.Comparisons)
                                 {
                                     <td>@comparison.PeRatio.ToString("F2")</td>
                                 }
                             </tr>
                             <tr>
-                                <td>EPS</td>
+                                <td><strong>PEG Ratio</strong></td>
                                 @foreach (var comparison in compareResult.Comparisons)
                                 {
-                                    <td>$@comparison.Eps.ToString("F2")</td>
+                                    <td>@comparison.PegRatio.ToString("F2")</td>
                                 }
                             </tr>
                             <tr>
-                                <td>ROE</td>
+                                <td><strong>Fair Value</strong></td>
                                 @foreach (var comparison in compareResult.Comparisons)
                                 {
-                                    <td>@((comparison.Roe * 100).ToString("F2"))%</td>
+                                    var upside = comparison.FairValue > 0 ? ((comparison.FairValue - comparison.CurrentPrice) / comparison.CurrentPrice * 100) : 0;
+                                    var upsideClass = upside > 20 ? "positive" : (upside < -20 ? "negative" : "");
+                                    <td>
+                                        $@comparison.FairValue.ToString("F2")
+                                        <br/><span class="@upsideClass" style="font-size: 0.85em;">@upside.ToString("F1")% upside</span>
+                                    </td>
                                 }
                             </tr>
                             <tr>
-                                <td>Profit Margin</td>
+                                <td><strong>Intrinsic Value</strong></td>
                                 @foreach (var comparison in compareResult.Comparisons)
                                 {
-                                    <td>@((comparison.ProfitMargin * 100).ToString("F2"))%</td>
+                                    <td>$@comparison.IntrinsicValue.ToString("F2")</td>
+                                }
+                            </tr>
+                            <tr style="border-top: 2px solid rgba(255,255,255,0.1);">
+                                <td><strong>Revenue Growth</strong></td>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    var growthClass = comparison.RevenueGrowth > 0.15 ? "positive" : "";
+                                    <td class="@growthClass">@(comparison.RevenueGrowth * 100).ToString("F1")%</td>
+                                }
+                            </tr>
+                            <tr>
+                                <td><strong>EPS Growth</strong></td>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    var growthClass = comparison.EpsGrowth > 0.15 ? "positive" : "";
+                                    <td class="@growthClass">@(comparison.EpsGrowth * 100).ToString("F1")%</td>
+                                }
+                            </tr>
+                            <tr>
+                                <td><strong>Profit Margin</strong></td>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    var marginClass = comparison.ProfitMargin > 0.20 ? "positive" : "";
+                                    <td class="@marginClass">@(comparison.ProfitMargin * 100).ToString("F1")%</td>
+                                }
+                            </tr>
+                            <tr>
+                                <td><strong>ROE</strong></td>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    var roeClass = comparison.Roe > 0.15 ? "positive" : "";
+                                    <td class="@roeClass">@(comparison.Roe * 100).ToString("F1")%</td>
+                                }
+                            </tr>
+                            <tr>
+                                <td><strong>Debt/Equity</strong></td>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    var debtClass = comparison.DebtToEquity < 1.0 ? "positive" : (comparison.DebtToEquity > 2.0 ? "negative" : "");
+                                    <td class="@debtClass">@comparison.DebtToEquity.ToString("F2")</td>
+                                }
+                            </tr>
+                            <tr style="border-top: 2px solid rgba(255,255,255,0.1);">
+                                <td><strong>Recommendation</strong></td>
+                                @foreach (var comparison in compareResult.Comparisons)
+                                {
+                                    <td class="@GetRecommendationClass(comparison.Recommendation)" style="font-weight: bold;">@comparison.Recommendation</td>
                                 }
                             </tr>
                         </tbody>
@@ -1248,16 +1331,45 @@
 
     public class CompareResponse
     {
+        [System.Text.Json.Serialization.JsonPropertyName("comparisons")]
         public List<CompanyComparison> Comparisons { get; set; } = new();
+        [System.Text.Json.Serialization.JsonPropertyName("analysis")]
+        public string? Analysis { get; set; }
     }
 
     public class CompanyComparison
     {
+        [System.Text.Json.Serialization.JsonPropertyName("symbol")]
         public string Symbol { get; set; } = string.Empty;
+        [System.Text.Json.Serialization.JsonPropertyName("companyName")]
+        public string CompanyName { get; set; } = string.Empty;
+        [System.Text.Json.Serialization.JsonPropertyName("sector")]
+        public string Sector { get; set; } = string.Empty;
+        [System.Text.Json.Serialization.JsonPropertyName("industry")]
+        public string Industry { get; set; } = string.Empty;
+        [System.Text.Json.Serialization.JsonPropertyName("marketCap")]
         public double MarketCap { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("peRatio")]
         public double PeRatio { get; set; }
-        public double Eps { get; set; }
-        public double Roe { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("pegRatio")]
+        public double PegRatio { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("currentPrice")]
+        public double CurrentPrice { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("intrinsicValue")]
+        public double IntrinsicValue { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("fairValue")]
+        public double FairValue { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("recommendation")]
+        public string Recommendation { get; set; } = string.Empty;
+        [System.Text.Json.Serialization.JsonPropertyName("revenueGrowth")]
+        public double RevenueGrowth { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("epsGrowth")]
+        public double EpsGrowth { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("profitMargin")]
         public double ProfitMargin { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("roe")]
+        public double Roe { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("debtToEquity")]
+        public double DebtToEquity { get; set; }
     }
 }

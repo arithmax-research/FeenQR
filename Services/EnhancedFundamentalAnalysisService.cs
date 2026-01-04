@@ -1209,6 +1209,7 @@ Use **bold** for headers, bullet points for lists, justify the {analysis.Recomme
         try
         {
             var comparisons = new List<object>();
+            var detailedData = new List<(string symbol, EnhancedCompanyOverview overview, EnhancedValuationAnalysis valuation)>();
 
             foreach (var symbol in symbols)
             {
@@ -1217,26 +1218,109 @@ Use **bold** for headers, bullet points for lists, justify the {analysis.Recomme
 
                 if (overview != null && valuation != null)
                 {
+                    detailedData.Add((symbol, overview, valuation));
+                    
                     comparisons.Add(new
                     {
                         symbol = symbol,
                         companyName = overview.CompanyName,
+                        sector = overview.Sector,
+                        industry = overview.Industry,
                         marketCap = overview.MarketCap,
                         peRatio = overview.PERatio,
+                        pegRatio = overview.PEGRatio,
                         currentPrice = valuation.CurrentPrice,
                         intrinsicValue = valuation.IntrinsicValue,
                         fairValue = valuation.FairValue,
-                        recommendation = valuation.Recommendation
+                        recommendation = valuation.Recommendation,
+                        revenueGrowth = valuation.RevenueGrowth,
+                        epsGrowth = valuation.EPSGrowth,
+                        profitMargin = valuation.ProfitMargin,
+                        roe = valuation.ROE,
+                        debtToEquity = valuation.DebtToEquity
                     });
                 }
             }
 
-            return System.Text.Json.JsonSerializer.Serialize(comparisons);
+            // Generate comprehensive AI analysis comparing the companies
+            var aiAnalysis = await GenerateComparativeAnalysisAsync(detailedData);
+
+            var result = new
+            {
+                comparisons = comparisons,
+                analysis = aiAnalysis,
+                comparisonDate = DateTime.UtcNow
+            };
+
+            return System.Text.Json.JsonSerializer.Serialize(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error comparing companies fundamental analysis");
             return "Error comparing companies";
+        }
+    }
+
+    private async Task<string> GenerateComparativeAnalysisAsync(List<(string symbol, EnhancedCompanyOverview overview, EnhancedValuationAnalysis valuation)> companies)
+    {
+        try
+        {
+            if (companies.Count < 2) return "Insufficient data for comparison";
+
+            var comparisonData = string.Join("\n\n", companies.Select(c => $@"
+{c.symbol} ({c.overview.CompanyName}):
+- Sector: {c.overview.Sector} | Industry: {c.overview.Industry}
+- Market Cap: ${c.overview.MarketCap:N0}
+- Current Price: ${c.valuation.CurrentPrice:F2}
+- P/E Ratio: {c.overview.PERatio:F2} | PEG: {c.overview.PEGRatio:F2}
+- Fair Value: ${c.valuation.FairValue:F2} | Intrinsic Value: ${c.valuation.IntrinsicValue:F2}
+- Revenue Growth: {c.valuation.RevenueGrowth:P2} | EPS Growth: {c.valuation.EPSGrowth:P2}
+- Profit Margin: {c.valuation.ProfitMargin:P2} | ROE: {c.valuation.ROE:P2}
+- Debt/Equity: {c.valuation.DebtToEquity:F2}
+- Recommendation: {c.valuation.Recommendation}
+"));
+
+            var prompt = $@"As a professional equity analyst, provide a detailed comparative investment analysis for these companies:
+
+{comparisonData}
+
+Provide a comprehensive analysis covering:
+
+1. RELATIVE VALUATION ASSESSMENT
+   - Compare P/E, PEG ratios and fair value multiples
+   - Which company offers better value at current prices?
+   - Explain valuation gaps and what drives them
+
+2. GROWTH & PROFITABILITY COMPARISON
+   - Revenue and earnings growth trajectories
+   - Profit margins and return on equity
+   - Which company has stronger business economics?
+
+3. FINANCIAL HEALTH & RISK
+   - Balance sheet strength (debt levels)
+   - Business model risks and competitive moats
+   - Sector/industry headwinds or tailwinds
+
+4. INVESTMENT RECOMMENDATION
+   - Rank companies from most attractive to least attractive
+   - Explain which is better for: value investors, growth investors, income investors
+   - Key catalysts or concerns for each
+   - Clear buy/hold/sell recommendation for each with rationale
+
+5. PORTFOLIO CONSTRUCTION INSIGHT
+   - Can these be complementary holdings?
+   - Diversification benefits or concentration risks
+   - Suggested allocation if buying both
+
+Keep analysis actionable, quantitative where possible, and focused on investment decision-making.";
+
+            var analysisResponse = await _llmService.GetChatCompletionAsync(prompt);
+            return analysisResponse ?? "Unable to generate comparative analysis";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating comparative analysis");
+            return "Error generating analysis";
         }
     }
 }

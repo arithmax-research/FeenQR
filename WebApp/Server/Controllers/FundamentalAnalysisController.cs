@@ -271,16 +271,19 @@ public class FundamentalAnalysisController : ControllerBase
         try
         {
             _logger.LogInformation("Comparing companies: {Symbols}", string.Join(", ", request.Symbols));
-            var comparison = await _fundamentalService.CompareCompaniesFundamentalAsync(request.Symbols.ToArray());
+            var comparisonJson = await _fundamentalService.CompareCompaniesFundamentalAsync(request.Symbols.ToArray());
             
-            if (comparison == null)
+            if (string.IsNullOrEmpty(comparisonJson))
             {
                 return NotFound(new { error = "No comparison data found" });
             }
 
+            // Deserialize the JSON string to get the actual comparison objects
+            var comparisons = System.Text.Json.JsonSerializer.Deserialize<List<object>>(comparisonJson);
+
             return Ok(new
             {
-                comparisons = comparison,
+                comparisons = comparisons,
                 timestamp = DateTime.UtcNow,
                 type = "company_comparison"
             });
