@@ -651,18 +651,50 @@ public class EnhancedFundamentalAnalysisService
         int financialHealthScore = 0;
         int momentumScore = 0;
 
-        // 1. Valuation Score (0-20 points)
-        if (valuation.PERatio > 0 && valuation.PERatio < 15) valuationScore += 7;
-        else if (valuation.PERatio >= 15 && valuation.PERatio < 25) valuationScore += 4;
-        else if (valuation.PERatio >= 25 && valuation.PERatio < 35) valuationScore += 2;
+        // 1. Valuation Score (0-20 points) - Growth-adjusted
+        bool isGrowthStock = valuation.RevenueGrowth > 0.15m || valuation.EPSGrowth > 0.15m;
         
-        if (valuation.PriceToBook > 0 && valuation.PriceToBook < 3) valuationScore += 4;
-        else if (valuation.PriceToBook >= 3 && valuation.PriceToBook < 5) valuationScore += 2;
-        
-        if (valuation.PriceToSales > 0 && valuation.PriceToSales < 2) valuationScore += 4;
-        else if (valuation.PriceToSales >= 2 && valuation.PriceToSales < 4) valuationScore += 2;
-        
-        if (valuation.CurrentPrice > 0 && valuation.FairValue > 0 && valuation.CurrentPrice < valuation.FairValue) valuationScore += 5;
+        if (isGrowthStock)
+        {
+            // Growth stock valuation (more lenient on multiples)
+            if (valuation.PERatio > 0 && valuation.PERatio < 40) valuationScore += 5;
+            else if (valuation.PERatio >= 40 && valuation.PERatio < 60) valuationScore += 3;
+            else if (valuation.PERatio >= 60 && valuation.PERatio < 80) valuationScore += 1;
+            
+            // P/S more important for growth stocks
+            if (valuation.PriceToSales > 0 && valuation.PriceToSales < 10) valuationScore += 6;
+            else if (valuation.PriceToSales >= 10 && valuation.PriceToSales < 15) valuationScore += 4;
+            else if (valuation.PriceToSales >= 15 && valuation.PriceToSales < 20) valuationScore += 2;
+            
+            // PEG ratio is key for growth
+            decimal peg = valuation.PERatio > 0 && valuation.EPSGrowth > 0 ? valuation.PERatio / (valuation.EPSGrowth * 100) : 0;
+            if (peg > 0 && peg < 1.0m) valuationScore += 6;
+            else if (peg >= 1.0m && peg < 2.0m) valuationScore += 4;
+            else if (peg >= 2.0m && peg < 3.0m) valuationScore += 2;
+            
+            // Fair value check (more lenient for growth)
+            if (valuation.CurrentPrice > 0 && valuation.FairValue > 0)
+            {
+                decimal priceToFairValue = valuation.CurrentPrice / valuation.FairValue;
+                if (priceToFairValue < 1.3m) valuationScore += 3;
+                else if (priceToFairValue < 1.5m) valuationScore += 1;
+            }
+        }
+        else
+        {
+            // Value stock valuation (stricter on multiples)
+            if (valuation.PERatio > 0 && valuation.PERatio < 15) valuationScore += 7;
+            else if (valuation.PERatio >= 15 && valuation.PERatio < 25) valuationScore += 4;
+            else if (valuation.PERatio >= 25 && valuation.PERatio < 35) valuationScore += 2;
+            
+            if (valuation.PriceToBook > 0 && valuation.PriceToBook < 3) valuationScore += 4;
+            else if (valuation.PriceToBook >= 3 && valuation.PriceToBook < 5) valuationScore += 2;
+            
+            if (valuation.PriceToSales > 0 && valuation.PriceToSales < 2) valuationScore += 4;
+            else if (valuation.PriceToSales >= 2 && valuation.PriceToSales < 4) valuationScore += 2;
+            
+            if (valuation.CurrentPrice > 0 && valuation.FairValue > 0 && valuation.CurrentPrice < valuation.FairValue) valuationScore += 5;
+        }
 
         // 2. Profitability Score (0-20 points)
         if (valuation.ProfitMargin > 0.20m) profitabilityScore += 7;

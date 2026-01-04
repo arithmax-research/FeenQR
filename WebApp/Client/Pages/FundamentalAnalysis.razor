@@ -177,6 +177,10 @@
         color: #10b981;
     }
 
+    .metric-value.neutral {
+        color: #f59e0b;
+    }
+
     .metric-value.negative {
         color: #ef4444;
     }
@@ -698,50 +702,123 @@
             }
             else if (analystResult != null)
             {
+                <!-- Main Rating Card -->
                 <div class="results-card">
-                    <h3>Analyst Analysis for @analystResult.Symbol</h3>
+                    <h3>Quantitative Analyst Analysis for @analystResult.Symbol</h3>
                     
+                    @if (analystResult.Estimates != null)
+                    {
+                        var estimates = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(System.Text.Json.JsonSerializer.Serialize(analystResult.Estimates));
+                        var quantScore = estimates.GetProperty("quantitativeScore").GetInt32();
+                        var ratingClass = quantScore >= 70 ? "positive" : (quantScore >= 40 ? "neutral" : "negative");
+                        
+                        <div style="display: flex; align-items: center; gap: 2rem; margin-bottom: 2rem; padding: 1.5rem; background: rgba(31, 41, 55, 0.5); border-radius: 8px;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 3rem; font-weight: bold; color: var(--accent-color);">@quantScore/100</div>
+                                <div style="color: #9ca3af; margin-top: 0.5rem;">Quantitative Score</div>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 2rem; font-weight: bold;" class="@ratingClass">@analystResult.ConsensusRating</div>
+                                <div style="color: #9ca3af; margin-top: 0.5rem;">Consensus Rating</div>
+                            </div>
+                        </div>
+                    }
+                    
+                    <!-- Target Prices -->
+                    <h4 style="color: #9ca3af; margin-bottom: 1rem;">Price Targets</h4>
                     <div class="metric-grid">
                         <div class="metric-item">
-                            <div class="metric-label">Consensus Rating</div>
-                            <div class="metric-value">@analystResult.ConsensusRating</div>
+                            <div class="metric-label">Average Target</div>
+                            <div class="metric-value" style="color: var(--accent-color);">$@analystResult.AverageTargetPrice.ToString("F2")</div>
                         </div>
                         <div class="metric-item">
-                            <div class="metric-label">Average Target Price</div>
-                            <div class="metric-value">$@analystResult.AverageTargetPrice.ToString("F2")</div>
+                            <div class="metric-label">High Target</div>
+                            <div class="metric-value positive">$@analystResult.HighTargetPrice.ToString("F2")</div>
                         </div>
                         <div class="metric-item">
-                            <div class="metric-label">High Target Price</div>
-                            <div class="metric-value">$@analystResult.HighTargetPrice.ToString("F2")</div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-label">Low Target Price</div>
+                            <div class="metric-label">Low Target</div>
                             <div class="metric-value">$@analystResult.LowTargetPrice.ToString("F2")</div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-label">Number of Analysts</div>
-                            <div class="metric-value">@analystResult.NumberOfAnalysts</div>
                         </div>
                     </div>
 
+                    <!-- Rating Distribution -->
                     <div style="margin-top: 2rem;">
                         <h4 style="color: #9ca3af; margin-bottom: 1rem;">Rating Distribution</h4>
-                        <div class="metric-grid">
+                        <div class="metric-grid" style="grid-template-columns: repeat(5, 1fr);">
                             <div class="metric-item">
-                                <div class="metric-label">Buy Ratings</div>
+                                <div class="metric-label">Strong Buy</div>
+                                <div class="metric-value positive">@analystResult.AnalystRatingStrongBuy</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Buy</div>
                                 <div class="metric-value positive">@analystResult.BuyRatings</div>
                             </div>
                             <div class="metric-item">
-                                <div class="metric-label">Hold Ratings</div>
-                                <div class="metric-value">@analystResult.HoldRatings</div>
+                                <div class="metric-label">Hold</div>
+                                <div class="metric-value neutral">@analystResult.HoldRatings</div>
                             </div>
                             <div class="metric-item">
-                                <div class="metric-label">Sell Ratings</div>
+                                <div class="metric-label">Sell</div>
                                 <div class="metric-value negative">@analystResult.SellRatings</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label">Strong Sell</div>
+                                <div class="metric-value negative">@analystResult.AnalystRatingStrongSell</div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Quantitative Scores Breakdown -->
+                @if (analystResult.Estimates != null)
+                {
+                    var estimates = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(System.Text.Json.JsonSerializer.Serialize(analystResult.Estimates));
+                    
+                    <div class="results-card">
+                        <h3>Score Breakdown</h3>
+                        <p style="color: #9ca3af; margin-bottom: 1.5rem;">@estimates.GetProperty("methodology").GetString()</p>
+                        
+                        <div style="display: grid; gap: 1rem;">
+                            @{
+                                var scores = new[] {
+                                    (Label: "Valuation Score", Value: estimates.GetProperty("valuationScore").GetInt32(), Max: 20),
+                                    (Label: "Profitability Score", Value: estimates.GetProperty("profitabilityScore").GetInt32(), Max: 20),
+                                    (Label: "Growth Score", Value: estimates.GetProperty("growthScore").GetInt32(), Max: 20),
+                                    (Label: "Financial Health Score", Value: estimates.GetProperty("financialHealthScore").GetInt32(), Max: 20),
+                                    (Label: "Momentum Score", Value: estimates.GetProperty("momentumScore").GetInt32(), Max: 20)
+                                };
+                            }
+                            
+                            @foreach (var score in scores)
+                            {
+                                var percentage = (score.Value * 100.0 / score.Max);
+                                var barColor = percentage >= 70 ? "#10b981" : (percentage >= 50 ? "#f59e0b" : "#ef4444");
+                                
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <span style="color: #e5e7eb;">@score.Label</span>
+                                        <span style="color: var(--accent-color); font-weight: bold;">@score.Value/@score.Max</span>
+                                    </div>
+                                    <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                                        <div style="width: @percentage%; height: 100%; background: @barColor; transition: width 0.3s ease;"></div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- AI Analysis -->
+                    @if (estimates.TryGetProperty("aiAnalysis", out var aiAnalysis) && !string.IsNullOrEmpty(aiAnalysis.GetString()))
+                    {
+                        <div class="results-card">
+                            <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 1.5rem;">🤖</span>
+                                AI-Powered Analysis
+                            </h3>
+                            <div style="color: #d1d5db; line-height: 1.8; white-space: pre-wrap; padding: 1rem; background: rgba(31, 41, 55, 0.5); border-radius: 8px; border-left: 4px solid var(--accent-color);">@aiAnalysis.GetString()</div>
+                        </div>
+                    }
+                }
             }
         }
         else if (activeTab == "compare")
@@ -1167,6 +1244,9 @@
         public int BuyRatings { get; set; }
         public int HoldRatings { get; set; }
         public int SellRatings { get; set; }
+        public int AnalystRatingStrongBuy { get; set; }
+        public int AnalystRatingStrongSell { get; set; }
+        public object? Estimates { get; set; }
     }
 
     public class CompareResponse
