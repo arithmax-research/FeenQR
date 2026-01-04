@@ -469,6 +469,9 @@ namespace QuantResearchAgent
                 new EnhancedFundamentalAnalysisService(
                     sp.GetRequiredService<AlphaVantageService>(),
                     sp.GetRequiredService<FinancialModelingPrepService>(),
+                    sp.GetRequiredService<YFinanceApiService>(),
+                    sp.GetRequiredService<AlpacaService>(),
+                    sp.GetRequiredService<DataBentoService>(),
                     sp.GetRequiredService<ILogger<EnhancedFundamentalAnalysisService>>()
                 )
             );

@@ -53,11 +53,21 @@ builder.Services.AddSingleton<YahooFinanceService>();
 builder.Services.AddSingleton<YFinanceApiService>();
 builder.Services.AddSingleton<PolygonService>();
 builder.Services.AddSingleton<DataBentoService>();
+builder.Services.AddSingleton<AlpacaService>();
 builder.Services.AddSingleton<DeepSeekService>();
 builder.Services.AddSingleton<OpenAIService>();
 
 // Register Fundamental Analysis services
-builder.Services.AddSingleton<EnhancedFundamentalAnalysisService>();
+builder.Services.AddSingleton<EnhancedFundamentalAnalysisService>(sp =>
+    new EnhancedFundamentalAnalysisService(
+        sp.GetRequiredService<AlphaVantageService>(),
+        sp.GetRequiredService<FinancialModelingPrepService>(),
+        sp.GetRequiredService<YFinanceApiService>(),
+        sp.GetRequiredService<AlpacaService>(),
+        sp.GetRequiredService<DataBentoService>(),
+        sp.GetRequiredService<ILogger<EnhancedFundamentalAnalysisService>>()
+    )
+);
 
 // Register research dependencies
 builder.Services.AddSingleton<MarketDataService>();
