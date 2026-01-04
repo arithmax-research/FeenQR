@@ -318,14 +318,18 @@ public class FinancialModelingPrepService
     {
         try
         {
-            var url = $"https://financialmodelingprep.com/stable/analyst-estimates?symbol={symbol}&limit={limit}&apikey={_apiKey}";
+            var url = $"https://financialmodelingprep.com/api/v3/analyst-estimates/{symbol}?limit={limit}&apikey={_apiKey}";
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.PaymentRequired)
                 {
-                    _logger.LogWarning("FMP API free tier limit exceeded (402 Payment Required). Falling back to Alpha Vantage.");
+                    _logger.LogWarning("FMP API free tier limit exceeded (402 Payment Required). Analyst estimates require a premium subscription.");
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    _logger.LogWarning("FMP API access forbidden (403). Analyst estimates endpoint may require a premium subscription or your API key may be invalid.");
                 }
                 else
                 {
