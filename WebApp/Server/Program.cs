@@ -89,6 +89,12 @@ builder.Services.AddSingleton<AcademicResearchService>();
 builder.Services.AddSingleton<YouTubeAnalysisService>();
 builder.Services.AddSingleton<ReportGenerationService>();
 
+// Register Portfolio Management services
+builder.Services.AddSingleton<PortfolioService>();
+builder.Services.AddSingleton<PortfolioOptimizationService>();
+builder.Services.AddSingleton<RiskManagementService>();
+builder.Services.AddSingleton<MonteCarloService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
