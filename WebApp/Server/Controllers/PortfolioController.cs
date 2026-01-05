@@ -57,7 +57,7 @@ namespace Server.Controllers
                         symbol = position.Symbol,
                         quantity = position.Quantity,
                         currentPrice = position.CurrentPrice,
-                        averagePrice = position.AverageCost,
+                        averagePrice = position.AveragePrice,
                         value = positionValue,
                         allocationPercent = allocationPercent,
                         unrealizedPnL = position.UnrealizedPnL,
@@ -197,7 +197,7 @@ namespace Server.Controllers
                 var metricsHistory = _portfolioService.GetMetricsHistory();
 
                 // Calculate rolling statistics
-                var rollingReturns = CalculateRollingStatistics(metricsHistory, request.RollingWindow ?? 30);
+                dynamic rollingReturns = CalculateRollingStatistics(metricsHistory, request.RollingWindow ?? 30);
                 
                 // Calculate sector exposure (simplified - would need sector data)
                 var sectorExposure = new Dictionary<string, double>();

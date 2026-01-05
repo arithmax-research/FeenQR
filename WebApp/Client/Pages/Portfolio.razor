@@ -1,39 +1,85 @@
 @page "/portfolio"
 @inject HttpClient Http
 
-<PageTitle>Portfolio - FeenQR</PageTitle>
+<PageTitle>Portfolio Simulator - FeenQR</PageTitle>
 
 <style>
     .portfolio-container {
-        padding: 2rem;
-        min-height: 100vh;
+        padding: 1rem;
+        max-width: 1400px;
+        margin: 0 auto;
     }
 
     .portfolio-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
     }
 
     .portfolio-title {
-        font-size: 2rem;
+        font-size: 1.5rem;
         font-weight: 700;
         color: #fff;
     }
 
+    .simulation-badge {
+        display: inline-block;
+        margin-left: 1rem;
+        padding: 0.4rem 1rem;
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: 20px;
+        font-size: 0.75rem;
+        color: #f59e0b;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .tabs-container {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+
+    .tab-button {
+        padding: 0.5rem 1rem;
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-bottom: 3px solid transparent;
+        white-space: nowrap;
+    }
+
+    .tab-button:hover {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .tab-button.active {
+        color: #3b82f6;
+        border-bottom-color: #3b82f6;
+    }
+
     .summary-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
+        display: grid;180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
     .summary-card {
         background: rgba(10, 15, 30, 0.7);
         backdrop-filter: blur(30px);
         border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 16px;
+        border-radius: 12px;
+        padding: 1s: 16px;
         padding: 1.5rem;
         transform-style: preserve-3d;
         transition: all 0.4s ease;
@@ -45,13 +91,13 @@
     }
 
     .summary-label {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         color: rgba(255, 255, 255, 0.5);
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.3rem;
     }
 
     .summary-value {
-        font-size: 2rem;
+        font-size: 1.5rem;
         font-weight: 700;
         color: #fff;
         font-family: 'JetBrains Mono', monospace;
@@ -61,8 +107,8 @@
         background: rgba(10, 15, 30, 0.7);
         backdrop-filter: blur(30px);
         border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 20px;
-        padding: 1.5rem;
+        border-radius: 12px;
+        padding: 1rem;
         overflow-x: auto;
     }
 
@@ -73,16 +119,17 @@
 
     th {
         text-align: left;
-        padding: 1rem;
+        padding: 0.75rem;
         color: rgba(255, 255, 255, 0.6);
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         font-weight: 600;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     td {
-        padding: 1rem;
+        padding: 0.75rem;
         color: #fff;
+        font-size: 0.9rem;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
@@ -91,11 +138,12 @@
     }
 
     .add-position-btn {
-        padding: 0.75rem 1.5rem;
-        border-radius: 12px;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
         background: rgba(59, 130, 246, 0.15);
         border: 1px solid rgba(59, 130, 246, 0.3);
         color: #fff;
+        font-size: 0.9rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
@@ -105,86 +153,188 @@
         background: rgba(59, 130, 246, 0.25);
         transform: translateZ(10px);
     }
+
+    .tab-content {
+        padding: 1.5rem;
+        background: rgba(10, 15, 30, 0.7);
+        backdrop-filter: blur(30px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 12px;
+    }
 </style>
 
 <div class="portfolio-container">
     <div class="portfolio-header">
-        <div class="portfolio-title">Portfolio Management</div>
-        <button class="add-position-btn">+ Add Position</button>
+        <div>
+            <span class="portfolio-title">Portfolio Management</span>
+            <span class="simulation-badge">Simulation Mode</span>
+        </div>
+        <button class="add-position-btn" @onclick="ShowAddPosition">+ Add Position</button>
     </div>
 
-    <div class="summary-cards">
-        <div class="summary-card">
-            <div class="summary-label">Total Value</div>
-            <div class="summary-value">$@totalValue.ToString("N2")</div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-label">Today's P&L</div>
-            <div class="summary-value" style="color: @(todayPnL >= 0 ? "#10b981" : "#ef4444")">
-                @(todayPnL >= 0 ? "+" : "")$@todayPnL.ToString("N2")
-            </div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-label">Total P&L</div>
-            <div class="summary-value" style="color: @(totalPnL >= 0 ? "#10b981" : "#ef4444")">
-                @(totalPnL >= 0 ? "+" : "")@totalPnLPercent.ToString("F2")%
-            </div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-label">Positions</div>
-            <div class="summary-value">@positions.Count</div>
-        </div>
+    <div class="tabs-container">
+        <button class="tab-button @(activeTab == "summary" ? "active" : "")" @onclick='() => activeTab = "summary"'>
+            Summary
+        </button>
+        <button class="tab-button @(activeTab == "risk" ? "active" : "")" @onclick='() => activeTab = "risk"'>
+            Risk Assessment
+        </button>
+        <button class="tab-button @(activeTab == "analytics" ? "active" : "")" @onclick='() => activeTab = "analytics"'>
+            Analytics
+        </button>
+        <button class="tab-button @(activeTab == "strategy" ? "active" : "")" @onclick='() => activeTab = "strategy"'>
+            Strategy Builder
+        </button>
+        <button class="tab-button @(activeTab == "monte-carlo" ? "active" : "")" @onclick='() => activeTab = "monte-carlo"'>
+            Monte Carlo
+        </button>
+        <button class="tab-button @(activeTab == "optimize" ? "active" : "")" @onclick='() => activeTab = "optimize"'>
+            Optimization
+        </button>
     </div>
 
-    <div class="positions-table">
-        <div style="font-size: 1.2rem; font-weight: 600; color: #fff; margin-bottom: 1.5rem;">
-            Current Positions
-        </div>
-        
-        @if (positions.Count == 0)
-        {
-            <div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.5);">
-                No positions yet. Click "+ Add Position" to get started.
+    @if (activeTab == "summary")
+    {
+        <div class="summary-cards">
+            <div class="summary-card">
+                <div class="summary-label">Total Value</div>
+                <div class="summary-value">$@totalValue.ToString("N2")</div>
             </div>
-        }
-        else
-        {
-            <table>
-                <thead>
-                    <tr>
-                        <th>Symbol</th>
-                        <th>Shares</th>
-                        <th>Avg Cost</th>
-                        <th>Current Price</th>
-                        <th>Market Value</th>
-                        <th>P&L</th>
-                        <th>P&L %</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var position in positions)
-                    {
+            <div class="summary-card">
+                <div class="summary-label">Today's P&L</div>
+                <div class="summary-value" style="color: @(todayPnL >= 0 ? "#10b981" : "#ef4444")">
+                    @(todayPnL >= 0 ? "+" : "")$@todayPnL.ToString("N2")
+                </div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Total P&L</div>
+                <div class="summary-value" style="color: @(totalPnL >= 0 ? "#10b981" : "#ef4444")">
+                    @(totalPnL >= 0 ? "+" : "")@totalPnLPercent.ToString("F2")%
+                </div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Positions</div>
+                <div class="summary-value">@positions.Count</div>
+            </div>
+        </div>
+
+        <div class="positions-table">
+            <div style="font-size: 1.2rem; font-weight: 600; color: #fff; margin-bottom: 1.5rem;">
+                Current Positions
+            </div>
+            
+            @if (positions.Count == 0)
+            {
+                <div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.5);">
+                    No positions yet. Click "+ Add Position" to get started with your simulation portfolio.
+                </div>
+            }
+            else
+            {
+                <table>
+                    <thead>
                         <tr>
-                            <td style="font-weight: 600; font-family: 'JetBrains Mono', monospace;">@position.Symbol</td>
-                            <td>@position.Shares</td>
-                            <td>$@position.AvgCost.ToString("F2")</td>
-                            <td>$@position.CurrentPrice.ToString("F2")</td>
-                            <td>$@position.MarketValue.ToString("N2")</td>
-                            <td style="color: @(position.PnL >= 0 ? "#10b981" : "#ef4444")">
-                                @(position.PnL >= 0 ? "+" : "")$@position.PnL.ToString("N2")
-                            </td>
-                            <td style="color: @(position.PnLPercent >= 0 ? "#10b981" : "#ef4444")">
-                                @(position.PnLPercent >= 0 ? "+" : "")@position.PnLPercent.ToString("F2")%
-                            </td>
+                            <th>Symbol</th>
+                            <th>Shares</th>
+                            <th>Avg Cost</th>
+                            <th>Current Price</th>
+                            <th>Market Value</th>
+                            <th>P&L</th>
+                            <th>P&L %</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
-        }
-    </div>
+                    </thead>
+                    <tbody>
+                        @foreach (var position in positions)
+                        {
+                            <tr>
+                                <td style="font-weight: 600; font-family: 'JetBrains Mono', monospace;">@position.Symbol</td>
+                                <td>@position.Shares</td>
+                                <td>$@position.AvgCost.ToString("F2")</td>
+                                <td>$@position.CurrentPrice.ToString("F2")</td>
+                                <td>$@position.MarketValue.ToString("N2")</td>
+                                <td style="color: @(position.PnL >= 0 ? "#10b981" : "#ef4444")">
+                                    @(position.PnL >= 0 ? "+" : "")$@position.PnL.ToString("N2")
+                                </td>
+                                <td style="color: @(position.PnLPercent >= 0 ? "#10b981" : "#ef4444")">
+                                    @(position.PnLPercent >= 0 ? "+" : "")@position.PnLPercent.ToString("F2")%
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    }
+    else if (activeTab == "risk")
+    {
+        <div class="tab-content">
+            <h3 style="color: #fff; margin-bottom: 1rem;">Risk Assessment</h3>
+            <p style="color: rgba(255,255,255,0.6); margin-bottom: 2rem;">
+                Analyze portfolio risk metrics including VaR (Value at Risk), Beta, Volatility, Correlation, and Downside Risk.
+                <br/><br/>
+                This simulation uses your simulated positions to calculate realistic risk scenarios.
+            </p>
+            <button class="add-position-btn" @onclick="CalculateRisk">Calculate Risk Metrics</button>
+        </div>
+    }
+    else if (activeTab == "analytics")
+    {
+        <div class="tab-content">
+            <h3 style="color: #fff; margin-bottom: 1rem;">Advanced Analytics</h3>
+            <p style="color: rgba(255,255,255,0.6); margin-bottom: 2rem;">
+                Deep dive into portfolio performance with rolling statistics, sector exposure, diversification metrics, 
+                risk-adjusted returns (Sharpe, Sortino, Calmar ratios), and performance attribution.
+            </p>
+            <button class="add-position-btn" @onclick="RunAnalytics">Run Portfolio Analytics</button>
+        </div>
+    }
+    else if (activeTab == "strategy")
+    {
+        <div class="tab-content">
+            <h3 style="color: #fff; margin-bottom: 1rem;">Strategy Builder</h3>
+            <p style="color: rgba(255,255,255,0.6); margin-bottom: 2rem;">
+                Create custom investment strategies with automated rebalancing rules and triggers.
+                <br/><br/>
+                Examples: "Rebalance when any position exceeds 30%", "Sell if portfolio drops 10%", "Buy more if volatility is low"
+            </p>
+            <button class="add-position-btn" @onclick="BuildStrategy">Create Strategy</button>
+        </div>
+    }
+    else if (activeTab == "monte-carlo")
+    {
+        <div class="tab-content">
+            <h3 style="color: #fff; margin-bottom: 1rem;">Monte Carlo Simulation</h3>
+            <p style="color: rgba(255,255,255,0.6); margin-bottom: 2rem;">
+                Run 10,000 simulations to predict future portfolio outcomes. See best case (95th percentile), 
+                worst case (5th percentile), and most likely scenarios. Plan for retirement or investment goals with probability distributions.
+            </p>
+            <button class="add-position-btn" @onclick="RunMonteCarlo">Run Simulation (10,000 iterations)</button>
+        </div>
+    }
+    else if (activeTab == "optimize")
+    {
+        <div class="tab-content">
+            <h3 style="color: #fff; margin-bottom: 1rem;">Portfolio Optimization</h3>
+            <p style="color: rgba(255,255,255,0.6); margin-bottom: 2rem;">
+                Mathematically optimize your portfolio allocation using Modern Portfolio Theory.
+                <br/><br/>
+                • <strong>Max Sharpe Ratio:</strong> Best risk-adjusted returns<br/>
+                • <strong>Min Volatility:</strong> Least risky allocation<br/>
+                • <strong>Max Returns:</strong> Highest expected returns (higher risk)
+            </p>
+            <button class="add-position-btn" @onclick="OptimizePortfolio">Optimize Allocation</button>
+            
+            <div style="margin-top: 2rem; padding: 1rem; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px;">
+                <p style="color: #f59e0b; font-size: 0.9rem; margin: 0;">
+                    <strong>Tip:</strong> Once optimized, you can export these allocations to Alpaca for real trading.
+                </p>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
+    private string activeTab = "summary";
     private List<Position> positions = new();
     private double totalValue = 0;
     private double todayPnL = 0;
@@ -211,15 +361,11 @@
     {
         try
         {
-            // TODO: Load from backend API
-            // Mock data for demonstration
-            await Task.Delay(100);
-            
             var quotes = await Http.GetFromJsonAsync<Quote[]>("api/marketdata/quotes");
             
             if (quotes != null && quotes.Length > 0)
             {
-                // Create sample positions with real prices
+                // Create sample simulated positions with real prices
                 positions = new List<Position>
                 {
                     new() { Symbol = "AAPL", Shares = 100, AvgCost = 250.00, CurrentPrice = quotes.FirstOrDefault(q => q.Symbol == "AAPL")?.Price ?? 273.79 },
@@ -236,6 +382,82 @@
         catch (Exception ex)
         {
             Console.Error.WriteLine($"Portfolio error: {ex.Message}");
+        }
+    }
+
+    private void ShowAddPosition()
+    {
+        Console.WriteLine("Add position clicked - will open modal for simulation");
+        // TODO: Open modal to add position to simulation portfolio
+    }
+
+    private async Task CalculateRisk()
+    {
+        try
+        {
+            Console.WriteLine("Calling risk assessment API");
+            var response = await Http.PostAsJsonAsync("api/portfolio/risk-assessment", new { portfolioId = "simulation" });
+            // TODO: Display risk metrics
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Risk calculation error: {ex.Message}");
+        }
+    }
+
+    private async Task RunAnalytics()
+    {
+        try
+        {
+            Console.WriteLine("Calling portfolio analytics API");
+            var response = await Http.PostAsJsonAsync("api/portfolio/analytics", new { portfolioId = "simulation", rollingWindow = 30 });
+            // TODO: Display analytics results
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Analytics error: {ex.Message}");
+        }
+    }
+
+    private async Task BuildStrategy()
+    {
+        try
+        {
+            Console.WriteLine("Calling strategy builder API");
+            var response = await Http.PostAsJsonAsync("api/portfolio/strategy", new { portfolioId = "simulation" });
+            // TODO: Display strategy builder form
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Strategy error: {ex.Message}");
+        }
+    }
+
+    private async Task RunMonteCarlo()
+    {
+        try
+        {
+            Console.WriteLine("Calling Monte Carlo API");
+            var response = await Http.PostAsJsonAsync("api/portfolio/monte-carlo", new { portfolioId = "simulation", simulations = 10000, days = 252 });
+            // TODO: Display simulation results with probability charts
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Monte Carlo error: {ex.Message}");
+        }
+    }
+
+    private async Task OptimizePortfolio()
+    {
+        try
+        {
+            Console.WriteLine("Calling portfolio optimization API");
+            var response = await Http.PostAsJsonAsync("api/portfolio/optimize", new { portfolioId = "simulation", method = "max-sharpe" });
+            // TODO: Display optimized allocation with option to export to Alpaca
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Optimization error: {ex.Message}");
         }
     }
 
