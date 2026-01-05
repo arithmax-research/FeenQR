@@ -1,0 +1,622 @@
+@page "/risk-analysis"
+@inject HttpClient Http
+
+<PageTitle>Risk Analytics - FeenQR</PageTitle>
+
+<style>
+    .risk-container {
+        padding: 1rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .risk-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .risk-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 0.5rem;
+    }
+
+    .risk-subtitle {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.95rem;
+    }
+
+    .tabs-container {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+
+    .tab-button {
+        padding: 0.75rem 1.25rem;
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-bottom: 3px solid transparent;
+        white-space: nowrap;
+    }
+
+    .tab-button:hover {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .tab-button.active {
+        color: #ef4444;
+        border-bottom-color: #ef4444;
+    }
+
+    .content-card {
+        background: rgba(10, 15, 30, 0.7);
+        backdrop-filter: blur(30px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .card-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .input-group {
+        margin-bottom: 1rem;
+    }
+
+    .input-label {
+        display: block;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+
+    .input-field {
+        width: 100%;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 0.95rem;
+    }
+
+    .input-field:focus {
+        outline: none;
+        border-color: #ef4444;
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .results-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .metric-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 1.25rem;
+    }
+
+    .metric-label {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    .metric-value.danger {
+        color: #ef4444;
+    }
+
+    .metric-value.warning {
+        color: #f59e0b;
+    }
+
+    .metric-value.success {
+        color: #10b981;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .error-message {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 8px;
+        padding: 1rem;
+        color: #ef4444;
+        margin-top: 1rem;
+    }
+
+    .info-text {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+
+    .json-output {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 1rem;
+        color: #10b981;
+        font-family: 'Courier New', monospace;
+        font-size: 0.85rem;
+        max-height: 400px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        margin-top: 1rem;
+    }
+
+    textarea.input-field {
+        min-height: 120px;
+        font-family: 'Courier New', monospace;
+        resize: vertical;
+    }
+</style>
+
+<div class="risk-container">
+    <div class="risk-header">
+        <h1 class="risk-title">Risk Analytics</h1>
+        <p class="risk-subtitle">Comprehensive portfolio risk analysis and stress testing</p>
+    </div>
+
+    <div class="tabs-container">
+        <button class="tab-button @(activeTab == "metrics" ? "active" : "")" @onclick='() => SetActiveTab("metrics")'>
+            Risk Metrics
+        </button>
+        <button class="tab-button @(activeTab == "var" ? "active" : "")" @onclick='() => SetActiveTab("var")'>
+            Value at Risk
+        </button>
+        <button class="tab-button @(activeTab == "stress" ? "active" : "")" @onclick='() => SetActiveTab("stress")'>
+            Stress Testing
+        </button>
+        <button class="tab-button @(activeTab == "attribution" ? "active" : "")" @onclick='() => SetActiveTab("attribution")'>
+            Risk Attribution
+        </button>
+        <button class="tab-button @(activeTab == "report" ? "active" : "")" @onclick='() => SetActiveTab("report")'>
+            Risk Report
+        </button>
+        <button class="tab-button @(activeTab == "compare" ? "active" : "")" @onclick='() => SetActiveTab("compare")'>
+            Compare Measures
+        </button>
+        <button class="tab-button @(activeTab == "advanced" ? "active" : "")" @onclick='() => SetActiveTab("advanced")'>
+            Advanced Risk
+        </button>
+        <button class="tab-button @(activeTab == "counterparty" ? "active" : "")" @onclick='() => SetActiveTab("counterparty")'>
+            Counterparty Risk
+        </button>
+        <button class="tab-button @(activeTab == "tail" ? "active" : "")" @onclick='() => SetActiveTab("tail")'>
+            Tail Risk
+        </button>
+    </div>
+
+    @if (activeTab == "metrics")
+    {
+        <div class="content-card">
+            <h2 class="card-title">Portfolio Risk Metrics</h2>
+            <div class="input-group">
+                <label class="input-label">Portfolio Weights (JSON format: {"AAPL": 0.3, "GOOGL": 0.3, "MSFT": 0.4})</label>
+                <textarea class="input-field" @bind="weightsJson" placeholder='{"AAPL": 0.3, "GOOGL": 0.3, "MSFT": 0.4}'></textarea>
+            </div>
+            <button class="btn-primary" @onclick="GetRiskMetrics" disabled="@isLoading">
+                @(isLoading ? "Calculating..." : "Calculate Risk Metrics")
+            </button>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-message">@errorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(resultJson))
+            {
+                <div class="json-output">@resultJson</div>
+            }
+        </div>
+    }
+    else if (activeTab == "var")
+    {
+        <div class="content-card">
+            <h2 class="card-title">Value at Risk (VaR)</h2>
+            <div class="input-group">
+                <label class="input-label">Portfolio Weights (JSON)</label>
+                <textarea class="input-field" @bind="weightsJson" placeholder='{"AAPL": 0.5, "MSFT": 0.5}'></textarea>
+            </div>
+            <div class="input-group">
+                <label class="input-label">Confidence Level (e.g., 0.95 for 95%)</label>
+                <input type="number" class="input-field" @bind="confidenceLevel" step="0.01" min="0" max="1" />
+            </div>
+            <div class="input-group">
+                <label class="input-label">Time Horizon (days)</label>
+                <input type="number" class="input-field" @bind="timeHorizon" min="1" />
+            </div>
+            <button class="btn-primary" @onclick="CalculateVaR" disabled="@isLoading">
+                @(isLoading ? "Calculating..." : "Calculate VaR")
+            </button>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-message">@errorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(resultJson))
+            {
+                <div class="json-output">@resultJson</div>
+            }
+        </div>
+    }
+    else if (activeTab == "stress")
+    {
+        <div class="content-card">
+            <h2 class="card-title">Stress Testing</h2>
+            <div class="input-group">
+                <label class="input-label">Portfolio Weights (JSON)</label>
+                <textarea class="input-field" @bind="weightsJson" placeholder='{"AAPL": 0.4, "TSLA": 0.6}'></textarea>
+            </div>
+            <div class="input-group">
+                <label class="input-label">Scenarios (JSON array)</label>
+                <textarea class="input-field" @bind="scenariosJson" placeholder='[{"name": "Market Crash", "shocks": {"AAPL": -0.2, "TSLA": -0.3}}]'></textarea>
+                <p class="info-text">Leave empty to use default scenarios</p>
+            </div>
+            <button class="btn-primary" @onclick="RunStressTest" disabled="@isLoading">
+                @(isLoading ? "Running..." : "Run Stress Test")
+            </button>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-message">@errorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(resultJson))
+            {
+                <div class="json-output">@resultJson</div>
+            }
+        </div>
+    }
+    else if (activeTab == "attribution")
+    {
+        <div class="content-card">
+            <h2 class="card-title">Risk Factor Attribution</h2>
+            <div class="input-group">
+                <label class="input-label">Portfolio Weights (JSON)</label>
+                <textarea class="input-field" @bind="weightsJson" placeholder='{"AAPL": 0.33, "GOOGL": 0.33, "MSFT": 0.34}'></textarea>
+            </div>
+            <button class="btn-primary" @onclick="GetRiskAttribution" disabled="@isLoading">
+                @(isLoading ? "Analyzing..." : "Analyze Risk Attribution")
+            </button>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-message">@errorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(resultJson))
+            {
+                <div class="json-output">@resultJson</div>
+            }
+        </div>
+    }
+    else if (activeTab == "report")
+    {
+        <div class="content-card">
+            <h2 class="card-title">Comprehensive Risk Report</h2>
+            <div class="input-group">
+                <label class="input-label">Portfolio Weights (JSON)</label>
+                <textarea class="input-field" @bind="weightsJson" placeholder='{"AAPL": 0.25, "GOOGL": 0.25, "MSFT": 0.25, "TSLA": 0.25}'></textarea>
+            </div>
+            <button class="btn-primary" @onclick="GenerateRiskReport" disabled="@isLoading">
+                @(isLoading ? "Generating..." : "Generate Risk Report")
+            </button>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-message">@errorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(resultJson))
+            {
+                <div class="json-output">@resultJson</div>
+            }
+        </div>
+    }
+    else if (activeTab == "compare")
+    {
+        <div class="content-card">
+            <h2 class="card-title">Compare Risk Measures</h2>
+            <div class="input-group">
+                <label class="input-label">Portfolio 1 Weights (JSON)</label>
+                <textarea class="input-field" @bind="portfolio1Json" placeholder='{"AAPL": 0.5, "MSFT": 0.5}'></textarea>
+            </div>
+            <div class="input-group">
+                <label class="input-label">Portfolio 2 Weights (JSON)</label>
+                <textarea class="input-field" @bind="portfolio2Json" placeholder='{"GOOGL": 0.5, "TSLA": 0.5}'></textarea>
+            </div>
+            <button class="btn-primary" @onclick="CompareRiskMeasures" disabled="@isLoading">
+                @(isLoading ? "Comparing..." : "Compare Portfolios")
+            </button>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-message">@errorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(resultJson))
+            {
+                <div class="json-output">@resultJson</div>
+            }
+        </div>
+    }
+    else if (activeTab == "advanced")
+    {
+        <div class="content-card">
+            <h2 class="card-title">Advanced Risk Analytics</h2>
+            <div class="input-group">
+                <label class="input-label">Portfolio Weights (JSON)</label>
+                <textarea class="input-field" @bind="weightsJson" placeholder='{"AAPL": 0.4, "MSFT": 0.6}'></textarea>
+            </div>
+            <button class="btn-primary" @onclick="GetAdvancedRisk" disabled="@isLoading">
+                @(isLoading ? "Analyzing..." : "Run Advanced Analysis")
+            </button>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-message">@errorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(resultJson))
+            {
+                <div class="json-output">@resultJson</div>
+            }
+        </div>
+    }
+    else if (activeTab == "counterparty")
+    {
+        <div class="content-card">
+            <h2 class="card-title">Counterparty Risk Analysis</h2>
+            <div class="input-group">
+                <label class="input-label">Portfolio Weights (JSON)</label>
+                <textarea class="input-field" @bind="weightsJson" placeholder='{"AAPL": 0.5, "MSFT": 0.5}'></textarea>
+            </div>
+            <p class="info-text">Uses default counterparty data (BROKER_A, BROKER_B)</p>
+            <button class="btn-primary" @onclick="AnalyzeCounterpartyRisk" disabled="@isLoading">
+                @(isLoading ? "Analyzing..." : "Analyze Counterparty Risk")
+            </button>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-message">@errorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(resultJson))
+            {
+                <div class="json-output">@resultJson</div>
+            }
+        </div>
+    }
+    else if (activeTab == "tail")
+    {
+        <div class="content-card">
+            <h2 class="card-title">Tail Risk Analysis</h2>
+            <div class="input-group">
+                <label class="input-label">Portfolio Weights (JSON)</label>
+                <textarea class="input-field" @bind="weightsJson" placeholder='{"AAPL": 0.33, "MSFT": 0.33, "GOOGL": 0.34}'></textarea>
+            </div>
+            <div class="input-group">
+                <label class="input-label">Tail Threshold (percentile, e.g., 0.05 for 5%)</label>
+                <input type="number" class="input-field" @bind="tailThreshold" step="0.01" min="0" max="0.5" />
+            </div>
+            <button class="btn-primary" @onclick="AnalyzeTailRisk" disabled="@isLoading">
+                @(isLoading ? "Analyzing..." : "Analyze Tail Risk")
+            </button>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-message">@errorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(resultJson))
+            {
+                <div class="json-output">@resultJson</div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string activeTab = "metrics";
+    private bool isLoading = false;
+    private string errorMessage = "";
+    private string resultJson = "";
+
+    private string weightsJson = "{\"AAPL\": 0.3, \"GOOGL\": 0.3, \"MSFT\": 0.4}";
+    private string portfolio1Json = "{\"AAPL\": 0.5, \"MSFT\": 0.5}";
+    private string portfolio2Json = "{\"GOOGL\": 0.5, \"TSLA\": 0.5}";
+    private string scenariosJson = "";
+    private double confidenceLevel = 0.95;
+    private int timeHorizon = 1;
+    private double tailThreshold = 0.05;
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+        errorMessage = "";
+        resultJson = "";
+    }
+
+    private async Task GetRiskMetrics()
+    {
+        await ExecuteApiCall(async () =>
+        {
+            var response = await Http.PostAsJsonAsync("/api/risk/metrics", new { weights = ParseWeights(weightsJson) });
+            return await response.Content.ReadAsStringAsync();
+        });
+    }
+
+    private async Task CalculateVaR()
+    {
+        await ExecuteApiCall(async () =>
+        {
+            var response = await Http.PostAsJsonAsync("/api/risk/var", new
+            {
+                weights = ParseWeights(weightsJson),
+                confidenceLevel = confidenceLevel,
+                timeHorizon = timeHorizon
+            });
+            return await response.Content.ReadAsStringAsync();
+        });
+    }
+
+    private async Task RunStressTest()
+    {
+        await ExecuteApiCall(async () =>
+        {
+            var payload = new { weights = ParseWeights(weightsJson) };
+            if (!string.IsNullOrWhiteSpace(scenariosJson))
+            {
+                // If scenarios provided, include them (not implemented in this basic version)
+                payload = new { weights = ParseWeights(weightsJson) };
+            }
+            var response = await Http.PostAsJsonAsync("/api/risk/stress-test", payload);
+            return await response.Content.ReadAsStringAsync();
+        });
+    }
+
+    private async Task GetRiskAttribution()
+    {
+        await ExecuteApiCall(async () =>
+        {
+            var response = await Http.PostAsJsonAsync("/api/risk/attribution", new { weights = ParseWeights(weightsJson) });
+            return await response.Content.ReadAsStringAsync();
+        });
+    }
+
+    private async Task GenerateRiskReport()
+    {
+        await ExecuteApiCall(async () =>
+        {
+            var response = await Http.PostAsJsonAsync("/api/risk/report", new { weights = ParseWeights(weightsJson) });
+            return await response.Content.ReadAsStringAsync();
+        });
+    }
+
+    private async Task CompareRiskMeasures()
+    {
+        await ExecuteApiCall(async () =>
+        {
+            var response = await Http.PostAsJsonAsync("/api/risk/compare", new
+            {
+                portfolio1 = ParseWeights(portfolio1Json),
+                portfolio2 = ParseWeights(portfolio2Json)
+            });
+            return await response.Content.ReadAsStringAsync();
+        });
+    }
+
+    private async Task GetAdvancedRisk()
+    {
+        await ExecuteApiCall(async () =>
+        {
+            var response = await Http.PostAsJsonAsync("/api/risk/advanced", new { weights = ParseWeights(weightsJson) });
+            return await response.Content.ReadAsStringAsync();
+        });
+    }
+
+    private async Task AnalyzeCounterpartyRisk()
+    {
+        await ExecuteApiCall(async () =>
+        {
+            var response = await Http.PostAsJsonAsync("/api/risk/counterparty", new { weights = ParseWeights(weightsJson) });
+            return await response.Content.ReadAsStringAsync();
+        });
+    }
+
+    private async Task AnalyzeTailRisk()
+    {
+        await ExecuteApiCall(async () =>
+        {
+            var response = await Http.PostAsJsonAsync("/api/risk/tail-risk", new
+            {
+                weights = ParseWeights(weightsJson),
+                threshold = tailThreshold
+            });
+            return await response.Content.ReadAsStringAsync();
+        });
+    }
+
+    private async Task ExecuteApiCall(Func<Task<string>> apiCall)
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = "";
+            resultJson = "";
+            StateHasChanged();
+
+            resultJson = await apiCall();
+            
+            // Pretty print JSON
+            resultJson = System.Text.Json.JsonSerializer.Serialize(
+                System.Text.Json.JsonSerializer.Deserialize<object>(resultJson),
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true }
+            );
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private Dictionary<string, double> ParseWeights(string json)
+    {
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, double>>(json)
+                ?? new Dictionary<string, double>();
+        }
+        catch
+        {
+            throw new ArgumentException("Invalid JSON format for weights");
+        }
+    }
+}
