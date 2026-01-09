@@ -743,9 +743,9 @@
                 }}());
             ");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            Console.WriteLine($"Chart initialization error");
+            Console.WriteLine($"Chart initialization error: {{ex.Message}}");
         }
     }
 
@@ -953,13 +953,12 @@
         }
     }
 
-    private Task HandleCompareKeyPress(KeyboardEventArgs e)
+    private async Task HandleCompareKeyPress(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
         {
             AddSymbol();
         }
-        return Task.CompletedTask;
     }
 
     // Helper methods
