@@ -1,26 +1,26 @@
 {
   "format": 1,
   "restore": {
-    "/Users/misango/codechest/FeenQR/QuantResearchAgent.csproj": {}
+    "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj": {}
   },
   "projects": {
-    "/Users/misango/codechest/FeenQR/QuantResearchAgent.csproj": {
+    "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/misango/codechest/FeenQR/QuantResearchAgent.csproj",
+        "projectUniqueName": "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj",
         "projectName": "QuantResearchAgent",
-        "projectPath": "/Users/misango/codechest/FeenQR/QuantResearchAgent.csproj",
-        "packagesPath": "/Users/misango/.nuget/packages/",
-        "outputPath": "/Users/misango/codechest/FeenQR/obj/",
+        "projectPath": "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj",
+        "packagesPath": "/home/misango/.nuget/packages/",
+        "outputPath": "/home/misango/codechest/FeenQR/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/misango/.nuget/NuGet/NuGet.Config"
+          "/home/misango/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net9.0"
         ],
         "sources": {
-          "/usr/local/share/dotnet/library-packs": {},
+          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -39,7 +39,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.300"
+        "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
         "net9.0": {
@@ -178,7 +178,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.305/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/9.0.112/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
