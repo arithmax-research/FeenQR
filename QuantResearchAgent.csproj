@@ -18,6 +18,9 @@
     <Compile Remove="WebApp/**/*.cs" />
     <EmbeddedResource Remove="WebApp/**/*" />
     <None Remove="WebApp/**/*" />
+    <Compile Remove="Controllers/**/*.cs" />
+    <EmbeddedResource Remove="Controllers/**/*" />
+    <None Remove="Controllers/**/*" />
   </ItemGroup>
 
   <ItemGroup>

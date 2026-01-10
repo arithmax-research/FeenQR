@@ -2,10 +2,30 @@
 
 <PageTitle>Research</PageTitle>
 
-<h1>Academic Research</h1>
+<h1>Research Tools</h1>
 
-<div class="row">
-    <div class="col-md-12">
-        <ResearchWidget />
+<ul class="nav nav-tabs" id="researchTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="academic-tab" data-bs-toggle="tab" data-bs-target="#academic" type="button" role="tab" aria-controls="academic" aria-selected="true">Academic Research</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="linkedin-tab" data-bs-toggle="tab" data-bs-target="#linkedin" type="button" role="tab" aria-controls="linkedin" aria-selected="false">LinkedIn Scraper</button>
+    </li>
+</ul>
+
+<div class="tab-content" id="researchTabsContent">
+    <div class="tab-pane fade show active" id="academic" role="tabpanel" aria-labelledby="academic-tab">
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <ResearchWidget />
+            </div>
+        </div>
+    </div>
+    <div class="tab-pane fade" id="linkedin" role="tabpanel" aria-labelledby="linkedin-tab">
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <LinkedInScraperWidget />
+            </div>
+        </div>
     </div>
 </div>

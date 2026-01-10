@@ -743,9 +743,9 @@
                 }}());
             ");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Chart initialization error: {{ex.Message}}");
+            // Chart initialization error - silently fail
         }
     }
 
@@ -953,7 +953,7 @@
         }
     }
 
-    private async Task HandleCompareKeyPress(KeyboardEventArgs e)
+    private void HandleCompareKeyPress(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
         {

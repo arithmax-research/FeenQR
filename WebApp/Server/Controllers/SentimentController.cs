@@ -175,7 +175,7 @@ public class SentimentController : ControllerBase
                             {
                                 title = p.Title,
                                 score = p.Score,
-                                comments = p.NumComments,
+                                comments = p.Comments,
                                 sentiment = analysis.SentimentScore > 0 ? "Bullish" : analysis.SentimentScore < 0 ? "Bearish" : "Neutral",
                                 url = p.Url
                             }),

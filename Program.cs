@@ -299,6 +299,7 @@ namespace QuantResearchAgent
             services.AddSingleton<PortfolioOptimizationService>();
             services.AddSingleton<SocialMediaScrapingService>();
             services.AddSingleton<WebDataExtractionService>();
+            services.AddSingleton<LinkedInScrapingService>();
             services.AddSingleton<ReportGenerationService>();
             services.AddSingleton<SatelliteImageryAnalysisService>();
 

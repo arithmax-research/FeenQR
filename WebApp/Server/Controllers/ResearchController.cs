@@ -15,19 +15,22 @@ namespace Server.Controllers
         private readonly AcademicResearchService _academicResearchService;
         private readonly YouTubeAnalysisService _youtubeAnalysisService;
         private readonly ReportGenerationService _reportGenerationService;
+        private readonly LinkedInScrapingService _linkedInScrapingService;
 
         public ResearchController(
             ILogger<ResearchController> logger,
             ConversationalResearchService conversationalResearchService,
             AcademicResearchService academicResearchService,
             YouTubeAnalysisService youtubeAnalysisService,
-            ReportGenerationService reportGenerationService)
+            ReportGenerationService reportGenerationService,
+            LinkedInScrapingService linkedInScrapingService)
         {
             _logger = logger;
             _conversationalResearchService = conversationalResearchService;
             _academicResearchService = academicResearchService;
             _youtubeAnalysisService = youtubeAnalysisService;
             _reportGenerationService = reportGenerationService;
+            _linkedInScrapingService = linkedInScrapingService;
         }
 
         // AI Assistant endpoints
@@ -189,6 +192,22 @@ namespace Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error searching finance videos");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        // LinkedIn Scraper endpoint
+        [HttpPost("linkedin-scrape")]
+        public async Task<IActionResult> ScrapeLinkedInPosts([FromBody] LinkedInScrapeRequest request)
+        {
+            try
+            {
+                var posts = await _linkedInScrapingService.ScrapePostsAsync(request.Url);
+                return Ok(posts);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error scraping LinkedIn posts from {Url}", request.Url);
                 return StatusCode(500, new { error = ex.Message });
             }
         }
@@ -731,6 +750,11 @@ Keep it concise and actionable. Focus on what's useful for quantitative research
     {
         public string Symbol { get; set; } = string.Empty;
         public string ReportType { get; set; } = "comprehensive";
+    }
+
+    public class LinkedInScrapeRequest
+    {
+        public string Url { get; set; } = string.Empty;
     }
 
     public class ResearchResponse

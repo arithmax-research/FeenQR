@@ -427,16 +427,24 @@ Keep it concise and actionable. Focus on what's useful for quantitative research
         string sourceUrl)
     {
         var prompt = $"""
-        Based on this quantitative content from an academic paper, generate a complete trading strategy implementation:
+        Analyze this quantitative content from an academic paper:
 
         Quantitative Content:
         {quantitativeContent}
 
-        Create a strategy with:
-        1. Entry and exit rules
-        2. Risk management parameters
-        3. Performance expectations
-        4. Implementation pseudocode
+        IMPORTANT: First determine if this paper contains an actual trading strategy or actionable trading methodology.
+        
+        If the paper DOES contain a trading strategy:
+        - Extract and document the entry and exit rules
+        - Document risk management parameters mentioned
+        - Document performance expectations if provided
+        - Provide implementation pseudocode based on the paper's methodology
+        
+        If the paper DOES NOT contain a trading strategy:
+        - State clearly: "This paper does not contain a trading strategy"
+        - Summarize what the paper actually discusses (e.g., market analysis, economic theory, data analysis, etc.)
+        - List any quantitative findings or metrics mentioned
+        - Note if there are any implications for trading but no explicit strategy
 
         Strategy Name: {strategyName}
         """;

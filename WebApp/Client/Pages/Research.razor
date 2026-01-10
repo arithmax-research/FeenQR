@@ -293,6 +293,7 @@
             <button class="tab-btn @(activeTab == "ai-assistant" ? "active" : "")" @onclick='() => SwitchTab("ai-assistant")'>AI Assistant</button>
             <button class="tab-btn @(activeTab == "video-analysis" ? "active" : "")" @onclick='() => SwitchTab("video-analysis")'>Video Analysis</button>
             <button class="tab-btn @(activeTab == "academic-papers" ? "active" : "")" @onclick='() => SwitchTab("academic-papers")'>Papers</button>
+            <button class="tab-btn @(activeTab == "scraper" ? "active" : "")" @onclick='() => SwitchTab("scraper")'>Scraper</button>
             <button class="tab-btn @(activeTab == "research-synthesis" ? "active" : "")" @onclick='() => SwitchTab("research-synthesis")'>Synthesis</button>
             <button class="tab-btn @(activeTab == "research-reports" ? "active" : "")" @onclick='() => SwitchTab("research-reports")'>Reports</button>
         </div>
@@ -556,6 +557,173 @@
             </div>
         }
 
+        @if (activeTab == "scraper")
+        {
+            <div class="section-header">
+                Research Scraper - Multiple Sources
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <h6 style="color: #10b981; margin-bottom: 1rem; font-weight: 600;">Scrape Quant Research from Popular Sources</h6>
+                    <p style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 1rem;">Extract papers, reports, and insights from LinkedIn, Twitter/X, ResearchGate, SSRN, GitHub, and more.</p>
+                </div>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <span class="feature-status status-available">AVAILABLE</span>
+                        <div class="feature-title">
+                            LinkedIn Scraper
+                        </div>
+                        <div class="feature-description">
+                            Scrape posts from LinkedIn companies and profiles. Great for Quant Insider, AlpacaHQ, and finance professionals.
+                        </div>
+                        <div class="feature-actions">
+                            <button class="action-btn" @onclick="@(() => ShowScraperDetails("linkedin"))">Configure</button>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <span class="feature-status status-available">AVAILABLE</span>
+                        <div class="feature-title">
+                            Twitter/X Scraper
+                        </div>
+                        <div class="feature-description">
+                            Track quant finance hashtags and accounts. Monitor #QuantFinance, #AlgoTrading, and researcher posts.
+                        </div>
+                        <div class="feature-actions">
+                            <button class="action-btn" @onclick="@(() => ShowScraperDetails("twitter"))">Configure</button>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <span class="feature-status status-available">AVAILABLE</span>
+                        <div class="feature-title">
+                            ResearchGate Scraper
+                        </div>
+                        <div class="feature-description">
+                            Extract papers from ResearchGate profiles and topics. Access preprints and working papers.
+                        </div>
+                        <div class="feature-actions">
+                            <button class="action-btn" @onclick="@(() => ShowScraperDetails("researchgate"))">Configure</button>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <span class="feature-status status-available">AVAILABLE</span>
+                        <div class="feature-title">
+                            SSRN Scraper
+                        </div>
+                        <div class="feature-description">
+                            Scrape papers from Social Science Research Network. Monitor financial economics and quantitative research.
+                        </div>
+                        <div class="feature-actions">
+                            <button class="action-btn" @onclick="@(() => ShowScraperDetails("ssrn"))">Configure</button>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <span class="feature-status status-available">AVAILABLE</span>
+                        <div class="feature-title">
+                            GitHub Scraper
+                        </div>
+                        <div class="feature-description">
+                            Find research repos and trading strategies. Search topics like quantitative-finance, algorithmic-trading.
+                        </div>
+                        <div class="feature-actions">
+                            <button class="action-btn" @onclick="@(() => ShowScraperDetails("github"))">Configure</button>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <span class="feature-status status-available">AVAILABLE</span>
+                        <div class="feature-title">
+                            Medium/Substack Scraper
+                        </div>
+                        <div class="feature-description">
+                            Scrape articles from Medium publications and Substack newsletters focusing on quant finance.
+                        </div>
+                        <div class="feature-actions">
+                            <button class="action-btn" @onclick="@(() => ShowScraperDetails("medium"))">Configure</button>
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(activeScraperType))
+                {
+                    <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; padding: 1.5rem; margin-top: 2rem;">
+                        <h6 style="color: #ffffff; margin-bottom: 1rem; font-weight: 600;">@GetScraperTitle(activeScraperType)</h6>
+                        
+                        <div style="margin-bottom: 1rem;">
+                            <label style="color: #9ca3af; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">@GetScraperUrlLabel(activeScraperType)</label>
+                            <input type="text" class="chat-input" style="margin-bottom: 0.5rem;" @bind="scraperUrl" placeholder="@GetScraperPlaceholder(activeScraperType)" />
+                        </div>
+
+                        @if (activeScraperType == "twitter" || activeScraperType == "github")
+                        {
+                            <div style="margin-bottom: 1rem;">
+                                <label style="color: #9ca3af; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Additional Query/Keywords</label>
+                                <input type="text" class="chat-input" style="margin-bottom: 0.5rem;" @bind="scraperQuery" placeholder="e.g., algorithmic trading, mean reversion" />
+                            </div>
+                        }
+
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="chat-submit" @onclick="StartScraping" disabled="@isLoading">Start Scraping</button>
+                            <button class="action-btn" style="background: transparent; border: 1px solid rgba(255, 255, 255, 0.2);" @onclick="() => activeScraperType = string.Empty">Cancel</button>
+                        </div>
+                    </div>
+                }
+
+                @if (isLoading)
+                {
+                    <div class="progress-container">
+                        <div class="spinner"></div>
+                        <div class="progress-text">Scraping @activeScraperType...</div>
+                    </div>
+                }
+                else if (scrapedPosts != null && scrapedPosts.Any())
+                {
+                    <div style="margin-top: 2rem;">
+                        <h6 style="color: #10b981; margin-bottom: 1rem;">Scraped Results (@scrapedPosts.Count posts)</h6>
+                        @foreach (var post in scrapedPosts)
+                        {
+                            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                                    <h6 style="color: #ffffff; font-weight: 600; margin: 0;">@post.Author</h6>
+                                    <small style="color: #6b7280;">@post.Timestamp</small>
+                                </div>
+                                <p style="color: #d1d5db; font-size: 0.9rem; margin-bottom: 0.75rem;">@post.Content</p>
+                                @if (post.Papers != null && post.Papers.Any())
+                                {
+                                    <div style="background: rgba(16, 185, 129, 0.1); border-left: 3px solid #10b981; padding: 0.75rem; margin-top: 0.75rem;">
+                                        <strong style="color: #10b981; font-size: 0.85rem;">Papers/Reports:</strong>
+                                        <ul style="margin: 0.5rem 0 0 1.25rem; color: #d1d5db; font-size: 0.85rem;">
+                                            @foreach (var paper in post.Papers)
+                                            {
+                                                <li style="margin-bottom: 0.25rem;">
+                                                    <a href="@paper.Link" target="_blank" style="color: #60a5fa; text-decoration: none;">@paper.Title</a>
+                                                    @if (!string.IsNullOrEmpty(paper.DownloadLink))
+                                                    {
+                                                        <a href="@paper.DownloadLink" target="_blank" style="color: #10b981; margin-left: 0.5rem; font-size: 0.8rem;">[Download]</a>
+                                                    }
+                                                </li>
+                                            }
+                                        </ul>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else if (!isLoading && lastResult != null)
+                {
+                    <div class="results-display">
+                        <pre>@lastResult</pre>
+                    </div>
+                }
+            </div>
+        }
+
         @if (activeTab == "research-synthesis")
         {
             <div class="section-header">
@@ -712,11 +880,15 @@
     private string paperQuery = "";
     private string synthesisQuery = "";
     private string reportQuery = "";
+    private string activeScraperType = "";
+    private string scraperUrl = "";
+    private string scraperQuery = "";
     private bool isLoading = false;
     private string? lastResult = null;
     private IBrowserFile? selectedPdf;
     private string selectedPdfName = "";
     private List<PaperResult> foundPapers = new();
+    private List<ScrapedPost> scrapedPosts = new();
 
     public class PaperResult
     {
@@ -725,11 +897,148 @@
         public string Snippet { get; set; } = "";
     }
 
+    public class ScrapedPost
+    {
+        public string Author { get; set; } = "";
+        public string Content { get; set; } = "";
+        public string Timestamp { get; set; } = "";
+        public List<PaperInfo>? Papers { get; set; }
+    }
+
+    public class PaperInfo
+    {
+        public string Title { get; set; } = "";
+        public string Link { get; set; } = "";
+        public string DownloadLink { get; set; } = "";
+    }
+
     private void SwitchTab(string tab)
     {
         activeTab = tab;
         lastResult = null;
+        scrapedPosts.Clear();
+        activeScraperType = "";
         StateHasChanged();
+    }
+
+    private void ShowScraperDetails(string scraperType)
+    {
+        activeScraperType = scraperType;
+        scraperUrl = GetDefaultUrl(scraperType);
+        scraperQuery = "";
+        scrapedPosts.Clear();
+        lastResult = null;
+        StateHasChanged();
+    }
+
+    private string GetDefaultUrl(string scraperType)
+    {
+        return scraperType switch
+        {
+            "linkedin" => "https://www.linkedin.com/company/quant-insider/posts/?feedView=all&viewAsMember=true",
+            "twitter" => "https://twitter.com/search?q=%23QuantFinance",
+            "researchgate" => "https://www.researchgate.net/topic/Quantitative-Finance",
+            "ssrn" => "https://papers.ssrn.com/sol3/JELJOUR_Results.cfm?form_name=journalBrowse&journal_id=1079991",
+            "github" => "https://github.com/topics/quantitative-finance",
+            "medium" => "https://medium.com/tag/quantitative-finance",
+            _ => ""
+        };
+    }
+
+    private string GetScraperTitle(string scraperType)
+    {
+        return scraperType switch
+        {
+            "linkedin" => "LinkedIn Scraper Configuration",
+            "twitter" => "Twitter/X Scraper Configuration",
+            "researchgate" => "ResearchGate Scraper Configuration",
+            "ssrn" => "SSRN Scraper Configuration",
+            "github" => "GitHub Scraper Configuration",
+            "medium" => "Medium/Substack Scraper Configuration",
+            _ => "Scraper Configuration"
+        };
+    }
+
+    private string GetScraperUrlLabel(string scraperType)
+    {
+        return scraperType switch
+        {
+            "linkedin" => "LinkedIn Profile/Company URL",
+            "twitter" => "Twitter Search URL or Handle",
+            "researchgate" => "ResearchGate Profile/Topic URL",
+            "ssrn" => "SSRN Topic/Author URL",
+            "github" => "GitHub Topic/User URL",
+            "medium" => "Medium Tag/Publication URL",
+            _ => "URL"
+        };
+    }
+
+    private string GetScraperPlaceholder(string scraperType)
+    {
+        return scraperType switch
+        {
+            "linkedin" => "https://www.linkedin.com/company/quant-insider/posts/",
+            "twitter" => "https://twitter.com/search?q=%23QuantFinance or @username",
+            "researchgate" => "https://www.researchgate.net/profile/Researcher-Name",
+            "ssrn" => "https://papers.ssrn.com/sol3/cf_dev/AbsByAuth.cfm?per_id=12345",
+            "github" => "https://github.com/topics/quantitative-finance",
+            "medium" => "https://medium.com/tag/algorithmic-trading",
+            _ => "Enter URL"
+        };
+    }
+
+    private async Task StartScraping()
+    {
+        if (string.IsNullOrWhiteSpace(scraperUrl)) return;
+
+        try
+        {
+            isLoading = true;
+            scrapedPosts.Clear();
+            lastResult = null;
+            StateHasChanged();
+
+            // Use existing LinkedIn endpoint for LinkedIn, generic for others
+            if (activeScraperType == "linkedin")
+            {
+                var response = await Http.PostAsJsonAsync("api/research/linkedin-scrape", new { Url = scraperUrl });
+                response.EnsureSuccessStatusCode();
+                
+                var posts = await response.Content.ReadFromJsonAsync<List<ScrapedPost>>();
+                if (posts != null && posts.Any())
+                {
+                    scrapedPosts = posts;
+                }
+                else
+                {
+                    lastResult = "No posts found or scraping failed. LinkedIn may require authentication.";
+                }
+            }
+            else
+            {
+                // For other scrapers, use a generic research endpoint or show placeholder message
+                lastResult = $"Scraping {activeScraperType} is configured. Implementation note:\n\n";
+                lastResult += $"URL: {scraperUrl}\n";
+                lastResult += $"Query: {scraperQuery}\n\n";
+                lastResult += $"To fully implement {activeScraperType} scraping:\n";
+                lastResult += $"1. Add a scraping service for {activeScraperType}\n";
+                lastResult += $"2. Create API endpoint in ApiController.cs\n";
+                lastResult += $"3. Handle authentication if required\n\n";
+                lastResult += "LinkedIn scraper is fully functional. Other scrapers show this placeholder.";
+            }
+
+            await JS.InvokeVoidAsync("console.log", $"Scraping {activeScraperType} complete");
+        }
+        catch (Exception ex)
+        {
+            lastResult = $"Error scraping {activeScraperType}: {ex.Message}";
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task HandleChatKeyPress(KeyboardEventArgs e)

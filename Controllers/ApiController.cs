@@ -21,6 +21,7 @@ public class ApiController : ControllerBase
     private readonly AlpacaService _alpacaService;
     private readonly PolygonService _polygonService;
     private readonly NewsSentimentAnalysisService _newsSentimentService;
+    private readonly LinkedInScrapingService _linkedInScrapingService;
 
     public ApiController(
         Kernel kernel,
@@ -31,7 +32,8 @@ public class ApiController : ControllerBase
         YahooFinanceService yahooFinanceService,
         AlpacaService alpacaService,
         PolygonService polygonService,
-        NewsSentimentAnalysisService newsSentimentService)
+        NewsSentimentAnalysisService newsSentimentService,
+        LinkedInScrapingService linkedInScrapingService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -42,6 +44,7 @@ public class ApiController : ControllerBase
         _alpacaService = alpacaService;
         _polygonService = polygonService;
         _newsSentimentService = newsSentimentService;
+        _linkedInScrapingService = linkedInScrapingService;
     }
 
     [HttpGet("health")]
@@ -195,6 +198,21 @@ public class ApiController : ControllerBase
         }
     }
 
+    [HttpPost("linkedin-scrape")]
+    public async Task<IActionResult> ScrapeLinkedInPosts([FromBody] LinkedInScrapeRequest request)
+    {
+        try
+        {
+            var posts = await _linkedInScrapingService.ScrapePostsAsync(request.Url);
+            return Ok(posts);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error scraping LinkedIn posts from {Url}", request.Url);
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
     [HttpGet("alpaca/account")]
     public async Task<IActionResult> GetAlpacaAccount()
     {
@@ -232,4 +250,9 @@ public class ResearchRequest
 {
     public string Topic { get; set; } = "";
     public int? MaxPapers { get; set; }
+}
+
+public class LinkedInScrapeRequest
+{
+    public string Url { get; set; } = "";
 }

@@ -88,6 +88,7 @@ builder.Services.AddSingleton<ConversationalResearchService>();
 builder.Services.AddSingleton<AcademicResearchService>();
 builder.Services.AddSingleton<YouTubeAnalysisService>();
 builder.Services.AddSingleton<ReportGenerationService>();
+builder.Services.AddSingleton<LinkedInScrapingService>();
 
 // Register Portfolio Management services
 builder.Services.AddSingleton<PortfolioService>();
