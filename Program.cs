@@ -289,8 +289,14 @@ namespace QuantResearchAgent
             services.AddSingleton<AlpacaService>();
             services.AddSingleton<TechnicalAnalysisService>();
             services.AddSingleton<HttpClient>();
+            // Add IHttpClientFactory for services that need it
+            services.AddSingleton<System.Net.Http.IHttpClientFactory>(sp =>
+            {
+                return new SimpleHttpClientFactory(sp.GetRequiredService<HttpClient>());
+            });
             services.AddSingleton<PolygonService>();
             services.AddSingleton<DataBentoService>();
+            services.AddSingleton<YFinanceApiService>();
             services.AddSingleton<YFinanceNewsService>();
             services.AddSingleton<FinvizNewsService>();
             services.AddSingleton<NewsSentimentAnalysisService>(); // Uses DeepSeekService now
