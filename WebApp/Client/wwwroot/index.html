@@ -1009,21 +1009,50 @@
         // Chart 4: Economic Calendar Widget
         function createEconomicCalendarWidget() {
             const widgetDiv = document.getElementById('economicCalendarWidget');
-            if (!widgetDiv) return;
+            if (!widgetDiv) {
+                console.error('Economic Calendar widget container not found');
+                return;
+            }
 
+            // Clear existing content
+            widgetDiv.innerHTML = '';
+            
+            console.log('Creating Economic Calendar widget...');
+            console.log('Widget container:', widgetDiv);
+            console.log('Container dimensions:', widgetDiv.clientWidth, 'x', widgetDiv.clientHeight);
+
+            // Create the widget container wrapper
+            const widgetWrapper = document.createElement('div');
+            widgetWrapper.className = 'tradingview-widget-container__widget';
+            widgetWrapper.style.height = '100%';
+            widgetWrapper.style.width = '100%';
+            
             const script = document.createElement('script');
+            script.type = 'text/javascript';
             script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-events.js';
             script.async = true;
             script.innerHTML = JSON.stringify({
                 "colorTheme": "dark",
-                "isTransparent": true,
+                "isTransparent": false,
                 "width": "100%",
                 "height": "550",
                 "locale": "en",
                 "importanceFilter": "-1,0,1",
                 "countryFilter": "ar,au,br,ca,cn,fr,de,in,id,it,jp,kr,mx,ru,sa,za,tr,gb,us,eu"
             });
-            widgetDiv.appendChild(script);
+            
+            script.onload = () => {
+                console.log('Economic Calendar widget script loaded successfully');
+            };
+            
+            script.onerror = (e) => {
+                console.error('Economic Calendar widget script failed to load:', e);
+            };
+            
+            widgetWrapper.appendChild(script);
+            widgetDiv.appendChild(widgetWrapper);
+            
+            console.log('Economic Calendar widget container setup complete');
         }
 
         // Chart 5: News Timeline Widget

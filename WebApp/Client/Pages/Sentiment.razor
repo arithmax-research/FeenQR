@@ -1,0 +1,877 @@
+@page "/sentiment"
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>FeenQR - Sentiment Analysis</PageTitle>
+
+<style>
+    .sentiment-container {
+        position: fixed;
+        left: 280px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: inherit;
+        overflow-x: hidden;
+        overflow-y: auto;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .sentiment-header {
+        background: rgba(18, 18, 18, 0.95);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 1rem 1.5rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        flex-shrink: 0;
+    }
+
+    .tab-navigation {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .tab-btn {
+        background: transparent;
+        border: none;
+        padding: 0.5rem 1rem;
+        color: #9ca3af;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+        color: #f9fafb;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+        color: #f9fafb;
+        border-bottom-color: #888888;
+    }
+
+    .sentiment-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        margin: 0 auto;
+        max-width: 1400px;
+        width: 100%;
+    }
+
+    .search-bar {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: #ffffff;
+        font-size: 0.9rem;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.07);
+    }
+
+    .search-btn {
+        padding: 0.75rem 2rem;
+        background: #10b981;
+        border: none;
+        color: #ffffff;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .search-btn:hover {
+        background: #059669;
+    }
+
+    .search-btn:disabled {
+        background: #6b7280;
+        cursor: not-allowed;
+    }
+
+    .sentiment-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .sentiment-score {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .score-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .score-badge.bullish {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .score-badge.bearish {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .score-badge.neutral {
+        background: rgba(156, 163, 175, 0.2);
+        color: #9ca3af;
+        border: 1px solid rgba(156, 163, 175, 0.3);
+    }
+
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .metric-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .metric-label {
+        color: #9ca3af;
+        font-size: 0.8rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .metric-value {
+        color: #ffffff;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .trending-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .trending-item {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .trending-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .trending-symbol {
+        color: #10b981;
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .trending-mentions {
+        color: #9ca3af;
+        font-size: 0.8rem;
+    }
+
+    .loading-indicator {
+        text-align: center;
+        padding: 3rem;
+        color: #9ca3af;
+    }
+
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-top: 4px solid #10b981;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .news-item {
+        background: rgba(255, 255, 255, 0.02);
+        border-left: 3px solid rgba(16, 185, 129, 0.5);
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+        border-radius: 4px;
+    }
+
+    .news-title {
+        color: #ffffff;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .news-meta {
+        color: #6b7280;
+        font-size: 0.8rem;
+    }
+
+    .comparison-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 0.5rem;
+    }
+
+    .comparison-table th {
+        color: #9ca3af;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: left;
+        padding: 0.75rem;
+    }
+
+    .comparison-table td {
+        background: rgba(255, 255, 255, 0.03);
+        color: #ffffff;
+        padding: 0.75rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .comparison-table td:first-child {
+        border-left: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 8px 0 0 8px;
+    }
+
+    .comparison-table td:last-child {
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 0 8px 8px 0;
+    }
+
+    .subreddit-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .subreddit-name {
+        color: #10b981;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .pulse-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .pulse-mood {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .pulse-mood.risk-on {
+        color: #10b981;
+    }
+
+    .pulse-mood.risk-off {
+        color: #ef4444;
+    }
+
+    .pulse-mood.neutral {
+        color: #9ca3af;
+    }
+</style>
+
+<div class="sentiment-container">
+    <div class="sentiment-header">
+        <div class="tab-navigation">
+            <button class="tab-btn @(activeTab == "symbol" ? "active" : "")" @onclick='() => SwitchTab("symbol")'>Symbol Sentiment</button>
+            <button class="tab-btn @(activeTab == "market" ? "active" : "")" @onclick='() => SwitchTab("market")'>Market Sentiment</button>
+            <button class="tab-btn @(activeTab == "reddit" ? "active" : "")" @onclick='() => SwitchTab("reddit")'>Reddit Analysis</button>
+            <button class="tab-btn @(activeTab == "trending" ? "active" : "")" @onclick='() => SwitchTab("trending")'>Trending</button>
+            <button class="tab-btn @(activeTab == "compare" ? "active" : "")" @onclick='() => SwitchTab("compare")'>Compare</button>
+            <button class="tab-btn @(activeTab == "pulse" ? "active" : "")" @onclick='() => SwitchTab("pulse")'>Market Pulse</button>
+        </div>
+    </div>
+
+    <div class="sentiment-content">
+        @if (activeTab == "symbol")
+        {
+            <h2 style="color: #ffffff; margin-bottom: 1rem;">Symbol Sentiment Analysis</h2>
+            <p style="color: #9ca3af; margin-bottom: 1.5rem;">Analyze news sentiment for any stock symbol</p>
+
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Enter symbol (e.g., AAPL, TSLA)" @bind="symbolQuery" @onkeypress="HandleKeyPress" />
+                <button class="search-btn" @onclick="AnalyzeSymbolSentiment" disabled="@isLoading">Analyze</button>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading-indicator">
+                    <div class="spinner"></div>
+                    <p>Analyzing sentiment...</p>
+                </div>
+            }
+            else if (symbolSentiment != null)
+            {
+                <div class="sentiment-card">
+                    <h3 style="color: #ffffff; margin-bottom: 1rem;">@symbolSentiment.symbol</h3>
+                    
+                    <div class="sentiment-score">
+                        <span class="score-badge @GetSentimentClass(symbolSentiment.overallSentiment)">
+                            @symbolSentiment.overallSentiment
+                        </span>
+                        <span style="color: #9ca3af;">Score: @symbolSentiment.sentimentScore.ToString("F2")</span>
+                        <span style="color: #9ca3af;">Confidence: @(symbolSentiment.confidence * 100).ToString("F0")%</span>
+                    </div>
+
+                    <div class="metric-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">News Count</div>
+                            <div class="metric-value">@symbolSentiment.newsCount</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Sources</div>
+                            <div class="metric-value">@symbolSentiment.sourcesAnalyzed?.Length</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Positive</div>
+                            <div class="metric-value" style="color: #10b981;">@((symbolSentiment.sentimentBreakdown?.GetValueOrDefault("Positive", 0) * 100).ToString("F0"))%</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Negative</div>
+                            <div class="metric-value" style="color: #ef4444;">@((symbolSentiment.sentimentBreakdown?.GetValueOrDefault("Negative", 0) * 100).ToString("F0"))%</div>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(symbolSentiment.aiInsights))
+                    {
+                        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(16, 185, 129, 0.05); border-left: 3px solid #10b981; border-radius: 4px;">
+                            <h4 style="color: #10b981; margin-bottom: 0.5rem;">AI Insights</h4>
+                            <p style="color: #d1d5db; line-height: 1.6;">@symbolSentiment.aiInsights</p>
+                        </div>
+                    }
+
+                    @if (symbolSentiment.recentNews != null && symbolSentiment.recentNews.Any())
+                    {
+                        <h4 style="color: #ffffff; margin-top: 1.5rem; margin-bottom: 1rem;">Recent News</h4>
+                        @foreach (var news in symbolSentiment.recentNews)
+                        {
+                            <div class="news-item">
+                                <div class="news-title">@news.title</div>
+                                <div class="news-meta">
+                                    @news.source · @news.publishedDate.ToString("MMM dd, yyyy") · 
+                                    <span style="color: @GetSentimentColor(news.sentiment);">@news.sentiment</span>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            }
+        }
+
+        @if (activeTab == "market")
+        {
+            <h2 style="color: #ffffff; margin-bottom: 1rem;">Market Sentiment</h2>
+            <p style="color: #9ca3af; margin-bottom: 1.5rem;">Overall market sentiment across asset classes</p>
+
+            <div class="search-bar">
+                <select class="search-input" @bind="assetClass" style="flex: 0 0 200px;">
+                    <option value="stocks">Stocks</option>
+                    <option value="crypto">Crypto</option>
+                    <option value="bonds">Bonds</option>
+                </select>
+                <input type="text" class="search-input" placeholder="Specific asset (optional)" @bind="specificAsset" />
+                <button class="search-btn" @onclick="AnalyzeMarketSentiment" disabled="@isLoading">Analyze</button>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading-indicator">
+                    <div class="spinner"></div>
+                    <p>Analyzing market sentiment...</p>
+                </div>
+            }
+            else if (marketSentiment != null)
+            {
+                <div class="sentiment-card">
+                    <h3 style="color: #ffffff; margin-bottom: 1rem;">@marketSentiment.assetClass Market</h3>
+                    
+                    <div class="sentiment-score">
+                        <span class="score-badge @GetSentimentClass(marketSentiment.overallSentiment?.label ?? "Neutral")">
+                            @marketSentiment.overallSentiment?.label
+                        </span>
+                        <span style="color: #9ca3af;">Score: @marketSentiment.overallSentiment?.score.ToString("F2")</span>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(marketSentiment.overallSentiment?.analysis))
+                    {
+                        <div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.02); border-radius: 8px;">
+                            <p style="color: #d1d5db; line-height: 1.6;">@marketSentiment.overallSentiment.analysis</p>
+                        </div>
+                    }
+
+                    <h4 style="color: #ffffff; margin-top: 1.5rem; margin-bottom: 1rem;">Sentiment Breakdown</h4>
+                    <div class="metric-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">News</div>
+                            <div class="metric-value">@marketSentiment.breakdown?.news?.label</div>
+                            <div style="color: #9ca3af; font-size: 0.8rem;">@marketSentiment.breakdown?.news?.score.ToString("F2")</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Social Media</div>
+                            <div class="metric-value">@marketSentiment.breakdown?.socialMedia?.label</div>
+                            <div style="color: #9ca3af; font-size: 0.8rem;">@marketSentiment.breakdown?.socialMedia?.score.ToString("F2")</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Fear & Greed</div>
+                            <div class="metric-value">@marketSentiment.breakdown?.fearGreed?.label</div>
+                            <div style="color: #9ca3af; font-size: 0.8rem;">@marketSentiment.breakdown?.fearGreed?.score.ToString("F2")</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Technical</div>
+                            <div class="metric-value">@marketSentiment.breakdown?.technical?.label</div>
+                            <div style="color: #9ca3af; font-size: 0.8rem;">@marketSentiment.breakdown?.technical?.score.ToString("F2")</div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+
+        @if (activeTab == "reddit")
+        {
+            <h2 style="color: #ffffff; margin-bottom: 1rem;">Reddit Sentiment Analysis</h2>
+            <p style="color: #9ca3af; margin-bottom: 1.5rem;">Analyze sentiment across financial subreddits</p>
+
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Enter symbol (e.g., GME, AMC)" @bind="redditSymbol" @onkeypress="HandleKeyPress" />
+                <button class="search-btn" @onclick="AnalyzeRedditSentiment" disabled="@isLoading">Analyze</button>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading-indicator">
+                    <div class="spinner"></div>
+                    <p>Scraping Reddit...</p>
+                </div>
+            }
+            else if (redditSentiment != null)
+            {
+                <div class="sentiment-card">
+                    <h3 style="color: #ffffff; margin-bottom: 1rem;">Reddit Sentiment for @redditSentiment.symbol</h3>
+                    
+                    <div class="sentiment-score">
+                        <span class="score-badge @GetSentimentClass(redditSentiment.overallSentiment)">
+                            @redditSentiment.overallSentiment
+                        </span>
+                        <span style="color: #9ca3af;">Average Score: @redditSentiment.averageSentimentScore.ToString("F2")</span>
+                        <span style="color: #9ca3af;">Posts Analyzed: @redditSentiment.totalPostsAnalyzed</span>
+                    </div>
+
+                    <h4 style="color: #ffffff; margin-top: 1.5rem; margin-bottom: 1rem;">Subreddit Breakdown</h4>
+                    @foreach (var analysis in redditSentiment.subredditAnalyses)
+                    {
+                        <div class="subreddit-card">
+                            <div class="subreddit-name">r/@analysis.subreddit</div>
+                            <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                                <span class="score-badge @GetSentimentClass(analysis.sentiment)">@analysis.sentiment</span>
+                                <span style="color: #9ca3af;">@analysis.postsAnalyzed posts</span>
+                                <span style="color: #10b981;">@((analysis.bullishPercentage * 100).ToString("F0"))% bullish</span>
+                                <span style="color: #ef4444;">@((analysis.bearishPercentage * 100).ToString("F0"))% bearish</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+
+        @if (activeTab == "trending")
+        {
+            <h2 style="color: #ffffff; margin-bottom: 1rem;">Trending Symbols on Reddit</h2>
+            <p style="color: #9ca3af; margin-bottom: 1.5rem;">Most mentioned stocks on WallStreetBets and r/stocks</p>
+
+            <button class="search-btn" @onclick="GetTrendingSymbols" disabled="@isLoading" style="margin-bottom: 1.5rem;">
+                @(isLoading ? "Loading..." : "Refresh Trending")
+            </button>
+
+            @if (isLoading)
+            {
+                <div class="loading-indicator">
+                    <div class="spinner"></div>
+                    <p>Fetching trending symbols...</p>
+                </div>
+            }
+            else if (trendingSymbols != null && trendingSymbols.Any())
+            {
+                <div class="trending-list">
+                    @foreach (var item in trendingSymbols)
+                    {
+                        <div class="trending-item" @onclick="() => AnalyzeTrendingSymbol(item.symbol)">
+                            <div class="trending-symbol">$@item.symbol</div>
+                            <div class="trending-mentions">@item.mentions mentions</div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+
+        @if (activeTab == "compare")
+        {
+            <h2 style="color: #ffffff; margin-bottom: 1rem;">Compare Sentiment</h2>
+            <p style="color: #9ca3af; margin-bottom: 1.5rem;">Compare sentiment across multiple symbols</p>
+
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Enter symbols separated by comma (e.g., AAPL, MSFT, GOOGL)" @bind="compareSymbols" />
+                <button class="search-btn" @onclick="CompareSentiment" disabled="@isLoading">Compare</button>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="loading-indicator">
+                    <div class="spinner"></div>
+                    <p>Comparing sentiment...</p>
+                </div>
+            }
+            else if (comparisonResults != null && comparisonResults.Any())
+            {
+                <div class="sentiment-card">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Sentiment</th>
+                                <th>Score</th>
+                                <th>Confidence</th>
+                                <th>News Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var result in comparisonResults)
+                            {
+                                <tr>
+                                    <td style="font-weight: 600; color: #10b981;">@result.symbol</td>
+                                    <td><span class="score-badge @GetSentimentClass(result.sentiment)">@result.sentiment</span></td>
+                                    <td>@result.score.ToString("F2")</td>
+                                    <td>@((result.confidence * 100).ToString("F0"))%</td>
+                                    <td>@result.newsCount</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+
+        @if (activeTab == "pulse")
+        {
+            <h2 style="color: #ffffff; margin-bottom: 1rem;">Market Pulse</h2>
+            <p style="color: #9ca3af; margin-bottom: 1.5rem;">Overall market sentiment across major asset classes</p>
+
+            <button class="search-btn" @onclick="GetMarketPulse" disabled="@isLoading" style="margin-bottom: 1.5rem;">
+                @(isLoading ? "Loading..." : "Refresh Market Pulse")
+            </button>
+
+            @if (isLoading)
+            {
+                <div class="loading-indicator">
+                    <div class="spinner"></div>
+                    <p>Analyzing market pulse...</p>
+                </div>
+            }
+            else if (marketPulse != null)
+            {
+                <div class="pulse-card">
+                    <div class="pulse-mood @GetMoodClass(marketPulse.marketMood)">
+                        @marketPulse.marketMood
+                    </div>
+                    <p style="color: #9ca3af;">Overall Score: @marketPulse.overallScore.ToString("F2")</p>
+                </div>
+
+                <div class="metric-grid" style="margin-top: 1.5rem;">
+                    @foreach (var asset in marketPulse.assetClasses)
+                    {
+                        <div class="metric-card">
+                            <div class="metric-label">@asset.assetClass (@asset.symbol)</div>
+                            <div class="metric-value">@asset.sentiment</div>
+                            <div style="color: #9ca3af; font-size: 0.8rem;">Score: @asset.score.ToString("F2")</div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private string activeTab = "symbol";
+    private bool isLoading = false;
+    
+    private string symbolQuery = "";
+    private string assetClass = "stocks";
+    private string specificAsset = "";
+    private string redditSymbol = "";
+    private string compareSymbols = "";
+
+    private dynamic? symbolSentiment;
+    private dynamic? marketSentiment;
+    private dynamic? redditSentiment;
+    private List<dynamic>? trendingSymbols;
+    private List<dynamic>? comparisonResults;
+    private dynamic? marketPulse;
+
+    private void SwitchTab(string tab)
+    {
+        activeTab = tab;
+        StateHasChanged();
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !isLoading)
+        {
+            if (activeTab == "symbol") await AnalyzeSymbolSentiment();
+            else if (activeTab == "reddit") await AnalyzeRedditSentiment();
+        }
+    }
+
+    private async Task AnalyzeSymbolSentiment()
+    {
+        if (string.IsNullOrWhiteSpace(symbolQuery)) return;
+
+        isLoading = true;
+        symbolSentiment = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.GetAsync($"api/sentiment/symbol/{symbolQuery}?newsLimit=10");
+            if (response.IsSuccessStatusCode)
+            {
+                symbolSentiment = await response.Content.ReadFromJsonAsync<dynamic>();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AnalyzeMarketSentiment()
+    {
+        isLoading = true;
+        marketSentiment = null;
+        StateHasChanged();
+
+        try
+        {
+            var url = $"api/sentiment/market?assetClass={assetClass}";
+            if (!string.IsNullOrWhiteSpace(specificAsset))
+            {
+                url += $"&specificAsset={specificAsset}";
+            }
+            
+            var response = await Http.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                marketSentiment = await response.Content.ReadFromJsonAsync<dynamic>();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AnalyzeRedditSentiment()
+    {
+        if (string.IsNullOrWhiteSpace(redditSymbol)) return;
+
+        isLoading = true;
+        redditSentiment = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.GetAsync($"api/sentiment/reddit/{redditSymbol}?postsToAnalyze=50");
+            if (response.IsSuccessStatusCode)
+            {
+                redditSentiment = await response.Content.ReadFromJsonAsync<dynamic>();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task GetTrendingSymbols()
+    {
+        isLoading = true;
+        trendingSymbols = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.GetAsync("api/sentiment/reddit/trending?limit=20");
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<dynamic>();
+                trendingSymbols = ((IEnumerable<dynamic>)result.trending).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CompareSentiment()
+    {
+        if (string.IsNullOrWhiteSpace(compareSymbols)) return;
+
+        isLoading = true;
+        comparisonResults = null;
+        StateHasChanged();
+
+        try
+        {
+            var symbols = compareSymbols.Split(',').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s));
+            var queryString = string.Join("&", symbols.Select(s => $"symbols={s}"));
+            
+            var response = await Http.GetAsync($"api/sentiment/compare?{queryString}");
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<dynamic>();
+                comparisonResults = ((IEnumerable<dynamic>)result.comparisons).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task GetMarketPulse()
+    {
+        isLoading = true;
+        marketPulse = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.GetAsync("api/sentiment/market-pulse");
+            if (response.IsSuccessStatusCode)
+            {
+                marketPulse = await response.Content.ReadFromJsonAsync<dynamic>();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AnalyzeTrendingSymbol(string symbol)
+    {
+        symbolQuery = symbol;
+        activeTab = "symbol";
+        await AnalyzeSymbolSentiment();
+    }
+
+    private string GetSentimentClass(string sentiment)
+    {
+        return sentiment?.ToLower() switch
+        {
+            "bullish" or "positive" => "bullish",
+            "bearish" or "negative" => "bearish",
+            _ => "neutral"
+        };
+    }
+
+    private string GetSentimentColor(string sentiment)
+    {
+        return sentiment?.ToLower() switch
+        {
+            "bullish" or "positive" => "#10b981",
+            "bearish" or "negative" => "#ef4444",
+            _ => "#9ca3af"
+        };
+    }
+
+    private string GetMoodClass(string mood)
+    {
+        return mood?.ToLower() switch
+        {
+            "risk-on" => "risk-on",
+            "risk-off" => "risk-off",
+            _ => "neutral"
+        };
+    }
+}
