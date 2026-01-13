@@ -6,6 +6,7 @@ using System.Linq;
 using System;
 using System.Net.Http;
 using System.Text.Json;
+using QuantResearchAgent.Services;
 
 namespace QuantResearchAgent.Controllers
 {
@@ -15,15 +16,18 @@ namespace QuantResearchAgent.Controllers
     {
         private readonly ILogger<EconomicDataController> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
-        private const string FRED_API_KEY = "YOUR_FRED_API_KEY"; // Replace with actual key
+        private readonly IConfiguration _configuration;
+        private readonly DeepSeekService _deepSeekService;
         private const string WORLD_BANK_BASE = "https://api.worldbank.org/v2";
         private const string OECD_BASE = "https://stats.oecd.org/sdmx-json";
         private const string IMF_BASE = "http://dataservices.imf.org/REST/SDMX_JSON.svc";
 
-        public EconomicDataController(ILogger<EconomicDataController> logger, IHttpClientFactory httpClientFactory)
+        public EconomicDataController(ILogger<EconomicDataController> logger, IHttpClientFactory httpClientFactory, IConfiguration configuration, DeepSeekService deepSeekService)
         {
             _logger = logger;
             _httpClientFactory = httpClientFactory;
+            _configuration = configuration;
+            _deepSeekService = deepSeekService;
         }
 
         #region FRED Endpoints
@@ -35,8 +39,9 @@ namespace QuantResearchAgent.Controllers
             {
                 _logger.LogInformation($"Fetching FRED series: {seriesId}");
                 
+                var fredApiKey = _configuration["FRED:ApiKey"] ?? "YOUR_FRED_API_KEY_HERE";
                 var client = _httpClientFactory.CreateClient();
-                var url = $"https://api.stlouisfed.org/fred/series/observations?series_id={seriesId}&api_key={FRED_API_KEY}&file_type=json";
+                var url = $"https://api.stlouisfed.org/fred/series/observations?series_id={seriesId}&api_key={fredApiKey}&file_type=json";
                 
                 if (startDate.HasValue)
                     url += $"&observation_start={startDate.Value:yyyy-MM-dd}";
@@ -67,8 +72,9 @@ namespace QuantResearchAgent.Controllers
             {
                 _logger.LogInformation($"Searching FRED for: {query}");
                 
+                var fredApiKey = _configuration["FRED:ApiKey"] ?? "YOUR_FRED_API_KEY_HERE";
                 var client = _httpClientFactory.CreateClient();
-                var url = $"https://api.stlouisfed.org/fred/series/search?search_text={query}&api_key={FRED_API_KEY}&file_type=json&limit={limit}";
+                var url = $"https://api.stlouisfed.org/fred/series/search?search_text={query}&api_key={fredApiKey}&file_type=json&limit={limit}";
                 
                 var response = await client.GetStringAsync(url);
                 
@@ -638,6 +644,49 @@ namespace QuantResearchAgent.Controllers
             return Ok(sources);
         }
 
+        [HttpPost("analyze")]
+        public async Task<IActionResult> AnalyzeDataWithAI([FromBody] AnalyzeRequest request)
+        {
+            try
+            {
+                _logger.LogInformation($"Analyzing {request.DataSource} data with AI");
+                
+                var prompt = $@"Analyze the following {request.DataSource} economic data and provide insights:
+
+Series: {request.SeriesName}
+Data: {request.Data}
+
+Please provide:
+1. Key trends and patterns
+2. Economic implications
+3. What this data suggests about the current economic state
+4. Potential investment insights
+5. Any anomalies or notable points
+
+Keep the analysis concise and actionable.";
+
+                var analysis = await _deepSeekService.GetChatCompletionAsync(prompt);
+
+                return Ok(new
+                {
+                    analysis,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error analyzing data with AI");
+                return StatusCode(500, new { error = ex.Message, details = "Make sure DeepSeek API key is configured in appsettings.json" });
+            }
+        }
+
         #endregion
+    }
+
+    public class AnalyzeRequest
+    {
+        public string DataSource { get; set; } = "";
+        public string SeriesName { get; set; } = "";
+        public string Data { get; set; } = "";
     }
 }
