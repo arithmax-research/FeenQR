@@ -1441,6 +1441,112 @@
                 element.scrollTop = element.scrollHeight;
             }
         };
+
+        // Simple line chart renderer for economic data
+        window.renderLineChart = function(canvasId, labels, values, title) {
+            try {
+                const canvas = document.getElementById(canvasId);
+                if (!canvas) {
+                    console.error('Canvas not found:', canvasId);
+                    return;
+                }
+
+                const ctx = canvas.getContext('2d');
+                const width = canvas.offsetWidth;
+                const height = 400;
+                canvas.width = width;
+                canvas.height = height;
+
+                // Clear canvas
+                ctx.fillStyle = '#1e1e1e';
+                ctx.fillRect(0, 0, width, height);
+
+                if (!values || values.length === 0) {
+                    ctx.fillStyle = '#bdbdbd';
+                    ctx.font = '16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('No data available', width / 2, height / 2);
+                    return;
+                }
+
+                // Calculate chart dimensions
+                const padding = 60;
+                const chartWidth = width - (padding * 2);
+                const chartHeight = height - (padding * 2);
+
+                // Find min and max values
+                const minValue = Math.min(...values);
+                const maxValue = Math.max(...values);
+                const valueRange = maxValue - minValue || 1;
+
+                // Draw grid lines
+                ctx.strokeStyle = '#424242';
+                ctx.lineWidth = 1;
+                for (let i = 0; i <= 5; i++) {
+                    const y = padding + (chartHeight / 5) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(padding, y);
+                    ctx.lineTo(width - padding, y);
+                    ctx.stroke();
+
+                    // Draw y-axis labels
+                    const value = maxValue - (valueRange / 5) * i;
+                    ctx.fillStyle = '#bdbdbd';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(value.toFixed(2), padding - 10, y + 4);
+                }
+
+                // Draw line chart
+                ctx.strokeStyle = '#3498db';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+
+                values.forEach((value, index) => {
+                    const x = padding + (chartWidth / (values.length - 1)) * index;
+                    const y = padding + chartHeight - ((value - minValue) / valueRange) * chartHeight;
+
+                    if (index === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+
+                ctx.stroke();
+
+                // Draw data points
+                ctx.fillStyle = '#3498db';
+                values.forEach((value, index) => {
+                    const x = padding + (chartWidth / (values.length - 1)) * index;
+                    const y = padding + chartHeight - ((value - minValue) / valueRange) * chartHeight;
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 3, 0, 2 * Math.PI);
+                    ctx.fill();
+                });
+
+                // Draw x-axis labels (show every nth label to avoid crowding)
+                const labelStep = Math.ceil(labels.length / 8);
+                ctx.fillStyle = '#bdbdbd';
+                ctx.font = '11px Arial';
+                ctx.textAlign = 'center';
+                labels.forEach((label, index) => {
+                    if (index % labelStep === 0 || index === labels.length - 1) {
+                        const x = padding + (chartWidth / (values.length - 1)) * index;
+                        ctx.save();
+                        ctx.translate(x, height - padding + 20);
+                        ctx.rotate(-45 * Math.PI / 180);
+                        ctx.fillText(label, 0, 0);
+                        ctx.restore();
+                    }
+                });
+
+                console.log('Chart rendered successfully:', canvasId);
+            } catch (error) {
+                console.error('Error rendering chart:', error);
+            }
+        };
     </script>
 </body>
 

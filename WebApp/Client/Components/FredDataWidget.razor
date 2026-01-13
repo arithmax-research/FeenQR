@@ -45,10 +45,46 @@
     else if (fredData != null)
     {
         <div class="data-container">
-            <!-- TradingView Chart -->
+            <!-- Chart Visualization -->
             <div class="chart-section">
                 <h4><i class="fas fa-chart-line"></i> @seriesId Data Visualization</h4>
-                <div id="fredChart_@chartId" style="height: 400px; width: 100%;"></div>
+                @if (chartDataPoints != null && chartDataPoints.Any())
+                {
+                    <canvas id="fredChart_@chartId" style="height: 400px; width: 100%;"></canvas>
+                }
+                else
+                {
+                    <div class="chart-placeholder">
+                        <p>📊 Chart data processing...</p>
+                        <small>Showing recent observations for @seriesId</small>
+                    </div>
+                }
+            </div>
+
+            <!-- Data Summary -->
+            <div class="data-summary">
+                <h5><i class="fas fa-info-circle"></i> Data Summary</h5>
+                @if (chartDataPoints != null && chartDataPoints.Any())
+                {
+                    <div class="summary-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Latest Value:</span>
+                            <span class="stat-value">@chartDataPoints.Last().Value.ToString("N2")</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Date Range:</span>
+                            <span class="stat-value">@chartDataPoints.First().Date to @chartDataPoints.Last().Date</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Data Points:</span>
+                            <span class="stat-value">@chartDataPoints.Count</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Average:</span>
+                            <span class="stat-value">@chartDataPoints.Average(d => d.Value).ToString("N2")</span>
+                        </div>
+                    </div>
+                }
             </div>
 
             <!-- AI Analysis -->
@@ -166,6 +202,47 @@
         margin-bottom: 15px;
     }
 
+    .chart-placeholder {
+        padding: 60px 20px;
+        text-align: center;
+        color: #bdbdbd;
+        font-size: 1.2rem;
+    }
+
+    .data-summary {
+        background: #1e1e1e;
+        border-radius: 8px;
+        padding: 20px;
+    }
+
+    .data-summary h5 {
+        color: #ffffff;
+        margin-bottom: 15px;
+    }
+
+    .summary-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .stat-label {
+        color: #bdbdbd;
+        font-size: 0.9rem;
+    }
+
+    .stat-value {
+        color: #ffffff;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
     .ai-analysis-section {
         background: #1e1e1e;
         border-radius: 8px;
@@ -210,6 +287,13 @@
     private JsonElement? fredData = null;
     private string? aiAnalysis = null;
     private string chartId = Guid.NewGuid().ToString().Replace("-", "");
+    private List<ChartDataPoint>? chartDataPoints = null;
+
+    private class ChartDataPoint
+    {
+        public string Date { get; set; } = "";
+        public double Value { get; set; }
+    }
 
     private async Task LoadPopularSeries()
     {
@@ -260,17 +344,95 @@
         isLoading = true;
         errorMessage = null;
         aiAnalysis = null;
+        chartDataPoints = null;
         try
         {
             var response = await Http.GetStringAsync($"/api/EconomicData/fred/series/{seriesId}");
             fredData = JsonSerializer.Deserialize<JsonElement>(response);
             
+            // Parse chart data
+            ParseChartData();
+            
             StateHasChanged();
+            
+            // Render chart
+            await RenderChart();
             
             // Get AI analysis
             await AnalyzeDataWithAI();
         }
         catch (Exception ex)
+        {
+            errorMessage = $"Error loading series: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ParseChartData()
+    {
+        try
+        {
+            if (fredData == null) return;
+
+            chartDataPoints = new List<ChartDataPoint>();
+            
+            if (fredData.Value.TryGetProperty("data", out var dataElement))
+            {
+                foreach (var obs in dataElement.EnumerateArray())
+                {
+                    if (obs.TryGetProperty("date", out var dateEl) && 
+                        obs.TryGetProperty("value", out var valueEl))
+                    {
+                        var dateStr = dateEl.GetString() ?? "";
+                        var valueStr = valueEl.GetString() ?? "0";
+                        
+                        if (double.TryParse(valueStr, out var value) && value != 0)
+                        {
+                            chartDataPoints.Add(new ChartDataPoint
+                            {
+                                Date = dateStr,
+                                Value = value
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Take last 50 points for cleaner visualization
+            if (chartDataPoints.Count > 50)
+            {
+                chartDataPoints = chartDataPoints.TakeLast(50).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error parsing chart data: {ex.Message}");
+        }
+    }
+
+    private async Task RenderChart()
+    {
+        try
+        {
+            if (chartDataPoints == null || !chartDataPoints.Any()) return;
+
+            var labels = chartDataPoints.Select(d => d.Date).ToArray();
+            var values = chartDataPoints.Select(d => d.Value).ToArray();
+
+            await JS.InvokeVoidAsync("renderLineChart", 
+                $"fredChart_{chartId}", 
+                labels, 
+                values, 
+                seriesId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error rendering chart: {ex.Message}");
+        }
+    }
         {
             errorMessage = $"Error loading series: {ex.Message}";
         }
