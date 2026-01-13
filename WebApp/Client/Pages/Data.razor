@@ -1,0 +1,221 @@
+@page "/data"
+@using System.Net.Http
+@using System.Text.Json
+@inject HttpClient Http
+
+<PageTitle>Data Repository - FeenQR</PageTitle>
+
+<div class="data-page">
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="fas fa-database"></i> Data Repository
+        </h1>
+        <p class="page-description">
+            Centralized access to economic data, market data, futures, options, and more
+        </p>
+    </div>
+
+    <!-- Data Source Tabs -->
+    <div class="data-tabs">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link @(activeTab == "fred" ? "active" : "")" @onclick='() => SetActiveTab("fred")'>
+                    <i class="fas fa-landmark"></i> FRED
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(activeTab == "worldbank" ? "active" : "")" @onclick='() => SetActiveTab("worldbank")'>
+                    <i class="fas fa-globe"></i> World Bank
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(activeTab == "oecd" ? "active" : "")" @onclick='() => SetActiveTab("oecd")'>
+                    <i class="fas fa-chart-line"></i> OECD
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(activeTab == "imf" ? "active" : "")" @onclick='() => SetActiveTab("imf")'>
+                    <i class="fas fa-coins"></i> IMF
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(activeTab == "futures" ? "active" : "")" @onclick='() => SetActiveTab("futures")'>
+                    <i class="fas fa-chart-area"></i> Futures
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(activeTab == "options" ? "active" : "")" @onclick='() => SetActiveTab("options")'>
+                    <i class="fas fa-stream"></i> Options
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(activeTab == "forex" ? "active" : "")" @onclick='() => SetActiveTab("forex")'>
+                    <i class="fas fa-dollar-sign"></i> Forex
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(activeTab == "commodities" ? "active" : "")" @onclick='() => SetActiveTab("commodities")'>
+                    <i class="fas fa-oil-can"></i> Commodities
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        @if (activeTab == "fred")
+        {
+            <div class="tab-pane active">
+                <FredDataWidget />
+            </div>
+        }
+        else if (activeTab == "worldbank")
+        {
+            <div class="tab-pane active">
+                <WorldBankDataWidget />
+            </div>
+        }
+        else if (activeTab == "oecd")
+        {
+            <div class="tab-pane active">
+                <OecdDataWidget />
+            </div>
+        }
+        else if (activeTab == "imf")
+        {
+            <div class="tab-pane active">
+                <ImfDataWidget />
+            </div>
+        }
+        else if (activeTab == "futures")
+        {
+            <div class="tab-pane active">
+                <FuturesDataWidget />
+            </div>
+        }
+        else if (activeTab == "options")
+        {
+            <div class="tab-pane active">
+                <OptionsDataWidget />
+            </div>
+        }
+        else if (activeTab == "forex")
+        {
+            <div class="tab-pane active">
+                <ForexDataWidget />
+            </div>
+        }
+        else if (activeTab == "commodities")
+        {
+            <div class="tab-pane active">
+                <CommoditiesDataWidget />
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .data-page {
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        margin-bottom: 30px;
+        text-align: center;
+    }
+
+    .page-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    .page-title i {
+        color: #3498db;
+        margin-right: 15px;
+    }
+
+    .page-description {
+        font-size: 1.1rem;
+        color: #7f8c8d;
+    }
+
+    .data-tabs {
+        margin-bottom: 30px;
+    }
+
+    .nav-tabs {
+        border-bottom: 2px solid #e0e0e0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .nav-item {
+        margin-bottom: -2px;
+    }
+
+    .nav-link {
+        padding: 12px 24px;
+        border: none;
+        border-bottom: 3px solid transparent;
+        background: transparent;
+        color: #7f8c8d;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .nav-link:hover {
+        color: #3498db;
+        border-bottom-color: #3498db;
+    }
+
+    .nav-link.active {
+        color: #3498db;
+        border-bottom-color: #3498db;
+        background: rgba(52, 152, 219, 0.05);
+    }
+
+    .nav-link i {
+        margin-right: 8px;
+    }
+
+    .tab-content {
+        animation: fadeIn 0.3s ease;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .page-title {
+            font-size: 2rem;
+        }
+
+        .nav-link {
+            padding: 10px 16px;
+            font-size: 0.9rem;
+        }
+    }
+</style>
+
+@code {
+    private string activeTab = "fred";
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+    }
+}

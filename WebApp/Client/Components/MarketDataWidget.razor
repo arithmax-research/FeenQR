@@ -1,181 +1,58 @@
-@using System.Net.Http.Json
-@inject HttpClient Http
-
-<div class="market-data-widget">
-    @if (isLoading)
-    {
-        <div class="loading">Loading market data...</div>
-    }
-    else if (error != null)
-    {
-        <div class="error">@error</div>
-    }
-    else if (marketData != null)
-    {
-        <div class="data-container">
-            <div class="data-row">
-                <span class="label">Price:</span>
-                <span class="value price">$@marketData.CurrentPrice?.ToString("N2")</span>
-            </div>
-            <div class="data-row">
-                <span class="label">Change:</span>
-                <span class="value @(marketData.Change24h >= 0 ? "positive" : "negative")">
-                    @(marketData.Change24h >= 0 ? "+" : "")@marketData.Change24h?.ToString("N2")%
-                </span>
-            </div>
-            <div class="data-row">
-                <span class="label">High 24h:</span>
-                <span class="value">$@marketData.High24h?.ToString("N2")</span>
-            </div>
-            <div class="data-row">
-                <span class="label">Low 24h:</span>
-                <span class="value">$@marketData.Low24h?.ToString("N2")</span>
-            </div>
-            <div class="data-row">
-                <span class="label">Volume:</span>
-                <span class="value">@FormatVolume(marketData.Volume)</span>
-            </div>
-            <div class="data-row">
-                <span class="label">Source:</span>
-                <span class="value source">Yahoo Finance</span>
-            </div>
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title">Market Data</h5>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label for="symbolInput" class="form-label">Symbol</label>
+            <input type="text" class="form-control" id="symbolInput" @bind="symbol" @bind:event="oninput" />
         </div>
-    }
+        <button class="btn btn-primary" @onclick="LoadMarketData">Load Data</button>
+        
+        @if (marketData != null)
+        {
+            <div class="mt-3">
+                <h6>@symbol Market Data</h6>
+                <pre>@marketData</pre>
+            </div>
+        }
+        else if (isLoading)
+        {
+            <div class="mt-3">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+    </div>
 </div>
 
 @code {
-    [Parameter]
-    public string Symbol { get; set; } = "AAPL";
-
-    private YahooMarketData? marketData;
-    private bool isLoading = true;
-    private string? error;
-
-    protected override async Task OnParametersSetAsync()
-    {
-        await LoadMarketData();
-    }
+    private string symbol = "AAPL";
+    private string? marketData;
+    private bool isLoading = false;
 
     private async Task LoadMarketData()
     {
         isLoading = true;
-        error = null;
+        marketData = null;
         
         try
         {
-            var response = await Http.GetAsync($"/api/MarketData/yahoo/{Symbol}");
+            var response = await Http.GetAsync($"api/market-data/{symbol}");
             if (response.IsSuccessStatusCode)
             {
-                marketData = await response.Content.ReadFromJsonAsync<YahooMarketData>();
-            }
-            else
-            {
-                error = $"Failed to load data for {Symbol}";
+                marketData = await response.Content.ReadAsStringAsync();
             }
         }
         catch (Exception ex)
         {
-            error = $"Error: {ex.Message}";
+            marketData = $"Error: {ex.Message}";
         }
-        finally
-        {
-            isLoading = false;
-        }
-    }
-
-    private string FormatVolume(decimal? volume)
-    {
-        if (volume == null) return "N/A";
         
-        if (volume >= 1_000_000_000)
-            return $"{(volume / 1_000_000_000):N2}B";
-        else if (volume >= 1_000_000)
-            return $"{(volume / 1_000_000):N2}M";
-        else if (volume >= 1_000)
-            return $"{(volume / 1_000):N2}K";
-        else
-            return volume.Value.ToString("N0");
+        isLoading = false;
     }
 
-    // Data model matching the backend
-    public class YahooMarketData
-    {
-        public decimal? CurrentPrice { get; set; }
-        public decimal? Change24h { get; set; }
-        public decimal? High24h { get; set; }
-        public decimal? Low24h { get; set; }
-        public decimal? Volume { get; set; }
-        public string? Symbol { get; set; }
-        public DateTime? LastUpdated { get; set; }
-    }
+    [Inject]
+    private HttpClient Http { get; set; } = default!;
 }
-
-<style>
-    .market-data-widget {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 12px;
-        padding: 20px;
-        color: white;
-        min-height: 200px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    .loading, .error {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        font-size: 16px;
-    }
-
-    .error {
-        color: #ff6b6b;
-    }
-
-    .data-container {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .data-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .data-row:last-child {
-        border-bottom: none;
-    }
-
-    .label {
-        font-size: 14px;
-        opacity: 0.9;
-        font-weight: 500;
-    }
-
-    .value {
-        font-size: 16px;
-        font-weight: 600;
-    }
-
-    .value.price {
-        font-size: 20px;
-    }
-
-    .value.positive {
-        color: #51cf66;
-    }
-
-    .value.negative {
-        color: #ff6b6b;
-    }
-
-    .value.source {
-        font-size: 12px;
-        opacity: 0.7;
-        font-style: italic;
-    }
-</style>

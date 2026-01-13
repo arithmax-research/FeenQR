@@ -1,0 +1,193 @@
+@using System.Net.Http
+@using System.Text.Json
+@inject HttpClient Http
+@inject ILogger<FredDataWidget> Logger
+
+<div class="fred-widget">
+    <div class="widget-header">
+        <h3><i class="fas fa-landmark"></i> Federal Reserve Economic Data (FRED)</h3>
+        <p>Access comprehensive U.S. economic data from the Federal Reserve</p>
+    </div>
+
+    <div class="widget-controls">
+        <div class="control-group">
+            <label>Quick Access:</label>
+            <button class="btn btn-primary" @onclick="LoadPopularSeries">
+                <i class="fas fa-star"></i> Popular Series
+            </button>
+        </div>
+        
+        <div class="control-group">
+            <label>Search:</label>
+            <input type="text" class="form-control" @bind="searchQuery" placeholder="Search FRED indicators..." />
+            <button class="btn btn-success" @onclick="SearchFred">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </div>
+
+        <div class="control-group">
+            <label>Series ID:</label>
+            <input type="text" class="form-control" @bind="seriesId" placeholder="e.g., GDP, UNRATE" />
+            <button class="btn btn-info" @onclick="LoadSeries">
+                <i class="fas fa-download"></i> Load Series
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i> Loading FRED data...
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i> @errorMessage
+        </div>
+    }
+    else if (fredData != null)
+    {
+        <div class="data-display">
+            <h4>@fredData.GetProperty("source").GetString() Data</h4>
+            <pre>@JsonSerializer.Serialize(fredData, new JsonSerializerOptions { WriteIndented = true })</pre>
+        </div>
+    }
+</div>
+
+<style>
+    .fred-widget {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .widget-header h3 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    .widget-header p {
+        color: #7f8c8d;
+        margin-bottom: 20px;
+    }
+
+    .widget-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .control-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .control-group label {
+        min-width: 100px;
+        font-weight: 600;
+        color: #34495e;
+    }
+
+    .control-group input {
+        flex: 1;
+    }
+
+    .data-display {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .data-display pre {
+        background: #2c3e50;
+        color: #ecf0f1;
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+        max-height: 500px;
+    }
+
+    .loading-spinner {
+        text-align: center;
+        padding: 40px;
+        color: #3498db;
+        font-size: 1.2rem;
+    }
+</style>
+
+@code {
+    private string searchQuery = "";
+    private string seriesId = "GDP";
+    private bool isLoading = false;
+    private string? errorMessage = null;
+    private JsonElement? fredData = null;
+
+    private async Task LoadPopularSeries()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetStringAsync("/api/EconomicData/fred/popular");
+            fredData = JsonSerializer.Deserialize<JsonElement>(response);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading popular series: {ex.Message}";
+            Logger.LogError(ex, "Error loading FRED popular series");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SearchFred()
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery)) return;
+        
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetStringAsync($"/api/EconomicData/fred/search?query={Uri.EscapeDataString(searchQuery)}");
+            fredData = JsonSerializer.Deserialize<JsonElement>(response);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error searching FRED: {ex.Message}";
+            Logger.LogError(ex, "Error searching FRED");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadSeries()
+    {
+        if (string.IsNullOrWhiteSpace(seriesId)) return;
+        
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetStringAsync($"/api/EconomicData/fred/series/{seriesId}");
+            fredData = JsonSerializer.Deserialize<JsonElement>(response);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading series: {ex.Message}";
+            Logger.LogError(ex, "Error loading FRED series");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

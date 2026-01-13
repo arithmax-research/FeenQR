@@ -1,0 +1,225 @@
+@using System.Net.Http
+@using System.Text.Json
+@inject HttpClient Http
+@inject ILogger<CommoditiesDataWidget> Logger
+
+<div class="commodities-widget">
+    <div class="widget-header">
+        <h3><i class="fas fa-oil-can"></i> Commodities Data</h3>
+        <p>Energy, metals, and agricultural commodity prices</p>
+    </div>
+
+    <div class="widget-controls">
+        <div class="control-group">
+            <label>Commodity:</label>
+            <select class="form-control" @bind="selectedCommodity">
+                <optgroup label="Energy">
+                    <option value="CRUDE_OIL">Crude Oil (WTI)</option>
+                    <option value="BRENT">Brent Crude</option>
+                    <option value="NATURAL_GAS">Natural Gas</option>
+                    <option value="HEATING_OIL">Heating Oil</option>
+                </optgroup>
+                <optgroup label="Precious Metals">
+                    <option value="GOLD">Gold</option>
+                    <option value="SILVER">Silver</option>
+                    <option value="PLATINUM">Platinum</option>
+                    <option value="PALLADIUM">Palladium</option>
+                </optgroup>
+                <optgroup label="Base Metals">
+                    <option value="COPPER">Copper</option>
+                    <option value="ALUMINUM">Aluminum</option>
+                    <option value="ZINC">Zinc</option>
+                </optgroup>
+                <optgroup label="Agriculture">
+                    <option value="CORN">Corn</option>
+                    <option value="WHEAT">Wheat</option>
+                    <option value="SOYBEANS">Soybeans</option>
+                    <option value="COTTON">Cotton</option>
+                    <option value="COFFEE">Coffee</option>
+                    <option value="SUGAR">Sugar</option>
+                </optgroup>
+            </select>
+            <button class="btn btn-primary" @onclick="LoadCommodityData">
+                <i class="fas fa-download"></i> Load Data
+            </button>
+        </div>
+
+        <div class="control-group">
+            <label>Custom Commodity:</label>
+            <input type="text" class="form-control" @bind="customCommodity" placeholder="Enter commodity name..." />
+            <button class="btn btn-info" @onclick="LoadCustomCommodity">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i> Loading commodity data...
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i> @errorMessage
+        </div>
+    }
+    else if (commodityData != null)
+    {
+        <div class="data-display">
+            <h4>Commodity Data: @(commodityData.Value.GetProperty("commodity").GetString())</h4>
+            <pre>@JsonSerializer.Serialize(commodityData.Value, new JsonSerializerOptions { WriteIndented = true })</pre>
+        </div>
+    }
+
+    <div class="info-panel">
+        <h5><i class="fas fa-info-circle"></i> Commodity Categories</h5>
+        <ul>
+            <li><strong>Energy:</strong> Crude oil, natural gas, gasoline, heating oil</li>
+            <li><strong>Precious Metals:</strong> Gold, silver, platinum, palladium</li>
+            <li><strong>Base Metals:</strong> Copper, aluminum, zinc, nickel</li>
+            <li><strong>Agriculture:</strong> Corn, wheat, soybeans, cotton, coffee, sugar</li>
+            <li><strong>Livestock:</strong> Live cattle, lean hogs, feeder cattle</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+    .commodities-widget {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .widget-header h3 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    .widget-header p {
+        color: #7f8c8d;
+        margin-bottom: 20px;
+    }
+
+    .widget-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .control-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .control-group label {
+        min-width: 140px;
+        font-weight: 600;
+        color: #34495e;
+    }
+
+    .control-group input,
+    .control-group select {
+        flex: 1;
+    }
+
+    .data-display {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .data-display pre {
+        background: #2c3e50;
+        color: #ecf0f1;
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+        max-height: 500px;
+    }
+
+    .info-panel {
+        background: #fef9e7;
+        border-left: 4px solid #f1c40f;
+        padding: 20px;
+        margin-top: 20px;
+        border-radius: 5px;
+    }
+
+    .info-panel h5 {
+        color: #2c3e50;
+        margin-bottom: 15px;
+    }
+
+    .info-panel ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .info-panel li {
+        padding: 5px 0;
+        color: #34495e;
+    }
+
+    .loading-spinner {
+        text-align: center;
+        padding: 40px;
+        color: #d35400;
+        font-size: 1.2rem;
+    }
+</style>
+
+@code {
+    private string selectedCommodity = "GOLD";
+    private string customCommodity = "";
+    private bool isLoading = false;
+    private string? errorMessage = null;
+    private JsonElement? commodityData = null;
+
+    private async Task LoadCommodityData()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetStringAsync($"/api/EconomicData/commodities/{selectedCommodity}");
+            commodityData = JsonSerializer.Deserialize<JsonElement>(response);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading commodity data: {ex.Message}";
+            Logger.LogError(ex, "Error loading commodity data");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadCustomCommodity()
+    {
+        if (string.IsNullOrWhiteSpace(customCommodity)) return;
+        
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetStringAsync($"/api/EconomicData/commodities/{Uri.EscapeDataString(customCommodity)}");
+            commodityData = JsonSerializer.Deserialize<JsonElement>(response);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading commodity data: {ex.Message}";
+            Logger.LogError(ex, "Error loading custom commodity data");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

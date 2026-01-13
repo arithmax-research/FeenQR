@@ -1,0 +1,182 @@
+@using System.Net.Http
+@using System.Text.Json
+@inject HttpClient Http
+@inject ILogger<OptionsDataWidget> Logger
+
+<div class="options-widget">
+    <div class="widget-header">
+        <h3><i class="fas fa-stream"></i> Options Data</h3>
+        <p>Access equity and index options data, chains, and analytics</p>
+    </div>
+
+    <div class="widget-controls">
+        <div class="control-group">
+            <label>Symbol:</label>
+            <input type="text" class="form-control" @bind="symbol" placeholder="e.g., AAPL, SPY, TSLA" />
+            <button class="btn btn-primary" @onclick="LoadOptionsData">
+                <i class="fas fa-download"></i> Load Options Chain
+            </button>
+        </div>
+
+        <div class="control-group">
+            <label>Data Type:</label>
+            <select class="form-control" @bind="dataType">
+                <option value="chain">Options Chain</option>
+                <option value="greeks">Greeks</option>
+                <option value="unusual">Unusual Activity</option>
+                <option value="volume">Volume Analysis</option>
+                <option value="openinterest">Open Interest</option>
+            </select>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i> Loading options data...
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i> @errorMessage
+        </div>
+    }
+    else if (optionsData != null)
+    {
+        <div class="data-display">
+            <h4>Options Data: @(optionsData.Value.GetProperty("symbol").GetString())</h4>
+            <pre>@JsonSerializer.Serialize(optionsData.Value, new JsonSerializerOptions { WriteIndented = true })</pre>
+        </div>
+    }
+
+    <div class="info-panel">
+        <h5><i class="fas fa-info-circle"></i> Options Data Features</h5>
+        <ul>
+            <li><strong>Options Chains:</strong> Complete call and put options for all expirations</li>
+            <li><strong>Greeks:</strong> Delta, Gamma, Theta, Vega, and Rho calculations</li>
+            <li><strong>Unusual Activity:</strong> Large volume or open interest changes</li>
+            <li><strong>IV Analysis:</strong> Implied volatility surface and skew</li>
+            <li><strong>Flow:</strong> Real-time options order flow</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+    .options-widget {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .widget-header h3 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    .widget-header p {
+        color: #7f8c8d;
+        margin-bottom: 20px;
+    }
+
+    .widget-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .control-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .control-group label {
+        min-width: 100px;
+        font-weight: 600;
+        color: #34495e;
+    }
+
+    .control-group input,
+    .control-group select {
+        flex: 1;
+    }
+
+    .data-display {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .data-display pre {
+        background: #2c3e50;
+        color: #ecf0f1;
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+        max-height: 500px;
+    }
+
+    .info-panel {
+        background: #fef5e7;
+        border-left: 4px solid #f39c12;
+        padding: 20px;
+        margin-top: 20px;
+        border-radius: 5px;
+    }
+
+    .info-panel h5 {
+        color: #2c3e50;
+        margin-bottom: 15px;
+    }
+
+    .info-panel ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .info-panel li {
+        padding: 5px 0;
+        color: #34495e;
+    }
+
+    .loading-spinner {
+        text-align: center;
+        padding: 40px;
+        color: #16a085;
+        font-size: 1.2rem;
+    }
+</style>
+
+@code {
+    private string symbol = "AAPL";
+    private string dataType = "chain";
+    private bool isLoading = false;
+    private string? errorMessage = null;
+    private JsonElement? optionsData = null;
+
+    private async Task LoadOptionsData()
+    {
+        if (string.IsNullOrWhiteSpace(symbol)) return;
+        
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetStringAsync($"/api/EconomicData/options/{symbol}");
+            optionsData = JsonSerializer.Deserialize<JsonElement>(response);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading options data: {ex.Message}";
+            Logger.LogError(ex, "Error loading options data");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

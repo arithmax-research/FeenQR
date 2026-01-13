@@ -1,0 +1,211 @@
+@using System.Net.Http
+@using System.Text.Json
+@inject HttpClient Http
+@inject ILogger<FuturesDataWidget> Logger
+
+<div class="futures-widget">
+    <div class="widget-header">
+        <h3><i class="fas fa-chart-area"></i> Futures Data</h3>
+        <p>Access futures market data across commodities, indices, and currencies</p>
+    </div>
+
+    <div class="widget-controls">
+        <div class="control-group">
+            <label>Symbol:</label>
+            <select class="form-control" @bind="selectedSymbol">
+                <option value="ES">E-mini S&P 500 (ES)</option>
+                <option value="NQ">E-mini Nasdaq-100 (NQ)</option>
+                <option value="YM">E-mini Dow (YM)</option>
+                <option value="CL">Crude Oil (CL)</option>
+                <option value="GC">Gold (GC)</option>
+                <option value="SI">Silver (SI)</option>
+                <option value="ZB">30-Year T-Bond (ZB)</option>
+                <option value="ZN">10-Year T-Note (ZN)</option>
+                <option value="6E">Euro FX (6E)</option>
+                <option value="6J">Japanese Yen (6J)</option>
+            </select>
+            <button class="btn btn-primary" @onclick="LoadFuturesData">
+                <i class="fas fa-download"></i> Load Data
+            </button>
+        </div>
+
+        <div class="control-group">
+            <label>Custom Symbol:</label>
+            <input type="text" class="form-control" @bind="customSymbol" placeholder="Enter futures symbol..." />
+            <button class="btn btn-info" @onclick="LoadCustomFutures">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i> Loading futures data...
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i> @errorMessage
+        </div>
+    }
+    else if (futuresData != null)
+    {
+        <div class="data-display">
+            <h4>Futures Data: @(futuresData.Value.GetProperty("symbol").GetString())</h4>
+            <pre>@JsonSerializer.Serialize(futuresData.Value, new JsonSerializerOptions { WriteIndented = true })</pre>
+        </div>
+    }
+
+    <div class="info-panel">
+        <h5><i class="fas fa-info-circle"></i> Popular Futures Contracts</h5>
+        <ul>
+            <li><strong>Equity Indices:</strong> ES (S&P 500), NQ (Nasdaq-100), YM (Dow Jones)</li>
+            <li><strong>Energy:</strong> CL (Crude Oil), NG (Natural Gas), RB (Gasoline)</li>
+            <li><strong>Metals:</strong> GC (Gold), SI (Silver), HG (Copper)</li>
+            <li><strong>Agriculture:</strong> ZC (Corn), ZS (Soybeans), ZW (Wheat)</li>
+            <li><strong>Treasury:</strong> ZB (30-Year Bond), ZN (10-Year Note), ZF (5-Year Note)</li>
+            <li><strong>FX:</strong> 6E (Euro), 6J (Yen), 6B (British Pound)</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+    .futures-widget {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .widget-header h3 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    .widget-header p {
+        color: #7f8c8d;
+        margin-bottom: 20px;
+    }
+
+    .widget-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .control-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .control-group label {
+        min-width: 120px;
+        font-weight: 600;
+        color: #34495e;
+    }
+
+    .control-group input,
+    .control-group select {
+        flex: 1;
+    }
+
+    .data-display {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .data-display pre {
+        background: #2c3e50;
+        color: #ecf0f1;
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+        max-height: 500px;
+    }
+
+    .info-panel {
+        background: #e8f4f8;
+        border-left: 4px solid #3498db;
+        padding: 20px;
+        margin-top: 20px;
+        border-radius: 5px;
+    }
+
+    .info-panel h5 {
+        color: #2c3e50;
+        margin-bottom: 15px;
+    }
+
+    .info-panel ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .info-panel li {
+        padding: 5px 0;
+        color: #34495e;
+    }
+
+    .loading-spinner {
+        text-align: center;
+        padding: 40px;
+        color: #9b59b6;
+        font-size: 1.2rem;
+    }
+</style>
+
+@code {
+    private string selectedSymbol = "ES";
+    private string customSymbol = "";
+    private bool isLoading = false;
+    private string? errorMessage = null;
+    private JsonElement? futuresData = null;
+
+    private async Task LoadFuturesData()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetStringAsync($"/api/EconomicData/futures/{selectedSymbol}");
+            futuresData = JsonSerializer.Deserialize<JsonElement>(response);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading futures data: {ex.Message}";
+            Logger.LogError(ex, "Error loading futures data");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadCustomFutures()
+    {
+        if (string.IsNullOrWhiteSpace(customSymbol)) return;
+        
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetStringAsync($"/api/EconomicData/futures/{customSymbol}");
+            futuresData = JsonSerializer.Deserialize<JsonElement>(response);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading futures data: {ex.Message}";
+            Logger.LogError(ex, "Error loading custom futures data");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

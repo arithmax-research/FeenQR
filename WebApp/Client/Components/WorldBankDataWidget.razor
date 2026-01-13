@@ -1,0 +1,196 @@
+@using System.Net.Http
+@using System.Text.Json
+@inject HttpClient Http
+@inject ILogger<WorldBankDataWidget> Logger
+
+<div class="worldbank-widget">
+    <div class="widget-header">
+        <h3><i class="fas fa-globe"></i> World Bank Data</h3>
+        <p>Access global development indicators and economic data</p>
+    </div>
+
+    <div class="widget-controls">
+        <div class="control-group">
+            <label>Quick Access:</label>
+            <button class="btn btn-primary" @onclick="LoadPopularIndicators">
+                <i class="fas fa-star"></i> Popular Indicators
+            </button>
+        </div>
+        
+        <div class="control-group">
+            <label>Search:</label>
+            <input type="text" class="form-control" @bind="searchQuery" placeholder="Search World Bank indicators..." />
+            <button class="btn btn-success" @onclick="SearchWorldBank">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </div>
+
+        <div class="control-group">
+            <label>Indicator ID:</label>
+            <input type="text" class="form-control" @bind="indicatorId" placeholder="e.g., NY.GDP.MKTP.CD" />
+            <label>Country:</label>
+            <input type="text" class="form-control" @bind="country" placeholder="e.g., US, CN, BR" style="max-width: 100px;" />
+            <button class="btn btn-info" @onclick="LoadSeries">
+                <i class="fas fa-download"></i> Load Data
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i> Loading World Bank data...
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i> @errorMessage
+        </div>
+    }
+    else if (wbData != null)
+    {
+        <div class="data-display">
+            <h4>@(wbData.Value.GetProperty("source").GetString()) Data</h4>
+            <pre>@JsonSerializer.Serialize(wbData.Value, new JsonSerializerOptions { WriteIndented = true })</pre>
+        </div>
+    }
+</div>
+
+<style>
+    .worldbank-widget {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .widget-header h3 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    .widget-header p {
+        color: #7f8c8d;
+        margin-bottom: 20px;
+    }
+
+    .widget-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .control-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .control-group label {
+        min-width: 100px;
+        font-weight: 600;
+        color: #34495e;
+    }
+
+    .control-group input {
+        flex: 1;
+    }
+
+    .data-display {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .data-display pre {
+        background: #2c3e50;
+        color: #ecf0f1;
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+        max-height: 500px;
+    }
+
+    .loading-spinner {
+        text-align: center;
+        padding: 40px;
+        color: #27ae60;
+        font-size: 1.2rem;
+    }
+</style>
+
+@code {
+    private string searchQuery = "";
+    private string indicatorId = "NY.GDP.MKTP.CD";
+    private string country = "US";
+    private bool isLoading = false;
+    private string? errorMessage = null;
+    private JsonElement? wbData = null;
+
+    private async Task LoadPopularIndicators()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetStringAsync("/api/EconomicData/worldbank/popular");
+            wbData = JsonSerializer.Deserialize<JsonElement>(response);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading popular indicators: {ex.Message}";
+            Logger.LogError(ex, "Error loading World Bank popular indicators");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SearchWorldBank()
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery)) return;
+        
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetStringAsync($"/api/EconomicData/worldbank/search?query={Uri.EscapeDataString(searchQuery)}");
+            wbData = JsonSerializer.Deserialize<JsonElement>(response);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error searching World Bank: {ex.Message}";
+            Logger.LogError(ex, "Error searching World Bank");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadSeries()
+    {
+        if (string.IsNullOrWhiteSpace(indicatorId) || string.IsNullOrWhiteSpace(country)) return;
+        
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetStringAsync($"/api/EconomicData/worldbank/series/{indicatorId}?country={country}");
+            wbData = JsonSerializer.Deserialize<JsonElement>(response);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading series: {ex.Message}";
+            Logger.LogError(ex, "Error loading World Bank series");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

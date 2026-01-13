@@ -1,0 +1,196 @@
+@using System.Net.Http
+@using System.Text.Json
+@inject HttpClient Http
+@inject ILogger<OecdDataWidget> Logger
+
+<div class="oecd-widget">
+    <div class="widget-header">
+        <h3><i class="fas fa-chart-line"></i> OECD Data</h3>
+        <p>Organisation for Economic Co-operation and Development statistics</p>
+    </div>
+
+    <div class="widget-controls">
+        <div class="control-group">
+            <label>Quick Access:</label>
+            <button class="btn btn-primary" @onclick="LoadPopularIndicators">
+                <i class="fas fa-star"></i> Popular Indicators
+            </button>
+        </div>
+        
+        <div class="control-group">
+            <label>Search:</label>
+            <input type="text" class="form-control" @bind="searchQuery" placeholder="Search OECD data..." />
+            <button class="btn btn-success" @onclick="SearchOecd">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </div>
+
+        <div class="control-group">
+            <label>Dataset:</label>
+            <input type="text" class="form-control" @bind="dataset" placeholder="e.g., QNA, MEI" />
+            <label>Filter:</label>
+            <input type="text" class="form-control" @bind="filter" placeholder="e.g., USA" />
+            <button class="btn btn-info" @onclick="LoadSeries">
+                <i class="fas fa-download"></i> Load Data
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i> Loading OECD data...
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i> @errorMessage
+        </div>
+    }
+    else if (oecdData != null)
+    {
+        <div class="data-display">
+            <h4>@(oecdData.Value.GetProperty("source").GetString()) Data</h4>
+            <pre>@JsonSerializer.Serialize(oecdData.Value, new JsonSerializerOptions { WriteIndented = true })</pre>
+        </div>
+    }
+</div>
+
+<style>
+    .oecd-widget {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .widget-header h3 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    .widget-header p {
+        color: #7f8c8d;
+        margin-bottom: 20px;
+    }
+
+    .widget-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .control-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .control-group label {
+        min-width: 100px;
+        font-weight: 600;
+        color: #34495e;
+    }
+
+    .control-group input {
+        flex: 1;
+    }
+
+    .data-display {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .data-display pre {
+        background: #2c3e50;
+        color: #ecf0f1;
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+        max-height: 500px;
+    }
+
+    .loading-spinner {
+        text-align: center;
+        padding: 40px;
+        color: #e74c3c;
+        font-size: 1.2rem;
+    }
+</style>
+
+@code {
+    private string searchQuery = "";
+    private string dataset = "QNA";
+    private string filter = "all";
+    private bool isLoading = false;
+    private string? errorMessage = null;
+    private JsonElement? oecdData = null;
+
+    private async Task LoadPopularIndicators()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetStringAsync("/api/EconomicData/oecd/popular");
+            oecdData = JsonSerializer.Deserialize<JsonElement>(response);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading popular indicators: {ex.Message}";
+            Logger.LogError(ex, "Error loading OECD popular indicators");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SearchOecd()
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery)) return;
+        
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetStringAsync($"/api/EconomicData/oecd/search?query={Uri.EscapeDataString(searchQuery)}");
+            oecdData = JsonSerializer.Deserialize<JsonElement>(response);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error searching OECD: {ex.Message}";
+            Logger.LogError(ex, "Error searching OECD");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadSeries()
+    {
+        if (string.IsNullOrWhiteSpace(dataset)) return;
+        
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetStringAsync($"/api/EconomicData/oecd/series/{dataset}/{filter}");
+            oecdData = JsonSerializer.Deserialize<JsonElement>(response);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading series: {ex.Message}";
+            Logger.LogError(ex, "Error loading OECD series");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
