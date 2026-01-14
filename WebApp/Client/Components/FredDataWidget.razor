@@ -55,7 +55,7 @@
                 else
                 {
                     <div class="chart-placeholder">
-                        <p>📊 Chart data processing...</p>
+                        <p>Chart data processing...</p>
                         <small>Showing recent observations for @seriesId</small>
                     </div>
                 }
@@ -379,27 +379,59 @@
 
             chartDataPoints = new List<ChartDataPoint>();
             
-            if (fredData.Value.TryGetProperty("data", out var dataElement))
+            // FRED response structure: { seriesId, source, data: { observations: [...] }, timestamp }
+            if (fredData.Value.TryGetProperty("data", out var dataWrapper))
             {
-                foreach (var obs in dataElement.EnumerateArray())
+                JsonElement observationsElement;
+                
+                // Try to get observations array from nested structure
+                if (dataWrapper.TryGetProperty("observations", out observationsElement))
                 {
-                    if (obs.TryGetProperty("date", out var dateEl) && 
-                        obs.TryGetProperty("value", out var valueEl))
+                    // Data is wrapped in observations
+                    foreach (var obs in observationsElement.EnumerateArray())
                     {
-                        var dateStr = dateEl.GetString() ?? "";
-                        var valueStr = valueEl.GetString() ?? "0";
-                        
-                        if (double.TryParse(valueStr, out var value) && value != 0)
+                        if (obs.TryGetProperty("date", out var dateEl) && 
+                            obs.TryGetProperty("value", out var valueEl))
                         {
-                            chartDataPoints.Add(new ChartDataPoint
+                            var dateStr = dateEl.GetString() ?? "";
+                            var valueStr = valueEl.GetString() ?? "0";
+                            
+                            if (double.TryParse(valueStr, out var value) && !double.IsNaN(value))
                             {
-                                Date = dateStr,
-                                Value = value
-                            });
+                                chartDataPoints.Add(new ChartDataPoint
+                                {
+                                    Date = dateStr,
+                                    Value = value
+                                });
+                            }
+                        }
+                    }
+                }
+                else if (dataWrapper.ValueKind == JsonValueKind.Array)
+                {
+                    // Data is directly an array
+                    foreach (var obs in dataWrapper.EnumerateArray())
+                    {
+                        if (obs.TryGetProperty("date", out var dateEl) && 
+                            obs.TryGetProperty("value", out var valueEl))
+                        {
+                            var dateStr = dateEl.GetString() ?? "";
+                            var valueStr = valueEl.GetString() ?? "0";
+                            
+                            if (double.TryParse(valueStr, out var value) && !double.IsNaN(value))
+                            {
+                                chartDataPoints.Add(new ChartDataPoint
+                                {
+                                    Date = dateStr,
+                                    Value = value
+                                });
+                            }
                         }
                     }
                 }
             }
+
+            Console.WriteLine($"Parsed {chartDataPoints.Count} data points");
 
             // Take last 50 points for cleaner visualization
             if (chartDataPoints.Count > 50)
@@ -417,10 +449,19 @@
     {
         try
         {
-            if (chartDataPoints == null || !chartDataPoints.Any()) return;
+            if (chartDataPoints == null || !chartDataPoints.Any())
+            {
+                Console.WriteLine("No chart data points to render");
+                return;
+            }
+
+            // Small delay to ensure canvas is rendered
+            await Task.Delay(100);
 
             var labels = chartDataPoints.Select(d => d.Date).ToArray();
             var values = chartDataPoints.Select(d => d.Value).ToArray();
+
+            Console.WriteLine($"Rendering chart with {labels.Length} points for {seriesId}");
 
             await JS.InvokeVoidAsync("renderLineChart", 
                 $"fredChart_{chartId}", 
@@ -431,14 +472,6 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error rendering chart: {ex.Message}");
-        }
-    }
-        {
-            errorMessage = $"Error loading series: {ex.Message}";
-        }
-        finally
-        {
-            isLoading = false;
         }
     }
 

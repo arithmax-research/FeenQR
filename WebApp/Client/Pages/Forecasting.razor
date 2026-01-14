@@ -1,0 +1,527 @@
+@page "/forecasting"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>Forecasting - FeenQR</PageTitle>
+
+<div class="container-fluid py-3" style="background-color: #0a0a0a; min-height: 100vh;">
+    <div class="row mb-3">
+        <div class="col">
+            <h3 class="mb-1 text-white">
+                <i class="bi bi-graph-up-arrow"></i> Time Series Forecasting
+            </h3>
+            <p class="text-muted small mb-0">Advanced forecasting models for price prediction</p>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs mb-3 border-secondary" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "forecast" ? "active" : "") bg-dark text-white border-secondary" @onclick="@(() => activeTab = "forecast")">
+                <i class="bi bi-graph-up"></i> <small>Forecast</small>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "compare" ? "active" : "") bg-dark text-white border-secondary" @onclick="@(() => activeTab = "compare")">
+                <i class="bi bi-bar-chart-line"></i> <small>Compare</small>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "accuracy" ? "active" : "") bg-dark text-white border-secondary" @onclick="@(() => activeTab = "accuracy")">
+                <i class="bi bi-bullseye"></i> <small>Accuracy</small>
+            </button>
+        </li>
+    </ul>
+
+    <!-- Forecast Tab -->
+    @if (activeTab == "forecast")
+    {
+        <div class="row mb-4">
+            <div class="col-lg-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Symbol</label>
+                                <input type="text" class="form-control" @bind="symbol" placeholder="e.g., AAPL" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Method</label>
+                                <select class="form-select" @bind="forecastMethod">
+                                    <option value="arima">ARIMA</option>
+                                    <option value="exponential-smoothing">Exponential Smoothing</option>
+                                    <option value="linear">Linear Regression</option>
+                                    <option value="moving-average">Moving Average</option>
+                                    <option value="ets">ETS (Holt's)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Forecast Days</label>
+                                <input type="number" class="form-control" @bind="forecastDays" min="1" max="90" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Training Days</label>
+                                <input type="number" class="form-control" @bind="trainingDays" min="30" max="1800" />
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button class="btn btn-primary w-100" @onclick="GenerateForecast" disabled="@isLoading">
+                                    @if (isLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    Generate Forecast
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Compare Models Tab -->
+    @if (activeTab == "compare")
+    {
+        <div class="row mb-4">
+            <div class="col-lg-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Symbol</label>
+                                <input type="text" class="form-control" @bind="symbol" placeholder="e.g., AAPL" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Forecast Days</label>
+                                <input type="number" class="form-control" @bind="forecastDays" min="1" max="90" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Training Days</label>
+                                <input type="number" class="form-control" @bind="trainingDays" min="30" max="1800" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Validation Days</label>
+                                <input type="number" class="form-control" @bind="validationDays" min="10" max="90" />
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button class="btn btn-success w-100" @onclick="CompareModels" disabled="@isLoading">
+                                    @if (isLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    Compare Models
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Accuracy Metrics Tab -->
+    @if (activeTab == "accuracy")
+    {
+        <div class="row mb-4">
+            <div class="col-lg-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Symbol</label>
+                                <input type="text" class="form-control" @bind="symbol" placeholder="e.g., AAPL" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Method</label>
+                                <select class="form-select" @bind="forecastMethod">
+                                    <option value="arima">ARIMA</option>
+                                    <option value="exponential-smoothing">Exponential Smoothing</option>
+                                    <option value="linear">Linear Regression</option>
+                                    <option value="moving-average">Moving Average</option>
+                                    <option value="ets">ETS (Holt's)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Forecast Days</label>
+                                <input type="number" class="form-control" @bind="forecastDays" min="1" max="90" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Training Days</label>
+                                <input type="number" class="form-control" @bind="trainingDays" min="30" max="1800" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Test Days</label>
+                                <input type="number" class="form-control" @bind="testDays" min="30" max="180" />
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button class="btn btn-info w-100" @onclick="CalculateAccuracy" disabled="@isLoading">
+                                    @if (isLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    Calculate
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Processing forecast...</p>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @errorMessage
+            <button type="button" class="btn-close" @onclick="@(() => errorMessage = null)"></button>
+        </div>
+    }
+
+    @if (result != null && !isLoading)
+    {
+        <div class="row">
+            <!-- Main Results -->
+            <div class="col-lg-8 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clipboard-data"></i> @GetResultTitle()
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <pre class="bg-light p-3 rounded" style="max-height: 600px; overflow-y: auto;">@resultJson</pre>
+                    </div>
+                </div>
+
+                @if (activeTab == "compare" && result.HasValue && result.Value.TryGetProperty("models", out var models))
+                {
+                    <div class="card shadow-sm mt-4">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="bi bi-trophy"></i> Model Rankings</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Method</th>
+                                        <th>Score</th>
+                                        <th>MAPE</th>
+                                        <th>RMSE</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{int rank = 1;}
+                                    @foreach (var model in models.EnumerateArray())
+                                    {
+                                        if (model.TryGetProperty("score", out var score))
+                                        {
+                                            <tr>
+                                                <td><strong>@rank</strong></td>
+                                                <td>@model.GetProperty("method").GetString()</td>
+                                                <td>@score.GetDouble().ToString("F2")</td>
+                                                <td>@model.GetProperty("accuracy").GetProperty("mape").GetDouble().ToString("F2")%</td>
+                                                <td>@model.GetProperty("accuracy").GetProperty("rmse").GetDouble().ToString("F4")</td>
+                                            </tr>
+                                            rank++;
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Summary Panel -->
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0"><i class="bi bi-info-circle"></i> Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Symbol:</strong> @symbol</p>
+                        @if (activeTab == "forecast" && result.HasValue && result.Value.TryGetProperty("forecast", out var forecast))
+                        {
+                            <p><strong>Method:</strong> @forecastMethod.ToUpper()</p>
+                            <p><strong>Horizon:</strong> @forecastDays days</p>
+                            @if (forecast.TryGetProperty("expectedChange", out var change))
+                            {
+                                var changeVal = change.GetDouble();
+                                <p class="@(changeVal > 0 ? "text-success" : "text-danger")">
+                                    <strong>Expected Change:</strong> @changeVal.ToString("F2")%
+                                </p>
+                            }
+                        }
+                        @if (activeTab == "compare" && result.HasValue && result.Value.TryGetProperty("recommendation", out var recommendation))
+                        {
+                            <p><strong>Best Model:</strong> @recommendation.GetProperty("bestModel").GetString()</p>
+                            <p><strong>Confidence:</strong> @recommendation.GetProperty("confidence").GetString()</p>
+                        }
+                    </div>
+                </div>
+
+                @if (result.HasValue && (result.Value.TryGetProperty("interpretation", out var interpretation) || 
+                     result.Value.TryGetProperty("recommendations", out var recommendations)))
+                {
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0"><i class="bi bi-lightbulb"></i> Insights</h6>
+                        </div>
+                        <div class="card-body">
+                            @if (result.HasValue && result.Value.TryGetProperty("interpretation", out var interp))
+                            {
+                                <p>@interp.GetString()</p>
+                            }
+                            @if (result.HasValue && result.Value.TryGetProperty("recommendations", out var recs))
+                            {
+                                <ul class="mb-0">
+                                    @foreach (var rec in recs.EnumerateArray())
+                                    {
+                                        <li>@rec.GetString()</li>
+                                    }
+                                </ul>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0"><i class="bi bi-tools"></i> Actions</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" @onclick="ExportResults">
+                                <i class="bi bi-download"></i> Export Results
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="CopyToClipboard">
+                                <i class="bi bi-clipboard"></i> Copy to Clipboard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forecast Visualization Placeholder -->
+        @if (activeTab == "forecast" && result.HasValue && result.Value.TryGetProperty("forecast", out var forecastData) && 
+             forecastData.TryGetProperty("predictions", out var predictions))
+        {
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="mb-0"><i class="bi bi-graph-up"></i> Forecast Predictions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Day</th>
+                                            <th>Predicted Price</th>
+                                            @if (forecastData.TryGetProperty("confidenceIntervals", out _))
+                                            {
+                                                <th>95% CI Lower</th>
+                                                <th>95% CI Upper</th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{
+                                            int dayCount = 1;
+                                            var predArray = predictions.EnumerateArray().ToList();
+                                            var ciArray = forecastData.TryGetProperty("confidenceIntervals", out var ci) 
+                                                ? ci.EnumerateArray().ToList() 
+                                                : null;
+                                        }
+                                        @foreach (var pred in predArray.Take(10))
+                                        {
+                                            <tr>
+                                                <td>Day @dayCount</td>
+                                                <td>$@pred.GetDouble().ToString("F2")</td>
+                                                @if (ciArray != null && dayCount - 1 < ciArray.Count)
+                                                {
+                                                    var interval = ciArray[dayCount - 1];
+                                                    <td>$@interval.GetProperty("lower95").GetDouble().ToString("F2")</td>
+                                                    <td>$@interval.GetProperty("upper95").GetDouble().ToString("F2")</td>
+                                                }
+                                            </tr>
+                                            dayCount++;
+                                        }
+                                        @if (predArray.Count > 10)
+                                        {
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted">
+                                                    <em>... and @(predArray.Count - 10) more days</em>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private string activeTab = "forecast";
+    private string symbol = "AAPL";
+    private string forecastMethod = "arima";
+    private int forecastDays = 30;
+    private int trainingDays = 252;
+    private int validationDays = 30;
+    private int testDays = 60;
+    private bool isLoading = false;
+    private string errorMessage = null;
+    private JsonElement? result = null;
+    private string resultJson = "";
+
+    private async Task GenerateForecast()
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+        {
+            errorMessage = "Please enter a symbol";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        result = null;
+        resultJson = "";
+
+        try
+        {
+            var url = $"/api/Forecasting/forecast?symbol={symbol}&forecastDays={forecastDays}&method={forecastMethod}&trainingDays={trainingDays}";
+            var response = await Http.GetFromJsonAsync<JsonElement>(url);
+            result = response;
+            resultJson = System.Text.Json.JsonSerializer.Serialize(response, new System.Text.Json.JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            });
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error generating forecast: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CompareModels()
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+        {
+            errorMessage = "Please enter a symbol";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        result = null;
+        resultJson = "";
+
+        try
+        {
+            var url = $"/api/Forecasting/forecast-compare?symbol={symbol}&forecastDays={forecastDays}&trainingDays={trainingDays}&validationDays={validationDays}";
+            var response = await Http.GetFromJsonAsync<JsonElement>(url);
+            result = response;
+            resultJson = System.Text.Json.JsonSerializer.Serialize(response, new System.Text.Json.JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            });
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error comparing models: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CalculateAccuracy()
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+        {
+            errorMessage = "Please enter a symbol";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        result = null;
+        resultJson = "";
+
+        try
+        {
+            var url = $"/api/Forecasting/forecast-accuracy?symbol={symbol}&method={forecastMethod}&forecastDays={forecastDays}&trainingDays={trainingDays}&testDays={testDays}";
+            var response = await Http.GetFromJsonAsync<JsonElement>(url);
+            result = response;
+            resultJson = System.Text.Json.JsonSerializer.Serialize(response, new System.Text.Json.JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            });
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error calculating accuracy: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetResultTitle()
+    {
+        return activeTab switch
+        {
+            "forecast" => "Forecast Results",
+            "compare" => "Model Comparison Results",
+            "accuracy" => "Accuracy Metrics",
+            _ => "Results"
+        };
+    }
+
+    private async Task ExportResults()
+    {
+        if (result == null) return;
+        
+        var json = System.Text.Json.JsonSerializer.Serialize(result, new System.Text.Json.JsonSerializerOptions 
+        { 
+            WriteIndented = true 
+        });
+        
+        var fileName = $"{symbol}_{activeTab}_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+        await JS.InvokeVoidAsync("downloadFile", fileName, json);
+    }
+
+    private async Task CopyToClipboard()
+    {
+        if (!string.IsNullOrEmpty(resultJson))
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", resultJson);
+        }
+    }
+}
