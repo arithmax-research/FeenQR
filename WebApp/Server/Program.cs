@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.StaticFiles;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add configuration from main FeenQR project (root level)
+// Note: appsettings.json files are gitignored as they contain API keys
+// Users should copy appsettings.json.template to appsettings.json and configure their keys
 builder.Configuration
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "../../appsettings.json"), optional: false, reloadOnChange: true);
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "../../appsettings.json"), optional: true, reloadOnChange: true);
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -95,6 +97,28 @@ builder.Services.AddSingleton<PortfolioService>();
 builder.Services.AddSingleton<PortfolioOptimizationService>();
 builder.Services.AddSingleton<RiskManagementService>();
 builder.Services.AddSingleton<MonteCarloService>();
+
+// Register Comprehensive Analysis dependencies
+builder.Services.AddSingleton<NewsScrapingService>();
+builder.Services.AddSingleton<CompanyValuationService>(sp =>
+{
+    var plugin = sp.GetRequiredService<IFinancialDataPlugin>();
+    if (plugin is not YahooFinanceDataPlugin yahooPlugin)
+    {
+        throw new InvalidOperationException(
+            $"Expected YahooFinanceDataPlugin but found {plugin.GetType().Name}. " +
+            "Ensure YahooFinanceDataPlugin is registered as IFinancialDataPlugin.");
+    }
+    return new CompanyValuationService(
+        sp.GetRequiredService<Kernel>(),
+        sp.GetRequiredService<ILogger<CompanyValuationService>>(),
+        sp.GetRequiredService<AlpacaService>(),
+        yahooPlugin,
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient()
+    );
+});
+builder.Services.AddSingleton<MarketSentimentAgentService>();
+builder.Services.AddSingleton<ComprehensiveStockAnalysisAgent>();
 
 var app = builder.Build();
 

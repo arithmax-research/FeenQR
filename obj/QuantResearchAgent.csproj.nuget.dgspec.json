@@ -1,26 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj": {}
+    "/home/runner/work/FeenQR/FeenQR/QuantResearchAgent.csproj": {}
   },
   "projects": {
-    "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj": {
+    "/home/runner/work/FeenQR/FeenQR/QuantResearchAgent.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj",
+        "projectUniqueName": "/home/runner/work/FeenQR/FeenQR/QuantResearchAgent.csproj",
         "projectName": "QuantResearchAgent",
-        "projectPath": "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj",
-        "packagesPath": "/home/misango/.nuget/packages/",
-        "outputPath": "/home/misango/codechest/FeenQR/obj/",
+        "projectPath": "/home/runner/work/FeenQR/FeenQR/QuantResearchAgent.csproj",
+        "packagesPath": "/home/runner/work/FeenQR/.codeql-scratch/dbs/csharp/working/packages",
+        "outputPath": "/home/runner/work/FeenQR/FeenQR/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/home/misango/.nuget/NuGet/NuGet.Config"
+          "/home/runner/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net9.0"
         ],
         "sources": {
-          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -39,7 +38,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.100"
+        "SdkAnalysisLevel": "10.0.100"
       },
       "frameworks": {
         "net9.0": {
@@ -173,12 +172,26 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[9.0.11, 9.0.11]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Host.linux-x64",
+              "version": "[9.0.11, 9.0.11]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[9.0.11, 9.0.11]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/9.0.112/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.101/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
