@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add configuration from main FeenQR project (root level)
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "../../appsettings.json"), optional: false, reloadOnChange: true);
+    .AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "../../appsettings.json"), optional: true, reloadOnChange: true);
 
 // Add services to the container
 builder.Services.AddControllers();
