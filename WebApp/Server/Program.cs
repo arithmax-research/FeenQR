@@ -7,8 +7,10 @@ using Microsoft.AspNetCore.StaticFiles;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add configuration from main FeenQR project (root level)
+// Note: appsettings.json files are gitignored as they contain API keys
+// Users should copy appsettings.json.template to appsettings.json and configure their keys
 builder.Configuration
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
     .AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "../../appsettings.json"), optional: true, reloadOnChange: true);
 
 // Add services to the container

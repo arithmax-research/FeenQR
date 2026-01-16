@@ -1,0 +1,28 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "OpenAI": {
+    "ApiKey": "your-openai-api-key-here",
+    "ModelId": "gpt-4o-mini"
+  },
+  "Alpaca": {
+    "ApiKey": "your-alpaca-api-key-here",
+    "SecretKey": "your-alpaca-secret-key-here",
+    "BaseUrl": "https://paper-api.alpaca.markets"
+  },
+  "AlphaVantage": {
+    "ApiKey": "your-alpha-vantage-api-key-here"
+  },
+  "FinancialModelingPrep": {
+    "ApiKey": "your-fmp-api-key-here"
+  },
+  "Google": {
+    "SearchApiKey": "your-google-search-api-key-here",
+    "SearchEngineId": "your-google-search-engine-id-here"
+  }
+}
