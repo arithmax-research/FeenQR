@@ -96,6 +96,21 @@ builder.Services.AddSingleton<PortfolioOptimizationService>();
 builder.Services.AddSingleton<RiskManagementService>();
 builder.Services.AddSingleton<MonteCarloService>();
 
+// Register Comprehensive Analysis dependencies
+builder.Services.AddSingleton<NewsScrapingService>();
+builder.Services.AddSingleton<CompanyValuationService>(sp =>
+    new CompanyValuationService(
+        sp.GetRequiredService<Kernel>(),
+        sp.GetRequiredService<ILogger<CompanyValuationService>>(),
+        sp.GetRequiredService<AlpacaService>(),
+        sp.GetRequiredService<IFinancialDataPlugin>() as Plugins.YahooFinanceDataPlugin ?? 
+            throw new InvalidOperationException("YahooFinanceDataPlugin not registered"),
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient()
+    )
+);
+builder.Services.AddSingleton<MarketSentimentAgentService>();
+builder.Services.AddSingleton<ComprehensiveStockAnalysisAgent>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
