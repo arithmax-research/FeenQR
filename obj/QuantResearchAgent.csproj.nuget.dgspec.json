@@ -10,7 +10,7 @@
         "projectUniqueName": "/home/runner/work/FeenQR/FeenQR/QuantResearchAgent.csproj",
         "projectName": "QuantResearchAgent",
         "projectPath": "/home/runner/work/FeenQR/FeenQR/QuantResearchAgent.csproj",
-        "packagesPath": "/home/runner/.nuget/packages/",
+        "packagesPath": "/home/runner/work/FeenQR/.codeql-scratch/dbs/csharp/working/packages",
         "outputPath": "/home/runner/work/FeenQR/FeenQR/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
@@ -172,6 +172,20 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[9.0.11, 9.0.11]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Host.linux-x64",
+              "version": "[9.0.11, 9.0.11]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[9.0.11, 9.0.11]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
