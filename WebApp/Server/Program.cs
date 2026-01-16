@@ -105,7 +105,9 @@ builder.Services.AddSingleton<CompanyValuationService>(sp =>
     var plugin = sp.GetRequiredService<IFinancialDataPlugin>();
     if (plugin is not YahooFinanceDataPlugin yahooPlugin)
     {
-        throw new InvalidOperationException("YahooFinanceDataPlugin not registered correctly");
+        throw new InvalidOperationException(
+            $"Expected YahooFinanceDataPlugin but found {plugin.GetType().Name}. " +
+            "Ensure YahooFinanceDataPlugin is registered as IFinancialDataPlugin.");
     }
     return new CompanyValuationService(
         sp.GetRequiredService<Kernel>(),

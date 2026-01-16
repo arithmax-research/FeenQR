@@ -49,7 +49,7 @@ namespace Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in comprehensive analysis for {Symbol}", symbol);
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = "An error occurred while performing the analysis. Please check the server logs for details." });
             }
         }
     }
