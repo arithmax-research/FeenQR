@@ -99,15 +99,20 @@ builder.Services.AddSingleton<MonteCarloService>();
 // Register Comprehensive Analysis dependencies
 builder.Services.AddSingleton<NewsScrapingService>();
 builder.Services.AddSingleton<CompanyValuationService>(sp =>
-    new CompanyValuationService(
+{
+    var plugin = sp.GetRequiredService<IFinancialDataPlugin>();
+    if (plugin is not YahooFinanceDataPlugin yahooPlugin)
+    {
+        throw new InvalidOperationException("YahooFinanceDataPlugin not registered correctly");
+    }
+    return new CompanyValuationService(
         sp.GetRequiredService<Kernel>(),
         sp.GetRequiredService<ILogger<CompanyValuationService>>(),
         sp.GetRequiredService<AlpacaService>(),
-        sp.GetRequiredService<IFinancialDataPlugin>() as Plugins.YahooFinanceDataPlugin ?? 
-            throw new InvalidOperationException("YahooFinanceDataPlugin not registered"),
+        yahooPlugin,
         sp.GetRequiredService<IHttpClientFactory>().CreateClient()
-    )
-);
+    );
+});
 builder.Services.AddSingleton<MarketSentimentAgentService>();
 builder.Services.AddSingleton<ComprehensiveStockAnalysisAgent>();
 
