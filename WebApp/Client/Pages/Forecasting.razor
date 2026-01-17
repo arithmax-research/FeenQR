@@ -185,7 +185,7 @@
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
             @errorMessage
-            <button type="button" class="btn-close" @onclick="@(() => errorMessage = null)"></button>
+            <button type="button" class="btn-close" @onclick="@(() => errorMessage = string.Empty)"></button>
         </div>
     }
 
@@ -390,7 +390,7 @@
     private int validationDays = 30;
     private int testDays = 60;
     private bool isLoading = false;
-    private string errorMessage = null;
+    private string errorMessage = string.Empty;
     private JsonElement? result = null;
     private string resultJson = "";
 
@@ -403,7 +403,7 @@
         }
 
         isLoading = true;
-        errorMessage = null;
+        errorMessage = string.Empty;
         result = null;
         resultJson = "";
 

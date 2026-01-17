@@ -116,7 +116,7 @@
         {
             <div class="alert alert-danger alert-dismissible fade show py-2" role="alert">
             <small><i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage</small>
-            <button type="button" class="btn-close btn-sm" @onclick="@(() => errorMessage = null)"></button>
+            <button type="button" class="btn-close btn-sm" @onclick="@(() => errorMessage = string.Empty)"></button>
         </div>
         }
 
@@ -225,7 +225,7 @@
     private int days = 252;
     private string testType = "t-test";
     private bool isLoading = false;
-    private string errorMessage = null;
+    private string errorMessage = string.Empty;
     private JsonElement? result = null;
     private string resultJson = "";
 
@@ -238,7 +238,7 @@
         }
 
         isLoading = true;
-        errorMessage = null;
+        errorMessage = string.Empty;
         result = null;
         resultJson = "";
 

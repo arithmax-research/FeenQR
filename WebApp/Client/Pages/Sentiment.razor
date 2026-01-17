@@ -768,7 +768,7 @@
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<dynamic>();
-                trendingSymbols = ((IEnumerable<dynamic>)result.trending).ToList();
+                trendingSymbols = result?.trending != null ? ((IEnumerable<dynamic>)result.trending).ToList() : new List<dynamic>();
             }
         }
         catch (Exception ex)
@@ -799,7 +799,7 @@
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<dynamic>();
-                comparisonResults = ((IEnumerable<dynamic>)result.comparisons).ToList();
+                comparisonResults = result?.comparisons != null ? ((IEnumerable<dynamic>)result.comparisons).ToList() : new List<dynamic>();
             }
         }
         catch (Exception ex)

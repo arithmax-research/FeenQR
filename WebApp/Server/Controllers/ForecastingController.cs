@@ -152,7 +152,7 @@ namespace QuantResearchAgent.Controllers
                 // Rank models
                 var rankedModels = modelComparisons
                     .Where(m => m.GetType().GetProperty("score") != null)
-                    .OrderByDescending(m => (double)m.GetType().GetProperty("score").GetValue(m))
+                    .OrderByDescending(m => (double)(m.GetType().GetProperty("score")?.GetValue(m) ?? 0.0))
                     .ToList();
 
                 // Generate forecast with best model
@@ -185,7 +185,7 @@ namespace QuantResearchAgent.Controllers
                     {
                         bestModel = bestMethodName,
                         reason = "Highest overall score based on accuracy and model fit",
-                        confidence = GetConfidenceLevel(bestMethod)
+                        confidence = GetConfidenceLevel(bestMethod!)
                     },
                     forecast = new
                     {
@@ -312,7 +312,7 @@ namespace QuantResearchAgent.Controllers
                 
                 var response = await client.GetAsync(url);
                 if (!response.IsSuccessStatusCode)
-                    return null;
+                    return Array.Empty<double>();
 
                 var content = await response.Content.ReadAsStringAsync();
                 var json = JsonDocument.Parse(content);
@@ -336,7 +336,7 @@ namespace QuantResearchAgent.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching historical data for {Symbol}", symbol);
-                return null;
+                return Array.Empty<double>();
             }
         }
 

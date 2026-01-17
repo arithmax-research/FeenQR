@@ -528,7 +528,7 @@ namespace QuantResearchAgent.Controllers
                 
                 var response = await client.GetAsync(url);
                 if (!response.IsSuccessStatusCode)
-                    return null;
+                    return Array.Empty<double>();
 
                 var content = await response.Content.ReadAsStringAsync();
                 var json = JsonDocument.Parse(content);
@@ -552,7 +552,7 @@ namespace QuantResearchAgent.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching historical data for {Symbol}", symbol);
-                return null;
+                return Array.Empty<double>();
             }
         }
 
