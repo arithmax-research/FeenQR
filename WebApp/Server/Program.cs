@@ -63,6 +63,7 @@ builder.Services.AddSingleton<YFinanceNewsService>();
 builder.Services.AddSingleton<FinvizNewsService>();
 builder.Services.AddSingleton<NewsSentimentAnalysisService>();
 builder.Services.AddSingleton<WebDataExtractionService>();
+builder.Services.AddSingleton<GoogleWebSearchPlugin>();
 builder.Services.AddSingleton<IWebSearchPlugin, GoogleWebSearchPlugin>();
 builder.Services.AddSingleton<IFinancialDataPlugin, YahooFinanceDataPlugin>();
 builder.Services.AddSingleton<LLMRouterService>();

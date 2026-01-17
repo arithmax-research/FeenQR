@@ -8,6 +8,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using QuantResearchAgent.Core;
 using QuantResearchAgent.Services;
+using QuantResearchAgent.Plugins;
 
 namespace QuantResearchAgent.Services
 {
@@ -19,6 +20,7 @@ namespace QuantResearchAgent.Services
         private readonly AcademicResearchService _academicService;
         private readonly YFinanceNewsService _newsService;
         private readonly NewsSentimentAnalysisService _sentimentNewsService;
+        private readonly GoogleWebSearchPlugin _googleSearchPlugin;
         private readonly Kernel _openAIKernel;
         private readonly Kernel _deepSeekKernel;
         
@@ -31,6 +33,7 @@ namespace QuantResearchAgent.Services
             AcademicResearchService academicService,
             YFinanceNewsService newsService,
             NewsSentimentAnalysisService sentimentNewsService,
+            GoogleWebSearchPlugin googleSearchPlugin,
             Kernel kernel)
         {
             _marketDataService = marketDataService;
@@ -39,6 +42,7 @@ namespace QuantResearchAgent.Services
             _academicService = academicService;
             _newsService = newsService;
             _sentimentNewsService = sentimentNewsService;
+            _googleSearchPlugin = googleSearchPlugin;
             _openAIKernel = kernel;
             _deepSeekKernel = kernel; // Use same kernel for now
         }
@@ -125,23 +129,35 @@ Remember: You have access to real-time data and powerful analytics. Use them to 
 
 User Query: ""{userMessage}""
 
-Available Tools:
-- market_data: Get stock/asset price data and basic statistics
-- statistical_analysis: Perform statistical tests (t-tests, normality, correlation)
-- sentiment_analysis: Analyze market sentiment
-- forecasting: Generate price predictions
-- technical_analysis: Calculate technical indicators
-- portfolio_analysis: Portfolio optimization and risk assessment
-- academic_search: Search research papers
-- video_analysis: Analyze YouTube videos
-- general_knowledge: General market/trading knowledge (no tool needed)
+**CRITICAL RULES:**
+1. ALWAYS use tools when available - NEVER generate information from memory alone
+2. NEVER use your training data for current events, news, or real-time information
+3. When query asks about effects/impact of real-world events on markets → Use sentiment_analysis to get current news
+4. Extract any stock symbols mentioned (CVX, TSLA, AAPL, etc.) and pass as parameters
+5. Default to fetching real data rather than making assumptions
+
+**Available Tools:**
+- sentiment_analysis: Fetches REAL current news articles with links and sentiment (Use for: news, political events, current affairs, market sentiment, any real-world happenings)
+- market_data: Gets stock price data and statistics (pass symbol parameter if mentioned)
+- statistical_analysis: Performs statistical tests
+- forecasting: Generates price predictions
+- technical_analysis: Calculates technical indicators
+- academic_search: Searches research papers
+- video_analysis: Analyzes financial videos
+
+**Decision Logic:**
+- Query about current events, politics, news, or real-world happenings? → sentiment_analysis
+- Query about how events affect/impact stocks? → sentiment_analysis (for context) + market_data (for prices)
+- Query about stock prices/trading? → market_data (extract symbol from query)
+- Query about predictions? → forecasting
+- Unsure or ambiguous? → Default to sentiment_analysis for current information
 
 Respond with a JSON array of tools to use, in order of execution:
 {{
     ""tools"": [
         {{
             ""name"": ""tool_name"",
-            ""parameters"": {{""param1"": ""value1""}},
+            ""parameters"": {{""query"": ""search query"", ""symbol"": ""STOCK""}},
             ""reason"": ""why this tool is needed""
         }}
     ],
@@ -209,23 +225,64 @@ If no specific tools are needed (e.g., general question), return an empty tools 
             var lowerQuery = query.ToLower();
             var tools = new List<ToolCall>();
 
-            // Simple keyword-based inference
-            if (lowerQuery.Contains("price") || lowerQuery.Contains("stock") || lowerQuery.Contains("trading"))
+            // Extract stock symbol if present (CVX, TSLA, etc.)
+            var symbolMatch = System.Text.RegularExpressions.Regex.Match(query, @"\b([A-Z]{1,5})\b");
+            var symbol = symbolMatch.Success ? symbolMatch.Groups[1].Value : "";
+
+            // Current events / news / real-world happenings (generic patterns only)
+            if (lowerQuery.Contains("news") || lowerQuery.Contains("said") || lowerQuery.Contains("statement") ||
+                lowerQuery.Contains("what did") || lowerQuery.Contains("what is") || lowerQuery.Contains("happening") ||
+                lowerQuery.Contains("current") || lowerQuery.Contains("today") || lowerQuery.Contains("latest") ||
+                lowerQuery.Contains("recent") || lowerQuery.Contains("effects") || lowerQuery.Contains("impact") ||
+                lowerQuery.Contains("affect") || lowerQuery.Contains("influence") || lowerQuery.Contains("sentiment") ||
+                lowerQuery.Contains("political") || lowerQuery.Contains("government") || lowerQuery.Contains("regime"))
             {
-                tools.Add(new ToolCall { Name = "market_data", Parameters = new Dictionary<string, string>(), Reason = "Query mentions market/trading terms" });
+                tools.Add(new ToolCall { 
+                    Name = "sentiment_analysis", 
+                    Parameters = new Dictionary<string, string> { { "query", query }, { "symbol", symbol } }, 
+                    Reason = "Query about current events or real-world impact - fetching real news data" 
+                });
             }
 
-            if (lowerQuery.Contains("sentiment") || lowerQuery.Contains("news"))
+            // Market data for stocks/prices
+            if (lowerQuery.Contains("price") || lowerQuery.Contains("stock") || lowerQuery.Contains("trading") ||
+                lowerQuery.Contains("chart") || lowerQuery.Contains("ticker") || lowerQuery.Contains("shares") ||
+                lowerQuery.Contains("market") || !string.IsNullOrEmpty(symbol))
             {
-                tools.Add(new ToolCall { Name = "sentiment_analysis", Parameters = new Dictionary<string, string>(), Reason = "Query about sentiment" });
+                var marketParams = new Dictionary<string, string>();
+                if (!string.IsNullOrEmpty(symbol))
+                {
+                    marketParams["symbol"] = symbol;
+                }
+                tools.Add(new ToolCall { 
+                    Name = "market_data", 
+                    Parameters = marketParams, 
+                    Reason = "Query about stock prices or market data" 
+                });
             }
 
-            if (lowerQuery.Contains("predict") || lowerQuery.Contains("forecast"))
+            // Forecasting for predictions
+            if (lowerQuery.Contains("predict") || lowerQuery.Contains("forecast") || lowerQuery.Contains("future") ||
+                lowerQuery.Contains("outlook") || lowerQuery.Contains("projection"))
             {
-                tools.Add(new ToolCall { Name = "forecasting", Parameters = new Dictionary<string, string>(), Reason = "Query about predictions" });
+                tools.Add(new ToolCall { 
+                    Name = "forecasting", 
+                    Parameters = new Dictionary<string, string>(), 
+                    Reason = "Query about predictions" 
+                });
             }
 
-            return new ToolPlan { ToolCalls = tools, RequiresRealTimeData = tools.Any() };
+            // Default: Try to fetch current information
+            if (!tools.Any())
+            {
+                tools.Add(new ToolCall { 
+                    Name = "sentiment_analysis", 
+                    Parameters = new Dictionary<string, string> { { "query", query } }, 
+                    Reason = "Fetching current information to provide accurate answer" 
+                });
+            }
+
+            return new ToolPlan { ToolCalls = tools, RequiresRealTimeData = true };
         }
 
         private async Task<Dictionary<string, ToolResult>> ExecuteToolsAsync(ToolPlan plan)
@@ -340,6 +397,15 @@ If no specific tools are needed (e.g., general question), return an empty tools 
             
             try
             {
+                // Run both Google Search and News analysis in parallel
+                Task<List<WebSearchResult>>? googleSearchTask = null;
+                
+                // For non-symbol queries (news, political events, etc), use Google Search
+                if (!string.IsNullOrEmpty(query) && string.IsNullOrEmpty(symbol))
+                {
+                    googleSearchTask = _googleSearchPlugin.SearchAsync(query, 5);
+                }
+                
                 // Determine if we're analyzing a specific symbol or general market
                 if (!string.IsNullOrEmpty(symbol))
                 {
@@ -387,10 +453,36 @@ If no specific tools are needed (e.g., general question), return an empty tools 
                 }
                 else
                 {
-                    // Get general market sentiment
-                    var marketAnalysis = await _sentimentNewsService.AnalyzeMarketSentimentAsync(15);
+                    // Get general market sentiment and Google Search results
+                    var marketAnalysisTask = _sentimentNewsService.AnalyzeMarketSentimentAsync(15);
+                    
+                    // Wait for both to complete
+                    await Task.WhenAll(marketAnalysisTask, googleSearchTask ?? Task.FromResult(new List<WebSearchResult>()));
+                    
+                    var marketAnalysis = await marketAnalysisTask;
+                    var googleResults = googleSearchTask != null ? await googleSearchTask : new List<WebSearchResult>();
                     
                     var newsText = new System.Text.StringBuilder();
+                    
+                    // Add Google Search results first if available
+                    if (googleResults.Any())
+                    {
+                        newsText.AppendLine($"### Web Search Results ({googleResults.Count} found)\n");
+                        newsText.AppendLine($"*Query: \"{query}\"*\n");
+                        
+                        for (int i = 0; i < googleResults.Count; i++)
+                        {
+                            var result = googleResults[i];
+                            newsText.AppendLine($"{i + 1}. **{result.Title}**");
+                            newsText.AppendLine($"   - {result.Snippet}");
+                            newsText.AppendLine($"   - **[Read More]({result.Url})**");
+                            newsText.AppendLine();
+                        }
+                        
+                        newsText.AppendLine("---\n");
+                    }
+                    
+                    // Add market sentiment analysis
                     newsText.AppendLine($"### Market Sentiment Analysis\n");
                     newsText.AppendLine($"**Overall Market Sentiment:** {marketAnalysis.SentimentScore:F2} - {marketAnalysis.OverallSentiment}\n");
                     
@@ -419,7 +511,7 @@ If no specific tools are needed (e.g., general question), return an empty tools 
                     {
                         Success = true,
                         Data = newsText.ToString(),
-                        ToolName = "News & Sentiment Analysis"
+                        ToolName = "News & Sentiment Analysis + Web Search"
                     };
                 }
             }
@@ -504,21 +596,34 @@ User Question: ""{userMessage}""
 
 {contextBuilder}
 
-Based on the tool results above, provide a comprehensive, well-formatted answer to the user's question.
+**CRITICAL INSTRUCTIONS:**
+1. ONLY use information from the tool results above - DO NOT use your training data or general knowledge
+2. If tool results are empty or failed, say you couldn't fetch current data and cannot provide outdated information
+3. NEVER make up dates, quotes, or events - only use what's in the tool results
+4. All news articles must include clickable links from the tool results
+5. Always cite the exact source (publisher and date) from the tool results
+
+Based STRICTLY on the tool results above, provide a comprehensive, well-formatted answer to the user's question.
 
 Requirements:
 - **RESPOND IN ENGLISH** (unless user explicitly requests another language)
 - Use markdown formatting (headers, bold, lists, tables)
-- Start with a direct answer
+- Start with a direct answer using ONLY the tool data
 - Present data clearly and professionally
-- Cite which tools/sources were used
-- Be conversational and helpful
+- Include ALL article links from the tool results
+- Be conversational but honest - if data is missing, say so
 - Add a summary section at the end showing:
   * Tools Used: [list the tools]
-  * Data Sources: [list sources]
+  * Data Sources: [list sources with dates]
   * Analysis Time: [mention it was real-time]
 
-Make it comprehensive and insightful!";
+**FORBIDDEN:**
+- Do NOT use information from your training data (it's outdated!)
+- Do NOT mention dates like 2022, 2023 unless they appear in tool results
+- Do NOT generate fake quotes or statements
+- If tools failed, admit you cannot provide current information
+
+Make it comprehensive and insightful using ONLY the tool data!";
 
             var response = await kernel.InvokePromptAsync(finalPrompt);
             return response.ToString();
