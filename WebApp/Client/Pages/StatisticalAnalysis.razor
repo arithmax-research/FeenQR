@@ -5,152 +5,171 @@
 
 <PageTitle>Statistical Analysis - FeenQR</PageTitle>
 
-<div class="container-fluid py-3" style="background-color: #0a0a0a; min-height: 100vh;">
-    <div class="row mb-3">
-        <div class="col">
-            <h3 class="mb-1 text-white">
-                <i class="bi bi-graph-up"></i> Statistical Analysis
-            </h3>
-            <p class="text-muted small mb-0">Comprehensive statistical testing and time series analysis</p>
-        </div>
+<style>
+    .stats-container {
+        position: fixed;
+        left: 280px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: #0a0a0a;
+        overflow-x: hidden;
+        overflow-y: auto;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stats-header {
+        background: rgba(18, 18, 18, 0.95);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 1rem 1.5rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        flex-shrink: 0;
+    }
+
+    .stats-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        margin: 0 auto;
+        max-width: 1400px;
+        width: 100%;
+    }
+
+    .stats-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+
+<div class="stats-container">
+    <div class="stats-header">
+        <h3 class="mb-1 text-white">
+            <i class="bi bi-graph-up"></i> Statistical Analysis
+        </h3>
+        <p class="text-muted small mb-0">Comprehensive statistical testing and time series analysis</p>
     </div>
 
-    <!-- Input Section -->
-    <div class="row mb-3">
-        <div class="col-lg-12">
-            <div class="card bg-dark border-secondary">
-                <div class="card-body py-2">
-                    <div class="row g-2">
-                        <div class="col-md-2">
-                            <label class="form-label small text-white-50 mb-1">Symbol</label>
-                            <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="symbol" placeholder="AAPL" />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small text-white-50 mb-1">Analysis Type</label>
-                            <select class="form-select form-select-sm bg-dark text-white border-secondary" @bind="analysisType">
-                                <option value="statistical-test">Statistical Test</option>
-                                <option value="hypothesis-test">Hypothesis Test</option>
-                                <option value="power-analysis">Power Analysis</option>
-                                <option value="time-series-analysis">Time Series Analysis</option>
-                                <option value="stationarity-test">Stationarity Test</option>
-                                <option value="autocorrelation-analysis">Autocorrelation Analysis</option>
-                                <option value="seasonal-decomposition">Seasonal Decomposition</option>
-                                <option value="ts-analysis">Stock Time Series</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label small text-white-50 mb-1">Days</label>
-                            <input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="days" min="30" max="1800" />
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label small text-white-50 mb-1">Test Type</label>
-                            <select class="form-select form-select-sm bg-dark text-white border-secondary" @bind="testType">
-                                <option value="t-test">T-Test</option>
-                                <option value="z-test">Z-Test</option>
-                                <option value="jarque-bera">Jarque-Bera</option>
-                                <option value="shapiro-wilk">Shapiro-Wilk</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button class="btn btn-sm btn-primary w-100" @onclick="PerformAnalysis" disabled="@isLoading">
-                                @if (isLoading)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-1"></span>
-                                }
-                                Analyze
-                            </button>
-                        </div>
-                    </div>
+    <div class="stats-content">
+        <!-- Input Section -->
+        <div class="stats-card">
+            <div class="row g-2">
+                <div class="col-md-2">
+                    <label class="form-label small text-white-50 mb-1">Symbol</label>
+                    <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="symbol" placeholder="AAPL" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-white-50 mb-1">Analysis Type</label>
+                    <select class="form-select form-select-sm bg-dark text-white border-secondary" @bind="analysisType">
+                        <option value="statistical-test">Statistical Test</option>
+                        <option value="hypothesis-test">Hypothesis Test</option>
+                        <option value="power-analysis">Power Analysis</option>
+                        <option value="time-series-analysis">Time Series Analysis</option>
+                        <option value="stationarity-test">Stationarity Test</option>
+                        <option value="autocorrelation-analysis">Autocorrelation Analysis</option>
+                        <option value="seasonal-decomposition">Seasonal Decomposition</option>
+                        <option value="ts-analysis">Stock Time Series</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-white-50 mb-1">Days</label>
+                    <input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="days" min="30" max="1800" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-white-50 mb-1">Test Type</label>
+                    <select class="form-select form-select-sm bg-dark text-white border-secondary" @bind="testType">
+                        <option value="t-test">T-Test</option>
+                        <option value="z-test">Z-Test</option>
+                        <option value="jarque-bera">Jarque-Bera</option>
+                        <option value="shapiro-wilk">Shapiro-Wilk</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-sm btn-primary w-100" @onclick="PerformAnalysis" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Analyze
+                    </button>
                 </div>
             </div>
         </div>
-    </div>
 
-    @if (isLoading)
-    {
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;">
-                <span class="visually-hidden">Loading...</span>
+        @if (isLoading)
+        {
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted small">Analyzing...</p>
             </div>
-            <p class="mt-2 text-muted small">Analyzing...</p>
-        </div>
-    }
+        }
 
-    @if (!string.IsNullOrEmpty(errorMessage))
-    {
-        <div class="alert alert-danger alert-dismissible fade show py-2" role="alert">
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show py-2" role="alert">
             <small><i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage</small>
             <button type="button" class="btn-close btn-sm" @onclick="@(() => errorMessage = null)"></button>
         </div>
-    }
+        }
 
-    @if (result != null && !isLoading)
+        @if (result != null && !isLoading)
     {
         <div class="row">
             <!-- Main Results -->
             <div class="col-lg-9 mb-3">
-                <div class="card bg-dark border-secondary">
-                    <div class="card-header bg-dark border-secondary py-2">
-                        <h6 class="mb-0 text-white">
-                            <i class="bi bi-clipboard-data"></i> Analysis Results
-                        </h6>
-                    </div>
-                    <div class="card-body p-2">
-                        <pre class="bg-black text-white-50 p-2 rounded small" style="max-height: 400px; overflow-y: auto; font-size: 0.75rem;">@resultJson</pre>
-                    </div>
+                <div class="stats-card">
+                    <h6 class="mb-3 text-white">
+                        <i class="bi bi-clipboard-data"></i> Analysis Results
+                    </h6>
+                    <pre class="bg-black text-white-50 p-3 rounded small" style="max-height: 400px; overflow-y: auto; font-size: 0.8rem;">@resultJson</pre>
                 </div>
             </div>
 
             <!-- Summary Panel -->
             <div class="col-lg-3 mb-3">
-                <div class="card bg-dark border-secondary mb-2">
-                    <div class="card-header bg-dark border-secondary py-2">
-                        <h6 class="mb-0 small text-white"><i class="bi bi-info-circle"></i> Summary</h6>
-                    </div>
-                    <div class="card-body p-2">
-                        <p><strong>Symbol:</strong> @symbol</p>
-                        <p><strong>Analysis:</strong> @GetAnalysisName(analysisType)</p>
-                        <p><strong>Period:</strong> @days days</p>
-                        @if (result.HasValue && result.Value.TryGetProperty("dataPoints", out var dataPoints))
-                        {
-                            <p><strong>Data Points:</strong> @dataPoints.GetInt32()</p>
-                        }
-                    </div>
+                <div class="stats-card mb-3">
+                    <h6 class="mb-3 text-white"><i class="bi bi-info-circle"></i> Summary</h6>
+                    <p class="text-white-50 small mb-1"><strong>Symbol:</strong> @symbol</p>
+                    <p class="text-white-50 small mb-1"><strong>Analysis:</strong> @GetAnalysisName(analysisType)</p>
+                    <p class="text-white-50 small mb-1"><strong>Period:</strong> @days days</p>
+                    @if (result.HasValue && result.Value.TryGetProperty("dataPoints", out var dataPoints))
+                    {
+                        <p class="text-white-50 small mb-1"><strong>Data Points:</strong> @dataPoints.GetInt32()</p>
+                    }
                 </div>
 
                 @if (result.HasValue && result.Value.TryGetProperty("conclusion", out var conclusion))
                 {
-                    <div class="card shadow-sm mb-3">
-                        <div class="card-header bg-success text-white">
-                            <h6 class="mb-0"><i class="bi bi-check-circle"></i> Conclusion</h6>
-                        </div>
-                        <div class="card-body">
-                            @foreach (var prop in conclusion.EnumerateObject())
-                            {
-                                <p><strong>@FormatPropertyName(prop.Name):</strong> @prop.Value.ToString()</p>
-                            }
-                        </div>
+                    <div class="stats-card mb-3">
+                        <h6 class="mb-3 text-success"><i class="bi bi-check-circle"></i> Conclusion</h6>
+                        @foreach (var prop in conclusion.EnumerateObject())
+                        {
+                            <p class="text-white-50 small"><strong>@FormatPropertyName(prop.Name):</strong> @prop.Value.ToString()</p>
+                        }
                     </div>
                 }
 
-                <div class="card shadow-sm">
-                    <div class="card-header bg-secondary text-white">
-                        <h6 class="mb-0"><i class="bi bi-lightbulb"></i> Quick Actions</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-outline-primary btn-sm" @onclick="ExportResults">
-                                <i class="bi bi-download"></i> Export Results
-                            </button>
-                            <button class="btn btn-outline-secondary btn-sm" @onclick="CopyToClipboard">
-                                <i class="bi bi-clipboard"></i> Copy to Clipboard
-                            </button>
-                        </div>
+                <div class="stats-card">
+                    <h6 class="mb-3 text-white"><i class="bi bi-lightbulb"></i> Quick Actions</h6>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" @onclick="ExportResults">
+                            <i class="bi bi-download"></i> Export Results
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="CopyToClipboard">
+                            <i class="bi bi-clipboard"></i> Copy to Clipboard
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
-        }
 
         <!-- Detailed Metrics -->
         @if (result.HasValue && (result.Value.TryGetProperty("statistics", out var statistics) || 
@@ -159,51 +178,47 @@
         {
             <div class="row mt-4">
                 <div class="col-12">
-                    <div class="card bg-dark border-secondary">
-                        <div class="card-header bg-dark border-secondary py-2">
-                            <h6 class="mb-0 text-white"><i class="bi bi-bar-chart"></i> Detailed Metrics</h6>
-                        </div>
-                        <div class="card-body p-2">
-                            <div class="row">
-                                @if (result.HasValue && result.Value.TryGetProperty("statistics", out var stats))
-                                {
-                                    <div class="col-md-6">
-                                        <h6 class="text-primary small">Statistical Measures</h6>
-                                        <table class="table table-sm table-dark">
-                                            @foreach (var prop in stats.EnumerateObject())
-                                            {
-                                                <tr>
-                                                    <td class="small text-white-50">@FormatPropertyName(prop.Name)</td>
-                                                    <td class="small text-white">@FormatValue(prop.Value)</td>
-                                                </tr>
-                                            }
-                                        </table>
-                                    </div>
-                                }
-                                @if (result.HasValue && result.Value.TryGetProperty("analysis", out var analysisData))
-                                {
-                                    <div class="col-md-6">
-                                        <h6 class="text-primary small">Analysis Details</h6>
-                                        <table class="table table-sm table-dark">
-                                            @foreach (var prop in analysisData.EnumerateObject())
-                                            {
-                                                <tr>
-                                                    <td class="small text-white-50">@FormatPropertyName(prop.Name)</td>
-                                                    <td class="small text-white">@prop.Value.ToString()</td>
-                                                </tr>
-                                            }
-                                        </table>
-                                    </div>
-                                }
-                            </div>
+                    <div class="stats-card">
+                        <h6 class="mb-3 text-white"><i class="bi bi-bar-chart"></i> Detailed Metrics</h6>
+                        <div class="row">
+                            @if (result.HasValue && result.Value.TryGetProperty("statistics", out var stats))
+                            {
+                                <div class="col-md-6">
+                                    <h6 class="text-primary small">Statistical Measures</h6>
+                                    <table class="table table-sm table-dark">
+                                        @foreach (var prop in stats.EnumerateObject())
+                                        {
+                                            <tr>
+                                                <td class="small text-white-50">@FormatPropertyName(prop.Name)</td>
+                                                <td class="small text-white">@FormatValue(prop.Value)</td>
+                                            </tr>
+                                        }
+                                    </table>
+                                </div>
+                            }
+                            @if (result.HasValue && result.Value.TryGetProperty("analysis", out var analysisData))
+                            {
+                                <div class="col-md-6">
+                                    <h6 class="text-primary small">Analysis Details</h6>
+                                    <table class="table table-sm table-dark">
+                                        @foreach (var prop in analysisData.EnumerateObject())
+                                        {
+                                            <tr>
+                                                <td class="small text-white-50">@FormatPropertyName(prop.Name)</td>
+                                                <td class="small text-white">@prop.Value.ToString()</td>
+                                            </tr>
+                                        }
+                                    </table>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
             </div>
         }
     }
+    </div>
 </div>
-
 @code {
     private string symbol = "AAPL";
     private string analysisType = "statistical-test";

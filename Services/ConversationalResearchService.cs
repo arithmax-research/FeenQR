@@ -258,12 +258,77 @@ Risk Assessment for {symbol}:
 
         private QueryIntent ParseIntentResult(string result)
         {
-            // Simple parsing - in production would use JSON deserialization
+            try
+            {
+                // Try to parse JSON response from AI
+                var cleanedResult = result.Trim();
+                
+                // Handle JSON in code blocks
+                if (cleanedResult.Contains("```json"))
+                {
+                    var start = cleanedResult.IndexOf("```json") + 7;
+                    var end = cleanedResult.IndexOf("```", start);
+                    if (end > start)
+                    {
+                        cleanedResult = cleanedResult.Substring(start, end - start).Trim();
+                    }
+                }
+                else if (cleanedResult.Contains("```"))
+                {
+                    var start = cleanedResult.IndexOf("```") + 3;
+                    var end = cleanedResult.IndexOf("```", start);
+                    if (end > start)
+                    {
+                        cleanedResult = cleanedResult.Substring(start, end - start).Trim();
+                    }
+                }
+                
+                // Find JSON object in the response
+                var jsonStart = cleanedResult.IndexOf('{');
+                var jsonEnd = cleanedResult.LastIndexOf('}');
+                
+                if (jsonStart >= 0 && jsonEnd > jsonStart)
+                {
+                    cleanedResult = cleanedResult.Substring(jsonStart, jsonEnd - jsonStart + 1);
+                    var json = System.Text.Json.JsonDocument.Parse(cleanedResult);
+                    var root = json.RootElement;
+                    
+                    var type = root.TryGetProperty("type", out var typeElement) 
+                        ? typeElement.GetString() ?? "general" 
+                        : "general";
+                    
+                    var parameters = new Dictionary<string, string>();
+                    if (root.TryGetProperty("parameters", out var paramsElement))
+                    {
+                        foreach (var prop in paramsElement.EnumerateObject())
+                        {
+                            parameters[prop.Name] = prop.Value.ToString();
+                        }
+                    }
+                    
+                    var confidence = root.TryGetProperty("confidence", out var confElement) 
+                        ? confElement.GetDouble() 
+                        : 0.8;
+                    
+                    return new QueryIntent
+                    {
+                        Type = type,
+                        Parameters = parameters,
+                        Confidence = confidence
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error parsing intent: {ex.Message}");
+            }
+            
+            // Fallback: classify as general query
             return new QueryIntent
             {
-                Type = "market_analysis",
+                Type = "general",
                 Parameters = new Dictionary<string, string>(),
-                Confidence = 0.8
+                Confidence = 0.5
             };
         }
 
