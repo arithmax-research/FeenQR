@@ -17,6 +17,8 @@ namespace QuantResearchAgent.Services
         private readonly StatisticalTestingService _statisticalService;
         private readonly YouTubeAnalysisService _youtubeService;
         private readonly AcademicResearchService _academicService;
+        private readonly YFinanceNewsService _newsService;
+        private readonly NewsSentimentAnalysisService _sentimentNewsService;
         private readonly Kernel _openAIKernel;
         private readonly Kernel _deepSeekKernel;
         
@@ -27,12 +29,16 @@ namespace QuantResearchAgent.Services
             StatisticalTestingService statisticalService,
             YouTubeAnalysisService youtubeService,
             AcademicResearchService academicService,
+            YFinanceNewsService newsService,
+            NewsSentimentAnalysisService sentimentNewsService,
             Kernel kernel)
         {
             _marketDataService = marketDataService;
             _statisticalService = statisticalService;
             _youtubeService = youtubeService;
             _academicService = academicService;
+            _newsService = newsService;
+            _sentimentNewsService = sentimentNewsService;
             _openAIKernel = kernel;
             _deepSeekKernel = kernel; // Use same kernel for now
         }
@@ -329,14 +335,103 @@ If no specific tools are needed (e.g., general question), return an empty tools 
 
         private async Task<ToolResult> ExecuteSentimentTool(Dictionary<string, string> parameters)
         {
-            var symbol = parameters.GetValueOrDefault("symbol", "Market");
+            var query = parameters.GetValueOrDefault("query", "");
+            var symbol = parameters.GetValueOrDefault("symbol", "");
             
-            return new ToolResult
+            try
             {
-                Success = true,
-                Data = $"Sentiment analysis for {symbol}: Market sentiment is currently neutral with slight bullish bias based on recent news and social media trends.",
-                ToolName = "Sentiment Analysis"
-            };
+                // Determine if we're analyzing a specific symbol or general market
+                if (!string.IsNullOrEmpty(symbol))
+                {
+                    // Get sentiment-analyzed news for the symbol
+                    var analysisResult = await _sentimentNewsService.AnalyzeSymbolSentimentAsync(symbol, 10);
+                    
+                    // Format news with links and sentiment
+                    var newsText = new System.Text.StringBuilder();
+                    newsText.AppendLine($"### News & Sentiment Analysis for {symbol}\n");
+                    newsText.AppendLine($"**Overall Sentiment:** {analysisResult.SentimentScore:F2} - {analysisResult.OverallSentiment}\n");
+                    newsText.AppendLine($"**Trading Signal:** {analysisResult.TradingSignal}\n");
+                    newsText.AppendLine($"**Confidence:** {analysisResult.Confidence:F2}\n");
+                    
+                    if (!string.IsNullOrEmpty(analysisResult.Summary))
+                    {
+                        newsText.AppendLine($"\n**Summary:**\n{analysisResult.Summary}\n");
+                    }
+                    
+                    newsText.AppendLine($"\n### Recent News Articles ({analysisResult.NewsItems.Count} found)\n");
+                    
+                    for (int i = 0; i < analysisResult.NewsItems.Count; i++)
+                    {
+                        var article = analysisResult.NewsItems[i];
+                        newsText.AppendLine($"{i + 1}. **{article.Title}**");
+                        newsText.AppendLine($"   - Source: {article.Source} | Publisher: {article.Publisher}");
+                        newsText.AppendLine($"   - Published: {article.PublishedDate:MMM dd, yyyy HH:mm} UTC");
+                        newsText.AppendLine($"   - Sentiment: {article.SentimentScore:F2} ({article.SentimentLabel}) | Impact: {article.Impact}");
+                        if (!string.IsNullOrEmpty(article.Link))
+                        {
+                            newsText.AppendLine($"   - **[Read Article]({article.Link})**");
+                        }
+                        if (article.KeyTopics?.Any() == true)
+                        {
+                            newsText.AppendLine($"   - Topics: {string.Join(", ", article.KeyTopics)}");
+                        }
+                        newsText.AppendLine();
+                    }
+                    
+                    return new ToolResult
+                    {
+                        Success = true,
+                        Data = newsText.ToString(),
+                        ToolName = "News & Sentiment Analysis"
+                    };
+                }
+                else
+                {
+                    // Get general market sentiment
+                    var marketAnalysis = await _sentimentNewsService.AnalyzeMarketSentimentAsync(15);
+                    
+                    var newsText = new System.Text.StringBuilder();
+                    newsText.AppendLine($"### Market Sentiment Analysis\n");
+                    newsText.AppendLine($"**Overall Market Sentiment:** {marketAnalysis.SentimentScore:F2} - {marketAnalysis.OverallSentiment}\n");
+                    
+                    if (!string.IsNullOrEmpty(marketAnalysis.Summary))
+                    {
+                        newsText.AppendLine($"**Summary:**\n{marketAnalysis.Summary}\n");
+                    }
+                    
+                    newsText.AppendLine($"\n### Top Market News ({marketAnalysis.NewsItems.Count} articles)\n");
+                    
+                    for (int i = 0; i < Math.Min(10, marketAnalysis.NewsItems.Count); i++)
+                    {
+                        var article = marketAnalysis.NewsItems[i];
+                        newsText.AppendLine($"{i + 1}. **{article.Title}**");
+                        newsText.AppendLine($"   - Source: {article.Source} | Publisher: {article.Publisher}");
+                        newsText.AppendLine($"   - Published: {article.PublishedDate:MMM dd, yyyy HH:mm} UTC");
+                        newsText.AppendLine($"   - Sentiment: {article.SentimentScore:F2} ({article.SentimentLabel})");
+                        if (!string.IsNullOrEmpty(article.Link))
+                        {
+                            newsText.AppendLine($"   - **[Read Article]({article.Link})**");
+                        }
+                        newsText.AppendLine();
+                    }
+                    
+                    return new ToolResult
+                    {
+                        Success = true,
+                        Data = newsText.ToString(),
+                        ToolName = "News & Sentiment Analysis"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new ToolResult
+                {
+                    Success = false,
+                    Error = $"Failed to fetch news: {ex.Message}",
+                    ToolName = "News & Sentiment Analysis"
+                };
+            }
         }
 
         private async Task<ToolResult> ExecuteForecastingTool(Dictionary<string, string> parameters)

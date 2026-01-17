@@ -57,7 +57,7 @@ namespace Server.Controllers
                     foreach (var tool in response.ToolsUsed)
                     {
                         var status = tool.Success ? "[SUCCESS]" : "[FAILED]";
-                        formattedResponse += $"{status} **{tool.ToolName}** ({tool.ExecutionTime.TotalMilliseconds:F0}ms)\n";
+                        formattedResponse += $"{status} **{tool.ToolName}** ({tool.ExecutionTime:F0}ms)\n";
                         if (!string.IsNullOrEmpty(tool.Reason))
                         {
                             formattedResponse += $"   *Reason:* {tool.Reason}\n";
