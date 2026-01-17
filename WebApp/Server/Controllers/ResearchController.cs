@@ -12,6 +12,7 @@ namespace Server.Controllers
     {
         private readonly ILogger<ResearchController> _logger;
         private readonly ConversationalResearchService _conversationalResearchService;
+        private readonly FeenRAGenticService _feenRAGenticService;
         private readonly AcademicResearchService _academicResearchService;
         private readonly YouTubeAnalysisService _youtubeAnalysisService;
         private readonly ReportGenerationService _reportGenerationService;
@@ -20,6 +21,7 @@ namespace Server.Controllers
         public ResearchController(
             ILogger<ResearchController> logger,
             ConversationalResearchService conversationalResearchService,
+            FeenRAGenticService feenRAGenticService,
             AcademicResearchService academicResearchService,
             YouTubeAnalysisService youtubeAnalysisService,
             ReportGenerationService reportGenerationService,
@@ -27,10 +29,60 @@ namespace Server.Controllers
         {
             _logger = logger;
             _conversationalResearchService = conversationalResearchService;
+            _feenRAGenticService = feenRAGenticService;
             _academicResearchService = academicResearchService;
             _youtubeAnalysisService = youtubeAnalysisService;
             _reportGenerationService = reportGenerationService;
             _linkedInScrapingService = linkedInScrapingService;
+        }
+
+        // Feen RAGentic Chat endpoint
+        [HttpPost("feen-chat")]
+        public async Task<IActionResult> FeenChat([FromBody] FeenChatRequest request)
+        {
+            try
+            {
+                var response = await _feenRAGenticService.ChatAsync(
+                    request.Message, 
+                    request.ModelProvider ?? "openai",
+                    request.ConversationHistory
+                );
+
+                // Format the response with tools used section
+                var formattedResponse = response.Message;
+                
+                if (response.ToolsUsed.Any())
+                {
+                    formattedResponse += "\n\n---\n\n### Tools & Data Sources Used:\n\n";
+                    foreach (var tool in response.ToolsUsed)
+                    {
+                        var status = tool.Success ? "[SUCCESS]" : "[FAILED]";
+                        formattedResponse += $"{status} **{tool.ToolName}** ({tool.ExecutionTime.TotalMilliseconds:F0}ms)\n";
+                        if (!string.IsNullOrEmpty(tool.Reason))
+                        {
+                            formattedResponse += $"   *Reason:* {tool.Reason}\n";
+                        }
+                        formattedResponse += $"   *Result:* {tool.ResultSummary}\n\n";
+                    }
+                    
+                    formattedResponse += $"\n**Model Used:** {response.ModelProvider.ToUpper()}\n";
+                    formattedResponse += $"**Response Time:** {DateTime.UtcNow.Subtract(response.Timestamp).TotalSeconds:F2}s\n";
+                }
+
+                return Ok(new FeenChatResponse
+                {
+                    Message = formattedResponse,
+                    ToolsUsed = response.ToolsUsed,
+                    ModelProvider = response.ModelProvider,
+                    Timestamp = response.Timestamp,
+                    ConversationHistory = response.ConversationHistory
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in Feen chat");
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
 
         // AI Assistant endpoints
@@ -699,6 +751,22 @@ Keep it concise and actionable. Focus on what's useful for quantitative research
     }
 
     // Request/Response models
+    public class FeenChatRequest
+    {
+        public string Message { get; set; } = string.Empty;
+        public string? ModelProvider { get; set; } = "openai"; // "openai" or "deepseek"
+        public List<QuantResearchAgent.Services.FeenRAGenticService.ConversationMessage>? ConversationHistory { get; set; }
+    }
+
+    public class FeenChatResponse
+    {
+        public required string Message { get; set; }
+        public required List<QuantResearchAgent.Services.FeenRAGenticService.ToolUsage> ToolsUsed { get; set; }
+        public required string ModelProvider { get; set; }
+        public DateTime Timestamp { get; set; }
+        public required List<QuantResearchAgent.Services.FeenRAGenticService.ConversationMessage> ConversationHistory { get; set; }
+    }
+
     public class ResearchRequest
     {
         public string Query { get; set; } = string.Empty;

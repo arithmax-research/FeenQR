@@ -1,0 +1,361 @@
+@using System.Text.RegularExpressions
+
+<div class="ai-output-container">
+    <div class="ai-output-content">
+        @((MarkupString)ConvertMarkdownToHtml(Content))
+    </div>
+</div>
+
+<style>
+    .ai-output-container {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.04) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 2.5rem;
+        margin: 1.5rem 0;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+    }
+
+    .ai-output-content {
+        font-family: 'Georgia', 'Times New Roman', serif;
+        font-size: 1.05rem;
+        line-height: 1.8;
+        color: #e5e7eb;
+        max-width: 100%;
+    }
+
+    /* Headings */
+    .ai-output-content h1,
+    .ai-output-content h2,
+    .ai-output-content h3,
+    .ai-output-content h4 {
+        font-family: 'Georgia', 'Times New Roman', serif;
+        font-weight: 600;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        color: #f9fafb;
+        letter-spacing: -0.02em;
+    }
+
+    .ai-output-content h1 {
+        font-size: 2.25rem;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .ai-output-content h2 {
+        font-size: 1.875rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .ai-output-content h3 {
+        font-size: 1.5rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+
+    .ai-output-content h4 {
+        font-size: 1.25rem;
+        color: #d1d5db;
+        margin-bottom: 0.875rem;
+    }
+
+    /* Paragraphs */
+    .ai-output-content p {
+        margin-bottom: 1.25rem;
+        text-align: justify;
+        hyphens: auto;
+    }
+
+    /* Lists */
+    .ai-output-content ul,
+    .ai-output-content ol {
+        margin: 1.25rem 0;
+        padding-left: 2rem;
+    }
+
+    .ai-output-content li {
+        margin-bottom: 0.75rem;
+        line-height: 1.7;
+    }
+
+    .ai-output-content ul li::marker {
+        color: #10b981;
+    }
+
+    .ai-output-content ol li::marker {
+        color: #10b981;
+        font-weight: 600;
+    }
+
+    /* Nested lists */
+    .ai-output-content ul ul,
+    .ai-output-content ol ol,
+    .ai-output-content ul ol,
+    .ai-output-content ol ul {
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Bold and Italic */
+    .ai-output-content strong {
+        font-weight: 700;
+        color: #f9fafb;
+    }
+
+    .ai-output-content em {
+        font-style: italic;
+        color: #d1d5db;
+    }
+
+    /* Code blocks */
+    .ai-output-content code {
+        background: rgba(0, 0, 0, 0.4);
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 0.9em;
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .ai-output-content pre {
+        background: rgba(0, 0, 0, 0.5);
+        padding: 1.5rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 1.5rem 0;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .ai-output-content pre code {
+        background: transparent;
+        padding: 0;
+        border: none;
+        color: #a5f3fc;
+    }
+
+    /* Blockquotes */
+    .ai-output-content blockquote {
+        border-left: 4px solid #10b981;
+        padding-left: 1.5rem;
+        margin: 1.5rem 0;
+        font-style: italic;
+        color: #9ca3af;
+        background: rgba(16, 185, 129, 0.05);
+        padding: 1rem 1.5rem;
+        border-radius: 0 8px 8px 0;
+    }
+
+    /* Links */
+    .ai-output-content a {
+        color: #60a5fa;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+        transition: all 0.2s;
+    }
+
+    .ai-output-content a:hover {
+        color: #93c5fd;
+        border-bottom-color: #93c5fd;
+    }
+
+    /* Horizontal rules */
+    .ai-output-content hr {
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        margin: 2rem 0;
+    }
+
+    /* Tables */
+    .ai-output-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1.5rem 0;
+        font-size: 0.95rem;
+    }
+
+    .ai-output-content th {
+        background: rgba(16, 185, 129, 0.1);
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #10b981;
+    }
+
+    .ai-output-content td {
+        padding: 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .ai-output-content tr:hover {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Citations */
+    .citation {
+        display: inline-block;
+        font-size: 0.8em;
+        vertical-align: super;
+        color: #60a5fa;
+        margin-left: 0.2em;
+        cursor: pointer;
+    }
+
+    .citation:hover {
+        color: #93c5fd;
+    }
+
+    /* References section */
+    .references-section {
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .references-section h3 {
+        font-size: 1.5rem;
+        color: #f9fafb;
+        margin-bottom: 1.5rem;
+    }
+
+    .reference-item {
+        font-size: 0.95rem;
+        margin-bottom: 1rem;
+        padding-left: 2rem;
+        position: relative;
+        line-height: 1.6;
+    }
+
+    .reference-item::before {
+        content: "[" counter(reference) "]";
+        counter-increment: reference;
+        position: absolute;
+        left: 0;
+        color: #60a5fa;
+        font-weight: 600;
+    }
+
+    /* Highlight boxes */
+    .highlight-box {
+        background: rgba(59, 130, 246, 0.1);
+        border-left: 4px solid #3b82f6;
+        padding: 1.25rem;
+        margin: 1.5rem 0;
+        border-radius: 0 8px 8px 0;
+    }
+
+    .success-box {
+        background: rgba(16, 185, 129, 0.1);
+        border-left: 4px solid #10b981;
+    }
+
+    .warning-box {
+        background: rgba(251, 191, 36, 0.1);
+        border-left: 4px solid #fbbf24;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .ai-output-container {
+            padding: 1.5rem;
+        }
+
+        .ai-output-content {
+            font-size: 1rem;
+        }
+
+        .ai-output-content h1 {
+            font-size: 1.75rem;
+        }
+
+        .ai-output-content h2 {
+            font-size: 1.5rem;
+        }
+
+        .ai-output-content h3 {
+            font-size: 1.25rem;
+        }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string Content { get; set; } = "";
+
+    private string ConvertMarkdownToHtml(string markdown)
+    {
+        if (string.IsNullOrWhiteSpace(markdown))
+            return "";
+
+        string html = markdown;
+
+        // Headers (must be done first to avoid interfering with other patterns)
+        html = Regex.Replace(html, @"^### (.+)$", "<h3>$1</h3>", RegexOptions.Multiline);
+        html = Regex.Replace(html, @"^## (.+)$", "<h2>$1</h2>", RegexOptions.Multiline);
+        html = Regex.Replace(html, @"^# (.+)$", "<h1>$1</h1>", RegexOptions.Multiline);
+
+        // Bold (**text** or __text__)
+        html = Regex.Replace(html, @"\*\*(.+?)\*\*", "<strong>$1</strong>");
+        html = Regex.Replace(html, @"__(.+?)__", "<strong>$1</strong>");
+
+        // Italic (*text* or _text_)
+        html = Regex.Replace(html, @"\*(.+?)\*", "<em>$1</em>");
+        html = Regex.Replace(html, @"_(.+?)_", "<em>$1</em>");
+
+        // Code blocks (```code```)
+        html = Regex.Replace(html, @"```(.+?)```", "<pre><code>$1</code></pre>", RegexOptions.Singleline);
+
+        // Inline code (`code`)
+        html = Regex.Replace(html, @"`(.+?)`", "<code>$1</code>");
+
+        // Links [text](url)
+        html = Regex.Replace(html, @"\[(.+?)\]\((.+?)\)", "<a href=\"$2\" target=\"_blank\">$1</a>");
+
+        // Unordered lists
+        html = Regex.Replace(html, @"^[-*+] (.+)$", "<li>$1</li>", RegexOptions.Multiline);
+        html = Regex.Replace(html, @"(<li>.+</li>)", "<ul>$1</ul>", RegexOptions.Singleline);
+
+        // Ordered lists
+        html = Regex.Replace(html, @"^\d+\. (.+)$", "<li>$1</li>", RegexOptions.Multiline);
+        
+        // Blockquotes
+        html = Regex.Replace(html, @"^&gt; (.+)$", "<blockquote>$1</blockquote>", RegexOptions.Multiline);
+
+        // Horizontal rules
+        html = Regex.Replace(html, @"^---$", "<hr/>", RegexOptions.Multiline);
+        html = Regex.Replace(html, @"^\*\*\*$", "<hr/>", RegexOptions.Multiline);
+
+        // Paragraphs (wrap non-tagged content in <p> tags)
+        var lines = html.Split('\n');
+        var processedLines = new List<string>();
+        
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmed) && 
+                !trimmed.StartsWith("<h") && 
+                !trimmed.StartsWith("<li") && 
+                !trimmed.StartsWith("<ul") && 
+                !trimmed.StartsWith("<ol") && 
+                !trimmed.StartsWith("<pre") && 
+                !trimmed.StartsWith("<blockquote") && 
+                !trimmed.StartsWith("<hr") &&
+                !trimmed.StartsWith("</"))
+            {
+                processedLines.Add($"<p>{trimmed}</p>");
+            }
+            else
+            {
+                processedLines.Add(trimmed);
+            }
+        }
+
+        return string.Join("\n", processedLines);
+    }
+}

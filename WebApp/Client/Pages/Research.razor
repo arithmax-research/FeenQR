@@ -167,6 +167,31 @@
         cursor: not-allowed;
     }
 
+    .model-btn {
+        padding: 0.6rem 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        color: #9ca3af;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .model-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #f9fafb;
+    }
+
+    .model-btn.active {
+        background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+        border-color: #1a73e8;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+    }
+
     .section-header {
         font-size: 1.5rem;
         font-weight: 700;
@@ -213,25 +238,6 @@
 
     .chat-submit:hover {
         background: #1557b0;
-    }
-
-    .results-display {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        max-height: 500px;
-        overflow-y: auto;
-    }
-
-    .results-display pre {
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        color: #e5e7eb;
-        font-family: 'Monaco', 'Courier New', monospace;
-        font-size: 0.9rem;
-        line-height: 1.6;
     }
 
     .loading-indicator {
@@ -303,26 +309,37 @@
         @if (activeTab == "ai-assistant")
         {
             <div class="section-header">
-                AI Research Assistant
+                Feen - Your AI Research Assistant
+            </div>
+
+            <div class="model-selector" style="margin-bottom: 1rem; display: flex; gap: 1rem; align-items: center; padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 12px;">
+                <label style="color: #9ca3af; font-weight: 600; font-size: 0.9rem;">AI Model:</label>
+                <button class="model-btn @(selectedModel == "openai" ? "active" : "")" @onclick='() => selectedModel = "openai"'>
+                    OpenAI GPT-4
+                </button>
+                <button class="model-btn @(selectedModel == "deepseek" ? "active" : "")" @onclick='() => selectedModel = "deepseek"'>
+                    DeepSeek
+                </button>
+                <span style="color: #6b7280; font-size: 0.85rem; margin-left: auto;">
+                    Feen can access all tools: market data, analysis, research papers, and more!
+                </span>
             </div>
 
             <div class="chat-interface">
-                <input type="text" class="chat-input" placeholder="Ask me anything about markets, stocks, research papers, or trading strategies..." @bind="chatQuery" @onkeypress="HandleChatKeyPress" />
-                <button class="chat-submit" @onclick="SendChatQuery">Research</button>
+                <input type="text" class="chat-input" placeholder="Ask Feen anything! I can analyze markets, run statistical tests, search papers, forecast trends, and more..." @bind="chatQuery" @onkeypress="HandleChatKeyPress" />
+                <button class="chat-submit" @onclick="SendChatQuery">Ask Feen</button>
             </div>
 
             @if (isLoading)
             {
                 <div class="progress-container">
                     <div class="spinner"></div>
-                    <div class="progress-text">Researching your query...</div>
+                    <div class="progress-text">Feen is analyzing your query and gathering insights...</div>
                 </div>
             }
             else if (!string.IsNullOrEmpty(lastResult))
             {
-                <div class="results-display">
-                    <pre>@lastResult</pre>
-                </div>
+                <AIOutputRenderer Content="@lastResult" />
             }
 
             <div class="feature-grid">
@@ -400,9 +417,7 @@
             }
             else if (!string.IsNullOrEmpty(lastResult))
             {
-                <div class="results-display">
-                    <pre>@lastResult</pre>
-                </div>
+                <AIOutputRenderer Content="@lastResult" />
             }
 
             <div class="feature-grid">
@@ -510,9 +525,7 @@
             }
             else if (!string.IsNullOrEmpty(lastResult))
             {
-                <div class="results-display">
-                    <pre>@lastResult</pre>
-                </div>
+                <AIOutputRenderer Content="@lastResult" />
             }
 
             <div class="feature-grid">
@@ -717,9 +730,7 @@
                 }
                 else if (!isLoading && lastResult != null)
                 {
-                    <div class="results-display">
-                        <pre>@lastResult</pre>
-                    </div>
+                    <AIOutputRenderer Content="@lastResult" />
                 }
             </div>
         }
@@ -744,9 +755,7 @@
             }
             else if (!string.IsNullOrEmpty(lastResult))
             {
-                <div class="results-display">
-                    <pre>@lastResult</pre>
-                </div>
+                <AIOutputRenderer Content="@lastResult" />
             }
 
             <div class="feature-grid">
@@ -811,9 +820,7 @@
             }
             else if (!string.IsNullOrEmpty(lastResult))
             {
-                <div class="results-display">
-                    <pre>@lastResult</pre>
-                </div>
+                <AIOutputRenderer Content="@lastResult" />
             }
 
             <div class="feature-grid">
@@ -876,6 +883,8 @@
 @code {
     private string activeTab = "ai-assistant";
     private string chatQuery = "";
+    private string selectedModel = "openai"; // "openai" or "deepseek"
+    private List<ConversationMessage> conversationHistory = new();
     private string videoQuery = "";
     private string paperQuery = "";
     private string synthesisQuery = "";
@@ -1056,19 +1065,54 @@
         try
         {
             isLoading = true;
+            var userMessage = chatQuery;
+            chatQuery = ""; // Clear immediately for better UX
             StateHasChanged();
 
-            var response = await Http.PostAsJsonAsync("api/research/quick-research", new { Query = chatQuery });
+            // Add user message to history
+            conversationHistory.Add(new ConversationMessage
+            {
+                Role = "user",
+                Content = userMessage,
+                Timestamp = DateTime.UtcNow
+            });
+
+            // Call the new Feen RAGentic endpoint
+            var response = await Http.PostAsJsonAsync("api/research/feen-chat", new 
+            { 
+                Message = userMessage,
+                ModelProvider = selectedModel,
+                ConversationHistory = conversationHistory
+            });
+            
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
-            lastResult = result?.Result;
+            var result = await response.Content.ReadFromJsonAsync<FeenChatResponse>();
             
-            await JS.InvokeVoidAsync("console.log", $"Chat Query Result: {lastResult}");
-            chatQuery = "";
+            if (result != null)
+            {
+                lastResult = result.Message;
+                
+                // Add assistant response to history
+                conversationHistory.Add(new ConversationMessage
+                {
+                    Role = "assistant",
+                    Content = result.Message,
+                    Timestamp = result.Timestamp
+                });
+
+                // Keep only last 10 messages to avoid token limits
+                if (conversationHistory.Count > 10)
+                {
+                    conversationHistory = conversationHistory.Skip(conversationHistory.Count - 10).ToList();
+                }
+            }
+            
+            await JS.InvokeVoidAsync("console.log", $"Feen Response received with {result?.ToolsUsed?.Count ?? 0} tools used");
         }
         catch (Exception ex)
         {
+            lastResult = $"I apologize, but I encountered an error: {ex.Message}. Please try again.";
             await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
         }
         finally
@@ -1788,5 +1832,31 @@
         public string Result { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
         public string Type { get; set; } = string.Empty;
+    }
+
+    public class FeenChatResponse
+    {
+        public required string Message { get; set; }
+        public List<ToolUsage> ToolsUsed { get; set; } = new();
+        public required string ModelProvider { get; set; }
+        public DateTime Timestamp { get; set; }
+        public List<ConversationMessage> ConversationHistory { get; set; } = new();
+    }
+
+    public class ToolUsage
+    {
+        public required string ToolName { get; set; }
+        public Dictionary<string, string> Parameters { get; set; } = new();
+        public required string Reason { get; set; }
+        public bool Success { get; set; }
+        public double ExecutionTime { get; set; }
+        public required string ResultSummary { get; set; }
+    }
+
+    public class ConversationMessage
+    {
+        public required string Role { get; set; }
+        public required string Content { get; set; }
+        public DateTime Timestamp { get; set; }
     }
 }

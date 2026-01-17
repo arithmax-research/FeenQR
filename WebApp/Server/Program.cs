@@ -25,13 +25,12 @@ builder.Services.AddCors(options =>
                        .AllowAnyHeader());
 });
 
-// Register Semantic Kernel with OpenAI text generation (required by YouTubeAnalysisService)
+// Register Semantic Kernel with OpenAI
 builder.Services.AddSingleton<Kernel>(sp => 
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
     var kernelBuilder = Kernel.CreateBuilder();
     
-    // Add OpenAI chat completion (ITextGenerationService)
     var openAiKey = configuration["OpenAI:ApiKey"];
     var openAiModel = configuration["OpenAI:ModelId"] ?? "gpt-4o-mini";
     
@@ -85,6 +84,7 @@ builder.Services.AddSingleton<EnhancedFundamentalAnalysisService>(sp =>
 
 // Register Research services
 builder.Services.AddSingleton<ConversationalResearchService>();
+builder.Services.AddSingleton<FeenRAGenticService>();
 builder.Services.AddSingleton<AcademicResearchService>();
 builder.Services.AddSingleton<YouTubeAnalysisService>();
 builder.Services.AddSingleton<ReportGenerationService>();
