@@ -150,6 +150,7 @@
                 </div>
             </div>
         </div>
+        }
 
         <!-- Detailed Metrics -->
         @if (result.HasValue && (result.Value.TryGetProperty("statistics", out var statistics) || 
@@ -157,7 +158,6 @@
              result.Value.TryGetProperty("descriptiveStats", out var descriptiveStats)))
         {
             <div class="row mt-4">
-                <div class="col2">
                 <div class="col-12">
                     <div class="card bg-dark border-secondary">
                         <div class="card-header bg-dark border-secondary py-2">
@@ -189,7 +189,8 @@
                                             {
                                                 <tr>
                                                     <td class="small text-white-50">@FormatPropertyName(prop.Name)</td>
-                                                    <td class="small text-white"
+                                                    <td class="small text-white">@prop.Value.ToString()</td>
+                                                </tr>
                                             }
                                         </table>
                                     </div>

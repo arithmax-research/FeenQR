@@ -1,0 +1,34 @@
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+WORKDIR /app
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
+
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Copy the main project files
+COPY ["QuantResearchAgent.csproj", "./"]
+COPY ["WebApp/Server/Server.csproj", "WebApp/Server/"]
+COPY ["WebApp/Client/Client.csproj", "WebApp/Client/"]
+COPY ["WebApp/Core/Core.csproj", "WebApp/Core/"]
+
+# Restore all projects
+RUN dotnet restore "WebApp/Server/Server.csproj"
+
+# Copy everything
+COPY . .
+
+# Build the WebApp Server project
+WORKDIR "/src/WebApp/Server"
+RUN dotnet build "Server.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "Server.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+# Copy appsettings.json to both locations the app expects
+COPY --from=build /src/appsettings.json /app/appsettings.json
+COPY --from=build /src/appsettings.json /appsettings.json
+ENTRYPOINT ["dotnet", "Server.dll"]
