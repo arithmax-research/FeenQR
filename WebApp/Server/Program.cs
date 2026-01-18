@@ -4,7 +4,14 @@ using QuantResearchAgent.Plugins;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.SemanticKernel.Memory;
+using Microsoft.SemanticKernel.Connectors.Qdrant;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Qdrant.Client;
 using Microsoft.AspNetCore.StaticFiles;
+
+#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates
+#pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates
+#pragma warning disable SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,6 +51,9 @@ builder.Services.AddSingleton<Kernel>(sp =>
     return kernelBuilder.Build();
 });
 
+// Register Qdrant client for direct access (using gRPC port 6334)
+builder.Services.AddSingleton<QdrantClient>(sp => new QdrantClient("localhost", port: 6334, https: false));
+
 // Register embedding service for RAG
 builder.Services.AddSingleton<ITextEmbeddingGenerationService>(sp =>
 {
@@ -58,11 +68,24 @@ builder.Services.AddSingleton<ITextEmbeddingGenerationService>(sp =>
     return new OpenAITextEmbeddingGenerationService("text-embedding-3-small", openAiKey);
 });
 
-// Register semantic memory with volatile store
+// Register semantic memory - Qdrant persistence via custom implementation
 builder.Services.AddSingleton<ISemanticTextMemory>(sp =>
 {
-    var embeddingService = sp.GetRequiredService<ITextEmbeddingGenerationService>();
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var openAiKey = configuration["OpenAI:ApiKey"];
+    var embeddingModel = "text-embedding-3-small";
+    
+    if (string.IsNullOrEmpty(openAiKey))
+    {
+        throw new InvalidOperationException("OpenAI API key required for RAG");
+    }
+    
+    // Create embedding service
+    var embeddingService = new OpenAITextEmbeddingGenerationService(embeddingModel, openAiKey);
+    
+    // Use VolatileMemoryStore as interface, actual persistence handled by Qdrant in PaperRAGService
     var memoryStore = new VolatileMemoryStore();
+    
     return new SemanticTextMemory(memoryStore, embeddingService);
 });
 
@@ -150,6 +173,16 @@ app.UseStaticFiles(new StaticFileOptions
     ContentTypeProvider = provider,
     ServeUnknownFileTypes = true,
     DefaultContentType = "application/octet-stream"
+});
+
+// Serve uploaded PDFs
+var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+Directory.CreateDirectory(uploadsPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads",
+    ContentTypeProvider = provider
 });
 
 app.UseCors("AllowBlazorWasm");

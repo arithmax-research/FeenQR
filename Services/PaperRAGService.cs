@@ -6,12 +6,28 @@ using Microsoft.SemanticKernel.Memory;
 using System.Text;
 using System.Text.RegularExpressions;
 using UglyToad.PdfPig;
+using Qdrant.Client;
+using Qdrant.Client.Grpc;
 
 namespace QuantResearchAgent.Services;
 
 /// <summary>
+/// Paper metadata for tracking loaded papers
+/// </summary>
+public class LoadedPaper
+{
+    public string CollectionName { get; set; } = "";
+    public string PaperUrl { get; set; } = "";
+    public string PaperTitle { get; set; } = "";
+    public DateTime LoadedAt { get; set; }
+    public int ChunkCount { get; set; }
+    public string FilePath { get; set; } = ""; // For local PDFs
+}
+
+/// <summary>
 /// RAG-based service for comprehensive academic paper analysis
 /// Uses vector embeddings and semantic search to analyze entire papers
+/// Stores embeddings in Qdrant for persistence
 /// </summary>
 public class PaperRAGService
 {
@@ -20,21 +36,28 @@ public class PaperRAGService
     private readonly ISemanticTextMemory _memory;
     private readonly ITextEmbeddingGenerationService _embeddingService;
     private readonly HttpClient _httpClient;
-    private const int CHUNK_SIZE = 1000; // tokens per chunk
-    private const int CHUNK_OVERLAP = 200; // overlap between chunks
+    private readonly QdrantClient _qdrantClient;
+    private const int CHUNK_SIZE = 500; // tokens per chunk (reduced to fit in 8192 model limit)
+    private const int CHUNK_OVERLAP = 100; // overlap between chunks
+    private const int VECTOR_SIZE = 1536; // text-embedding-3-small dimensions
+    
+    // Track loaded papers
+    private readonly Dictionary<string, LoadedPaper> _loadedPapers = new();
 
     public PaperRAGService(
         ILogger<PaperRAGService> logger,
         Kernel kernel,
         ISemanticTextMemory memory,
         ITextEmbeddingGenerationService embeddingService,
-        HttpClient httpClient)
+        HttpClient httpClient,
+        QdrantClient qdrantClient)
     {
         _logger = logger;
         _kernel = kernel;
         _memory = memory;
         _embeddingService = embeddingService;
         _httpClient = httpClient;
+        _qdrantClient = qdrantClient;
     }
 
     /// <summary>
@@ -59,7 +82,7 @@ public class PaperRAGService
 
             // Step 2: Chunk the paper into manageable pieces
             var chunks = ChunkPaper(fullText, CHUNK_SIZE, CHUNK_OVERLAP);
-            Console.WriteLine($"      [RAG] Created {chunks.Count} chunks (1000 tokens each, 200 overlap)");
+            Console.WriteLine($"      [RAG] Created {chunks.Count} chunks ({CHUNK_SIZE} tokens each, {CHUNK_OVERLAP} overlap)");
             _logger.LogInformation("Chunked paper into {Count} segments", chunks.Count);
 
             // Step 3: Store chunks in vector memory with embeddings
@@ -223,49 +246,77 @@ public class PaperRAGService
     }
 
     /// <summary>
-    /// Store chunks in vector memory with embeddings
+    /// Store chunks in Qdrant with embeddings for persistence
     /// </summary>
     private async Task StoreChunksInMemoryAsync(List<PaperChunk> chunks, string collectionName, string paperUrl)
     {
-        Console.WriteLine($"      [RAG] Storing {chunks.Count} chunks in collection: {collectionName}");
+        Console.WriteLine($"      [RAG] Storing {chunks.Count} chunks in Qdrant collection: {collectionName}");
+        
+        // Ensure collection exists
+        await EnsureCollectionExistsAsync(collectionName);
+        
+        var points = new List<PointStruct>();
         
         foreach (var chunk in chunks)
         {
-            var id = $"chunk_{chunk.Index}";
-            Console.WriteLine($"      [RAG] Storing chunk {chunk.Index}: {chunk.Text.Length} chars, {chunk.TokenCount} tokens");
+            Console.WriteLine($"      [RAG] Processing chunk {chunk.Index}: {chunk.Text.Length} chars, {chunk.TokenCount} tokens");
             Console.WriteLine($"      [RAG] Chunk preview: {chunk.Text.Substring(0, Math.Min(100, chunk.Text.Length))}...");
             
             try
             {
-                await _memory.SaveInformationAsync(
-                    collection: collectionName,
-                    text: chunk.Text,
-                    id: id,
-                    description: $"Chunk {chunk.Index} from {paperUrl}",
-                    additionalMetadata: $"url={paperUrl};index={chunk.Index};tokens={chunk.TokenCount}"
-                );
-                Console.WriteLine($"      [RAG] Successfully stored chunk {chunk.Index}");
+                // Generate embedding
+                var embedding = await _embeddingService.GenerateEmbeddingAsync(chunk.Text);
+                var vector = embedding.ToArray();
+                
+                // Create point with metadata
+                var point = new PointStruct
+                {
+                    Id = new PointId { Num = (ulong)chunk.Index + (ulong)(DateTime.UtcNow.Ticks / 10000000) },
+                    Vectors = vector,
+                    Payload =
+                    {
+                        ["text"] = chunk.Text,
+                        ["url"] = paperUrl,
+                        ["index"] = chunk.Index,
+                        ["tokens"] = chunk.TokenCount
+                    }
+                };
+                points.Add(point);
+                Console.WriteLine($"      [RAG] Prepared chunk {chunk.Index} for storage");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"      [RAG] ERROR storing chunk {chunk.Index}: {ex.Message}");
-                _logger.LogError(ex, "Failed to store chunk {Index}", chunk.Index);
+                Console.WriteLine($"      [RAG] ERROR preparing chunk {chunk.Index}: {ex.Message}");
+                _logger.LogError(ex, "Failed to prepare chunk {Index}", chunk.Index);
             }
         }
-
-        _logger.LogInformation("Stored {Count} chunks in memory collection: {Collection}", 
-            chunks.Count, collectionName);
-        Console.WriteLine($"      [RAG] Storage complete. Collection: {collectionName}");
         
-        // Verify storage by attempting to retrieve
-        Console.WriteLine($"      [RAG] Verifying storage...");
+        // Batch upsert all points
+        if (points.Any())
+        {
+            try
+            {
+                await _qdrantClient.UpsertAsync(collectionName, points);
+                Console.WriteLine($"      [RAG] Successfully stored {points.Count} chunks in Qdrant");
+                _logger.LogInformation("Stored {Count} chunks in Qdrant collection: {Collection}", 
+                    points.Count, collectionName);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"      [RAG] ERROR upserting to Qdrant: {ex.Message}");
+                _logger.LogError(ex, "Failed to upsert chunks to Qdrant");
+            }
+        }
+        
+        // Verify storage
+        Console.WriteLine($"      [RAG] Verifying storage in Qdrant...");
         try
         {
-            var testResults = await _memory.SearchAsync(collectionName, "test", limit: 10, minRelevanceScore: 0.0).ToListAsync();
-            Console.WriteLine($"      [RAG] Verification: Found {testResults.Count} items in collection");
-            if (testResults.Count == 0)
+            var collectionInfo = await _qdrantClient.GetCollectionInfoAsync(collectionName);
+            Console.WriteLine($"      [RAG] Verification: Collection has {collectionInfo.PointsCount} points PERSISTED");
+            if (collectionInfo.PointsCount == 0)
             {
-                Console.WriteLine($"      [RAG] WARNING: No items found in verification search!");
+                Console.WriteLine($"      [RAG] WARNING: No points found in collection!");
             }
         }
         catch (Exception ex)
@@ -273,33 +324,75 @@ public class PaperRAGService
             Console.WriteLine($"      [RAG] Verification failed: {ex.Message}");
         }
     }
+    
+    /// <summary>
+    /// Ensure Qdrant collection exists with proper configuration
+    /// </summary>
+    private async Task EnsureCollectionExistsAsync(string collectionName)
+    {
+        try
+        {
+            var collections = await _qdrantClient.ListCollectionsAsync();
+            if (!collections.Contains(collectionName))
+            {
+                Console.WriteLine($"      [RAG] Creating new Qdrant collection: {collectionName}");
+                await _qdrantClient.CreateCollectionAsync(
+                    collectionName,
+                    new VectorParams { Size = VECTOR_SIZE, Distance = Distance.Cosine }
+                );
+                Console.WriteLine($"      [RAG] Collection created successfully with {VECTOR_SIZE} dimensions");
+            }
+            else
+            {
+                Console.WriteLine($"      [RAG] Collection {collectionName} already exists (PERSISTENT)");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to ensure collection exists");
+            throw;
+        }
+    }
 
     /// <summary>
-    /// Retrieve most relevant chunks using semantic search
+    /// Retrieve most relevant chunks using semantic search from Qdrant
     /// </summary>
     private async Task<List<string>> RetrieveRelevantChunksAsync(
         string collectionName, 
         string query, 
         int maxChunks = 10)
     {
-        Console.WriteLine($"      [RAG] Searching collection: {collectionName}");
-        Console.WriteLine($"      [RAG] Query: {query}");
-        
         var relevantChunks = new List<string>();
         
-        // Remove minRelevanceScore to see ALL results
-        await foreach (var result in _memory.SearchAsync(
-            collection: collectionName,
-            query: query,
-            limit: maxChunks,
-            minRelevanceScore: 0.0))
+        try
         {
-            Console.WriteLine($"      [RAG] Found chunk with score: {result.Relevance:F4} - Preview: {result.Metadata.Text.Substring(0, Math.Min(80, result.Metadata.Text.Length))}...");
-            relevantChunks.Add(result.Metadata.Text);
-            _logger.LogInformation("Chunk relevance score: {Score}", result.Relevance);
+            // Generate query embedding
+            var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(query);
+            var queryVector = queryEmbedding.ToArray();
+            
+            // Search Qdrant directly
+            var searchResult = await _qdrantClient.SearchAsync(
+                collectionName: collectionName,
+                vector: queryVector,
+                limit: (ulong)maxChunks,
+                scoreThreshold: 0.0f // Accept all results for now
+            );
+            
+            foreach (var point in searchResult)
+            {
+                if (point.Payload.TryGetValue("text", out var textValue))
+                {
+                    var text = textValue.StringValue;
+                    relevantChunks.Add(text);
+                    _logger.LogInformation("Chunk relevance score: {Score}", point.Score);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to search Qdrant collection");
         }
 
-        Console.WriteLine($"      [RAG] Total chunks found: {relevantChunks.Count}");
         _logger.LogInformation("Retrieved {Count} relevant chunks for query: {Query}", 
             relevantChunks.Count, query);
 
@@ -384,15 +477,48 @@ Paper URL: {paperUrl}
     // Helper methods
     private List<string> SplitIntoSentences(string text)
     {
-        return Regex.Split(text, @"(?<=[.!?])\s+")
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .ToList();
+        // Split on multiple delimiters for better chunking of academic papers
+        // Split on: sentence endings, new paragraphs, section breaks
+        var sentences = new List<string>();
+        
+        // First split on double newlines (paragraphs)
+        var paragraphs = text.Split(new[] { "\n\n", "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+        
+        foreach (var paragraph in paragraphs)
+        {
+            // Then split each paragraph into sentences
+            var paragraphSentences = Regex.Split(paragraph, @"(?<=[.!?])\s+(?=[A-Z])")
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToList();
+            
+            sentences.AddRange(paragraphSentences);
+        }
+        
+        // If no sentences found (malformed text), split by character count
+        if (sentences.Count == 0 || sentences.All(s => s.Length > 5000))
+        {
+            sentences = SplitByCharacterCount(text, 2000);
+        }
+        
+        return sentences;
+    }
+    
+    private List<string> SplitByCharacterCount(string text, int maxChars)
+    {
+        var chunks = new List<string>();
+        for (int i = 0; i < text.Length; i += maxChars)
+        {
+            var chunkSize = Math.Min(maxChars, text.Length - i);
+            chunks.Add(text.Substring(i, chunkSize));
+        }
+        return chunks;
     }
 
     private int EstimateTokenCount(string text)
     {
-        // Rough estimation: ~4 characters per token
-        return text.Length / 4;
+        // More conservative estimation: ~3.5 characters per token for academic text
+        // Academic papers have more specialized vocabulary = more tokens
+        return (int)Math.Ceiling(text.Length / 3.5);
     }
 
     private string GetLastNTokens(string text, int tokenCount)
@@ -437,6 +563,18 @@ Paper URL: {paperUrl}
             // Step 3: Store with embeddings
             var collectionName = $"chat_{Guid.NewGuid():N}";
             await StoreChunksInMemoryAsync(chunks, collectionName, paperUrl);
+            
+            // Track loaded paper
+            var title = ExtractPaperTitle(fullText, paperUrl);
+            _loadedPapers[collectionName] = new LoadedPaper
+            {
+                CollectionName = collectionName,
+                PaperUrl = paperUrl,
+                PaperTitle = title,
+                LoadedAt = DateTime.UtcNow,
+                ChunkCount = chunks.Count
+            };
+            
             Console.WriteLine($"[RAG-CHAT] Stored in memory (collection: {collectionName[..8]}...)");
             Console.WriteLine($"[RAG-CHAT] Paper loaded! Ask me anything about it.\n");
 
@@ -451,22 +589,209 @@ Paper URL: {paperUrl}
     }
 
     /// <summary>
+    /// Load paper from local PDF file
+    /// </summary>
+    public async Task<string> LoadPaperFromFileAsync(string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath))
+            {
+                Console.WriteLine($"[RAG-CHAT] File not found: {filePath}");
+                return "";
+            }
+
+            Console.WriteLine($"\n[RAG-CHAT] Loading local paper: {Path.GetFileName(filePath)}");
+            Console.WriteLine("[RAG-CHAT] Using database: Qdrant (persistent vector storage)");
+            
+            // Extract text from local PDF
+            var fullText = await Task.Run(() => ExtractTextFromLocalPDF(filePath));
+            if (string.IsNullOrEmpty(fullText))
+            {
+                Console.WriteLine("[RAG-CHAT] Failed to extract text from PDF");
+                return "";
+            }
+            Console.WriteLine($"[RAG-CHAT] Extracted: {fullText.Length:N0} characters");
+
+            // Step 2: Chunk
+            var chunks = ChunkPaper(fullText, CHUNK_SIZE, CHUNK_OVERLAP);
+            Console.WriteLine($"[RAG-CHAT] Created {chunks.Count} chunks");
+
+            // Step 3: Store with embeddings
+            var collectionName = $"chat_{Guid.NewGuid():N}";
+            await StoreChunksInMemoryAsync(chunks, collectionName, filePath);
+            
+            // Track loaded paper
+            var title = ExtractPaperTitle(fullText, Path.GetFileName(filePath));
+            _loadedPapers[collectionName] = new LoadedPaper
+            {
+                CollectionName = collectionName,
+                PaperUrl = filePath,
+                PaperTitle = title,
+                LoadedAt = DateTime.UtcNow,
+                ChunkCount = chunks.Count,
+                FilePath = filePath
+            };
+            
+            Console.WriteLine($"[RAG-CHAT] Stored in memory (collection: {collectionName[..8]}...)");
+            Console.WriteLine($"[RAG-CHAT] Paper loaded! Ask me anything about it.\n");
+
+            return collectionName;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load paper from file");
+            Console.WriteLine($"[RAG-CHAT] Error: {ex.Message}");
+            return "";
+        }
+    }
+
+    /// <summary>
+    /// Extract text from local PDF file
+    /// </summary>
+    private string ExtractTextFromLocalPDF(string filePath)
+    {
+        try
+        {
+            var text = new StringBuilder();
+            using var pdf = PdfDocument.Open(filePath);
+            
+            foreach (var page in pdf.GetPages())
+            {
+                text.AppendLine(page.Text);
+                text.AppendLine("\n--- PAGE BREAK ---\n");
+            }
+
+            return text.ToString();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to extract text from local PDF: {FilePath}", filePath);
+            return "";
+        }
+    }
+
+    /// <summary>
+    /// Extract paper title from content or filename
+    /// </summary>
+    private string ExtractPaperTitle(string fullText, string fallback)
+    {
+        // Try to extract first meaningful line as title
+        var lines = fullText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var line in lines.Take(10))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length > 10 && trimmed.Length < 200 && !trimmed.StartsWith("arXiv"))
+            {
+                return trimmed;
+            }
+        }
+        return fallback;
+    }
+
+    /// <summary>
+    /// Get all loaded papers
+    /// </summary>
+    public List<LoadedPaper> GetLoadedPapers()
+    {
+        return _loadedPapers.Values.OrderByDescending(p => p.LoadedAt).ToList();
+    }
+
+    /// <summary>
+    /// Get paper by collection name
+    /// </summary>
+    public LoadedPaper? GetPaper(string collectionName)
+    {
+        return _loadedPapers.TryGetValue(collectionName, out var paper) ? paper : null;
+    }
+
+    /// <summary>
+    /// Clear all collections from Qdrant (for starting fresh research)
+    /// </summary>
+    public async Task ClearAllPapersAsync()
+    {
+        try
+        {
+            Console.WriteLine("[RAG] Clearing all paper collections from Qdrant...");
+            
+            var collections = await _qdrantClient.ListCollectionsAsync();
+            var paperCollections = collections.Where(c => c.StartsWith("paper_") || c.StartsWith("chat_")).ToList();
+            
+            Console.WriteLine($"[RAG] Found {paperCollections.Count} paper/chat collections to clear");
+            
+            foreach (var collection in paperCollections)
+            {
+                try
+                {
+                    await _qdrantClient.DeleteCollectionAsync(collection);
+                    Console.WriteLine($"[RAG] Cleared collection: {collection}");
+                    _logger.LogInformation("Cleared paper collection: {Collection}", collection);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[RAG] Error clearing collection {collection}: {ex.Message}");
+                    _logger.LogError(ex, "Failed to clear collection {Collection}", collection);
+                }
+            }
+            
+            Console.WriteLine($"[RAG] Successfully cleared {paperCollections.Count} paper/chat collections");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[RAG] Error clearing papers: {ex.Message}");
+            _logger.LogError(ex, "Failed to clear all papers");
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// Clear specific collection from Qdrant
+    /// </summary>
+    public async Task ClearPaperAsync(string collectionName)
+    {
+        try
+        {
+            Console.WriteLine($"[RAG] Clearing specific collection: {collectionName}");
+            
+            var collections = await _qdrantClient.ListCollectionsAsync();
+            if (collections.Contains(collectionName))
+            {
+                await _qdrantClient.DeleteCollectionAsync(collectionName);
+                Console.WriteLine($"[RAG] Successfully cleared collection: {collectionName}");
+                _logger.LogInformation("Cleared specific paper collection: {Collection}", collectionName);
+            }
+            else
+            {
+                Console.WriteLine($"[RAG] Collection {collectionName} not found");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[RAG] Error clearing collection {collectionName}: {ex.Message}");
+            _logger.LogError(ex, "Failed to clear collection {Collection}", collectionName);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Answer a question about the loaded paper
     /// </summary>
     public async Task<string> AskQuestionAsync(string collectionName, string question)
     {
         try
         {
-            Console.WriteLine($"\n[RAG-CHAT] Searching for: \"{question}\"");
+            Console.Write($"[dim cyan]Searching paper...[/] ");
             
             // Retrieve relevant chunks (as strings)
             var relevantTexts = await RetrieveRelevantChunksAsync(collectionName, question, maxChunks: 10);
-            Console.WriteLine($"[RAG-CHAT] Found {relevantTexts.Count} relevant chunks");
+            Console.WriteLine($"[green]✓[/] Found {relevantTexts.Count} relevant sections");
             
             if (!relevantTexts.Any())
             {
-                return "No relevant information found in the paper for your question.";
+                return "❌ No relevant information found in the paper for your question.";
             }
+
+            Console.Write($"[dim cyan]Analyzing and generating answer...[/] ");
 
             // Generate answer with improved prompting
             var context = string.Join("\n\n--- NEXT SECTION ---\n\n", relevantTexts);
@@ -484,20 +809,21 @@ INSTRUCTIONS:
 4. For methodological questions, describe the techniques and their rationale
 5. For results questions, cite specific numbers, comparisons, or performance metrics
 6. If applying concepts to trading/finance, explain practical implications
-7. Structure your answer with clear sections if the question is complex
+7. Structure your answer with clear sections and use markdown formatting (headers, lists, bold/italic)
 8. If information is partially available, explain what IS covered and what ISN'T
 9. Use technical language appropriate for a quantitative researcher
 10. If the excerpts don't fully answer the question, state what's missing
 
-Provide a comprehensive, insightful answer:";
+Provide a comprehensive, well-formatted answer:";
 
             var response = await _kernel.InvokePromptAsync(prompt);
+            Console.WriteLine($"[green]✓[/] Complete");
             return response.GetValue<string>() ?? "Unable to generate answer";
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to answer question");
-            return $"Error: {ex.Message}";
+            return $"❌ Error: {ex.Message}";
         }
     }
 }

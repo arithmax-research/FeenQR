@@ -5,6 +5,8 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Embeddings;
+using Microsoft.SemanticKernel.Connectors.Qdrant;
+using Qdrant.Client;
 using QuantResearchAgent.Core;
 using QuantResearchAgent.Services;
 using Feen.Services;
@@ -23,14 +25,16 @@ namespace QuantResearchAgent
 
         static async Task RunCliAsync(string[] args)
         {
-            // Build configuration
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                .Build();
+            try
+            {
+                // Build configuration
+                var configuration = new ConfigurationBuilder()
+                    .SetBasePath(Directory.GetCurrentDirectory())
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                    .Build();
 
-            // Create service collection
-            var services = new ServiceCollection();
+                // Create service collection
+                var services = new ServiceCollection();
 
             // Configure services (DeepSeekService is used for LLM completions)
             // Add configuration
@@ -205,22 +209,27 @@ namespace QuantResearchAgent
                 )
             );
 
-            // Add Semantic Kernel memory for RAG capabilities - using in-memory store
+            // Add Semantic Kernel memory for RAG capabilities - Qdrant via custom implementation
+            services.AddSingleton<QdrantClient>(sp => new QdrantClient("localhost", port: 6334, https: false));
+            
             services.AddSingleton<ISemanticTextMemory>(sp => 
             {
-                var kernel = sp.GetRequiredService<Kernel>();
                 var config = sp.GetRequiredService<IConfiguration>();
                 var openAiKey = config["OpenAI:ApiKey"];
                 var embeddingModel = config["OpenAI:EmbeddingModel"] ?? "text-embedding-3-small";
                 
-                var memoryBuilder = new MemoryBuilder();
-                if (!string.IsNullOrEmpty(openAiKey))
+                if (string.IsNullOrEmpty(openAiKey))
                 {
-                    memoryBuilder.WithOpenAITextEmbeddingGeneration(embeddingModel, openAiKey);
+                    throw new InvalidOperationException("OpenAI API key required for RAG");
                 }
-                memoryBuilder.WithMemoryStore(new VolatileMemoryStore());
                 
-                return memoryBuilder.Build();
+                // Create embedding service
+                var embeddingService = new OpenAITextEmbeddingGenerationService(embeddingModel, openAiKey);
+                
+                // Use VolatileMemoryStore as interface, actual persistence handled by Qdrant in PaperRAGService
+                var memoryStore = new VolatileMemoryStore();
+                
+                return new SemanticTextMemory(memoryStore, embeddingService);
             });
 
             // Add RAG and Agentic services
@@ -589,6 +598,18 @@ namespace QuantResearchAgent
             // Get the CLI and run it
             var cli = serviceProvider.GetRequiredService<InteractiveCLI>();
             await cli.RunAsync(args);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"CLI startup failed: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                    Console.WriteLine($"Inner stack trace: {ex.InnerException.StackTrace}");
+                }
+                Environment.Exit(1);
+            }
         }
     }
 }

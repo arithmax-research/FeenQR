@@ -1,11 +1,28 @@
 @page "/research"
 @using System.Text.RegularExpressions
+@using Microsoft.AspNetCore.Components.Forms
 @inject IJSRuntime JS
 @inject HttpClient Http
 
-<PageTitle>FeenQR - Research</PageTitle>
+<PageTitle>RAG Paper Chat - Deep Academic Analysis</PageTitle>
 
 <style>
+    .pdf-drop-zone {
+        border: 2px dashed rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .pdf-drop-zone:hover {
+        border-color: rgba(16, 185, 129, 0.5);
+        background: rgba(16, 185, 129, 0.05);
+    }
+
+    .pdf-drop-zone-active {
+        border: 2px dashed #10b981 !important;
+        background: rgba(16, 185, 129, 0.1) !important;
+        transform: scale(0.98);
+    }
+
     .research-container {
         position: fixed;
         left: 280px;
@@ -64,8 +81,6 @@
         flex: 1;
         overflow-y: auto;
         padding: 1.5rem;
-        margin: 0 auto;
-        max-width: 1400px;
         width: 100%;
     }
 
@@ -404,12 +419,11 @@
                 RAG Paper Chat - Deep Academic Analysis
             </div>
 
-            <div style="padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 12px; margin-bottom: 1.5rem;">
-                <p style="color: #9ca3af; margin-bottom: 1rem;">Load an academic paper and ask detailed questions using full RAG (Retrieval-Augmented Generation).</p>
-                
-                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+            <!-- Paper Loading Controls -->
+            <div style="padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 12px; margin-bottom: 1rem;">
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                     <input type="text" @bind="paperUrl" placeholder="Enter paper URL (e.g., https://arxiv.org/abs/2508.11152)" 
-                           style="flex: 1; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff;" />
+                           style="flex: 1; min-width: 300px; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff;" />
                     <button class="action-btn" @onclick="LoadPaper" disabled="@isLoadingPaper">
                         @if (isLoadingPaper)
                         {
@@ -417,126 +431,136 @@
                         }
                         else
                         {
-                            <span>Load Paper</span>
+                            <span>Load URL</span>
                         }
                     </button>
+                    
+                    <InputFile OnChange="HandlePdfUpload" accept=".pdf" style="display: none;" id="pdfUpload" />
+                    <label for="pdfUpload" class="action-btn" style="margin: 0; cursor: pointer; display: inline-block; text-align: center;">
+                        Upload PDF
+                    </label>
+                    
+                    @if (loadedPapers.Any())
+                    {
+                        <select @onchange="SelectLoadedPaper" style="min-width: 200px; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff;">
+                            <option value="">Select a loaded paper...</option>
+                            @foreach (var paper in loadedPapers)
+                            {
+                                <option value="@paper.CollectionName">@paper.PaperTitle (@paper.ChunkCount chunks)</option>
+                            }
+                        </select>
+                    }
+                    
+                    @if (!string.IsNullOrEmpty(ragCollectionName))
+                    {
+                        <button class="action-btn danger" @onclick="ClearPapers" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                            Clear All
+                        </button>
+                    }
                 </div>
-
-                @if (!string.IsNullOrEmpty(ragCollectionName))
-                {
-                    <div style="padding: 0.75rem; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; margin-bottom: 1rem;">
-                        <p style="color: #22c55e; margin: 0;">Paper loaded successfully! Collection: @ragCollectionName.Substring(0, 8)...</p>
-                        <p style="color: #9ca3af; margin: 0.5rem 0 0 0; font-size: 0.85rem;">Database: Qdrant (persistent vector storage)</p>
-                    </div>
-                }
-
-                @if (!string.IsNullOrEmpty(ragError))
-                {
-                    <div style="padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; margin-bottom: 1rem;">
-                        <p style="color: #ef4444; margin: 0;">@ragError</p>
-                    </div>
-                }
             </div>
+
+            @if (!string.IsNullOrEmpty(ragError))
+            {
+                <div style="padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; margin-bottom: 1rem;">
+                    <p style="color: #ef4444; margin: 0;">❌ @ragError</p>
+                </div>
+            }
 
             @if (!string.IsNullOrEmpty(ragCollectionName))
             {
-                <div style="padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 12px;">
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                        <input type="text" @bind="ragQuestion" @onkeydown="HandleRagKeyPress" placeholder="Ask a question about the paper..." 
-                               style="flex: 1; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff;" />
-                        <button class="action-btn" @onclick="AskQuestion" disabled="@isAskingQuestion">
-                            @if (isAskingQuestion)
+                <!-- Split View: PDF Viewer + Chat -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; height: calc(100vh - 250px); min-height: 700px;">
+                    
+                    <!-- Left: PDF Viewer -->
+                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
+                        <div style="padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.3);">
+                            <div style="color: #10b981; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">PDF Viewer</div>
+                            <div style="color: #9ca3af; font-size: 0.8rem;">@currentPaperTitle</div>
+                        </div>
+                        <div style="flex: 1; overflow: auto; background: #1a1a1a;">
+                            @if (!string.IsNullOrEmpty(currentPdfUrl))
                             {
-                                <span>Thinking...</span>
+                                <iframe src="@GetPdfViewerUrl()" style="width: 100%; height: 100%; border: none;"></iframe>
                             }
                             else
                             {
-                                <span>Ask</span>
+                                <label for="pdfUpload"
+                                     class="pdf-drop-zone"
+                                     style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; cursor: pointer; transition: all 0.3s ease;">
+                                    <div style="text-align: center; pointer-events: none;">
+                                        <div style="font-size: 3rem; margin-bottom: 1rem;">📄</div>
+                                        <div style="font-size: 1.1rem; margin-bottom: 0.5rem; font-weight: 500;">Click to upload PDF</div>
+                                        <div style="font-size: 0.85rem; color: #4b5563;">Supports PDF files up to 50MB</div>
+                                    </div>
+                                </label>
                             }
-                        </button>
+                        </div>
                     </div>
 
-                    @if (ragMessages.Any())
-                    {
-                        <div style="max-height: 500px; overflow-y: auto; padding: 1rem; background: rgba(0, 0, 0, 0.2); border-radius: 8px;">
-                            @foreach (var msg in ragMessages)
+                    <!-- Right: Chat Interface -->
+                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
+                        <div style="padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.3);">
+                            <div style="color: #3b82f6; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">AI Chat Assistant</div>
+                            <div style="color: #9ca3af; font-size: 0.8rem;">Powered by RAG + Qdrant</div>
+                        </div>
+                        
+                        <!-- Chat Messages -->
+                        <div style="flex: 1; overflow-y: auto; padding: 1rem; background: rgba(0, 0, 0, 0.2);">
+                            @if (ragMessages.Any())
                             {
-                                <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(255, 255, 255, @(msg.IsUser ? "0.03" : "0.05")); border-radius: 8px; border-left: 3px solid @(msg.IsUser ? "#3b82f6" : "#22c55e");">
-                                    <div style="color: @(msg.IsUser ? "#3b82f6" : "#22c55e"); font-weight: 600; margin-bottom: 0.5rem;">
-                                        @(msg.IsUser ? "You" : "Answer")
+                                @foreach (var msg in ragMessages)
+                                {
+                                    <div style="margin-bottom: 1rem; padding: 1rem; background: @(msg.IsUser ? "rgba(59, 130, 246, 0.1)" : "rgba(16, 185, 129, 0.1)"); border-radius: 8px; border-left: 3px solid @(msg.IsUser ? "#3b82f6" : "#10b981");">
+                                        <div style="color: @(msg.IsUser ? "#3b82f6" : "#10b981"); font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem;">
+                                            @(msg.IsUser ? "You" : "AI Assistant")
+                                        </div>
+                                        @if (msg.IsUser)
+                                        {
+                                            <div style="color: #d1d5db; line-height: 1.6;">@msg.Content</div>
+                                        }
+                                        else
+                                        {
+                                            <AIOutputRenderer Content="@msg.Content" />
+                                        }
                                     </div>
-                                    <div style="color: #d1d5db; line-height: 1.6; white-space: pre-wrap;">@msg.Content</div>
+                                }
+                            }
+                            else
+                            {
+                                <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; text-align: center;">
+                                    <div>
+                                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">Tip</div>
+                                        <div>Ask a question about the paper</div>
+                                        <div style="font-size: 0.8rem; margin-top: 0.5rem; color: #4b5563;">
+                                            Try: "What is the main contribution?" or "Explain the methodology"
+                                        </div>
+                                    </div>
                                 </div>
                             }
                         </div>
-                    }
+
+                        <!-- Chat Input -->
+                        <div style="padding: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.3);">
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="text" @bind="ragQuestion" @onkeypress="HandleChatKeyPress" placeholder="Ask a question about the paper..." 
+                                       style="flex: 1; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff;" />
+                                <button class="action-btn" @onclick="AskQuestion" disabled="@isAskingQuestion" style="min-width: 100px;">
+                                    @if (isAskingQuestion)
+                                    {
+                                        <span>Thinking...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Send</span>
+                                    }
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             }
-        }
 
-        @if (activeTab == "video-analysis")
-        {
-            <div class="section-header">
-                Video Analysis
-            </div>
-
-            <div class="chat-interface">
-                <input type="text" class="chat-input" placeholder="Enter YouTube URL or search for finance videos..." @bind="videoQuery" />
-                <button class="chat-submit" @onclick="AnalyzeVideo">Analyze</button>
-            </div>
-
-            @if (isLoading)
-            {
-                <div class="progress-container">
-                    <div class="spinner"></div>
-                    <div class="progress-text">Analyzing video content...</div>
-                </div>
-            }
-            else if (!string.IsNullOrEmpty(lastResult))
-            {
-                <AIOutputRenderer Content="@lastResult" />
-            }
-
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <span class="feature-status status-available">AVAILABLE</span>
-                    <div class="feature-title">
-                        YouTube Video Analysis
-                    </div>
-                    <div class="feature-description">
-                        Analyze YouTube videos for trading strategies, market insights, and educational content. Extract key points and actionable insights.
-                    </div>
-                    <div class="feature-actions">
-                        <button class="action-btn" @onclick="AnalyzeVideoFeature">Analyze Video</button>
-                    </div>
-                </div>
-
-                <div class="feature-card">
-                    <span class="feature-status status-available">AVAILABLE</span>
-                    <div class="feature-title">
-                        Quantopian Video Library
-                    </div>
-                    <div class="feature-description">
-                        Access and analyze Quantopian's educational video library. Learn from expert quantitative traders and researchers.
-                    </div>
-                    <div class="feature-actions">
-                        <button class="action-btn" @onclick="BrowseQuantopianLibrary">Browse Library</button>
-                    </div>
-                </div>
-
-                <div class="feature-card">
-                    <span class="feature-status status-available">AVAILABLE</span>
-                    <div class="feature-title">
-                        Finance Video Search
-                    </div>
-                    <div class="feature-description">
-                        Search across multiple finance video platforms. Find relevant content for your research and trading strategies.
-                    </div>
-                    <div class="feature-actions">
-                        <button class="action-btn" @onclick="SearchFinanceVideos">Search Videos</button>
-                    </div>
-                </div>
-            </div>
         }
 
         @if (activeTab == "academic-papers")
@@ -554,16 +578,16 @@
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <InputFile OnChange="OnPdfSelected" accept=".pdf" id="pdfUpload" style="display: none;" />
                     <label for="pdfUpload" class="chat-submit" style="cursor: pointer; margin: 0;">
-                        📄 Select PDF
+                        Select PDF
                     </label>
                     @if (!string.IsNullOrEmpty(selectedPdfName))
                     {
                         <span style="color: #4CAF50;">@selectedPdfName</span>
                         <button class="chat-submit" style="background: #FF9800;" @onclick="() => AnalyzePdf(false)" disabled="@isLoading">
-                            💡 Quick Insights
+                            Quick Insights
                         </button>
                         <button class="chat-submit" @onclick="() => AnalyzePdf(true)" disabled="@isLoading">
-                            🔬 Full Analysis
+                            Full Analysis
                         </button>
                     }
                 </div>
@@ -586,14 +610,14 @@
                             <h4 style="color: #4CAF50; margin: 0 0 10px 0;">@paper.Title</h4>
                             <p style="color: #888; font-size: 0.9em; margin: 5px 0;">@paper.Snippet</p>
                             <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
-                                <a href="@paper.Url" target="_blank" class="action-btn" style="font-size: 0.85em; padding: 8px 12px;">📄 View</a>
+                                <a href="@paper.Url" target="_blank" class="action-btn" style="font-size: 0.85em; padding: 8px 12px;">View</a>
                                 <button class="action-btn" style="font-size: 0.85em; padding: 8px 12px; background: #FF9800;" 
                                         @onclick="() => GetQuickInsights(paper)" disabled="@isLoading">
-                                    💡 Quick Insights
+                                    Quick Insights
                                 </button>
                                 <button class="action-btn" style="font-size: 0.85em; padding: 8px 12px; background: #2196F3;" 
                                         @onclick="() => DeepAnalyzePaper(paper)" disabled="@isLoading">
-                                    🔬 Strategy Extract
+                                    Strategy Extract
                                 </button>
                             </div>
                         </div>
@@ -983,7 +1007,19 @@
     private string ragError = "";
     private bool isLoadingPaper = false;
     private bool isAskingQuestion = false;
+    private bool isClearingPapers = false;
     private List<RagMessage> ragMessages = new();
+    private List<LoadedPaperInfo> loadedPapers = new();
+    private string currentPdfUrl = "";
+    private string currentPaperTitle = "";
+
+    public class LoadedPaperInfo
+    {
+        public string CollectionName { get; set; } = "";
+        public string PaperTitle { get; set; } = "";
+        public string PaperUrl { get; set; } = "";
+        public int ChunkCount { get; set; }
+    }
 
     public class RagMessage
     {
@@ -1963,7 +1999,6 @@
 
         isLoadingPaper = true;
         ragError = "";
-        ragCollectionName = "";
         ragMessages.Clear();
         StateHasChanged();
 
@@ -1976,6 +2011,17 @@
                 if (result != null && !string.IsNullOrEmpty(result.CollectionName))
                 {
                     ragCollectionName = result.CollectionName;
+                    currentPdfUrl = paperUrl;
+                    currentPaperTitle = result.Title ?? "Academic Paper";
+                    
+                    // Add to loaded papers list
+                    loadedPapers.Add(new LoadedPaperInfo
+                    {
+                        CollectionName = result.CollectionName,
+                        PaperTitle = currentPaperTitle,
+                        PaperUrl = paperUrl,
+                        ChunkCount = result.ChunkCount
+                    });
                 }
                 else
                 {
@@ -1996,6 +2042,98 @@
             isLoadingPaper = false;
             StateHasChanged();
         }
+    }
+
+    private async Task HandlePdfUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null || !file.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            ragError = "Please upload a PDF file";
+            return;
+        }
+
+        isLoadingPaper = true;
+        ragError = "";
+        ragMessages.Clear();
+        StateHasChanged();
+
+        try
+        {
+            // Upload PDF to server
+            var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024)); // 50MB max
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await Http.PostAsync("/api/research/upload-paper", content);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<LoadPaperResponse>();
+                if (result != null && !string.IsNullOrEmpty(result.CollectionName))
+                {
+                    ragCollectionName = result.CollectionName;
+                    currentPdfUrl = result.PdfUrl ?? "";
+                    currentPaperTitle = result.Title ?? file.Name;
+                    
+                    loadedPapers.Add(new LoadedPaperInfo
+                    {
+                        CollectionName = result.CollectionName,
+                        PaperTitle = currentPaperTitle,
+                        PaperUrl = currentPdfUrl,
+                        ChunkCount = result.ChunkCount
+                    });
+                }
+                else
+                {
+                    ragError = "Failed to load paper";
+                }
+            }
+            else
+            {
+                ragError = $"Error uploading file: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            ragError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingPaper = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SelectLoadedPaper(ChangeEventArgs e)
+    {
+        var collectionName = e.Value?.ToString();
+        if (string.IsNullOrEmpty(collectionName)) return;
+
+        var paper = loadedPapers.FirstOrDefault(p => p.CollectionName == collectionName);
+        if (paper != null)
+        {
+            ragCollectionName = paper.CollectionName;
+            currentPdfUrl = paper.PaperUrl;
+            currentPaperTitle = paper.PaperTitle;
+            ragMessages.Clear();
+            StateHasChanged();
+        }
+    }
+
+    private string GetPdfViewerUrl()
+    {
+        if (string.IsNullOrEmpty(currentPdfUrl))
+            return "";
+        
+        // For URLs, embed directly
+        if (currentPdfUrl.StartsWith("http"))
+        {
+            return currentPdfUrl;
+        }
+        
+        // For uploaded files, use the server path
+        return currentPdfUrl;
     }
 
     private async Task AskQuestion()
@@ -2043,6 +2181,48 @@
         }
     }
 
+    private async Task ClearPapers()
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", new object[] { "This will permanently delete all loaded papers from the database. Are you sure?" }))
+        {
+            return;
+        }
+
+        isClearingPapers = true;
+        ragError = "";
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.PostAsync("/api/research/clear-papers", null);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                ragCollectionName = "";
+                ragMessages.Clear();
+                paperUrl = "";
+                ragQuestion = "";
+                ragError = "";
+                
+                // Show success message
+                await JS.InvokeAsync<object>("alert", new object[] { "All papers have been cleared successfully!" });
+            }
+            else
+            {
+                ragError = $"Error clearing papers: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            ragError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isClearingPapers = false;
+            StateHasChanged();
+        }
+    }
+
     private async Task HandleRagKeyPress(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && !isAskingQuestion)
@@ -2054,9 +2234,14 @@
     public class LoadPaperResponse
     {
         public string CollectionName { get; set; } = "";
+        public string? Title { get; set; }
+        public string? PdfUrl { get; set; }
+        public int ChunkCount { get; set; }
     }
 
     public class AskQuestionResponse
     {
         public string Answer { get; set; } = "";
     }
+
+}

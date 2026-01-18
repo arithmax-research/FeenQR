@@ -1084,6 +1084,7 @@ public class InteractiveCLI
             { "research-papers <TOPIC>", "Search academic papers" },
             { "analyze-paper <URL>", "Analyze paper & generate blueprint" },
             { "rag-chat <URL>", "Interactive chat with paper (RAG)" },
+            { "clear-papers", "Clear all loaded papers from memory" },
             { "research-synthesis <TOPIC>", "Research synthesis" },
             { "quick-research <TOPIC>", "Quick research overview" },
             { "agent-strategy <SYM>", "Generate trading strategy with agent" }
@@ -1361,6 +1362,7 @@ public class InteractiveCLI
                 ("research-papers <TOPIC>", "Search academic papers"),
                 ("analyze-paper <URL>", "Analyze paper & blueprint"),
                 ("rag-chat <URL>", "Interactive RAG chat"),
+                ("clear-papers", "Clear all loaded papers"),
                 ("research-synthesis <TOPIC>", "Research synthesis"),
                 ("quick-research <TOPIC>", "Quick research overview"),
                 ("agent-strategy <SYM>", "Generate trading strategy"),
@@ -1737,6 +1739,9 @@ public class InteractiveCLI
                 case "rag-chat":
                 case "chat-paper":
                     await RagChatCommand(parts);
+                    break;
+                case "clear-papers":
+                    await ClearPapersCommand();
                     break;
                 case "research":
                 case "research-synthesis":
@@ -3797,6 +3802,165 @@ public class InteractiveCLI
         Console.WriteLine();
     }
 
+    /// <summary>
+    /// Format markdown text for beautiful console display
+    /// Converts markdown to Spectre.Console markup
+    /// </summary>
+    private string FormatMarkdownForConsole(string markdown)
+    {
+        if (string.IsNullOrEmpty(markdown))
+            return "";
+
+        var lines = markdown.Split('\n');
+        var result = new System.Text.StringBuilder();
+        bool inCodeBlock = false;
+        bool inList = false;
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.TrimStart();
+            
+            // Code blocks
+            if (trimmed.StartsWith("```"))
+            {
+                inCodeBlock = !inCodeBlock;
+                if (inCodeBlock)
+                    result.AppendLine("[dim grey]─────────────────────────────────────────[/]");
+                else
+                    result.AppendLine("[dim grey]─────────────────────────────────────────[/]");
+                continue;
+            }
+            
+            if (inCodeBlock)
+            {
+                result.AppendLine($"[grey]{line.EscapeMarkup()}[/]");
+                continue;
+            }
+            
+            // H3 headers
+            if (trimmed.StartsWith("### "))
+            {
+                var header = trimmed.Substring(4).Trim();
+                result.AppendLine();
+                result.AppendLine($"[bold cyan1]▸ {header.EscapeMarkup()}[/]");
+                result.AppendLine();
+                continue;
+            }
+            
+            // H2 headers
+            if (trimmed.StartsWith("## "))
+            {
+                var header = trimmed.Substring(3).Trim();
+                result.AppendLine();
+                result.AppendLine($"[bold yellow]━━ {header.EscapeMarkup()} ━━[/]");
+                result.AppendLine();
+                continue;
+            }
+            
+            // H1 headers
+            if (trimmed.StartsWith("# "))
+            {
+                var header = trimmed.Substring(2).Trim();
+                result.AppendLine();
+                result.AppendLine($"[bold green]═══ {header.EscapeMarkup()} ═══[/]");
+                result.AppendLine();
+                continue;
+            }
+            
+            // LaTeX equations - display inline or block
+            var processed = line;
+            
+            // Block equations \[ \]
+            if (processed.Contains("\\[") || processed.Contains("\\]"))
+            {
+                processed = processed.Replace("\\[", "").Replace("\\]", "");
+                result.AppendLine($"[yellow]  {processed.EscapeMarkup()}[/]");
+                continue;
+            }
+            
+            // Inline equations \( \)
+            while (processed.Contains("\\(") && processed.Contains("\\)"))
+            {
+                var start = processed.IndexOf("\\(");
+                var end = processed.IndexOf("\\)", start);
+                if (end > start)
+                {
+                    var before = processed.Substring(0, start);
+                    var equation = processed.Substring(start + 2, end - start - 2);
+                    var after = processed.Substring(end + 2);
+                    processed = $"{before}[yellow italic]{equation}[/]{after}";
+                }
+                else break;
+            }
+            
+            // Lists
+            if (trimmed.StartsWith("- ") || trimmed.StartsWith("* "))
+            {
+                var content = trimmed.Substring(2).Trim();
+                var indent = line.TakeWhile(c => c == ' ').Count();
+                var prefix = new string(' ', indent);
+                result.AppendLine($"{prefix}[cyan]•[/] {FormatInlineMarkdown(content)}");
+                inList = true;
+                continue;
+            }
+            
+            // Numbered lists
+            if (System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^\d+\.\s"))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"^(\d+)\.\s(.*)");
+                if (match.Success)
+                {
+                    var number = match.Groups[1].Value;
+                    var content = match.Groups[2].Value;
+                    var indent = line.TakeWhile(c => c == ' ').Count();
+                    var prefix = new string(' ', indent);
+                    result.AppendLine($"{prefix}[cyan]{number}.[/] {FormatInlineMarkdown(content)}");
+                    inList = true;
+                    continue;
+                }
+            }
+            
+            // Empty lines
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                if (inList)
+                {
+                    inList = false;
+                }
+                result.AppendLine();
+                continue;
+            }
+            
+            // Regular paragraphs
+            result.AppendLine(FormatInlineMarkdown(line));
+        }
+        
+        return result.ToString();
+    }
+
+    /// <summary>
+    /// Format inline markdown (bold, italic, code)
+    /// </summary>
+    private string FormatInlineMarkdown(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+            
+        // Escape markup first
+        var result = text.EscapeMarkup();
+        
+        // Bold **text**
+        result = System.Text.RegularExpressions.Regex.Replace(result, @"\*\*(.+?)\*\*", "[bold white]$1[/]");
+        
+        // Italic *text*
+        result = System.Text.RegularExpressions.Regex.Replace(result, @"\*(.+?)\*", "[italic]$1[/]");
+        
+        // Inline code `code`
+        result = System.Text.RegularExpressions.Regex.Replace(result, @"`(.+?)`", "[grey on black]$1[/]");
+        
+        return result;
+    }
+
     // --- New Research Commands ---
     
     private async Task ComprehensiveAnalysisCommand(string[] parts)
@@ -3949,14 +4113,6 @@ public class InteractiveCLI
     {
         try
         {
-            if (parts.Length < 2)
-            {
-                Console.WriteLine("Usage: rag-chat <paper-url>");
-                Console.WriteLine("Example: rag-chat https://arxiv.org/abs/1706.03762");
-                return;
-            }
-
-            var paperUrl = parts[1];
             PrintSectionHeader($"RAG Chat: Interactive Paper Q&A");
             
             if (_paperRAGService == null)
@@ -3965,8 +4121,157 @@ public class InteractiveCLI
                 return;
             }
 
-            // Load the paper
-            var collectionName = await _paperRAGService.LoadPaperForChatAsync(paperUrl);
+            string collectionName = "";
+            
+            // Check if URL/path provided as argument
+            if (parts.Length >= 2)
+            {
+                var input = parts[1];
+                
+                // Check if it's a URL or file path
+                if (input.StartsWith("http://") || input.StartsWith("https://"))
+                {
+                    collectionName = await _paperRAGService.LoadPaperForChatAsync(input);
+                }
+                else if (File.Exists(input))
+                {
+                    collectionName = await _paperRAGService.LoadPaperFromFileAsync(input);
+                }
+                else
+                {
+                    Console.WriteLine($"❌ Invalid URL or file not found: {input}");
+                    return;
+                }
+            }
+            else
+            {
+                // Interactive mode - ask user to choose
+                Console.WriteLine("╭─────────────────────────────────────────────────────────╮");
+                Console.WriteLine("│  How would you like to load the paper?                 │");
+                Console.WriteLine("├─────────────────────────────────────────────────────────┤");
+                Console.WriteLine("│  [1] Load from URL (e.g., arXiv, ACM, IEEE)            │");
+                Console.WriteLine("│  [2] Load from downloaded_papers folder                │");
+                Console.WriteLine("│  [3] Enter custom file path                            │");
+                Console.WriteLine("│  [4] View all loaded papers                            │");
+                Console.WriteLine("│  [5] Cancel                                             │");
+                Console.WriteLine("╰─────────────────────────────────────────────────────────╯");
+                Console.Write("\nYour choice (1-5): ");
+                
+                var choice = Console.ReadLine()?.Trim();
+                
+                if (choice == "1")
+                {
+                    Console.Write("Enter paper URL: ");
+                    var paperUrl = Console.ReadLine()?.Trim();
+                    if (string.IsNullOrEmpty(paperUrl))
+                    {
+                        Console.WriteLine("❌ No URL provided");
+                        return;
+                    }
+                    collectionName = await _paperRAGService.LoadPaperForChatAsync(paperUrl);
+                }
+                else if (choice == "2")
+                {
+                    // List files in downloaded_papers folder
+                    var downloadsDir = Path.Combine(Directory.GetCurrentDirectory(), "downloaded_papers");
+                    if (!Directory.Exists(downloadsDir))
+                    {
+                        Directory.CreateDirectory(downloadsDir);
+                        Console.WriteLine($"❌ No papers found in {downloadsDir}");
+                        Console.WriteLine("   Download papers first or place PDFs in this folder.");
+                        return;
+                    }
+                    
+                    var pdfFiles = Directory.GetFiles(downloadsDir, "*.pdf");
+                    if (pdfFiles.Length == 0)
+                    {
+                        Console.WriteLine($"❌ No PDF files found in {downloadsDir}");
+                        Console.WriteLine("   Place your PDF files in the downloaded_papers folder.");
+                        return;
+                    }
+                    
+                    Console.WriteLine($"\n📁 Found {pdfFiles.Length} PDF(s) in downloaded_papers:");
+                    Console.WriteLine("╭───┬────────────────────────────────────────────────────────────────────╮");
+                    Console.WriteLine("│ # │ Filename                                                           │");
+                    Console.WriteLine("├───┼────────────────────────────────────────────────────────────────────┤");
+                    
+                    for (int i = 0; i < pdfFiles.Length; i++)
+                    {
+                        var fileName = Path.GetFileName(pdfFiles[i]);
+                        var displayName = fileName.Length > 68 ? fileName.Substring(0, 65) + "..." : fileName;
+                        Console.WriteLine($"│ {i + 1,-1} │ {displayName,-70} │");
+                    }
+                    Console.WriteLine("╰───┴────────────────────────────────────────────────────────────────────╯");
+                    
+                    Console.Write($"\nSelect paper (1-{pdfFiles.Length}): ");
+                    var selection = Console.ReadLine()?.Trim();
+                    
+                    if (int.TryParse(selection, out var index) && index > 0 && index <= pdfFiles.Length)
+                    {
+                        collectionName = await _paperRAGService.LoadPaperFromFileAsync(pdfFiles[index - 1]);
+                    }
+                    else
+                    {
+                        Console.WriteLine("❌ Invalid selection");
+                        return;
+                    }
+                }
+                else if (choice == "3")
+                {
+                    Console.Write("Enter full path to PDF file: ");
+                    var filePath = Console.ReadLine()?.Trim();
+                    if (string.IsNullOrEmpty(filePath))
+                    {
+                        Console.WriteLine("❌ No path provided");
+                        return;
+                    }
+                    collectionName = await _paperRAGService.LoadPaperFromFileAsync(filePath);
+                }
+                else if (choice == "4")
+                {
+                    // Show all loaded papers
+                    var loadedPapers = _paperRAGService.GetLoadedPapers();
+                    if (loadedPapers.Count == 0)
+                    {
+                        Console.WriteLine("❌ No papers currently loaded");
+                        return;
+                    }
+                    
+                    Console.WriteLine($"\n📚 Currently Loaded Papers ({loadedPapers.Count}):");
+                    Console.WriteLine("╭───┬────────────────────────────────┬──────────────────────┬────────╮");
+                    Console.WriteLine("│ # │ Title                          │ Loaded At            │ Chunks │");
+                    Console.WriteLine("├───┼────────────────────────────────┼──────────────────────┼────────┤");
+                    
+                    for (int i = 0; i < loadedPapers.Count; i++)
+                    {
+                        var paper = loadedPapers[i];
+                        var title = paper.PaperTitle.Length > 30 ? paper.PaperTitle.Substring(0, 27) + "..." : paper.PaperTitle;
+                        var time = paper.LoadedAt.ToLocalTime().ToString("MM/dd HH:mm");
+                        Console.WriteLine($"│ {i + 1,-1} │ {title,-30} │ {time,-20} │ {paper.ChunkCount,6} │");
+                    }
+                    Console.WriteLine("╰───┴────────────────────────────────┴──────────────────────┴────────╯");
+                    
+                    Console.Write($"\nSelect paper to chat with (1-{loadedPapers.Count}): ");
+                    var selection = Console.ReadLine()?.Trim();
+                    
+                    if (int.TryParse(selection, out var index) && index > 0 && index <= loadedPapers.Count)
+                    {
+                        collectionName = loadedPapers[index - 1].CollectionName;
+                        Console.WriteLine($"✓ Using: {loadedPapers[index - 1].PaperTitle}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("❌ Invalid selection");
+                        return;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Operation cancelled");
+                    return;
+                }
+            }
+
             if (string.IsNullOrEmpty(collectionName))
             {
                 Console.WriteLine("❌ Failed to load paper");
@@ -3996,12 +4301,50 @@ public class InteractiveCLI
 
                 Console.WriteLine();
                 var answer = await _paperRAGService.AskQuestionAsync(collectionName, question);
-                Console.WriteLine($" Answer:\n{answer}\n");
+                
+                // Format the answer beautifully
+                AnsiConsole.WriteLine();
+                AnsiConsole.Write(new Rule("[bold cyan1]📄 Answer[/]") { Style = Style.Parse("cyan1") });
+                AnsiConsole.WriteLine();
+                
+                // Convert markdown to readable console output
+                var formatted = FormatMarkdownForConsole(answer);
+                AnsiConsole.Markup(formatted);
+                
+                AnsiConsole.WriteLine();
+                AnsiConsole.Write(new Rule() { Style = Style.Parse("dim grey") });
+                AnsiConsole.WriteLine();
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in RAG chat: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task ClearPapersCommand()
+    {
+        PrintSectionHeader("Clear Loaded Papers");
+
+        try
+        {
+            Console.WriteLine("This will permanently delete all loaded papers from memory.");
+            Console.Write("Are you sure? (y/N): ");
+            
+            var response = Console.ReadLine()?.Trim().ToLower();
+            if (response != "y" && response != "yes")
+            {
+                Console.WriteLine("Operation cancelled.");
+                return;
+            }
+
+            await _paperRAGService.ClearAllPapersAsync();
+            Console.WriteLine("All papers have been cleared successfully!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error clearing papers: {ex.Message}");
         }
         PrintSectionFooter();
     }

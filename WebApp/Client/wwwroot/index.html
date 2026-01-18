@@ -21,6 +21,9 @@
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="css/app.css" />
     <link href="Client.styles.css" rel="stylesheet" />
+    
+    <!-- KaTeX for LaTeX equation rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
 </head>
 
 <body style="margin: 0; padding: 0; background-color: #000000;">
@@ -64,6 +67,27 @@
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    
+    <!-- KaTeX for LaTeX equation rendering -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
+    
+    <script>
+        // Render LaTeX equations using KaTeX
+        window.renderKatex = (element) => {
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(element, {
+                    delimiters: [
+                        {left: "$$", right: "$$", display: true},
+                        {left: "$", right: "$", display: false},
+                        {left: "\\[", right: "\\]", display: true},
+                        {left: "\\(", right: "\\)", display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+        };
+    </script>
     
     <script>
         // Preload TradingView - mark when ready

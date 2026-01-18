@@ -274,11 +274,75 @@ namespace Server.Controllers
             try
             {
                 var collectionName = await _paperRAGService.LoadPaperForChatAsync(request.Url);
-                return Ok(new { collectionName });
+                if (string.IsNullOrEmpty(collectionName))
+                {
+                    return BadRequest(new { error = "Failed to load paper" });
+                }
+                
+                var paper = _paperRAGService.GetPaper(collectionName);
+                return Ok(new { 
+                    collectionName, 
+                    title = paper?.PaperTitle ?? "Academic Paper",
+                    pdfUrl = request.Url,
+                    chunkCount = paper?.ChunkCount ?? 0
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading paper from {Url}", request.Url);
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("upload-paper")]
+        public async Task<IActionResult> UploadPaper(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest(new { error = "No file uploaded" });
+                }
+
+                if (!file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new { error = "Only PDF files are supported" });
+                }
+
+                // Save the uploaded file temporarily
+                var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+                Directory.CreateDirectory(uploadsDir);
+                
+                var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+                var filePath = Path.Combine(uploadsDir, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // Load the paper from the saved file
+                var collectionName = await _paperRAGService.LoadPaperFromFileAsync(filePath);
+                if (string.IsNullOrEmpty(collectionName))
+                {
+                    return BadRequest(new { error = "Failed to process PDF" });
+                }
+
+                var paper = _paperRAGService.GetPaper(collectionName);
+                
+                // Return URL for PDF viewing
+                var pdfUrl = $"/uploads/{fileName}";
+                
+                return Ok(new { 
+                    collectionName, 
+                    title = paper?.PaperTitle ?? file.FileName,
+                    pdfUrl,
+                    chunkCount = paper?.ChunkCount ?? 0
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading paper");
                 return StatusCode(500, new { error = ex.Message });
             }
         }
@@ -294,6 +358,21 @@ namespace Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error answering question for collection {Collection}", request.CollectionName);
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("clear-papers")]
+        public async Task<IActionResult> ClearPapers()
+        {
+            try
+            {
+                await _paperRAGService.ClearAllPapersAsync();
+                return Ok(new { message = "All papers cleared successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error clearing papers");
                 return StatusCode(500, new { error = ex.Message });
             }
         }

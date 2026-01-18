@@ -21,14 +21,15 @@
     <Compile Remove="Controllers/**/*.cs" />
     <EmbeddedResource Remove="Controllers/**/*" />
     <None Remove="Controllers/**/*" />
-    <Compile Remove="VectorDBTests/**/*.cs" />
-    <EmbeddedResource Remove="VectorDBTests/**/*" />
-    <None Remove="VectorDBTests/**/*" />
+    <Compile Remove="test_qdrant.cs" />
+    <EmbeddedResource Remove="test_qdrant.cs" />
+    <None Remove="test_qdrant.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.25.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.25.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="1.68.0-preview" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Core" Version="1.25.0-alpha" />
     <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.25.0-alpha" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.25.0-alpha" />
@@ -41,7 +42,7 @@
     <PackageReference Include="Qdrant.Client" Version="1.16.1" />
     <PackageReference Include="Reddit" Version="1.5.2" />
     <PackageReference Include="Skender.Stock.Indicators" Version="3.0.0-preview.1" />
-    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <PackageReference Include="System.Text.Json" Version="10.0.0" />
     <PackageReference Include="Google.Apis.YouTube.v3" Version="1.68.0.3617" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="OpenAI-DotNet" Version="8.6.1" />

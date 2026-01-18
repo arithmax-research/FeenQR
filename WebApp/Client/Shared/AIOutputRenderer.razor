@@ -1,27 +1,26 @@
 @using System.Text.RegularExpressions
+@inject IJSRuntime JS
 
 <div class="ai-output-container">
-    <div class="ai-output-content">
+    <div class="ai-output-content" @ref="outputElement">
         @((MarkupString)ConvertMarkdownToHtml(Content))
     </div>
 </div>
 
 <style>
     .ai-output-container {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.04) 100%);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        padding: 2.5rem;
-        margin: 1.5rem 0;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        backdrop-filter: blur(10px);
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 0;
+        margin: 0;
     }
 
     .ai-output-content {
         font-family: 'Georgia', 'Times New Roman', serif;
-        font-size: 1.05rem;
-        line-height: 1.8;
-        color: #e5e7eb;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        color: #d1d5db;
         max-width: 100%;
     }
 
@@ -166,9 +165,7 @@
 
     /* Horizontal rules */
     .ai-output-content hr {
-        border: none;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        margin: 2rem 0;
+        display: none;
     }
 
     /* Tables */
@@ -288,6 +285,24 @@
     [Parameter]
     public string Content { get; set; } = "";
 
+    private ElementReference outputElement;
+    private bool isRendered = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!isRendered && !string.IsNullOrEmpty(Content))
+        {
+            isRendered = true;
+            // Render LaTeX equations using KaTeX
+            await JS.InvokeVoidAsync("renderKatex", outputElement);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        isRendered = false; // Reset when content changes
+    }
+
     private string ConvertMarkdownToHtml(string markdown)
     {
         if (string.IsNullOrWhiteSpace(markdown))
@@ -295,7 +310,16 @@
 
         string html = markdown;
 
-        // Headers (must be done first to avoid interfering with other patterns)
+        // LaTeX equations - Convert to KaTeX-friendly format
+        // Block equations: \[ ... \] or $$ ... $$
+        html = Regex.Replace(html, @"\\\[(.*?)\\\]", "<div class=\"katex-block\">$$1$$</div>", RegexOptions.Singleline);
+        html = Regex.Replace(html, @"\$\$(.*?)\$\$", "<div class=\"katex-block\">$$$1$$</div>", RegexOptions.Singleline);
+        
+        // Inline equations: \( ... \) or $ ... $
+        html = Regex.Replace(html, @"\\\((.*?)\\\)", "<span class=\"katex-inline\">$1$</span>", RegexOptions.Singleline);
+        html = Regex.Replace(html, @"\$([^\$\n]+?)\$", "<span class=\"katex-inline\">$1$</span>", RegexOptions.Singleline);
+
+        // Headers (must be done after equations to avoid interfering)
         html = Regex.Replace(html, @"^### (.+)$", "<h3>$1</h3>", RegexOptions.Multiline);
         html = Regex.Replace(html, @"^## (.+)$", "<h2>$1</h2>", RegexOptions.Multiline);
         html = Regex.Replace(html, @"^# (.+)$", "<h1>$1</h1>", RegexOptions.Multiline);
@@ -346,6 +370,7 @@
                 !trimmed.StartsWith("<pre") && 
                 !trimmed.StartsWith("<blockquote") && 
                 !trimmed.StartsWith("<hr") &&
+                !trimmed.StartsWith("<div class=\"katex") &&
                 !trimmed.StartsWith("</"))
             {
                 processedLines.Add($"<p>{trimmed}</p>");
