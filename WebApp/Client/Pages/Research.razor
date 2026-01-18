@@ -297,6 +297,7 @@
     <div class="research-header">
         <div class="tab-navigation">
             <button class="tab-btn @(activeTab == "ai-assistant" ? "active" : "")" @onclick='() => SwitchTab("ai-assistant")'>AI Assistant</button>
+            <button class="tab-btn @(activeTab == "rag-chat" ? "active" : "")" @onclick='() => SwitchTab("rag-chat")'>RAG Chat</button>
             <button class="tab-btn @(activeTab == "video-analysis" ? "active" : "")" @onclick='() => SwitchTab("video-analysis")'>Video Analysis</button>
             <button class="tab-btn @(activeTab == "academic-papers" ? "active" : "")" @onclick='() => SwitchTab("academic-papers")'>Papers</button>
             <button class="tab-btn @(activeTab == "scraper" ? "active" : "")" @onclick='() => SwitchTab("scraper")'>Scraper</button>
@@ -395,6 +396,82 @@
                     </div>
                 </div>
             </div>
+        }
+
+        @if (activeTab == "rag-chat")
+        {
+            <div class="section-header">
+                RAG Paper Chat - Deep Academic Analysis
+            </div>
+
+            <div style="padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 12px; margin-bottom: 1.5rem;">
+                <p style="color: #9ca3af; margin-bottom: 1rem;">Load an academic paper and ask detailed questions using full RAG (Retrieval-Augmented Generation).</p>
+                
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <input type="text" @bind="paperUrl" placeholder="Enter paper URL (e.g., https://arxiv.org/abs/2508.11152)" 
+                           style="flex: 1; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff;" />
+                    <button class="action-btn" @onclick="LoadPaper" disabled="@isLoadingPaper">
+                        @if (isLoadingPaper)
+                        {
+                            <span>Loading...</span>
+                        }
+                        else
+                        {
+                            <span>Load Paper</span>
+                        }
+                    </button>
+                </div>
+
+                @if (!string.IsNullOrEmpty(ragCollectionName))
+                {
+                    <div style="padding: 0.75rem; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; margin-bottom: 1rem;">
+                        <p style="color: #22c55e; margin: 0;">Paper loaded successfully! Collection: @ragCollectionName.Substring(0, 8)...</p>
+                        <p style="color: #9ca3af; margin: 0.5rem 0 0 0; font-size: 0.85rem;">Database: Qdrant (persistent vector storage)</p>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(ragError))
+                {
+                    <div style="padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; margin-bottom: 1rem;">
+                        <p style="color: #ef4444; margin: 0;">@ragError</p>
+                    </div>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(ragCollectionName))
+            {
+                <div style="padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 12px;">
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" @bind="ragQuestion" @onkeydown="HandleRagKeyPress" placeholder="Ask a question about the paper..." 
+                               style="flex: 1; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff;" />
+                        <button class="action-btn" @onclick="AskQuestion" disabled="@isAskingQuestion">
+                            @if (isAskingQuestion)
+                            {
+                                <span>Thinking...</span>
+                            }
+                            else
+                            {
+                                <span>Ask</span>
+                            }
+                        </button>
+                    </div>
+
+                    @if (ragMessages.Any())
+                    {
+                        <div style="max-height: 500px; overflow-y: auto; padding: 1rem; background: rgba(0, 0, 0, 0.2); border-radius: 8px;">
+                            @foreach (var msg in ragMessages)
+                            {
+                                <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(255, 255, 255, @(msg.IsUser ? "0.03" : "0.05")); border-radius: 8px; border-left: 3px solid @(msg.IsUser ? "#3b82f6" : "#22c55e");">
+                                    <div style="color: @(msg.IsUser ? "#3b82f6" : "#22c55e"); font-weight: 600; margin-bottom: 0.5rem;">
+                                        @(msg.IsUser ? "You" : "Answer")
+                                    </div>
+                                    <div style="color: #d1d5db; line-height: 1.6; white-space: pre-wrap;">@msg.Content</div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
         }
 
         @if (activeTab == "video-analysis")
@@ -898,6 +975,21 @@
     private string selectedPdfName = "";
     private List<PaperResult> foundPapers = new();
     private List<ScrapedPost> scrapedPosts = new();
+
+    // RAG Chat fields
+    private string paperUrl = "";
+    private string ragCollectionName = "";
+    private string ragQuestion = "";
+    private string ragError = "";
+    private bool isLoadingPaper = false;
+    private bool isAskingQuestion = false;
+    private List<RagMessage> ragMessages = new();
+
+    public class RagMessage
+    {
+        public string Content { get; set; } = "";
+        public bool IsUser { get; set; }
+    }
 
     public class PaperResult
     {
@@ -1859,4 +1951,112 @@
         public required string Content { get; set; }
         public DateTime Timestamp { get; set; }
     }
-}
+
+    // RAG Chat methods
+    private async Task LoadPaper()
+    {
+        if (string.IsNullOrWhiteSpace(paperUrl))
+        {
+            ragError = "Please enter a paper URL";
+            return;
+        }
+
+        isLoadingPaper = true;
+        ragError = "";
+        ragCollectionName = "";
+        ragMessages.Clear();
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/research/load-paper", new { url = paperUrl });
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<LoadPaperResponse>();
+                if (result != null && !string.IsNullOrEmpty(result.CollectionName))
+                {
+                    ragCollectionName = result.CollectionName;
+                }
+                else
+                {
+                    ragError = "Failed to load paper";
+                }
+            }
+            else
+            {
+                ragError = $"Error: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            ragError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingPaper = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AskQuestion()
+    {
+        if (string.IsNullOrWhiteSpace(ragQuestion) || string.IsNullOrEmpty(ragCollectionName))
+        {
+            return;
+        }
+
+        isAskingQuestion = true;
+        ragMessages.Add(new RagMessage { Content = ragQuestion, IsUser = true });
+        var question = ragQuestion;
+        ragQuestion = "";
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/research/ask-question", new 
+            { 
+                collectionName = ragCollectionName,
+                question = question 
+            });
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<AskQuestionResponse>();
+                if (result != null)
+                {
+                    ragMessages.Add(new RagMessage { Content = result.Answer, IsUser = false });
+                }
+            }
+            else
+            {
+                ragMessages.Add(new RagMessage { Content = $"Error: {response.StatusCode}", IsUser = false });
+            }
+        }
+        catch (Exception ex)
+        {
+            ragMessages.Add(new RagMessage { Content = $"Error: {ex.Message}", IsUser = false });
+        }
+        finally
+        {
+            isAskingQuestion = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleRagKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !isAskingQuestion)
+        {
+            await AskQuestion();
+        }
+    }
+
+    public class LoadPaperResponse
+    {
+        public string CollectionName { get; set; } = "";
+    }
+
+    public class AskQuestionResponse
+    {
+        public string Answer { get; set; } = "";
+    }

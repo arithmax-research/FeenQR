@@ -21,6 +21,9 @@
     <Compile Remove="Controllers/**/*.cs" />
     <EmbeddedResource Remove="Controllers/**/*" />
     <None Remove="Controllers/**/*" />
+    <Compile Remove="VectorDBTests/**/*.cs" />
+    <EmbeddedResource Remove="VectorDBTests/**/*" />
+    <None Remove="VectorDBTests/**/*" />
   </ItemGroup>
 
   <ItemGroup>

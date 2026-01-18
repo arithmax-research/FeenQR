@@ -17,6 +17,7 @@ namespace Server.Controllers
         private readonly YouTubeAnalysisService _youtubeAnalysisService;
         private readonly ReportGenerationService _reportGenerationService;
         private readonly LinkedInScrapingService _linkedInScrapingService;
+        private readonly PaperRAGService _paperRAGService;
 
         public ResearchController(
             ILogger<ResearchController> logger,
@@ -25,7 +26,8 @@ namespace Server.Controllers
             AcademicResearchService academicResearchService,
             YouTubeAnalysisService youtubeAnalysisService,
             ReportGenerationService reportGenerationService,
-            LinkedInScrapingService linkedInScrapingService)
+            LinkedInScrapingService linkedInScrapingService,
+            PaperRAGService paperRAGService)
         {
             _logger = logger;
             _conversationalResearchService = conversationalResearchService;
@@ -34,6 +36,7 @@ namespace Server.Controllers
             _youtubeAnalysisService = youtubeAnalysisService;
             _reportGenerationService = reportGenerationService;
             _linkedInScrapingService = linkedInScrapingService;
+            _paperRAGService = paperRAGService;
         }
 
         // Feen RAGentic Chat endpoint
@@ -260,6 +263,37 @@ namespace Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error scraping LinkedIn posts from {Url}", request.Url);
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        // RAG Chat endpoints
+        [HttpPost("load-paper")]
+        public async Task<IActionResult> LoadPaper([FromBody] LoadPaperRequest request)
+        {
+            try
+            {
+                var collectionName = await _paperRAGService.LoadPaperForChatAsync(request.Url);
+                return Ok(new { collectionName });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading paper from {Url}", request.Url);
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("ask-question")]
+        public async Task<IActionResult> AskQuestion([FromBody] AskQuestionRequest request)
+        {
+            try
+            {
+                var answer = await _paperRAGService.AskQuestionAsync(request.CollectionName, request.Question);
+                return Ok(new { answer });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error answering question for collection {Collection}", request.CollectionName);
                 return StatusCode(500, new { error = ex.Message });
             }
         }
@@ -823,6 +857,17 @@ Keep it concise and actionable. Focus on what's useful for quantitative research
     public class LinkedInScrapeRequest
     {
         public string Url { get; set; } = string.Empty;
+    }
+
+    public class LoadPaperRequest
+    {
+        public string Url { get; set; } = string.Empty;
+    }
+
+    public class AskQuestionRequest
+    {
+        public string CollectionName { get; set; } = string.Empty;
+        public string Question { get; set; } = string.Empty;
     }
 
     public class ResearchResponse

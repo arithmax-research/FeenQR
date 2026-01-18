@@ -20,8 +20,8 @@ namespace QuantResearchAgent.Services.ResearchAgents
         private readonly HttpClient _httpClient;
         private readonly PaperRAGService? _paperRAGService;
         
-        // RAG configuration - set to true to enable full paper analysis with vector search
-        private const bool USE_RAG = true;
+        // Toggle this to switch between RAG (true) and traditional analysis (false)
+        private const bool USE_RAG = false; // Set to true after setting up vector DB
 
         public AcademicResearchPaperAgent(
             Kernel kernel,
@@ -163,24 +163,22 @@ namespace QuantResearchAgent.Services.ResearchAgents
 
         /// <summary>
         /// Lightweight paper analysis for synthesis - focuses on key insights only
-        /// Uses RAG for full paper analysis if enabled
         /// </summary>
         private async Task<string> AnalyzePaperLightweightAsync(string paperUrl, string focusArea)
         {
             try
             {
-                // If RAG is enabled and service is available, use full paper analysis
+                // Use RAG if available and enabled, otherwise fall back to traditional analysis
                 if (USE_RAG && _paperRAGService != null)
                 {
-                    _logger.LogInformation("[RAG] Using full paper analysis with vector search");
-                    var ragAnalysis = await _paperRAGService.AnalyzePaperFullRAGAsync(paperUrl, "academic-papers", focusArea);
-                    return $"PAPER: {paperUrl}\n{ragAnalysis}\n{new string('-', 40)}";
+                    _logger.LogInformation($"[RAG MODE] Analyzing full paper with vector search: {paperUrl}");
+                    return await _paperRAGService.AnalyzePaperFullRAGAsync(paperUrl, focusArea, focusArea);
                 }
                 
-                // Fallback to lightweight analysis (abstract only)
-                _logger.LogInformation("[Standard] Using abstract-only analysis");
+                // Traditional analysis (truncated)
+                _logger.LogInformation($"[TRADITIONAL MODE] Using truncated analysis (first 8K chars): {paperUrl}");
                 
-                // Extract basic content
+                // Extract full content (not just snippet)
                 var paperContent = await ExtractPaperContentAsync(paperUrl);
                 
                 if (string.IsNullOrEmpty(paperContent))
@@ -188,27 +186,59 @@ namespace QuantResearchAgent.Services.ResearchAgents
                     return "";
                 }
 
-                // Single AI call for lightweight analysis
+                // Use more comprehensive content for analysis (increased from 2000 to 8000 chars)
+                var contentToAnalyze = paperContent.Length > 8000 ? paperContent.Substring(0, 8000) : paperContent;
+
+                // More detailed AI prompt for comprehensive analysis
                 var prompt = $@"
-Analyze this academic paper content and provide a concise summary focusing on '{focusArea}':
+Analyze this academic paper content in detail, focusing on '{focusArea}':
 
-{paperContent.Substring(0, Math.Min(paperContent.Length, 2000))}
+{contentToAnalyze}
 
-Provide a brief analysis with:
-1. Main research objective
-2. Key methodology/approach
-3. Primary findings
-4. Practical trading applications
-5. Implementation considerations
+Provide a comprehensive analysis including:
 
-Keep response concise (max 200 words).
+1. RESEARCH OBJECTIVE AND MOTIVATION
+   - What problem does this research address?
+   - Why is it important for trading/finance?
+
+2. METHODOLOGY AND APPROACH
+   - What methods/algorithms are used?
+   - What data sources and features?
+   - Model architecture details
+
+3. KEY FINDINGS AND RESULTS
+   - Performance metrics achieved
+   - Comparisons with baselines
+   - Statistical significance
+
+4. PRACTICAL TRADING APPLICATIONS
+   - How can this be applied in live trading?
+   - What markets/instruments are suitable?
+   - Time horizons and frequencies
+
+5. IMPLEMENTATION REQUIREMENTS
+   - Data requirements
+   - Computational resources
+   - Technical infrastructure
+
+6. LIMITATIONS AND CONSIDERATIONS
+   - Model limitations
+   - Market regime dependencies
+   - Risk factors
+
+7. ACTIONABLE INSIGHTS
+   - Specific takeaways for implementation
+   - Best practices identified
+   - Recommended next steps
+
+Keep analysis detailed but focused (aim for 600-800 words).
 Format output as PLAIN TEXT ONLY - no markdown, no asterisks, no hashtags, no code blocks.
 ";
 
                 var response = await _kernel.InvokePromptAsync(prompt);
                 var analysis = response.GetValue<string>() ?? "";
                 
-                return $"PAPER: {paperUrl}\n{analysis}\n{new string('-', 40)}";
+                return $"\nPAPER: {paperUrl}\n{new string('=', 80)}\n{analysis}\n{new string('=', 80)}\n";
             }
             catch (Exception ex)
             {
@@ -396,9 +426,9 @@ Format output as PLAIN TEXT ONLY - no markdown, no asterisks, no hashtags, no co
                                     text.AppendLine(page.Text);
                                 }
                             }
-                            // Limit to first 10000 characters for analysis
+                            // Increased limit from 10000 to 50000 characters for deeper analysis
                             var result = text.ToString();
-                            return result.Length > 10000 ? result.Substring(0, 10000) : result;
+                            return result.Length > 50000 ? result.Substring(0, 50000) : result;
                         }
                     }
                     catch (Exception ex)
@@ -413,8 +443,8 @@ Format output as PLAIN TEXT ONLY - no markdown, no asterisks, no hashtags, no co
                 // Clean up HTML and extract meaningful content
                 var cleanContent = Regex.Replace(response, @"<[^>]*>", " ");
                 cleanContent = Regex.Replace(cleanContent, @"\s+", " ");
-                // Take first 5000 characters as a reasonable sample
-                return cleanContent.Length > 5000 ? cleanContent.Substring(0, 5000) : cleanContent;
+                // Increased from 5000 to 20000 characters for better analysis
+                return cleanContent.Length > 20000 ? cleanContent.Substring(0, 20000) : cleanContent;
             }
             catch (Exception ex)
             {
@@ -601,20 +631,71 @@ Provide specific implementation details for each component using PLAIN TEXT ONLY
             var combinedAnalyses = string.Join("\n\n" + new string('=', 50) + "\n\n", analyses);
             
             var prompt = $@"
-Based on the multiple paper analyses provided below for the topic '{topic}', synthesize the findings and create a comprehensive implementation strategy:
+Based on the comprehensive analyses of multiple papers provided below for the topic '{topic}', create an in-depth research synthesis:
 
 {combinedAnalyses}
 
-Provide a synthesis that includes:
-1. Common themes and approaches across papers
-2. Conflicting findings and how to resolve them
-3. Best practices identified from multiple sources
-4. Comprehensive implementation roadmap
-5. Risk factors identified across studies
-6. Performance expectations based on research
-7. Next steps for validation and implementation
+Provide a detailed synthesis (1500-2000 words) that includes:
 
-Create a coherent, actionable synthesis that leverages insights from all analyzed papers using PLAIN TEXT ONLY - no markdown, no asterisks, no hashtags.
+1. RESEARCH LANDSCAPE OVERVIEW
+   - State of current research in this area
+   - Evolution of approaches over time
+   - Key contributors and seminal works
+
+2. COMMON THEMES AND CONVERGENT FINDINGS
+   - What do multiple papers agree on?
+   - Consistent methodologies across studies
+   - Replicated results and validated approaches
+
+3. DIVERGENT APPROACHES AND CONFLICTING RESULTS
+   - Where do papers differ in approach?
+   - Conflicting findings and possible explanations
+   - Trade-offs between different methods
+
+4. METHODOLOGICAL SYNTHESIS
+   - Best practices from across all papers
+   - Optimal data preprocessing approaches
+   - Model architecture recommendations
+   - Feature engineering insights
+
+5. PERFORMANCE EXPECTATIONS
+   - Realistic performance metrics based on research
+   - Comparison of results across papers
+   - Factors affecting performance
+
+6. COMPREHENSIVE IMPLEMENTATION ROADMAP
+   - Step-by-step implementation plan
+   - Data acquisition and preparation
+   - Model development and training
+   - Backtesting and validation
+   - Production deployment considerations
+
+7. RISK MANAGEMENT FRAMEWORK
+   - Identified risk factors across all studies
+   - Risk mitigation strategies
+   - Position sizing and portfolio constraints
+   - Stop-loss and exit strategies
+
+8. PRACTICAL CONSIDERATIONS FOR LIVE TRADING
+   - Market microstructure effects
+   - Transaction costs and slippage
+   - Latency requirements
+   - Scalability concerns
+
+9. GAPS AND FUTURE RESEARCH DIRECTIONS
+   - What's missing from current research?
+   - Opportunities for improvement
+   - Suggested extensions and enhancements
+
+10. ACTIONABLE RECOMMENDATIONS
+    - Prioritized action items
+    - Quick wins vs long-term investments
+    - Resource allocation suggestions
+    - Success metrics and KPIs
+
+Create a comprehensive, well-structured synthesis that provides deep insights and actionable guidance.
+Format output as PLAIN TEXT ONLY - no markdown, no asterisks, no hashtags, no code blocks.
+Use clear section headers, numbered lists, and proper paragraph structure.
 ";
 
             var response = await _kernel.InvokePromptAsync(prompt);

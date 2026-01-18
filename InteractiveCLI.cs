@@ -120,6 +120,7 @@ public class InteractiveCLI
     private readonly EventDrivenTradingPlugin _eventDrivenTradingPlugin;
     private readonly RealTimeAlertingPlugin _realTimeAlertingPlugin;
     private readonly ComplianceMonitoringPlugin _complianceMonitoringPlugin;
+    private readonly PaperRAGService _paperRAGService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -220,7 +221,8 @@ public class InteractiveCLI
         LiveStrategyPlugin liveStrategyPlugin,
         EventDrivenTradingPlugin eventDrivenTradingPlugin,
         RealTimeAlertingPlugin realTimeAlertingPlugin,
-        ComplianceMonitoringPlugin complianceMonitoringPlugin)
+        ComplianceMonitoringPlugin complianceMonitoringPlugin,
+        PaperRAGService paperRAGService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -321,6 +323,7 @@ public class InteractiveCLI
         _eventDrivenTradingPlugin = eventDrivenTradingPlugin;
         _realTimeAlertingPlugin = realTimeAlertingPlugin;
         _complianceMonitoringPlugin = complianceMonitoringPlugin;
+        _paperRAGService = paperRAGService;
     }
 
     public async Task RunAsync(string[]? args = null)
@@ -1080,6 +1083,7 @@ public class InteractiveCLI
             { "ai-chat <QUERY>", "AI-powered quant research chat" },
             { "research-papers <TOPIC>", "Search academic papers" },
             { "analyze-paper <URL>", "Analyze paper & generate blueprint" },
+            { "rag-chat <URL>", "Interactive chat with paper (RAG)" },
             { "research-synthesis <TOPIC>", "Research synthesis" },
             { "quick-research <TOPIC>", "Quick research overview" },
             { "agent-strategy <SYM>", "Generate trading strategy with agent" }
@@ -1356,6 +1360,7 @@ public class InteractiveCLI
             {
                 ("research-papers <TOPIC>", "Search academic papers"),
                 ("analyze-paper <URL>", "Analyze paper & blueprint"),
+                ("rag-chat <URL>", "Interactive RAG chat"),
                 ("research-synthesis <TOPIC>", "Research synthesis"),
                 ("quick-research <TOPIC>", "Quick research overview"),
                 ("agent-strategy <SYM>", "Generate trading strategy"),
@@ -1728,6 +1733,10 @@ public class InteractiveCLI
                     break;
                 case "analyze-paper":
                     await AnalyzePaperCommand(parts);
+                    break;
+                case "rag-chat":
+                case "chat-paper":
+                    await RagChatCommand(parts);
                     break;
                 case "research":
                 case "research-synthesis":
@@ -3358,8 +3367,9 @@ public class InteractiveCLI
         var eventDrivenTradingPlugin = serviceProvider.GetRequiredService<EventDrivenTradingPlugin>();
         var realTimeAlertingPlugin = serviceProvider.GetRequiredService<RealTimeAlertingPlugin>();
         var complianceMonitoringPlugin = serviceProvider.GetRequiredService<ComplianceMonitoringPlugin>();
+        var paperRAGService = serviceProvider.GetRequiredService<PaperRAGService>();
         
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, optionsFlowService, volatilityTradingService, advancedMicrostructureService, latencyArbitrageService, optionsFlowPlugin, volatilityTradingPlugin, advancedMicrostructurePlugin, latencyArbitragePlugin, conversationalResearchPlugin, automatedReportingPlugin, marketRegimePlugin, anomalyDetectionPlugin, dynamicFactorPlugin, tradingTemplateGeneratorPlugin, alphaVantageService, financialModelingPrepService, enhancedFundamentalAnalysisService, alphaVantagePlugin, financialModelingPrepPlugin, enhancedFundamentalAnalysisPlugin, advancedRiskAnalyticsService, counterpartyRiskService, performanceAttributionService, benchmarkingService, advancedRiskAnalyticsPlugin, counterpartyRiskPlugin, performanceAttributionPlugin, benchmarkingPlugin, liveStrategyService, eventDrivenTradingService, realTimeAlertingService, complianceMonitoringService, liveStrategyPlugin, eventDrivenTradingPlugin, realTimeAlertingPlugin, complianceMonitoringPlugin));
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, optionsFlowService, volatilityTradingService, advancedMicrostructureService, latencyArbitrageService, optionsFlowPlugin, volatilityTradingPlugin, advancedMicrostructurePlugin, latencyArbitragePlugin, conversationalResearchPlugin, automatedReportingPlugin, marketRegimePlugin, anomalyDetectionPlugin, dynamicFactorPlugin, tradingTemplateGeneratorPlugin, alphaVantageService, financialModelingPrepService, enhancedFundamentalAnalysisService, alphaVantagePlugin, financialModelingPrepPlugin, enhancedFundamentalAnalysisPlugin, advancedRiskAnalyticsService, counterpartyRiskService, performanceAttributionService, benchmarkingService, advancedRiskAnalyticsPlugin, counterpartyRiskPlugin, performanceAttributionPlugin, benchmarkingPlugin, liveStrategyService, eventDrivenTradingService, realTimeAlertingService, complianceMonitoringService, liveStrategyPlugin, eventDrivenTradingPlugin, realTimeAlertingPlugin, complianceMonitoringPlugin, paperRAGService));
     }
 
     // Alpaca Commands
@@ -3931,6 +3941,67 @@ public class InteractiveCLI
         catch (Exception ex)
         {
             Console.WriteLine($"Error performing quick research: {ex.Message}");
+        }
+        PrintSectionFooter();
+    }
+
+    private async Task RagChatCommand(string[] parts)
+    {
+        try
+        {
+            if (parts.Length < 2)
+            {
+                Console.WriteLine("Usage: rag-chat <paper-url>");
+                Console.WriteLine("Example: rag-chat https://arxiv.org/abs/1706.03762");
+                return;
+            }
+
+            var paperUrl = parts[1];
+            PrintSectionHeader($"RAG Chat: Interactive Paper Q&A");
+            
+            if (_paperRAGService == null)
+            {
+                Console.WriteLine("❌ RAG service not available");
+                return;
+            }
+
+            // Load the paper
+            var collectionName = await _paperRAGService.LoadPaperForChatAsync(paperUrl);
+            if (string.IsNullOrEmpty(collectionName))
+            {
+                Console.WriteLine("❌ Failed to load paper");
+                return;
+            }
+
+            // Interactive Q&A loop
+            Console.WriteLine("═══════════════════════════════════════════════════════");
+            Console.WriteLine("Paper loaded! You can now ask questions about it.");
+            Console.WriteLine("   Type 'exit' or 'quit' to end the chat session.");
+            Console.WriteLine("   Database: VolatileMemoryStore (in-memory vectors)");
+            Console.WriteLine("═══════════════════════════════════════════════════════\n");
+
+            while (true)
+            {
+                Console.Write("\n> Your question: ");
+                var question = Console.ReadLine()?.Trim();
+
+                if (string.IsNullOrEmpty(question))
+                    continue;
+
+                if (question.ToLower() is "exit" or "quit" or "done")
+                {
+                    Console.WriteLine("\nEnding chat session. Paper data will be cleared from memory.");
+                    break;
+                }
+
+                Console.WriteLine();
+                var answer = await _paperRAGService.AskQuestionAsync(collectionName, question);
+                Console.WriteLine($" Answer:\n{answer}\n");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in RAG chat: {ex.Message}");
         }
         PrintSectionFooter();
     }

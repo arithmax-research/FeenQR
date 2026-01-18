@@ -2,6 +2,8 @@ using QuantResearchAgent.Services;
 using QuantResearchAgent.Services.ResearchAgents;
 using QuantResearchAgent.Plugins;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Embeddings;
+using Microsoft.SemanticKernel.Memory;
 using Microsoft.AspNetCore.StaticFiles;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,6 +42,28 @@ builder.Services.AddSingleton<Kernel>(sp =>
     }
     
     return kernelBuilder.Build();
+});
+
+// Register embedding service for RAG
+builder.Services.AddSingleton<ITextEmbeddingGenerationService>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var openAiKey = configuration["OpenAI:ApiKey"];
+    
+    if (string.IsNullOrEmpty(openAiKey))
+    {
+        throw new InvalidOperationException("OpenAI API key is required for RAG functionality");
+    }
+    
+    return new OpenAITextEmbeddingGenerationService("text-embedding-3-small", openAiKey);
+});
+
+// Register semantic memory with volatile store
+builder.Services.AddSingleton<ISemanticTextMemory>(sp =>
+{
+    var embeddingService = sp.GetRequiredService<ITextEmbeddingGenerationService>();
+    var memoryStore = new VolatileMemoryStore();
+    return new SemanticTextMemory(memoryStore, embeddingService);
 });
 
 // Register FeenQR services
@@ -90,6 +114,7 @@ builder.Services.AddSingleton<AcademicResearchService>();
 builder.Services.AddSingleton<YouTubeAnalysisService>();
 builder.Services.AddSingleton<ReportGenerationService>();
 builder.Services.AddSingleton<LinkedInScrapingService>();
+builder.Services.AddSingleton<PaperRAGService>();
 
 // Register Portfolio Management services
 builder.Services.AddSingleton<PortfolioService>();
