@@ -133,6 +133,10 @@
               "target": "Package",
               "version": "[0.1.11, )"
             },
+            "Qdrant.Client": {
+              "target": "Package",
+              "version": "[1.16.1, )"
+            },
             "Reddit": {
               "target": "Package",
               "version": "[1.5.2, )"

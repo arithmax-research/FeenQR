@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "pZ85sLFS2wE=",
+  "dgSpecHash": "8F8CqO/uSjU=",
   "success": true,
   "projectFilePath": "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj",
   "expectedPackageFiles": [
@@ -14,6 +14,10 @@
     "/home/misango/.nuget/packages/google.apis.auth/1.68.0/google.apis.auth.1.68.0.nupkg.sha512",
     "/home/misango/.nuget/packages/google.apis.core/1.68.0/google.apis.core.1.68.0.nupkg.sha512",
     "/home/misango/.nuget/packages/google.apis.youtube.v3/1.68.0.3617/google.apis.youtube.v3.1.68.0.3617.nupkg.sha512",
+    "/home/misango/.nuget/packages/google.protobuf/3.31.0/google.protobuf.3.31.0.nupkg.sha512",
+    "/home/misango/.nuget/packages/grpc.core.api/2.71.0/grpc.core.api.2.71.0.nupkg.sha512",
+    "/home/misango/.nuget/packages/grpc.net.client/2.71.0/grpc.net.client.2.71.0.nupkg.sha512",
+    "/home/misango/.nuget/packages/grpc.net.common/2.71.0/grpc.net.common.2.71.0.nupkg.sha512",
     "/home/misango/.nuget/packages/htmlagilitypack/1.11.65/htmlagilitypack.1.11.65.nupkg.sha512",
     "/home/misango/.nuget/packages/mathnet.numerics/5.0.0/mathnet.numerics.5.0.0.nupkg.sha512",
     "/home/misango/.nuget/packages/microsoft.bcl.asyncinterfaces/8.0.0/microsoft.bcl.asyncinterfaces.8.0.0.nupkg.sha512",
@@ -72,6 +76,7 @@
     "/home/misango/.nuget/packages/pdfpig/0.1.11/pdfpig.0.1.11.nupkg.sha512",
     "/home/misango/.nuget/packages/polly/8.5.0/polly.8.5.0.nupkg.sha512",
     "/home/misango/.nuget/packages/polly.core/8.5.0/polly.core.8.5.0.nupkg.sha512",
+    "/home/misango/.nuget/packages/qdrant.client/1.16.1/qdrant.client.1.16.1.nupkg.sha512",
     "/home/misango/.nuget/packages/reddit/1.5.2/reddit.1.5.2.nupkg.sha512",
     "/home/misango/.nuget/packages/restsharp/112.0.0/restsharp.112.0.0.nupkg.sha512",
     "/home/misango/.nuget/packages/skender.stock.indicators/3.0.0-preview.1/skender.stock.indicators.3.0.0-preview.1.nupkg.sha512",
