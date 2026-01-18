@@ -438,20 +438,15 @@
                         }
                         else
                         {
-                            <div @ondragover="PreventDefault" 
-                                 @ondragover:preventDefault
-                                 @ondrop="PreventDefault" 
-                                 @ondrop:preventDefault
-                                 @ondragenter="HandleDragEnter"
-                                 @ondragleave="HandleDragLeave"
-                                 @onclick="TriggerFileUpload"
-                                 class="@(isDragging ? "pdf-drop-zone-active" : "pdf-drop-zone")"
+                            <InputFile OnChange="HandlePdfUpload" accept=".pdf" style="display: none;" id="pdfUpload" />
+                            <label for="pdfUpload"
+                                 class="pdf-drop-zone"
                                  style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; cursor: pointer; transition: all 0.3s ease;">
-                                <div style="text-align: center; pointer-events: none;">
-                                    <div style="font-size: 1.1rem; margin-bottom: 0.5rem; font-weight: 500;">@(isDragging ? "Drop PDF here" : "Drag & Drop or Click to Upload")</div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1.1rem; margin-bottom: 0.5rem; font-weight: 500;">Click to Upload PDF</div>
                                     <div style="font-size: 0.85rem; color: #4b5563;">Supports PDF files up to 50MB</div>
                                 </div>
-                            </div>
+                            </label>
                         }
                     </div>
                 </div>
@@ -474,8 +469,6 @@
                                     <span>Load URL</span>
                                 }
                             </button>
-                            
-                            <InputFile OnChange="HandlePdfUpload" accept=".pdf" style="display: none;" id="pdfUpload" />
                             
                             @if (loadedPapers.Any())
                             {
@@ -1010,23 +1003,10 @@
     private bool isLoadingPaper = false;
     private bool isAskingQuestion = false;
     private bool isClearingPapers = false;
-    private bool isDragging = false;
     private List<RagMessage> ragMessages = new();
     private List<LoadedPaperInfo> loadedPapers = new();
     private string currentPdfUrl = "";
     private string currentPaperTitle = "";
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender || activeTab == "rag-chat")
-        {
-            try
-            {
-                await JS.InvokeVoidAsync("setupPdfDropZone");
-            }
-            catch { /* Ignore if not available yet */ }
-        }
-    }
 
     public class LoadedPaperInfo
     {
@@ -2257,35 +2237,6 @@
     public class AskQuestionResponse
     {
         public string Answer { get; set; } = "";
-    }
-
-    private void PreventDefault()
-    {
-        // Prevents default browser behavior for drag events
-    }
-
-    private void HandleDragEnter()
-    {
-        isDragging = true;
-        StateHasChanged();
-    }
-
-    private void HandleDragLeave()
-    {
-        isDragging = false;
-        StateHasChanged();
-    }
-
-    private async Task TriggerFileUpload()
-    {
-        try
-        {
-            await JS.InvokeVoidAsync("document.getElementById('pdfUpload').click");
-        }
-        catch (Exception ex)
-        {
-            await JS.InvokeVoidAsync("console.error", $"Error triggering upload: {ex.Message}");
-        }
     }
 
 }
