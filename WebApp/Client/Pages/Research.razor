@@ -413,6 +413,30 @@
             </div>
         }
 
+        @if (activeTab == "video-analysis")
+        {
+            <div class="section-header">
+                Video Analysis
+            </div>
+
+            <div class="chat-interface">
+                <input type="text" class="chat-input" placeholder="Enter YouTube URL or search for finance videos..." @bind="videoQuery" />
+                <button class="chat-submit" @onclick="AnalyzeVideo">Analyze</button>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="progress-container">
+                    <div class="spinner"></div>
+                    <div class="progress-text">Analyzing video content...</div>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(lastResult))
+            {
+                <AIOutputRenderer Content="@lastResult" />
+            }
+        }
+
         @if (activeTab == "rag-chat")
         {
             @if (!string.IsNullOrEmpty(ragError))
