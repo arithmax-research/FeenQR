@@ -415,51 +415,6 @@
 
         @if (activeTab == "rag-chat")
         {
-            <div class="section-header">
-                RAG Paper Chat - Deep Academic Analysis
-            </div>
-
-            <!-- Paper Loading Controls -->
-            <div style="padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 12px; margin-bottom: 1rem;">
-                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                    <input type="text" @bind="paperUrl" placeholder="Enter paper URL (e.g., https://arxiv.org/abs/2508.11152)" 
-                           style="flex: 1; min-width: 300px; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff;" />
-                    <button class="action-btn" @onclick="LoadPaper" disabled="@isLoadingPaper">
-                        @if (isLoadingPaper)
-                        {
-                            <span>Loading...</span>
-                        }
-                        else
-                        {
-                            <span>Load URL</span>
-                        }
-                    </button>
-                    
-                    <InputFile OnChange="HandlePdfUpload" accept=".pdf" style="display: none;" id="pdfUpload" />
-                    <label for="pdfUpload" class="action-btn" style="margin: 0; cursor: pointer; display: inline-block; text-align: center;">
-                        Upload PDF
-                    </label>
-                    
-                    @if (loadedPapers.Any())
-                    {
-                        <select @onchange="SelectLoadedPaper" style="min-width: 200px; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff;">
-                            <option value="">Select a loaded paper...</option>
-                            @foreach (var paper in loadedPapers)
-                            {
-                                <option value="@paper.CollectionName">@paper.PaperTitle (@paper.ChunkCount chunks)</option>
-                            }
-                        </select>
-                    }
-                    
-                    @if (!string.IsNullOrEmpty(ragCollectionName))
-                    {
-                        <button class="action-btn danger" @onclick="ClearPapers" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
-                            Clear All
-                        </button>
-                    }
-                </div>
-            </div>
-
             @if (!string.IsNullOrEmpty(ragError))
             {
                 <div style="padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; margin-bottom: 1rem;">
@@ -467,39 +422,83 @@
                 </div>
             }
 
-            @if (!string.IsNullOrEmpty(ragCollectionName))
-            {
-                <!-- Split View: PDF Viewer + Chat -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; height: calc(100vh - 250px); min-height: 700px;">
+            <!-- Split View: PDF Viewer + Chat with Controls -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; height: calc(100vh - 200px); min-height: 750px;">
+                
+                <!-- Left: PDF Viewer -->
+                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
+                    <div style="padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.3);">
+                        <div style="color: #10b981; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">PDF Viewer</div>
+                        <div style="color: #9ca3af; font-size: 0.8rem;">@(!string.IsNullOrEmpty(currentPaperTitle) ? currentPaperTitle : "No paper loaded")</div>
+                    </div>
+                    <div style="flex: 1; overflow: auto; background: #1a1a1a;">
+                        @if (!string.IsNullOrEmpty(currentPdfUrl))
+                        {
+                            <iframe src="@GetPdfViewerUrl()" style="width: 100%; height: 100%; border: none;"></iframe>
+                        }
+                        else
+                        {
+                            <div @ondragover="PreventDefault" 
+                                 @ondragover:preventDefault
+                                 @ondrop="PreventDefault" 
+                                 @ondrop:preventDefault
+                                 @ondragenter="HandleDragEnter"
+                                 @ondragleave="HandleDragLeave"
+                                 @onclick="TriggerFileUpload"
+                                 class="@(isDragging ? "pdf-drop-zone-active" : "pdf-drop-zone")"
+                                 style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; cursor: pointer; transition: all 0.3s ease;">
+                                <div style="text-align: center; pointer-events: none;">
+                                    <div style="font-size: 1.1rem; margin-bottom: 0.5rem; font-weight: 500;">@(isDragging ? "Drop PDF here" : "Drag & Drop or Click to Upload")</div>
+                                    <div style="font-size: 0.85rem; color: #4b5563;">Supports PDF files up to 50MB</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Right: Controls + Chat Interface -->
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
                     
-                    <!-- Left: PDF Viewer -->
-                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
-                        <div style="padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.3);">
-                            <div style="color: #10b981; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">PDF Viewer</div>
-                            <div style="color: #9ca3af; font-size: 0.8rem;">@currentPaperTitle</div>
-                        </div>
-                        <div style="flex: 1; overflow: auto; background: #1a1a1a;">
-                            @if (!string.IsNullOrEmpty(currentPdfUrl))
+                    <!-- Paper Loading Controls - Above chat -->
+                    <div style="padding: 1rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                            <input type="text" @bind="paperUrl" placeholder="Enter paper URL (e.g., https://arxiv.org/abs/2508.11152)" 
+                                   style="flex: 1; min-width: 250px; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff; font-size: 0.9rem;" />
+                            <button class="action-btn" @onclick="LoadPaper" disabled="@isLoadingPaper" style="padding: 0.75rem 1rem;">
+                                @if (isLoadingPaper)
+                                {
+                                    <span>Loading...</span>
+                                }
+                                else
+                                {
+                                    <span>Load URL</span>
+                                }
+                            </button>
+                            
+                            <InputFile OnChange="HandlePdfUpload" accept=".pdf" style="display: none;" id="pdfUpload" />
+                            
+                            @if (loadedPapers.Any())
                             {
-                                <iframe src="@GetPdfViewerUrl()" style="width: 100%; height: 100%; border: none;"></iframe>
+                                <select @onchange="SelectLoadedPaper" style="min-width: 180px; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff; font-size: 0.9rem;">
+                                    <option value="">Select a loaded paper...</option>
+                                    @foreach (var paper in loadedPapers)
+                                    {
+                                        <option value="@paper.CollectionName">@paper.PaperTitle (@paper.ChunkCount chunks)</option>
+                                    }
+                                </select>
                             }
-                            else
+                            
+                            @if (!string.IsNullOrEmpty(ragCollectionName))
                             {
-                                <label for="pdfUpload"
-                                     class="pdf-drop-zone"
-                                     style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; cursor: pointer; transition: all 0.3s ease;">
-                                    <div style="text-align: center; pointer-events: none;">
-                                        <div style="font-size: 3rem; margin-bottom: 1rem;">📄</div>
-                                        <div style="font-size: 1.1rem; margin-bottom: 0.5rem; font-weight: 500;">Click to upload PDF</div>
-                                        <div style="font-size: 0.85rem; color: #4b5563;">Supports PDF files up to 50MB</div>
-                                    </div>
-                                </label>
+                                <button class="action-btn danger" @onclick="ClearPapers" style="padding: 0.75rem 1rem; font-size: 0.9rem;">
+                                    Clear All
+                                </button>
                             }
                         </div>
                     </div>
 
-                    <!-- Right: Chat Interface -->
-                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
+                    <!-- Chat Interface -->
+                    <div style="flex: 1; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
                         <div style="padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.3);">
                             <div style="color: #3b82f6; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">AI Chat Assistant</div>
                             <div style="color: #9ca3af; font-size: 0.8rem;">Powered by RAG + Qdrant</div>
@@ -531,9 +530,12 @@
                                 <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; text-align: center;">
                                     <div>
                                         <div style="font-size: 2rem; margin-bottom: 0.5rem;">Tip</div>
-                                        <div>Ask a question about the paper</div>
+                                        <div>@(string.IsNullOrEmpty(ragCollectionName) ? "Load a paper to start chatting" : "Ask a question about the paper")</div>
                                         <div style="font-size: 0.8rem; margin-top: 0.5rem; color: #4b5563;">
-                                            Try: "What is the main contribution?" or "Explain the methodology"
+                                            @if (!string.IsNullOrEmpty(ragCollectionName))
+                                            {
+                                                <span>Try: "What is the main contribution?" or "Explain the methodology"</span>
+                                            }
                                         </div>
                                     </div>
                                 </div>
@@ -544,8 +546,9 @@
                         <div style="padding: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.3);">
                             <div style="display: flex; gap: 0.5rem;">
                                 <input type="text" @bind="ragQuestion" @onkeypress="HandleChatKeyPress" placeholder="Ask a question about the paper..." 
-                                       style="flex: 1; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff;" />
-                                <button class="action-btn" @onclick="AskQuestion" disabled="@isAskingQuestion" style="min-width: 100px;">
+                                       style="flex: 1; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff;" 
+                                       disabled="@(string.IsNullOrEmpty(ragCollectionName))" />
+                                <button class="action-btn" @onclick="AskQuestion" disabled="@(isAskingQuestion || string.IsNullOrEmpty(ragCollectionName))" style="min-width: 100px;">
                                     @if (isAskingQuestion)
                                     {
                                         <span>Thinking...</span>
@@ -559,8 +562,7 @@
                         </div>
                     </div>
                 </div>
-            }
-
+            </div>
         }
 
         @if (activeTab == "academic-papers")
@@ -1008,10 +1010,23 @@
     private bool isLoadingPaper = false;
     private bool isAskingQuestion = false;
     private bool isClearingPapers = false;
+    private bool isDragging = false;
     private List<RagMessage> ragMessages = new();
     private List<LoadedPaperInfo> loadedPapers = new();
     private string currentPdfUrl = "";
     private string currentPaperTitle = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || activeTab == "rag-chat")
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("setupPdfDropZone");
+            }
+            catch { /* Ignore if not available yet */ }
+        }
+    }
 
     public class LoadedPaperInfo
     {
@@ -2242,6 +2257,35 @@
     public class AskQuestionResponse
     {
         public string Answer { get; set; } = "";
+    }
+
+    private void PreventDefault()
+    {
+        // Prevents default browser behavior for drag events
+    }
+
+    private void HandleDragEnter()
+    {
+        isDragging = true;
+        StateHasChanged();
+    }
+
+    private void HandleDragLeave()
+    {
+        isDragging = false;
+        StateHasChanged();
+    }
+
+    private async Task TriggerFileUpload()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("document.getElementById('pdfUpload').click");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error triggering upload: {ex.Message}");
+        }
     }
 
 }

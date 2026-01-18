@@ -2,6 +2,7 @@
 /obj/
 /logs/
 /aws-deploy/
+/qdrant_storage/
 
 # Ignore config file
 appsettings.json

@@ -87,6 +87,38 @@
                 });
             }
         };
+
+        // Handle PDF drag and drop
+        window.setupPdfDropZone = () => {
+            const dropZones = document.querySelectorAll('.pdf-drop-zone, .pdf-drop-zone-active');
+            dropZones.forEach(zone => {
+                zone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0 && files[0].name.toLowerCase().endsWith('.pdf')) {
+                        // Trigger the hidden file input
+                        const fileInput = document.getElementById('pdfUpload');
+                        if (fileInput) {
+                            // Create a new DataTransfer to set files
+                            const dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(files[0]);
+                            fileInput.files = dataTransfer.files;
+                            // Trigger change event
+                            fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    }
+                });
+            });
+        };
+
+        // Call setup on load and after any updates
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', window.setupPdfDropZone);
+        } else {
+            window.setupPdfDropZone();
+        }
     </script>
     
     <script>
