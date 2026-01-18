@@ -364,23 +364,6 @@ public class InteractiveCLI
     {
         UIHelper.ShowBanner();
         
-        // Quick Actions Panel
-        var quickPanel = new Panel(
-            "[cyan1]chat[/]          AI Assistant (natural language queries)\n" +
-            "[cyan1]analyze <SYM>[/]  Quick comprehensive analysis\n" +
-            "[cyan1]news <SYM>[/]     Latest news & sentiment\n" +
-            "[cyan1]help <CMD>[/]     Get help for specific command"
-        )
-        {
-            Header = new PanelHeader("[bold]Quick Actions[/]", Justify.Left),
-            Border = BoxBorder.Rounded,
-            BorderStyle = new Style(Color.Grey)
-        };
-        
-        AnsiConsole.Write(quickPanel);
-        AnsiConsole.WriteLine();
-        
-        // Main Categories Table
         var table = new Table()
             .Border(TableBorder.Rounded)
             .BorderColor(Color.Grey)
@@ -388,21 +371,33 @@ public class InteractiveCLI
             .AddColumn(new TableColumn("[bold]Category[/]").LeftAligned())
             .AddColumn(new TableColumn("[bold]Description[/]").LeftAligned());
         
-        table.AddRow("[cyan1]1[/]", "[cyan1]Market Data[/]", "Real-time quotes & historical data");
-        table.AddRow("[dodgerblue2]2[/]", "[dodgerblue2]Technical Analysis[/]", "TA indicators, patterns & charts");
-        table.AddRow("[magenta1]3[/]", "[magenta1]Fundamental & News[/]", "Earnings, SEC filings & sentiment");
-        table.AddRow("[yellow]4[/]", "[yellow]Portfolio[/]", "Portfolio management & tracking");
-        table.AddRow("[red]5[/]", "[red]Risk Analysis[/]", "VaR, stress testing & optimization");
-        table.AddRow("[green]6[/]", "[green]Research[/]", "Academic papers & strategies");
-        table.AddRow("[dodgerblue2]7[/]", "[dodgerblue2]Advanced Analytics[/]", "ML, forecasting & statistics");
-        table.AddRow("[magenta1]8[/]", "[magenta1]Trading Strategies[/]", "Strategy building & backtesting");
-        table.AddRow("[red]9[/]", "[red]Live Trading[/]", "Orders, execution & monitoring");
-        table.AddRow("[grey]0[/]", "[grey]Settings & Help[/]", "Configuration & documentation");
+        table.AddRow("[cyan1]1[/]", "[cyan1]AI & Chat[/]", "AI assistants, DeepSeek, strategy generation");
+        table.AddRow("[dodgerblue2]2[/]", "[dodgerblue2]Market Data[/]", "Real-time quotes & historical data");
+        table.AddRow("[magenta1]3[/]", "[magenta1]Technical Analysis[/]", "TA indicators, patterns & charts");
+        table.AddRow("[green]4[/]", "[green]Fundamental & News[/]", "Earnings, SEC filings & sentiment");
+        table.AddRow("[yellow]5[/]", "[yellow]Portfolio Management[/]", "Portfolio tracking & analytics");
+        table.AddRow("[red]6[/]", "[red]Risk Analysis[/]", "VaR, stress testing & risk metrics");
+        table.AddRow("[dodgerblue2]7[/]", "[dodgerblue2]Portfolio Optimization[/]", "Black-Litterman, risk parity, HRP");
+        table.AddRow("[cyan1]8[/]", "[cyan1]Research & Academic[/]", "Academic papers & strategies");
+        table.AddRow("[magenta1]9[/]", "[magenta1]Statistical Analysis[/]", "Hypothesis testing, time series");
+        table.AddRow("[green]10[/]", "[green]Forecasting & ML[/]", "Time series forecasting, AutoML");
+        table.AddRow("[dodgerblue2]11[/]", "[dodgerblue2]AI/ML Advanced[/]", "SHAP, anomaly detection, regime");
+        table.AddRow("[red]12[/]", "[red]Reinforcement Learning[/]", "Q-learning, policy gradient, RL agents");
+        table.AddRow("[cyan1]13[/]", "[cyan1]Economic Data[/]", "FRED, World Bank, OECD, IMF, Fed");
+        table.AddRow("[magenta1]14[/]", "[magenta1]Social & Sentiment[/]", "Reddit, social media, sentiment");
+        table.AddRow("[green]15[/]", "[green]Web Intelligence[/]", "Web scraping, patents, satellite");
+        table.AddRow("[dodgerblue2]16[/]", "[dodgerblue2]Options & Derivatives[/]", "Options flow, volatility, Greeks");
+        table.AddRow("[red]17[/]", "[red]Microstructure & HFT[/]", "Order book, HFT, latency arbitrage");
+        table.AddRow("[yellow]18[/]", "[yellow]Execution & Trading[/]", "Optimal execution, VWAP, TWAP");
+        table.AddRow("[red]19[/]", "[red]Live Trading[/]", "Live strategies, alerts, compliance");
+        table.AddRow("[cyan1]20[/]", "[cyan1]Strategy Building[/]", "Template generation, backtesting");
+        table.AddRow("[green]21[/]", "[green]Simulation & Reports[/]", "Monte Carlo, notebooks, reports");
+        table.AddRow("[grey]0[/]", "[grey]Utilities & Help[/]", "Settings, help, commands list");
         
         AnsiConsole.Write(table);
         AnsiConsole.WriteLine();
         
-        AnsiConsole.MarkupLine("[dim]Type: number for menu, command name, or 'quit' to exit[/]");
+        AnsiConsole.MarkupLine("[dim]Type: number for menu, command name, 'commands' for full list, or 'quit' to exit[/]");
         
         var prompt = AnsiConsole.Prompt(
             new TextPrompt<string>("[cyan1]agent>[/]")
@@ -417,31 +412,67 @@ public class InteractiveCLI
         switch (choice)
         {
             case 1:
-                await ShowMarketDataMenu();
+                await ShowAIChatMenu();
                 break;
             case 2:
-                await ShowTechnicalAnalysisMenu();
+                await ShowMarketDataMenu();
                 break;
             case 3:
-                await ShowFundamentalMenu();
+                await ShowTechnicalAnalysisMenu();
                 break;
             case 4:
-                await ShowPortfolioMenu();
+                await ShowFundamentalMenu();
                 break;
             case 5:
-                await ShowRiskAnalysisMenu();
+                await ShowPortfolioMenu();
                 break;
             case 6:
-                await ShowResearchMenu();
+                await ShowRiskAnalysisMenu();
                 break;
             case 7:
-                await ShowAdvancedAnalyticsMenu();
+                await ShowOptimizationMenu();
                 break;
             case 8:
-                await ShowTradingStrategiesMenu();
+                await ShowResearchMenu();
                 break;
             case 9:
+                await ShowStatisticalAnalysisMenu();
+                break;
+            case 10:
+                await ShowForecastingMLMenu();
+                break;
+            case 11:
+                await ShowAIMLAdvancedMenu();
+                break;
+            case 12:
+                await ShowReinforcementLearningMenu();
+                break;
+            case 13:
+                await ShowEconomicDataMenu();
+                break;
+            case 14:
+                await ShowSocialSentimentMenu();
+                break;
+            case 15:
+                await ShowWebIntelligenceMenu();
+                break;
+            case 16:
+                await ShowOptionsDerivativesMenu();
+                break;
+            case 17:
+                await ShowMicrostructureMenu();
+                break;
+            case 18:
+                await ShowExecutionMenu();
+                break;
+            case 19:
                 await ShowLiveTradingMenu();
+                break;
+            case 20:
+                await ShowStrategyBuildingMenu();
+                break;
+            case 21:
+                await ShowSimulationReportsMenu();
                 break;
             case 0:
                 ShowHelpMenu();
@@ -449,6 +480,359 @@ public class InteractiveCLI
             default:
                 UIHelper.ShowError($"Invalid menu choice: {choice}");
                 break;
+        }
+    }
+
+    private async Task ShowAIChatMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("AI & Chat");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("ai-assistant <QUERY>", "AI-powered research assistant"),
+            ("chat <QUERY>", "Alias for ai-assistant"),
+            ("deepseek-chat <QUERY>", "DeepSeek R1 reasoning & strategy"),
+            ("deepseek <QUERY>", "Alias for deepseek-chat"),
+            ("strategy <QUERY>", "Generate trading strategies with AI"),
+            ("research-llm <QUERY>", "Advanced research with LLM"),
+            ("analyze-video <URL>", "Analyze YouTube video"),
+            ("get-quantopian-videos", "Latest Quantopian videos"),
+            ("search-finance-videos <QUERY>", "Search finance videos")
+        };
+        
+        await ShowSubMenu(commands);
+    }
+
+    private async Task ShowOptimizationMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Portfolio Optimization");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("black-litterman <ASSETS>", "Black-Litterman optimization"),
+            ("risk-parity <ASSETS>", "Risk parity optimization"),
+            ("hierarchical-risk-parity <ASSETS>", "HRP optimization"),
+            ("minimum-variance <ASSETS>", "Min variance optimization"),
+            ("compare-optimization <ASSETS>", "Compare optimization methods"),
+            ("fama-french-3factor <ASSETS>", "Fama-French 3-factor model"),
+            ("carhart-4factor <ASSETS>", "Carhart 4-factor model"),
+            ("custom-factor-model <ASSETS>", "Custom factor model"),
+            ("factor-attribution <ASSETS>", "Factor attribution"),
+            ("compare-factor-models <ASSETS>", "Compare factor models")
+        };
+        
+        await ShowSubMenu(commands);
+    }
+
+    private async Task ShowStatisticalAnalysisMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Statistical Analysis");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("statistical-test <TYPE>", "Statistical testing"),
+            ("hypothesis-test <NULL> <ALT>", "Hypothesis testing"),
+            ("power-analysis <EFFECT> <SIZE>", "Power analysis"),
+            ("time-series-analysis <SYM>", "Time series analysis"),
+            ("stationarity-test <SYM>", "Stationarity test"),
+            ("autocorrelation-analysis <SYM>", "Autocorrelation analysis"),
+            ("seasonal-decomposition <SYM>", "Seasonal decomposition"),
+            ("engle-granger-test <SYM1> <SYM2>", "Engle-Granger cointegration"),
+            ("johansen-test <SYMS>", "Johansen cointegration"),
+            ("granger-causality <SYM1> <SYM2>", "Granger causality test"),
+            ("lead-lag-analysis <SYM1> <SYM2>", "Lead-lag relationship")
+        };
+        
+        await ShowSubMenu(commands);
+    }
+
+    private async Task ShowForecastingMLMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Forecasting & Machine Learning");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("forecast <SYM>", "Time series forecasting"),
+            ("forecast-compare <SYM>", "Compare forecast methods"),
+            ("forecast-accuracy <SYM>", "Forecast accuracy analysis"),
+            ("feature-engineer <SYM>", "Feature engineering"),
+            ("feature-importance <SYM>", "Feature importance"),
+            ("feature-select <SYM>", "Feature selection"),
+            ("automl <SYMBOLS>", "AutoML pipeline"),
+            ("model-selection <TYPE>", "Select optimal model"),
+            ("ensemble-prediction <SYMBOLS>", "Ensemble predictions"),
+            ("cross-validation <MODEL>", "Cross-validation"),
+            ("hyperparameter-opt <MODEL>", "Hyperparameter optimization")
+        };
+        
+        await ShowSubMenu(commands);
+    }
+
+    private async Task ShowAIMLAdvancedMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("AI/ML Advanced");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("shap-analysis <MODEL>", "SHAP feature analysis"),
+            ("partial-dependence <MODEL>", "Partial dependence plots"),
+            ("feature-interactions <MODEL>", "Feature interaction analysis"),
+            ("explain-prediction <MODEL>", "Explain model predictions"),
+            ("permutation-importance <MODEL>", "Permutation importance"),
+            ("model-fairness <MODEL>", "Model fairness analysis"),
+            ("interpretability-report <MODEL>", "Interpretability report"),
+            ("detect-anomalies <SYMBOLS>", "Anomaly detection"),
+            ("detect-market-regime <SYMBOLS>", "Market regime detection"),
+            ("dynamic-factors <SYMBOLS>", "Dynamic factor analysis")
+        };
+        
+        await ShowSubMenu(commands);
+    }
+
+    private async Task ShowReinforcementLearningMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Reinforcement Learning");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("train-q-learning <ENV>", "Train Q-learning agent"),
+            ("train-policy-gradient <ENV>", "Train policy gradient agent"),
+            ("train-actor-critic <ENV>", "Train actor-critic agent"),
+            ("adapt-strategy <AGENT>", "Adapt trading strategy"),
+            ("bandit-optimization <ARMS>", "Multi-armed bandit optimization"),
+            ("contextual-bandit <CONTEXT>", "Contextual bandit"),
+            ("evaluate-rl-agent <AGENT>", "Evaluate RL agent"),
+            ("rl-strategy-report <AGENT>", "RL strategy performance report")
+        };
+        
+        await ShowSubMenu(commands);
+    }
+
+    private async Task ShowEconomicDataMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Economic Data");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("fred-series <ID>", "FRED economic data series"),
+            ("fred-search <QUERY>", "Search FRED indicators"),
+            ("fred-popular", "Popular FRED series"),
+            ("worldbank-series <IND> <COUNTRY>", "World Bank data"),
+            ("worldbank-search <QUERY>", "Search World Bank"),
+            ("worldbank-popular", "Popular WB indicators"),
+            ("oecd-series <IND> <COUNTRY>", "OECD data series"),
+            ("oecd-search <QUERY>", "Search OECD indicators"),
+            ("oecd-popular", "Popular OECD indicators"),
+            ("imf-series <IND> <COUNTRY>", "IMF data series"),
+            ("imf-search <QUERY>", "Search IMF indicators"),
+            ("imf-popular", "Popular IMF indicators"),
+            ("fed-fomc-announcements <DATE>", "FOMC announcements"),
+            ("fed-interest-rates", "Federal Reserve interest rates"),
+            ("fed-economic-projections", "Fed economic projections"),
+            ("fed-speeches <QUERY>", "Federal Reserve speeches"),
+            ("global-economic-indicators <COUNTRY>", "Global economic indicators"),
+            ("global-supply-chain <REGION>", "Supply chain data"),
+            ("global-trade-data <COUNTRY>", "International trade data"),
+            ("global-currency-data <CURRENCY>", "Currency market data"),
+            ("global-commodity-prices <COMMODITY>", "Commodity prices")
+        };
+        
+        await ShowSubMenu(commands);
+    }
+
+    private async Task ShowSocialSentimentMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Social Media & Sentiment");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("reddit-sentiment <SYM>", "Reddit sentiment analysis"),
+            ("reddit-scrape <SYM>", "Scrape Reddit discussions"),
+            ("reddit-finance-trending", "Trending on finance subreddits"),
+            ("reddit-finance-search <QUERY>", "Search finance subreddits"),
+            ("reddit-finance-sentiment <SYM>", "Finance subreddit sentiment"),
+            ("reddit-market-pulse", "Market pulse from Reddit"),
+            ("scrape-social-media <PLATFORM>", "Social media scraping")
+        };
+        
+        await ShowSubMenu(commands);
+    }
+
+    private async Task ShowWebIntelligenceMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Web Intelligence");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("web-scrape-earnings <SYM>", "Scrape earnings data"),
+            ("web-monitor-communications <SYM>", "Monitor company communications"),
+            ("web-analyze-sentiment <URL>", "Analyze web sentiment"),
+            ("web-analyze-social <PLATFORM>", "Social media analysis"),
+            ("extract-web-data <URL>", "Extract web data"),
+            ("patent-search <QUERY>", "Search patents"),
+            ("patent-innovation <COMPANY>", "Innovation analysis via patents"),
+            ("patent-citations <PATENT>", "Patent citation analysis"),
+            ("patent-value <PATENT>", "Patent valuation"),
+            ("analyze-satellite-imagery <LOC>", "Satellite imagery analysis"),
+            ("geo-satellite <LOCATION>", "Geographic satellite data")
+        };
+        
+        await ShowSubMenu(commands);
+    }
+
+    private async Task ShowOptionsDerivativesMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Options & Derivatives");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("options-flow <SYM>", "Options flow analysis"),
+            ("unusual-options <SYM>", "Unusual options activity"),
+            ("gamma-exposure <SYM>", "Gamma exposure analysis"),
+            ("options-orderbook <SYM>", "Options order book"),
+            ("volatility-surface <SYM>", "Volatility surface"),
+            ("vix-analysis", "VIX analysis"),
+            ("volatility-strategy <TYPE>", "Volatility trading strategy"),
+            ("volatility-monitor <SYM>", "Volatility monitoring"),
+            ("vol-surface <SYM>", "Volatility surface visualization")
+        };
+        
+        await ShowSubMenu(commands);
+    }
+
+    private async Task ShowMicrostructureMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Microstructure & HFT");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("order-book-analysis <SYM>", "Order book analysis"),
+            ("market-depth <SYM>", "Market depth analysis"),
+            ("liquidity-analysis <SYM>", "Liquidity analysis"),
+            ("spread-analysis <SYM>", "Bid-ask spread analysis"),
+            ("orderbook-reconstruction <SYM>", "Order book reconstruction"),
+            ("hft-analysis <SYM>", "High-frequency trading analysis"),
+            ("manipulation-detection <SYM>", "Market manipulation detection"),
+            ("latency-arbitrage <SYM1> <SYM2>", "Latency arbitrage opportunities"),
+            ("latency-scan <VENUE>", "Venue latency scanning"),
+            ("colocation-analysis <VENUE>", "Co-location analysis"),
+            ("order-routing <ORDER>", "Smart order routing"),
+            ("market-data-feeds <VENUE>", "Market data feed analysis"),
+            ("arbitrage-profitability <STRAT>", "Arbitrage profitability")
+        };
+        
+        await ShowSubMenu(commands);
+    }
+
+    private async Task ShowExecutionMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Execution & Trading");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("bracket-order <SYM>", "Place bracket order"),
+            ("oco-order <SYM>", "Place OCO order"),
+            ("trailing-stop <SYM>", "Trailing stop order"),
+            ("almgren-chriss <ORDER>", "Almgren-Chriss execution"),
+            ("implementation-shortfall <ORDER>", "Implementation shortfall"),
+            ("price-impact <ORDER>", "Price impact analysis"),
+            ("vwap-schedule <ORDER>", "VWAP scheduling"),
+            ("twap-schedule <ORDER>", "TWAP scheduling"),
+            ("iceberg-order <ORDER>", "Iceberg order execution"),
+            ("smart-routing <ORDER>", "Smart order routing"),
+            ("execution-optimization <ORDER>", "Execution optimization"),
+            ("optimal-execution <ORDER>", "Optimal execution strategy")
+        };
+        
+        await ShowSubMenu(commands);
+    }
+
+    private async Task ShowStrategyBuildingMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Strategy Building");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("generate-template <SYM>", "Generate trading template"),
+            ("trading-template <SYM>", "Trading strategy template"),
+            ("build-strategy <TYPE>", "Build interactive strategy"),
+            ("optimize-strategy <ID>", "Optimize strategy parameters"),
+            ("backtest <STRATEGY>", "Backtest strategy"),
+            ("agent-strategy <SYM>", "Generate strategy with agent")
+        };
+        
+        await ShowSubMenu(commands);
+    }
+
+    private async Task ShowSimulationReportsMenu()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Simulation & Reports");
+        
+        var commands = new List<(string command, string description)>
+        {
+            ("portfolio-monte-carlo <ASSETS>", "Portfolio Monte Carlo simulation"),
+            ("option-monte-carlo <PARAMS>", "Option pricing Monte Carlo"),
+            ("scenario-analysis <SCENARIOS>", "Scenario analysis"),
+            ("create-notebook <NAME>", "Create research notebook"),
+            ("execute-notebook <ID>", "Execute notebook"),
+            ("generate-report <TYPE>", "Generate report"),
+            ("research-report <TOPIC>", "Research report"),
+            ("research-query <QUERY>", "Research query")
+        };
+        
+        await ShowSubMenu(commands);
+    }
+
+    private async Task ShowSubMenu(List<(string command, string description)> commands)
+    {
+        var table = UIHelper.CreateDataTable("#", "Command", "Description");
+        for (int i = 0; i < commands.Count; i++)
+        {
+            var color = i % 2 == 0 ? "cyan1" : "dodgerblue2";
+            table.AddRow($"[grey]{i + 1}[/]", $"[{color}]{commands[i].command}[/]", commands[i].description);
+        }
+        
+        AnsiConsole.Write(table);
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[dim]Type number, command name, or 'back' to return[/]");
+        
+        var input = AnsiConsole.Prompt(new TextPrompt<string>("[cyan1]agent>[/]").AllowEmpty());
+        
+        if (!string.IsNullOrEmpty(input) && input.ToLower() != "back")
+        {
+            if (int.TryParse(input.Trim(), out int choice) && choice >= 1 && choice <= commands.Count)
+            {
+                var selectedCommand = commands[choice - 1].command;
+                var baseCommand = selectedCommand.Split(' ')[0];
+                
+                if (selectedCommand.Contains("<"))
+                {
+                    var param = AnsiConsole.Ask<string>($"[cyan1]Enter parameters for {baseCommand}:[/]");
+                    await ProcessCommandAsync($"{baseCommand} {param}");
+                }
+                else
+                {
+                    await ProcessCommandAsync(baseCommand);
+                }
+            }
+            else
+            {
+                await ProcessCommandAsync(input);
+            }
         }
     }
 
@@ -840,6 +1224,7 @@ public class InteractiveCLI
             "[cyan1]Tips:[/]\n" +
             "  • Type command name directly for quick access\n" +
             "  • Use 'help <command>' for detailed help\n" +
+            "  • Use 'commands' or 'all-commands' to see ALL commands\n" +
             "  • Use arrow keys for command history\n" +
             "  • Use 'clear' to clear screen\n\n" +
             "[cyan1]Settings:[/]\n" +
@@ -852,6 +1237,396 @@ public class InteractiveCLI
         };
         
         AnsiConsole.Write(panel);
+        AnsiConsole.WriteLine();
+        
+        AnsiConsole.MarkupLine("[yellow]Type 'commands' to see the complete command reference![/]");
+        AnsiConsole.WriteLine();
+        
+        AnsiConsole.Prompt(new TextPrompt<string>("[dim]Press Enter to continue...[/]").AllowEmpty());
+    }
+
+    private void ShowAllCommands()
+    {
+        UIHelper.ShowBanner();
+        UIHelper.ShowSectionHeader("Complete Command Reference");
+        
+        var categories = new List<(string name, string color, List<(string cmd, string desc)> commands)>
+        {
+            ("AI & Chat", "cyan1", new List<(string, string)>
+            {
+                ("ai-assistant <QUERY>", "AI-powered research assistant"),
+                ("chat <QUERY>", "Alias for ai-assistant"),
+                ("deepseek-chat <QUERY>", "DeepSeek R1 reasoning & strategy"),
+                ("deepseek <QUERY>", "Alias for deepseek-chat"),
+                ("strategy <QUERY>", "Generate trading strategies with AI"),
+                ("research-llm <QUERY>", "Advanced research with LLM")
+            }),
+            
+            ("Market Data", "dodgerblue2", new List<(string, string)>
+            {
+                ("yahoo <SYM>", "Yahoo Finance real-time data"),
+                ("alpaca <SYM>", "Alpaca Markets data"),
+                ("alpaca-account", "View Alpaca account info"),
+                ("alpaca-positions", "View current positions"),
+                ("alpaca-quotes <SYMS>", "Multi-symbol quotes"),
+                ("polygon <SYM>", "Polygon.io premium data"),
+                ("polygon-news <SYM>", "Polygon.io news"),
+                ("polygon-financials <SYM>", "Polygon financials"),
+                ("databento <SYM>", "DataBento institutional data"),
+                ("databento-futures <SYM>", "DataBento futures"),
+                ("alpha-vantage <SYM>", "Alpha Vantage global data"),
+                ("fmp <SYM>", "Financial Modeling Prep data"),
+                ("historical <SYM> <DAYS>", "Historical price data"),
+                ("quotes <SYMS>", "Multi-symbol quotes"),
+                ("test-apis <SYM>", "Test API connectivity")
+            }),
+            
+            ("Technical Analysis", "magenta1", new List<(string, string)>
+            {
+                ("ta <SYM>", "Technical analysis (100d)"),
+                ("ta-long <SYM>", "Long-term TA (7y)"),
+                ("ta-indicators <SYM>", "Detailed indicators"),
+                ("ta-patterns <SYM>", "Pattern recognition"),
+                ("ta-compare <SYMS>", "Compare multiple symbols"),
+                ("ta-full <SYM>", "Full technical analysis")
+            }),
+            
+            ("Fundamental & News", "green", new List<(string, string)>
+            {
+                ("fundamental <SYM>", "Fundamental analysis"),
+                ("news <SYM>", "Latest financial news"),
+                ("sentiment <SYM>", "Sentiment analysis"),
+                ("market-sentiment", "Overall market sentiment"),
+                ("earnings <SYM>", "Earnings call analysis"),
+                ("earnings-history <SYM>", "Earnings history"),
+                ("earnings-sentiment <SYM>", "Earnings sentiment"),
+                ("sec <SYM>", "SEC filings analysis"),
+                ("sec-filing-history <SYM>", "SEC filing history"),
+                ("sec-risk-factors <SYM>", "SEC risk factors"),
+                ("sec-comprehensive <SYM>", "Full SEC analysis"),
+                ("supply-chain-analysis <SYM>", "Supply chain analysis"),
+                ("company-valuation <SYM>", "Company valuation"),
+                ("enhanced-analysis <SYM>", "Enhanced fundamental analysis")
+            }),
+            
+            ("Portfolio Management", "yellow", new List<(string, string)>
+            {
+                ("portfolio", "Portfolio summary"),
+                ("portfolio-analytics <SYM>", "Advanced analytics"),
+                ("portfolio-strategy <STRAT>", "Strategy optimization"),
+                ("performance-metrics <SYM>", "Performance analysis"),
+                ("tax-lots <SYM>", "Tax lot analysis"),
+                ("optimize <TICKERS>", "Portfolio optimization"),
+                ("positions", "View current positions"),
+                ("performance", "Performance analysis"),
+                ("rebalance", "Rebalancing suggestions"),
+                ("performance-attribution <PORT>", "Performance attribution"),
+                ("benchmarking <PORT>", "Portfolio benchmarking")
+            }),
+            
+            ("Risk Analysis", "red", new List<(string, string)>
+            {
+                ("risk-assessment", "Portfolio risk assessment"),
+                ("var <WEIGHTS>", "Value-at-Risk calculation"),
+                ("stress-test <WEIGHTS>", "Stress testing"),
+                ("calculate-var <ASSETS>", "VaR calculation"),
+                ("stress-test-portfolio <ASSETS>", "Portfolio stress test"),
+                ("risk-attribution <ASSETS>", "Risk attribution"),
+                ("risk-report <ASSETS>", "Risk report"),
+                ("compare-risk-measures <ASSETS>", "Compare risk measures"),
+                ("advanced-risk <CMD>", "Advanced risk analytics"),
+                ("counterparty-risk <CMD>", "Counterparty risk analysis")
+            }),
+            
+            ("Portfolio Optimization", "dodgerblue2", new List<(string, string)>
+            {
+                ("black-litterman <ASSETS>", "Black-Litterman optimization"),
+                ("risk-parity <ASSETS>", "Risk parity optimization"),
+                ("hierarchical-risk-parity <ASSETS>", "HRP optimization"),
+                ("minimum-variance <ASSETS>", "Min variance optimization"),
+                ("compare-optimization <ASSETS>", "Compare optimization methods"),
+                ("fama-french-3factor <ASSETS>", "Fama-French 3-factor model"),
+                ("carhart-4factor <ASSETS>", "Carhart 4-factor model"),
+                ("custom-factor-model <ASSETS>", "Custom factor model"),
+                ("factor-attribution <ASSETS>", "Factor attribution"),
+                ("compare-factor-models <ASSETS>", "Compare factor models")
+            }),
+            
+            ("Research & Academic", "cyan1", new List<(string, string)>
+            {
+                ("research-papers <TOPIC>", "Search academic papers"),
+                ("analyze-paper <URL>", "Analyze paper & blueprint"),
+                ("research-synthesis <TOPIC>", "Research synthesis"),
+                ("quick-research <TOPIC>", "Quick research overview"),
+                ("agent-strategy <SYM>", "Generate trading strategy"),
+                ("factor-research <CMD>", "Factor research"),
+                ("factor-portfolio <CMD>", "Factor portfolio construction"),
+                ("factor-efficacy <CMD>", "Factor efficacy analysis"),
+                ("academic-research <CMD>", "Academic research"),
+                ("replicate-study <CMD>", "Replicate academic study"),
+                ("citation-network <CMD>", "Citation network analysis"),
+                ("literature-review <TOPIC>", "Literature review")
+            }),
+            
+            ("Statistical Analysis", "magenta1", new List<(string, string)>
+            {
+                ("statistical-test <TYPE>", "Statistical testing"),
+                ("hypothesis-test <NULL> <ALT>", "Hypothesis testing"),
+                ("power-analysis <EFFECT> <SIZE>", "Power analysis"),
+                ("time-series-analysis <SYM>", "Time series analysis"),
+                ("stationarity-test <SYM>", "Stationarity test"),
+                ("autocorrelation-analysis <SYM>", "Autocorrelation"),
+                ("seasonal-decomposition <SYM>", "Seasonal decomposition"),
+                ("engle-granger-test <SYM1> <SYM2>", "Engle-Granger test"),
+                ("johansen-test <SYMS>", "Johansen cointegration"),
+                ("granger-causality <SYM1> <SYM2>", "Granger causality"),
+                ("lead-lag-analysis <SYM1> <SYM2>", "Lead-lag analysis")
+            }),
+            
+            ("Forecasting & ML", "green", new List<(string, string)>
+            {
+                ("forecast <SYM>", "Time series forecasting"),
+                ("forecast-compare <SYM>", "Compare forecast methods"),
+                ("forecast-accuracy <SYM>", "Forecast accuracy analysis"),
+                ("feature-engineer <SYM>", "Feature engineering"),
+                ("feature-importance <SYM>", "Feature importance"),
+                ("feature-select <SYM>", "Feature selection"),
+                ("automl <SYMBOLS>", "AutoML pipeline"),
+                ("model-selection <TYPE>", "Select optimal model"),
+                ("ensemble-prediction <SYMBOLS>", "Ensemble predictions"),
+                ("cross-validation <MODEL>", "Cross-validation"),
+                ("hyperparameter-opt <MODEL>", "Hyperparameter optimization")
+            }),
+            
+            ("AI/ML Advanced", "dodgerblue2", new List<(string, string)>
+            {
+                ("shap-analysis <MODEL>", "SHAP analysis"),
+                ("partial-dependence <MODEL>", "Partial dependence plots"),
+                ("feature-interactions <MODEL>", "Feature interactions"),
+                ("explain-prediction <MODEL>", "Explain prediction"),
+                ("permutation-importance <MODEL>", "Permutation importance"),
+                ("model-fairness <MODEL>", "Model fairness analysis"),
+                ("interpretability-report <MODEL>", "Interpretability report"),
+                ("detect-anomalies <SYMBOLS>", "Anomaly detection"),
+                ("detect-market-regime <SYMBOLS>", "Market regime detection"),
+                ("dynamic-factors <SYMBOLS>", "Dynamic factor analysis")
+            }),
+            
+            ("Reinforcement Learning", "red", new List<(string, string)>
+            {
+                ("train-q-learning <ENV>", "Train Q-learning agent"),
+                ("train-policy-gradient <ENV>", "Policy gradient training"),
+                ("train-actor-critic <ENV>", "Actor-critic training"),
+                ("adapt-strategy <AGENT>", "Adapt trading strategy"),
+                ("bandit-optimization <ARMS>", "Bandit optimization"),
+                ("contextual-bandit <CONTEXT>", "Contextual bandit"),
+                ("evaluate-rl-agent <AGENT>", "Evaluate RL agent"),
+                ("rl-strategy-report <AGENT>", "RL strategy report")
+            }),
+            
+            ("Economic Data", "cyan1", new List<(string, string)>
+            {
+                ("fred-series <ID>", "FRED economic data"),
+                ("fred-search <QUERY>", "Search FRED indicators"),
+                ("fred-popular", "Popular FRED series"),
+                ("worldbank-series <IND> <COUNTRY>", "World Bank data"),
+                ("worldbank-search <QUERY>", "Search World Bank"),
+                ("worldbank-popular", "Popular WB indicators"),
+                ("oecd-series <IND> <COUNTRY>", "OECD data"),
+                ("oecd-search <QUERY>", "Search OECD"),
+                ("oecd-popular", "Popular OECD indicators"),
+                ("imf-series <IND> <COUNTRY>", "IMF data"),
+                ("imf-search <QUERY>", "Search IMF"),
+                ("imf-popular", "Popular IMF indicators"),
+                ("fed-fomc-announcements <DATE>", "FOMC announcements"),
+                ("fed-interest-rates", "Fed interest rates"),
+                ("fed-economic-projections", "Fed economic projections"),
+                ("fed-speeches <QUERY>", "Fed speeches"),
+                ("global-economic-indicators <COUNTRY>", "Global indicators"),
+                ("global-supply-chain <REGION>", "Supply chain data"),
+                ("global-trade-data <COUNTRY>", "Trade data"),
+                ("global-currency-data <CURRENCY>", "Currency data"),
+                ("global-commodity-prices <COMMODITY>", "Commodity prices")
+            }),
+            
+            ("Social Media & Sentiment", "magenta1", new List<(string, string)>
+            {
+                ("reddit-sentiment <SYM>", "Reddit sentiment"),
+                ("reddit-scrape <SYM>", "Reddit scraping"),
+                ("reddit-finance-trending", "Trending on finance subs"),
+                ("reddit-finance-search <QUERY>", "Search finance subs"),
+                ("reddit-finance-sentiment <SYM>", "Finance sub sentiment"),
+                ("reddit-market-pulse", "Market pulse from Reddit"),
+                ("scrape-social-media <PLATFORM>", "Social media scraping")
+            }),
+            
+            ("Web Intelligence", "green", new List<(string, string)>
+            {
+                ("web-scrape-earnings <SYM>", "Scrape earnings data"),
+                ("web-monitor-communications <SYM>", "Monitor communications"),
+                ("web-analyze-sentiment <URL>", "Analyze web sentiment"),
+                ("web-analyze-social <PLATFORM>", "Social media analysis"),
+                ("extract-web-data <URL>", "Extract web data"),
+                ("patent-search <QUERY>", "Search patents"),
+                ("patent-innovation <COMPANY>", "Innovation analysis"),
+                ("patent-citations <PATENT>", "Patent citations"),
+                ("patent-value <PATENT>", "Patent valuation")
+            }),
+            
+            ("Video Analysis", "dodgerblue2", new List<(string, string)>
+            {
+                ("analyze-video <URL>", "Analyze YouTube video"),
+                ("get-quantopian-videos", "Latest Quantopian videos"),
+                ("search-finance-videos <QUERY>", "Search finance videos")
+            }),
+            
+            ("Alternative Data", "cyan1", new List<(string, string)>
+            {
+                ("analyze-satellite-imagery <LOC>", "Satellite imagery"),
+                ("geo-satellite <LOCATION>", "Geographic satellite data"),
+                ("consumer-pulse <SECTOR>", "Consumer sentiment"),
+                ("supply-chain-risks <SYM>", "Supply chain risks"),
+                ("supply-chain-geography <SYM>", "Supply chain geography")
+            }),
+            
+            ("Options & Derivatives", "red", new List<(string, string)>
+            {
+                ("options-flow <SYM>", "Options flow analysis"),
+                ("unusual-options <SYM>", "Unusual options activity"),
+                ("gamma-exposure <SYM>", "Gamma exposure"),
+                ("options-orderbook <SYM>", "Options order book"),
+                ("volatility-surface <SYM>", "Volatility surface"),
+                ("vix-analysis", "VIX analysis"),
+                ("volatility-strategy <TYPE>", "Volatility strategy"),
+                ("volatility-monitor <SYM>", "Volatility monitoring"),
+                ("vol-surface <SYM>", "Volatility surface")
+            }),
+            
+            ("Microstructure & HFT", "magenta1", new List<(string, string)>
+            {
+                ("order-book-analysis <SYM>", "Order book analysis"),
+                ("market-depth <SYM>", "Market depth"),
+                ("liquidity-analysis <SYM>", "Liquidity analysis"),
+                ("spread-analysis <SYM>", "Spread analysis"),
+                ("orderbook-reconstruction <SYM>", "Order book reconstruction"),
+                ("hft-analysis <SYM>", "HFT analysis"),
+                ("manipulation-detection <SYM>", "Manipulation detection"),
+                ("latency-arbitrage <SYM1> <SYM2>", "Latency arbitrage"),
+                ("latency-scan <VENUE>", "Latency scanning"),
+                ("colocation-analysis <VENUE>", "Co-location analysis"),
+                ("order-routing <ORDER>", "Smart order routing"),
+                ("market-data-feeds <VENUE>", "Market data feeds"),
+                ("arbitrage-profitability <STRAT>", "Arbitrage profitability")
+            }),
+            
+            ("Execution & Trading", "yellow", new List<(string, string)>
+            {
+                ("bracket-order <SYM>", "Place bracket order"),
+                ("oco-order <SYM>", "Place OCO order"),
+                ("trailing-stop <SYM>", "Trailing stop order"),
+                ("almgren-chriss <ORDER>", "Almgren-Chriss execution"),
+                ("implementation-shortfall <ORDER>", "Implementation shortfall"),
+                ("price-impact <ORDER>", "Price impact analysis"),
+                ("vwap-schedule <ORDER>", "VWAP scheduling"),
+                ("twap-schedule <ORDER>", "TWAP scheduling"),
+                ("iceberg-order <ORDER>", "Iceberg order"),
+                ("smart-routing <ORDER>", "Smart routing"),
+                ("execution-optimization <ORDER>", "Execution optimization"),
+                ("optimal-execution <ORDER>", "Optimal execution")
+            }),
+            
+            ("Live Trading", "red", new List<(string, string)>
+            {
+                ("live-strategy <ACTION>", "Manage live strategy"),
+                ("deploy-strategy <ID>", "Deploy trading strategy"),
+                ("event-trading <TYPE>", "Event-driven trading"),
+                ("alerts <ACTION>", "Real-time alerting"),
+                ("check-alerts", "Check active alerts"),
+                ("compliance <ACTION>", "Compliance monitoring"),
+                ("compliance-check", "Check compliance status")
+            }),
+            
+            ("FIX Protocol", "dodgerblue2", new List<(string, string)>
+            {
+                ("fix-connect <CONFIG>", "Connect to FIX session"),
+                ("fix-disconnect", "Disconnect FIX session"),
+                ("fix-order <ORDER>", "Place FIX order"),
+                ("fix-cancel <ORDER_ID>", "Cancel FIX order"),
+                ("fix-market-data <SYM>", "FIX market data"),
+                ("fix-heartbeat", "Send FIX heartbeat"),
+                ("fix-status", "FIX session status"),
+                ("fix-info", "FIX session info"),
+                ("prime-connect <BROKER>", "Connect to prime broker")
+            }),
+            
+            ("Monte Carlo & Simulation", "green", new List<(string, string)>
+            {
+                ("portfolio-monte-carlo <ASSETS>", "Portfolio MC simulation"),
+                ("option-monte-carlo <PARAMS>", "Option MC pricing"),
+                ("scenario-analysis <SCENARIOS>", "Scenario analysis")
+            }),
+            
+            ("Strategy Building", "cyan1", new List<(string, string)>
+            {
+                ("generate-template <SYM>", "Generate trading template"),
+                ("generate-trading-template <SYM>", "Alias for generate-template"),
+                ("trading-template <SYM>", "Trading strategy template"),
+                ("build-strategy <TYPE>", "Build interactive strategy"),
+                ("optimize-strategy <ID>", "Optimize strategy parameters"),
+                ("backtest <STRATEGY>", "Backtest strategy")
+            }),
+            
+            ("Notebooks & Reports", "magenta1", new List<(string, string)>
+            {
+                ("create-notebook <NAME>", "Create research notebook"),
+                ("execute-notebook <ID>", "Execute notebook"),
+                ("generate-report <TYPE>", "Generate report"),
+                ("research-report <TOPIC>", "Research report"),
+                ("research-query <QUERY>", "Research query")
+            }),
+            
+            ("Data & Utilities", "grey", new List<(string, string)>
+            {
+                ("data-validation <DATASET>", "Data validation"),
+                ("corporate-action <SYM>", "Corporate actions"),
+                ("corp-action <SYM>", "Alias for corporate-action"),
+                ("timezone <LOCATION>", "Timezone utilities"),
+                ("clear", "Clear screen"),
+                ("menu", "Return to main menu"),
+                ("help", "Show available functions"),
+                ("commands", "Show this command list"),
+                ("quit", "Exit application"),
+                ("exit", "Exit application")
+            }),
+            
+            ("ESG & Alternative", "green", new List<(string, string)>
+            {
+                ("esg-footprint <SYM>", "ESG footprint analysis"),
+                ("anomaly-scan <SYM>", "Anomaly scanning")
+            })
+        };
+        
+        foreach (var category in categories)
+        {
+            AnsiConsole.MarkupLine($"\n[bold {category.color}]{category.name}[/]");
+            var table = new Table()
+                .Border(TableBorder.Rounded)
+                .BorderColor(Color.Grey)
+                .AddColumn(new TableColumn("[bold]Command[/]").LeftAligned())
+                .AddColumn(new TableColumn("[bold]Description[/]").LeftAligned())
+                .HideHeaders();
+            
+            foreach (var (cmd, desc) in category.commands)
+            {
+                table.AddRow($"[{category.color}]{cmd}[/]", $"[dim]{desc}[/]");
+            }
+            
+            AnsiConsole.Write(table);
+        }
+        
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[yellow]Tip: Type any command directly from the main menu![/]");
+        AnsiConsole.MarkupLine("[dim]Note: Some commands require specific parameters. Use the command to see usage help.[/]");
         AnsiConsole.WriteLine();
         
         AnsiConsole.Prompt(new TextPrompt<string>("[dim]Press Enter to continue...[/]").AllowEmpty());
@@ -1374,6 +2149,12 @@ public class InteractiveCLI
                     break;
                 case "help":
                     await ShowAvailableFunctions();
+                    break;
+                case "commands":
+                case "all-commands":
+                case "list-commands":
+                case "cmd":
+                    ShowAllCommands();
                     break;
                 case "factor-research":
                     await FactorResearchCommand(parts);
