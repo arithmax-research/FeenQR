@@ -13,6 +13,7 @@ using Feen.Services;
 using QuantResearchAgent.Services.ResearchAgents;
 using QuantResearchAgent.Plugins;
 using Feen.Plugins;
+using FeenQR.Services;
 
 namespace QuantResearchAgent
 {
@@ -205,7 +206,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<EventDrivenTradingPlugin>(),
                     sp.GetRequiredService<RealTimeAlertingPlugin>(),
                     sp.GetRequiredService<ComplianceMonitoringPlugin>(),
-                    sp.GetRequiredService<PaperRAGService>()
+                    sp.GetRequiredService<PaperRAGService>(),
+                    sp.GetRequiredService<MachineLearningService>()
                 )
             );
 
@@ -423,6 +425,7 @@ namespace QuantResearchAgent
             services.AddSingleton<AutoMLService>();
             services.AddSingleton<ModelInterpretabilityService>();
             services.AddSingleton<ReinforcementLearningService>();
+            services.AddSingleton<MachineLearningService>();
 
             // Add Phase 10 Web & Alternative Data Integration services
             services.AddSingleton<WebIntelligenceService>();

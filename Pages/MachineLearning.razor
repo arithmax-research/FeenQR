@@ -1,0 +1,357 @@
+@page "/machine-learning"
+@using FeenQR.Services
+@using FeenQR.Models
+@inject MachineLearningService MLService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Machine Learning - FeenQR</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-robot"></i> Machine Learning</h2>
+            <p class="text-muted">Feature engineering, model validation, and AutoML pipeline</p>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-chart-line"></i></span>
+                <input @bind="symbol" class="form-control" placeholder="Symbol (e.g., BTCUSDT)" />
+            </div>
+        </div>
+        <div class="col-md-3">
+            <input @bind="days" type="number" class="form-control" placeholder="Days" min="30" max="2000" />
+        </div>
+        <div class="col-md-3">
+            <input @bind="topK" type="number" class="form-control" placeholder="Top K Features" min="5" max="50" />
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <button class="btn btn-primary" @onclick="FeatureEngineer" disabled="@isLoading">
+                    <i class="fas fa-cogs"></i> Feature Engineer
+                </button>
+                <button class="btn btn-info" @onclick="FeatureImportance" disabled="@isLoading">
+                    <i class="fas fa-chart-bar"></i> Feature Importance
+                </button>
+                <button class="btn btn-success" @onclick="ValidateModel" disabled="@isLoading">
+                    <i class="fas fa-check-circle"></i> Validate Model
+                </button>
+                <button class="btn btn-warning" @onclick="CrossValidate" disabled="@isLoading">
+                    <i class="fas fa-sync"></i> Cross Validate
+                </button>
+                <button class="btn btn-secondary" @onclick="AutoMLPipeline" disabled="@isLoading">
+                    <i class="fas fa-magic"></i> AutoML
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="row">
+            <div class="col-12 text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Processing...</p>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> @errorMessage
+        </div>
+    }
+
+    @if (featureResult != null)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cogs"></i> Feature Engineering Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h4 class="text-primary">@featureResult.FeatureCount</h4>
+                                    <small class="text-muted">Features</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h4 class="text-success">@featureResult.SampleCount</h4>
+                                    <small class="text-muted">Samples</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Top Features:</strong>
+                                <div class="mt-1">
+                                    @foreach (var feature in featureResult.FeatureNames.Take(8))
+                                    {
+                                        <span class="badge bg-secondary me-1">@feature</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (importanceResult != null)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-bar"></i> Feature Importance</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Feature</th>
+                                        <th>Importance</th>
+                                        <th>Bar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in importanceResult.FeatureImportances.Take(10))
+                                    {
+                                        <tr>
+                                            <td>@item.Key</td>
+                                            <td>@item.Value.ToString("F4")</td>
+                                            <td>
+                                                <div class="progress" style="height: 20px;">
+                                                    <div class="progress-bar" style="width: @((item.Value * 100).ToString("F1"))%"></div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (validationResult != null)
+    {
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-check-circle"></i> Model Validation</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <h4 class="text-primary">@validationResult.R2Score.ToString("F4")</h4>
+                                <small class="text-muted">R² Score</small>
+                            </div>
+                            <div class="col-6">
+                                <h4 class="text-info">@validationResult.RMSE.ToString("F6")</h4>
+                                <small class="text-muted">RMSE</small>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <strong>@validationResult.TrainSize</strong>
+                                <br><small class="text-muted">Train</small>
+                            </div>
+                            <div class="col-4">
+                                <strong>@validationResult.TestSize</strong>
+                                <br><small class="text-muted">Test</small>
+                            </div>
+                            <div class="col-4">
+                                <strong>@validationResult.MAE.ToString("F6")</strong>
+                                <br><small class="text-muted">MAE</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @if (cvResult != null)
+            {
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-sync"></i> Cross-Validation</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h4 class="text-success">@cvResult.MeanR2.ToString("F4")</h4>
+                                    <small class="text-muted">Mean R² ± @cvResult.StdR2.ToString("F4")</small>
+                                </div>
+                                <div class="col-6">
+                                    <h4 class="text-warning">@cvResult.Folds</h4>
+                                    <small class="text-muted">Folds</small>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <strong>@cvResult.MeanMSE.ToString("F6")</strong>
+                                    <br><small class="text-muted">Mean MSE</small>
+                                </div>
+                                <div class="col-6">
+                                    <strong>@cvResult.MeanMAE.ToString("F6")</strong>
+                                    <br><small class="text-muted">Mean MAE</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (autoMLResult != null)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-magic"></i> AutoML Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-3 text-center">
+                                <h4 class="text-primary">@autoMLResult.BestModel</h4>
+                                <small class="text-muted">Best Model</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <h4 class="text-success">@autoMLResult.BestScore.ToString("F4")</h4>
+                                <small class="text-muted">Best Score</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <h4 class="text-info">@autoMLResult.TrialsRun</h4>
+                                <small class="text-muted">Trials</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <h4 class="text-warning">@autoMLResult.ExperimentTime s</h4>
+                                <small class="text-muted">Time</small>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Model</th>
+                                        <th>Score</th>
+                                        <th>Training Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var model in autoMLResult.TopModels)
+                                    {
+                                        <tr>
+                                            <td>@model.ModelName</td>
+                                            <td>@model.Score.ToString("F4")</td>
+                                            <td>@model.TrainingTime.ToString("F2")s</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private string symbol = "BTCUSDT";
+    private int days = 252;
+    private int topK = 10;
+    private bool isLoading = false;
+    private string errorMessage = "";
+
+    private FeatureEngineeringResult? featureResult;
+    private FeatureImportanceResult? importanceResult;
+    private ModelValidationResult? validationResult;
+    private CrossValidationResult? cvResult;
+    private AutoMLResult? autoMLResult;
+
+    private async Task FeatureEngineer()
+    {
+        await ExecuteWithLoading(async () =>
+        {
+            featureResult = await MLService.PerformFeatureEngineeringAsync(symbol, days);
+        });
+    }
+
+    private async Task FeatureImportance()
+    {
+        await ExecuteWithLoading(async () =>
+        {
+            var features = await MLService.PerformFeatureEngineeringAsync(symbol, days);
+            importanceResult = MLService.AnalyzeFeatureImportance(features);
+        });
+    }
+
+    private async Task ValidateModel()
+    {
+        await ExecuteWithLoading(async () =>
+        {
+            var features = await MLService.PerformFeatureEngineeringAsync(symbol, days);
+            var selected = MLService.SelectFeatures(features, topK);
+            validationResult = await MLService.ValidateModelAsync(selected);
+        });
+    }
+
+    private async Task CrossValidate()
+    {
+        await ExecuteWithLoading(async () =>
+        {
+            var features = await MLService.PerformFeatureEngineeringAsync(symbol, days);
+            var selected = MLService.SelectFeatures(features, topK);
+            cvResult = MLService.PerformCrossValidation(selected, 5);
+        });
+    }
+
+    private async Task AutoMLPipeline()
+    {
+        await ExecuteWithLoading(async () =>
+        {
+            autoMLResult = await MLService.RunAutoMLPipelineAsync(symbol, days);
+        });
+    }
+
+    private async Task ExecuteWithLoading(Func<Task> action)
+    {
+        isLoading = true;
+        errorMessage = "";
+        StateHasChanged();
+
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}
