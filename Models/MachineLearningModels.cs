@@ -1,4 +1,4 @@
-namespace FeenQR.Models;
+namespace QuantResearchAgent.Core;
 
 public class FeatureEngineeringResult
 {

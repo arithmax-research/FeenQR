@@ -21,7 +21,12 @@ builder.Configuration
     .AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "../../appsettings.json"), optional: false, reloadOnChange: true);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+    });
 builder.Services.AddRazorPages();
 builder.Services.AddOpenApi();
 
@@ -144,6 +149,9 @@ builder.Services.AddSingleton<PortfolioService>();
 builder.Services.AddSingleton<PortfolioOptimizationService>();
 builder.Services.AddSingleton<RiskManagementService>();
 builder.Services.AddSingleton<MonteCarloService>();
+
+// Register Machine Learning service
+builder.Services.AddSingleton<MachineLearningService>();
 
 var app = builder.Build();
 

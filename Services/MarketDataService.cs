@@ -528,13 +528,13 @@ public class MarketDataService
             var historicalData = new List<MarketData>();
             foreach (var kline in klineData)
             {
-                // Binance returns numbers, not strings
+                // Binance can return numbers as strings, handle both types
                 var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(kline[0].GetInt64()).DateTime;
-                var open = kline[1].GetDouble();
-                var high = kline[2].GetDouble();
-                var low = kline[3].GetDouble();
-                var close = kline[4].GetDouble();
-                var volume = kline[5].GetDouble();
+                var open = ParseDoubleValue(kline[1]);
+                var high = ParseDoubleValue(kline[2]);
+                var low = ParseDoubleValue(kline[3]);
+                var close = ParseDoubleValue(kline[4]);
+                var volume = ParseDoubleValue(kline[5]);
 
                 historicalData.Add(new MarketData
                 {
@@ -553,6 +553,27 @@ public class MarketDataService
         {
             _logger.LogError(ex, "Error fetching Binance historical data for symbol: {Symbol}", symbol);
             return null;
+        }
+    }
+
+    private double ParseDoubleValue(System.Text.Json.JsonElement element)
+    {
+        try
+        {
+            if (element.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                var stringValue = element.GetString();
+                if (double.TryParse(stringValue, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var result))
+                {
+                    return result;
+                }
+                return 0.0;
+            }
+            return element.GetDouble();
+        }
+        catch
+        {
+            return 0.0;
         }
     }
 
