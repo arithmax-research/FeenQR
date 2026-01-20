@@ -1230,3 +1230,29 @@ public class RLPerformanceEvaluation
     public int EvaluationEpisodes { get; set; }
     public DateTime EvaluationDate { get; set; }
 }
+
+/// <summary>
+/// Model metrics result
+/// </summary>
+public class ModelMetricsResult
+{
+    public double MSE { get; set; }
+    public double MAE { get; set; }
+    public double RMSE { get; set; }
+    public double R2Score { get; set; }
+    public double MeanAbsolutePercentageError { get; set; }
+    public double MaxError { get; set; }
+    public double Correlation { get; set; }
+}
+
+/// <summary>
+/// Ensemble prediction result
+/// </summary>
+public class EnsemblePredictionResult
+{
+    public double WeightedPrediction { get; set; }
+    public List<double> IndividualPredictions { get; set; } = new();
+    public List<double> ModelWeights { get; set; } = new();
+    public double Confidence { get; set; }
+    public string EnsembleMethod { get; set; } = "WeightedAverage";
+}

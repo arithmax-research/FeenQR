@@ -24,6 +24,8 @@
     <Compile Remove="test_qdrant.cs" />
     <EmbeddedResource Remove="test_qdrant.cs" />
     <None Remove="test_qdrant.cs" />
+    <Compile Remove="Core/MachineLearningCommands.cs" />
+    <Compile Remove="Models/MachineLearningModels.cs" />
   </ItemGroup>
 
   <ItemGroup>
