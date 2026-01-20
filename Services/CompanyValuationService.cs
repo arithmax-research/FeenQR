@@ -147,21 +147,20 @@ Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC
         return recommendation.ToString();
     }
 
-    private Task<StockData> FetchStockDataAsync(string ticker, int periodDays)
+    private async Task<StockData> FetchStockDataAsync(string ticker, int periodDays)
     {
         try
         {
             _logger.LogInformation("Fetching real data for {Ticker} via Alpaca/Yahoo Finance", ticker);
             
-            // Try to get real data from Alpaca first
-            var realData = GetRealStockDataAsync(ticker, periodDays);
+            // Get real data from Alpaca
+            var realData = await GetRealStockDataAsync(ticker, periodDays);
             return realData;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to fetch real data for {Ticker}, falling back to mock data", ticker);
-            // Fallback to mock data with more realistic values
-            return GetMockStockDataAsync(ticker, periodDays);
+            _logger.LogError(ex, "Failed to fetch real data for {Ticker}", ticker);
+            throw new InvalidOperationException($"Failed to fetch stock data for {ticker}: {ex.Message}. Ensure market data API keys are configured.", ex);
         }
     }
 
@@ -248,8 +247,8 @@ Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC
                     HistoricalPrices = historicalPrices,
                     Volume = (long)latestBar.Volume,
                     MarketCap = CalculateMarketCap(ticker, (decimal)latestBar.Close),
-                    PERatio = GetRealisticPERatio(ticker), // Use realistic mock data
-                    DividendYield = GetRealisticDividendYield(ticker) // Use realistic mock data
+                    PERatio = 0, // Calculate from real earnings data
+                    DividendYield = 0 // Calculate from real dividend data
                 };
             }
             
@@ -292,77 +291,6 @@ Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC
             _logger.LogError(ex, "Yahoo Finance fetch failed for {Ticker}", ticker);
             throw;
         }
-    }
-
-    private Task<StockData> GetMockStockDataAsync(string ticker, int periodDays)
-    {
-        _logger.LogWarning("Using mock data for {Ticker} - this should only happen in development", ticker);
-        
-        var random = new Random();
-        decimal basePrice;
-        
-        // Use more realistic mock prices based on known tickers
-        basePrice = ticker.ToUpper() switch
-        {
-            "TQQQ" => 82.92m, // Use the actual current price from user's data
-            "QQQ" => 480.00m,
-            "SPY" => 550.00m,
-            "AAPL" => 220.00m,
-            "MSFT" => 420.00m,
-            "TSLA" => 302.63m, // Use actual current price from user
-            _ => 100.00m
-        };
-        
-        var historicalPrices = new List<decimal>();
-        var currentPrice = basePrice;
-        
-        // Generate more realistic historical prices
-        for (int i = 0; i < Math.Min(periodDays, 200); i++)
-        {
-            var changePercent = (decimal)(random.NextDouble() - 0.5) * 0.04m; // Max 2% daily change
-            currentPrice = currentPrice * (1 + changePercent);
-            if (currentPrice < 1) currentPrice = 1;
-            historicalPrices.Add(currentPrice);
-        }
-        
-        var stockData = new StockData
-        {
-            Ticker = ticker,
-            CurrentPrice = currentPrice,
-            HistoricalPrices = historicalPrices,
-            Volume = ticker.ToUpper() == "TQQQ" ? 15000000 : 1000000, // TQQQ has high volume
-            MarketCap = CalculateMarketCap(ticker, currentPrice),
-            PERatio = IsETF(ticker) ? 0 : GetRealisticPERatio(ticker),
-            DividendYield = GetRealisticDividendYield(ticker)
-        };
-        
-        return Task.FromResult(stockData);
-    }
-
-    private decimal GetRealisticPERatio(string ticker)
-    {
-        return ticker.ToUpper() switch
-        {
-            "TSLA" => 60.0m, // TSLA typically has high P/E
-            "AAPL" => 28.0m,
-            "MSFT" => 32.0m,
-            "AMZN" => 45.0m,
-            "GOOGL" => 25.0m,
-            _ => 25.0m
-        };
-    }
-
-    private decimal GetRealisticDividendYield(string ticker)
-    {
-        return ticker.ToUpper() switch
-        {
-            "TSLA" => 0.0m, // TSLA doesn't pay dividends!
-            "AAPL" => 0.0043m, // ~0.43%
-            "MSFT" => 0.0066m, // ~0.66%
-            "QQQ" => 0.0059m, // ~0.59%
-            "SPY" => 0.013m, // ~1.3%
-            _ => IsETF(ticker) ? 0.005m : 0.02m
-        };
     }
 
     private bool IsETF(string ticker)

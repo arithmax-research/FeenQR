@@ -237,30 +237,71 @@ public class SocialMediaScrapingService
         
         try
         {
-            // Simulate Twitter scraping
-            var random = new Random();
-            var postCount = random.Next(50, 200);
+            // Use Reddit API (free alternative to Twitter)
+            // Reddit API doesn't require authentication for read-only access
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("User-Agent", "QuantResearchAgent/1.0");
             
-            for (int i = 0; i < postCount; i++)
+            var subreddits = new[] { "wallstreetbets", "stocks", "investing", "StockMarket", "options" };
+            var allPosts = new List<SocialMediaPost>();
+            
+            foreach (var subreddit in subreddits.Take(2)) // Limit to 2 subreddits to avoid rate limits
             {
-                posts.Add(new SocialMediaPost
+                try
                 {
-                    Id = Guid.NewGuid().ToString(),
-                    Content = GenerateMockTweetContent(symbol),
-                    Author = GenerateMockAuthor(),
-                    CreatedAt = DateTime.UtcNow.AddHours(-random.NextDouble() * daysBack * 24),
-                    Likes = random.Next(0, 1000),
-                    Retweets = random.Next(0, 100),
-                    Comments = random.Next(0, 50),
-                    Platform = SocialMediaPlatform.Twitter,
-                    Hashtags = GenerateMockHashtags(symbol),
-                    Mentions = new List<string> { $"@{symbol}" }
-                });
+                    var url = $"https://www.reddit.com/r/{subreddit}/search.json?q={symbol}&restrict_sr=1&sort=new&limit=50";
+                    var response = await _httpClient.GetStringAsync(url);
+                    var redditData = JsonSerializer.Deserialize<JsonElement>(response);
+                    
+                    if (redditData.TryGetProperty("data", out var data) &&
+                        data.TryGetProperty("children", out var children))
+                    {
+                        foreach (var child in children.EnumerateArray())
+                        {
+                            if (!child.TryGetProperty("data", out var postData)) continue;
+                            
+                            var title = postData.TryGetProperty("title", out var t) ? t.GetString() : "";
+                            var selftext = postData.TryGetProperty("selftext", out var st) ? st.GetString() : "";
+                            var content = !string.IsNullOrEmpty(selftext) ? $"{title}\n{selftext}" : title;
+                            
+                            allPosts.Add(new SocialMediaPost
+                            {
+                                Id = postData.TryGetProperty("id", out var id) ? id.GetString() : Guid.NewGuid().ToString(),
+                                Content = content ?? string.Empty,
+                                Author = new SocialMediaAuthor
+                                {
+                                    Username = postData.TryGetProperty("author", out var author) ? author.GetString() : "unknown",
+                                    FollowerCount = 0 // Reddit doesn't expose follower counts via public API
+                                },
+                                CreatedAt = postData.TryGetProperty("created_utc", out var created) ? 
+                                    DateTimeOffset.FromUnixTimeSeconds((long)created.GetDouble()).DateTime : DateTime.UtcNow,
+                                Likes = postData.TryGetProperty("ups", out var ups) ? ups.GetInt32() : 0,
+                                Retweets = 0, // Reddit doesn't have retweets
+                                Comments = postData.TryGetProperty("num_comments", out var nc) ? nc.GetInt32() : 0,
+                                Platform = SocialMediaPlatform.Reddit,
+                                Hashtags = ExtractHashtags(content ?? ""),
+                                Mentions = ExtractMentions(content ?? "")
+                            });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch from r/{Subreddit}", subreddit);
+                }
+            }
+            
+            posts.AddRange(allPosts.Take(100));
+            
+            if (!posts.Any())
+            {
+                throw new InvalidOperationException($"No Reddit posts found for {symbol}. Reddit API may be rate limited.");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to scrape Twitter posts for {Symbol}", symbol);
+            _logger.LogError(ex, "Failed to scrape Reddit posts for {Symbol} via real API", symbol);
+            throw new InvalidOperationException($"Reddit API call failed: {ex.Message}. Reddit may be rate limiting requests.", ex);
         }
         
         return posts;
@@ -630,18 +671,19 @@ Provide 3-5 key insights about social media sentiment and its potential impact o
     }
 
     // Utility methods
-    private string GenerateMockTweetContent(string symbol) =>
-        $"Thoughts on ${symbol}? Looking {(new Random().NextDouble() > 0.5 ? "bullish" : "bearish")} based on recent analysis. #stocks #investing";
-
-    private SocialMediaAuthor GenerateMockAuthor() =>
-        new SocialMediaAuthor
-        {
-            Username = $"investor_{new Random().Next(1000, 9999)}",
-            FollowerCount = new Random().Next(100, 10000)
-        };
-
-    private List<string> GenerateMockHashtags(string symbol) =>
-        new List<string> { $"#{symbol}", "#stocks", "#investing", "#trading" };
+    private List<string> ExtractHashtags(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return new List<string>();
+        var regex = new System.Text.RegularExpressions.Regex(@"#\w+");
+        return regex.Matches(text).Select(m => m.Value).ToList();
+    }
+    
+    private List<string> ExtractMentions(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return new List<string>();
+        var regex = new System.Text.RegularExpressions.Regex(@"@\w+");
+        return regex.Matches(text).Select(m => m.Value).ToList();
+    }
 
     private double CalculateViralScore(SocialMediaPost post)
     {

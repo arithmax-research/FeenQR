@@ -14,5 +14,8 @@
   </ItemGroup>
   <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
     <Import Project="$(NuGetPackageRoot)microsoft.ml/3.0.1/build/netstandard2.0/Microsoft.ML.props" Condition="Exists('$(NuGetPackageRoot)microsoft.ml/3.0.1/build/netstandard2.0/Microsoft.ML.props')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.ml.onnxruntime.gpu.windows/1.20.1/buildTransitive/netstandard2.1/Microsoft.ML.OnnxRuntime.Gpu.Windows.props" Condition="Exists('$(NuGetPackageRoot)microsoft.ml.onnxruntime.gpu.windows/1.20.1/buildTransitive/netstandard2.1/Microsoft.ML.OnnxRuntime.Gpu.Windows.props')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.ml.onnxruntime.gpu.linux/1.20.1/buildTransitive/netstandard2.1/Microsoft.ML.OnnxRuntime.Gpu.Linux.props" Condition="Exists('$(NuGetPackageRoot)microsoft.ml.onnxruntime.gpu.linux/1.20.1/buildTransitive/netstandard2.1/Microsoft.ML.OnnxRuntime.Gpu.Linux.props')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.ml.onnxruntime.gpu/1.20.1/buildTransitive/netstandard2.1/Microsoft.ML.OnnxRuntime.Gpu.props" Condition="Exists('$(NuGetPackageRoot)microsoft.ml.onnxruntime.gpu/1.20.1/buildTransitive/netstandard2.1/Microsoft.ML.OnnxRuntime.Gpu.props')" />
   </ImportGroup>
 </Project>

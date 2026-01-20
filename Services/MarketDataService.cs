@@ -449,9 +449,9 @@ public class MarketDataService
             }
             else
             {
+                // Try local data first
                 var data = FetchStockHistoricalData(symbol, limit);
-                // Do not fallback to Yahoo. Only use local data.
-                if (data != null)
+                if (data != null && data.Any())
                 {
                     // Filter: exclude the most recent minute, and only include up to 5 years ago
                     var now = DateTime.UtcNow;
@@ -460,8 +460,12 @@ public class MarketDataService
                                .OrderBy(d => d.Timestamp)
                                .TakeLast(limit)
                                .ToList();
+                    return data;
                 }
-                return data;
+                
+                // No local data - fall back to Alpaca API
+                _logger.LogInformation($"Fetching historical data for {symbol} from Alpaca API");
+                return await FetchAlpacaHistoricalDataAsync(symbol, limit);
             }
         }
         catch (Exception ex)
@@ -576,13 +580,51 @@ public class MarketDataService
             return 0.0;
         }
     }
+    
+    private async Task<List<MarketData>?> FetchAlpacaHistoricalDataAsync(string symbol, int limit)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching historical bars from Alpaca for {Symbol}", symbol);
+            
+            // Use AlpacaService to get historical data
+            var days = Math.Min(limit, 730); // Max 2 years of daily data
+            var bars = await _alpacaService.GetHistoricalBarsAsync(symbol, days);
+            if (bars == null || !bars.Any())
+            {
+                _logger.LogWarning("No historical bars returned from Alpaca for {Symbol}", symbol);
+                return null;
+            }
+            
+            var historicalData = bars.Select(b => new MarketData
+            {
+                Symbol = symbol.ToUpper(),
+                Price = b.Close,
+                Close = b.Close,
+                Volume = b.Volume,
+                High24h = b.High,
+                Low24h = b.Low,
+                Change24h = b.Close - b.Open,
+                Timestamp = b.TimeUtc,
+                Source = "Alpaca"
+            }).OrderBy(d => d.Timestamp).ToList();
+            
+            _logger.LogInformation("Fetched {Count} bars from Alpaca for {Symbol}", historicalData.Count, symbol);
+            return historicalData;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching Alpaca historical data for {Symbol}", symbol);
+            return null;
+        }
+    }
 
     private List<MarketData>? FetchStockHistoricalData(string symbol, int limit)
     {
         // Try to load from local data files if available
         try
         {
-            var basePath = "/Users/misango/codechest/ArithmaxResearchChest/data/equity/usa/daily/";
+            var basePath = "/home/misango/codechest/ArithmaxResearchChest/data/equity/usa/daily/";
             var fileName = symbol.ToLower() + ".zip";
             var filePath = System.IO.Path.Combine(basePath, fileName);
             if (System.IO.File.Exists(filePath))
@@ -643,26 +685,10 @@ public class MarketDataService
         {
             _logger.LogError(ex, $"Error reading local data file for {symbol}");
         }
-        // Fallback: Generate mock data (for non-equities or if no file)
-        var fallbackData = new List<MarketData>();
-        var random = new Random();
-        var basePrice = 100.0;
-        for (int i = limit; i > 0; i--)
-        {
-            var timestamp = DateTime.UtcNow.AddMinutes(-i * 5);
-            var price = basePrice + (random.NextDouble() - 0.5) * 20;
-            fallbackData.Add(new MarketData
-            {
-                Symbol = symbol,
-                Price = price,
-                Volume = 50000 + random.Next(0, 100000),
-                High24h = price + random.NextDouble() * 2,
-                Low24h = price - random.NextDouble() * 2,
-                Timestamp = timestamp,
-                Source = "Mock"
-            });
-        }
-        return fallbackData;
+        
+        // No local data found - return null to trigger API fallback
+        _logger.LogInformation($"No local data file found for {symbol}, will use API fallback");
+        return null;
     }
 
     /// <summary>

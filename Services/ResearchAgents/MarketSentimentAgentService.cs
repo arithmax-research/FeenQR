@@ -21,6 +21,7 @@ public class MarketSentimentAgentService
     private readonly NewsScrapingService _newsScrapingService;
     private readonly IWebSearchPlugin _webSearchPlugin;
     private readonly TechnicalAnalysisService _technicalAnalysisService;
+    private readonly SocialMediaScrapingService _socialMediaService;
     private readonly RestClient _redditClient;
     private readonly List<SentimentAnalysis> _sentimentHistory = new();
 
@@ -30,9 +31,11 @@ public class MarketSentimentAgentService
         Kernel kernel,
         NewsScrapingService newsScrapingService,
         IWebSearchPlugin webSearchPlugin,
-        TechnicalAnalysisService technicalAnalysisService)
+        TechnicalAnalysisService technicalAnalysisService,
+        SocialMediaScrapingService socialMediaService)
     {
         _logger = logger;
+        _socialMediaService = socialMediaService;
         _configuration = configuration;
         _kernel = kernel;
         _newsScrapingService = newsScrapingService;
@@ -280,14 +283,27 @@ Instructions:
     {
         try
         {
-            // Mock social media data - in production, you'd use Twitter API, Reddit API, etc.
-            var socialData = GenerateMockSocialData(assetClass, specificAsset);
+            // Use real social media scraping service instead of mock data
+            var socialData = await _socialMediaService.AnalyzeSocialMediaSentimentAsync(specificAsset, new List<SocialMediaPlatform> { SocialMediaPlatform.Reddit }, 7);
+            
+            if (socialData == null || socialData.PlatformAnalyses == null || !socialData.PlatformAnalyses.Any())
+            {
+                throw new InvalidOperationException($"No social media data available for {specificAsset}. Ensure social media APIs are configured.");
+            }
+            
+            var allPosts = socialData.PlatformAnalyses.SelectMany(pa => pa.Posts).ToList();
+            var socialMediaPosts = allPosts.Select(post => new SocialMediaPost
+            {
+                Platform = post.Platform.ToString(),
+                Content = post.Content ?? string.Empty,
+                EngagementScore = post.Likes + post.Comments + post.Retweets
+            }).ToList();
             
             var prompt = $@"
 Analyze sentiment from social media discussions about {assetClass} {specificAsset}:
 
 Recent Posts/Comments:
-{string.Join("\n", socialData.Select(s => $"- {s.Platform}: {s.Content} (Engagement: {s.EngagementScore})"))}
+{string.Join("\n", socialMediaPosts.Select(s => $"- {s.Platform}: {s.Content} (Engagement: {s.EngagementScore})"))}
 
 You must provide your analysis in this EXACT format:
 
@@ -723,35 +739,6 @@ Format as clear, actionable bullet points with NO MARKDOWN FORMATTING.
             _logger.LogError(ex, "Failed to generate trading recommendations");
             return new List<string> { "Unable to generate recommendations due to analysis error." };
         }
-    }
-
-    // Mock data generators for demonstration
-    private List<NewsItem> GenerateMockNewsData(string keywords)
-    {
-        var newsItems = new List<NewsItem>
-        {
-            new() { Title = "Federal Reserve Signals Rate Changes", Summary = "Central bank indicates potential monetary policy shifts affecting markets" },
-            new() { Title = "Major Institution Adopts Digital Assets", Summary = "Large financial institution announces cryptocurrency adoption strategy" },
-            new() { Title = "Regulatory Clarity Emerges", Summary = "Government provides clearer guidelines for digital asset trading" },
-            new() { Title = "Market Volatility Continues", Summary = "Trading volumes and price swings remain elevated across asset classes" },
-            new() { Title = "Economic Data Shows Mixed Signals", Summary = "Latest economic indicators present conflicting market signals" }
-        };
-        
-        return newsItems;
-    }
-
-    private List<SocialMediaPost> GenerateMockSocialData(string assetClass, string specificAsset)
-    {
-        var socialPosts = new List<SocialMediaPost>
-        {
-            new() { Platform = "Twitter", Content = $"Bullish on {assetClass} - fundamentals looking strong!", EngagementScore = 850 },
-            new() { Platform = "Reddit", Content = $"Seeing some concerning patterns in {specificAsset} charts", EngagementScore = 340 },
-            new() { Platform = "Discord", Content = "Whales are accumulating, could be big move coming", EngagementScore = 120 },
-            new() { Platform = "Telegram", Content = "Market sentiment shifting, time to be cautious", EngagementScore = 200 },
-            new() { Platform = "Twitter", Content = $"Breaking: Major news for {assetClass} sector!", EngagementScore = 1200 }
-        };
-        
-        return socialPosts;
     }
 
     public List<SentimentAnalysis> GetSentimentHistory() => _sentimentHistory.ToList();

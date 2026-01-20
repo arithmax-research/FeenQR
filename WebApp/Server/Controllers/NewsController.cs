@@ -70,7 +70,8 @@ public class NewsController : ControllerBase
 
             if (newsList.Count == 0)
             {
-                return Ok(GetMockNews());
+                _logger.LogError("No news data available from news service");
+                return StatusCode(503, new { error = "News services unavailable. Ensure news API keys are configured." });
             }
 
             _logger.LogInformation($"Fetched {newsList.Count} news articles");
@@ -79,45 +80,8 @@ public class NewsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching news");
-            return Ok(GetMockNews());
+            return StatusCode(500, new { error = $"Failed to fetch news: {ex.Message}" });
         }
-    }
-
-    private List<NewsArticle> GetMockNews()
-    {
-        return new List<NewsArticle>
-        {
-            new()
-            {
-                Title = "Tech Stocks Rally on Strong Earnings",
-                Summary = "Major tech companies reported better-than-expected quarterly results, driving market gains.",
-                Source = "Financial Times",
-                PublishedAt = DateTime.UtcNow.AddHours(-2).ToString("MMM dd, HH:mm"),
-                Url = "#",
-                Sentiment = "positive",
-                Symbols = new List<string> { "AAPL", "MSFT", "GOOGL" }
-            },
-            new()
-            {
-                Title = "NVIDIA Announces New AI Chip Architecture",
-                Summary = "NVIDIA unveiled its next-generation GPU architecture optimized for AI workloads.",
-                Source = "Reuters",
-                PublishedAt = DateTime.UtcNow.AddHours(-5).ToString("MMM dd, HH:mm"),
-                Url = "#",
-                Sentiment = "positive",
-                Symbols = new List<string> { "NVDA" }
-            },
-            new()
-            {
-                Title = "Federal Reserve Maintains Interest Rates",
-                Summary = "The Fed decided to keep rates unchanged as inflation shows signs of cooling.",
-                Source = "Bloomberg",
-                PublishedAt = DateTime.UtcNow.AddHours(-8).ToString("MMM dd, HH:mm"),
-                Url = "#",
-                Sentiment = "neutral",
-                Symbols = new List<string>()
-            }
-        };
     }
 }
 

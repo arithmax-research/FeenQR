@@ -89,6 +89,10 @@
               "target": "Package",
               "version": "[3.0.1, )"
             },
+            "Microsoft.ML.OnnxRuntime.Gpu": {
+              "target": "Package",
+              "version": "[1.20.1, )"
+            },
             "Microsoft.ML.TimeSeries": {
               "target": "Package",
               "version": "[3.0.1, )"

@@ -63,8 +63,8 @@ public class MarketDataController : ControllerBase
 
             if (quotes.Count == 0)
             {
-                _logger.LogWarning("No market data available, returning mock data");
-                return Ok(GetMockQuotes());
+                _logger.LogError("No market data available from any source");
+                return StatusCode(503, new { error = "Market data services unavailable. Ensure API keys are configured." });
             }
 
             return Ok(quotes);
@@ -72,7 +72,7 @@ public class MarketDataController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in GetQuotes");
-            return Ok(GetMockQuotes());
+            return StatusCode(500, new { error = $"Failed to fetch market data: {ex.Message}" });
         }
     }
 
