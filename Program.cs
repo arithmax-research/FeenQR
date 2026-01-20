@@ -13,7 +13,6 @@ using Feen.Services;
 using QuantResearchAgent.Services.ResearchAgents;
 using QuantResearchAgent.Plugins;
 using Feen.Plugins;
-using FeenQR.Services;
 
 namespace QuantResearchAgent
 {
