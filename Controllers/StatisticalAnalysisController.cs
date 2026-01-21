@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using MathNet.Numerics.Statistics;
 using MathNet.Numerics.LinearAlgebra;
+using QuantResearchAgent.Services;
 
 namespace QuantResearchAgent.Controllers
 {
@@ -11,13 +12,16 @@ namespace QuantResearchAgent.Controllers
     {
         private readonly ILogger<StatisticalAnalysisController> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly MarketDataService _marketDataService;
 
         public StatisticalAnalysisController(
             ILogger<StatisticalAnalysisController> logger,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            MarketDataService marketDataService)
         {
             _logger = logger;
             _httpClientFactory = httpClientFactory;
+            _marketDataService = marketDataService;
         }
 
         // 1. Statistical Hypothesis Testing
@@ -515,39 +519,28 @@ namespace QuantResearchAgent.Controllers
         {
             try
             {
-                var client = _httpClientFactory.CreateClient();
-                var endDate = DateTime.Now;
-                var startDate = endDate.AddDays(-days - 100); // Extra buffer
+                // Use MarketDataService to fetch historical data
+                var historicalData = await _marketDataService.GetHistoricalDataAsync(symbol, days + 50); // Extra buffer
                 
-                var url = $"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?period1={((DateTimeOffset)startDate).ToUnixTimeSeconds()}&period2={((DateTimeOffset)endDate).ToUnixTimeSeconds()}&interval=1d";
-                
-                var response = await client.GetAsync(url);
-                if (!response.IsSuccessStatusCode)
-                    return null;
-
-                var content = await response.Content.ReadAsStringAsync();
-                var json = JsonDocument.Parse(content);
-                
-                var quotes = json.RootElement
-                    .GetProperty("chart")
-                    .GetProperty("result")[0]
-                    .GetProperty("indicators")
-                    .GetProperty("quote")[0]
-                    .GetProperty("close");
-
-                var prices = new List<double>();
-                foreach (var price in quotes.EnumerateArray())
+                if (historicalData == null || !historicalData.Any())
                 {
-                    if (price.ValueKind != JsonValueKind.Null)
-                        prices.Add(price.GetDouble());
+                    _logger.LogWarning("No historical data available for {Symbol}", symbol);
+                    return Array.Empty<double>();
                 }
 
-                return prices.TakeLast(days).ToArray();
+                // Extract closing prices
+                var prices = historicalData
+                    .OrderBy(d => d.Timestamp)
+                    .Select(d => d.Close)
+                    .TakeLast(days)
+                    .ToArray();
+
+                return prices;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching historical data for {Symbol}", symbol);
-                return null;
+                return Array.Empty<double>();
             }
         }
 
