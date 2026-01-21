@@ -599,12 +599,12 @@ public class MarketDataService
             var historicalData = bars.Select(b => new MarketData
             {
                 Symbol = symbol.ToUpper(),
-                Price = b.Close,
-                Close = b.Close,
-                Volume = b.Volume,
-                High24h = b.High,
-                Low24h = b.Low,
-                Change24h = b.Close - b.Open,
+                Price = (double)b.Close,
+                Close = (double)b.Close,
+                Volume = (double)b.Volume,
+                High24h = (double)b.High,
+                Low24h = (double)b.Low,
+                Change24h = (double)(b.Close - b.Open),
                 Timestamp = b.TimeUtc,
                 Source = "Alpaca"
             }).OrderBy(d => d.Timestamp).ToList();
