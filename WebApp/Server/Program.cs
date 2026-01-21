@@ -39,16 +39,30 @@ builder.Services.AddCors(options =>
                        .AllowAnyHeader());
 });
 
-// Register Semantic Kernel with OpenAI
+// Register Semantic Kernel with OpenAI or DeepSeek
 builder.Services.AddSingleton<Kernel>(sp => 
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
     var kernelBuilder = Kernel.CreateBuilder();
     
+    // Try DeepSeek first, then fall back to OpenAI
+    var deepSeekKey = configuration["DeepSeek:ApiKey"];
+    var deepSeekModel = configuration["DeepSeek:ModelId"] ?? "deepseek-chat";
+    var deepSeekEndpoint = configuration["DeepSeek:Endpoint"] ?? "https://api.deepseek.com";
+    
     var openAiKey = configuration["OpenAI:ApiKey"];
     var openAiModel = configuration["OpenAI:ModelId"] ?? "gpt-4o-mini";
     
-    if (!string.IsNullOrEmpty(openAiKey))
+    if (!string.IsNullOrEmpty(deepSeekKey))
+    {
+        // Use DeepSeek with OpenAI-compatible endpoint
+        kernelBuilder.AddOpenAIChatCompletion(
+            modelId: deepSeekModel,
+            apiKey: deepSeekKey,
+            endpoint: new Uri($"{deepSeekEndpoint}/v1")
+        );
+    }
+    else if (!string.IsNullOrEmpty(openAiKey))
     {
         kernelBuilder.AddOpenAIChatCompletion(openAiModel, openAiKey);
     }
@@ -113,6 +127,8 @@ builder.Services.AddSingleton<StatisticalTestingService>();
 builder.Services.AddSingleton<TechnicalAnalysisService>();
 builder.Services.AddSingleton<YFinanceNewsService>();
 builder.Services.AddSingleton<FinvizNewsService>();
+builder.Services.AddSingleton<NewsScrapingService>();
+builder.Services.AddSingleton<SocialMediaScrapingService>();
 builder.Services.AddSingleton<NewsSentimentAnalysisService>();
 builder.Services.AddSingleton<WebDataExtractionService>();
 builder.Services.AddSingleton<GoogleWebSearchPlugin>();
@@ -143,6 +159,8 @@ builder.Services.AddSingleton<YouTubeAnalysisService>();
 builder.Services.AddSingleton<ReportGenerationService>();
 builder.Services.AddSingleton<LinkedInScrapingService>();
 builder.Services.AddSingleton<PaperRAGService>();
+builder.Services.AddSingleton<MarketSentimentAgentService>();
+builder.Services.AddSingleton<RedditScrapingService>();
 
 // Register Portfolio Management services
 builder.Services.AddSingleton<PortfolioService>();
