@@ -196,7 +196,7 @@ public class MachineLearningController : ControllerBase
     {
         try
         {
-            var result = _mlService.GenerateEnsemblePredictions(request.Models, request.Features);
+            var result = await Task.Run(() => _mlService.GenerateEnsemblePredictions(request.Models, request.Features));
             return Ok(result);
         }
         catch (Exception ex)
