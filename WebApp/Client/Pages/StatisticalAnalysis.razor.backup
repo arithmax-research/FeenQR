@@ -1,0 +1,717 @@
+@page "/statistical-analysis"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>Statistical Analysis - FeenQR</PageTitle>
+
+<style>
+    .stats-container {
+        position: fixed;
+        left: 280px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+        overflow-x: hidden;
+        overflow-y: auto;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stats-header {
+        background: linear-gradient(135deg, rgba(18, 18, 28, 0.98) 0%, rgba(30, 30, 45, 0.98) 100%);
+        border-bottom: 1px solid rgba(147, 51, 234, 0.3);
+        padding: 1.5rem 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        flex-shrink: 0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .stats-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 2rem;
+        margin: 0 auto;
+        max-width: 1600px;
+        width: 100%;
+    }
+
+    .stats-card {
+        background: linear-gradient(145deg, rgba(30, 30, 45, 0.7) 0%, rgba(20, 20, 35, 0.7) 100%);
+        border: 1px solid rgba(147, 51, 234, 0.2);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .stats-card:hover {
+        border-color: rgba(147, 51, 234, 0.4);
+        box-shadow: 0 12px 40px rgba(147, 51, 234, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .ai-insights-card {
+        background: linear-gradient(145deg, rgba(147, 51, 234, 0.1) 0%, rgba(79, 70, 229, 0.1) 100%);
+        border: 1px solid rgba(147, 51, 234, 0.3);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        min-height: 400px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 12px;
+        max-height: 500px;
+    }
+
+    .chat-message {
+        margin-bottom: 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        animation: slideIn 0.3s ease;
+    }
+
+    @@keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .chat-message.user {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2));
+        border-left: 3px solid #3b82f6;
+        margin-left: 2rem;
+    }
+
+    .chat-message.ai {
+        background: linear-gradient(135deg, rgba(147, 51, 234, 0.2), rgba(126, 34, 206, 0.2));
+        border-left: 3px solid #9333ea;
+        margin-right: 2rem;
+    }
+
+    .chat-input-group {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .chat-input {
+        flex: 1;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(147, 51, 234, 0.3);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        color: #fff;
+        transition: all 0.3s ease;
+    }
+
+    .chat-input:focus {
+        outline: none;
+        border-color: rgba(147, 51, 234, 0.6);
+        box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+    }
+
+    .metric-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-right: 0.5rem;
+    }
+
+    .metric-badge.positive {
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .metric-badge.negative {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .metric-badge.neutral {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+        border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .gradient-text {
+        background: linear-gradient(135deg, #9333ea 0%, #4f46e5 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 700;
+    }
+
+    .action-btn {
+        background: linear-gradient(135deg, rgba(147, 51, 234, 0.2), rgba(79, 70, 229, 0.2));
+        border: 1px solid rgba(147, 51, 234, 0.4);
+        color: #9333ea;
+        transition: all 0.3s ease;
+    }
+
+    .action-btn:hover {
+        background: linear-gradient(135deg, rgba(147, 51, 234, 0.3), rgba(79, 70, 229, 0.3));
+        border-color: rgba(147, 51, 234, 0.6);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(147, 51, 234, 0.2);
+    }
+
+    .spinner-pulse {
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .table-dark-custom {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .table-dark-custom td, .table-dark-custom th {
+        border-color: rgba(147, 51, 234, 0.1);
+        padding: 0.75rem;
+    }
+
+    .insights-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .ai-badge {
+        background: linear-gradient(135deg, #9333ea, #4f46e5);
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+</style>
+
+<div class="stats-container">
+    <div class="stats-header">
+        <h3 class="mb-1 text-white">
+            <i class="bi bi-graph-up-arrow"></i> <span class="gradient-text">Statistical Analysis</span>
+        </h3>
+        <p class="text-muted small mb-0">Advanced statistical testing with AI-powered insights</p>
+    </div>
+
+    <div class="stats-content">
+        <!-- Input Section -->
+        <div class="stats-card">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label small text-white-50 mb-1">Symbol</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="symbol" placeholder="AAPL" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-white-50 mb-1">Analysis Type</label>
+                    <select class="form-select bg-dark text-white border-secondary" @bind="analysisType">
+                        <option value="statistical-test">Statistical Test</option>
+                        <option value="hypothesis-test">Hypothesis Test</option>
+                        <option value="power-analysis">Power Analysis</option>
+                        <option value="time-series-analysis">Time Series Analysis</option>
+                        <option value="stationarity-test">Stationarity Test</option>
+                        <option value="autocorrelation-analysis">Autocorrelation Analysis</option>
+                        <option value="seasonal-decomposition">Seasonal Decomposition</option>
+                        <option value="ts-analysis">Stock Time Series</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-white-50 mb-1">Days</label>
+                    <input type="number" class="form-control bg-dark text-white border-secondary" @bind="days" min="30" max="1800" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-white-50 mb-1">Test Type</label>
+                    <select class="form-select bg-dark text-white border-secondary" @bind="testType">
+                        <option value="t-test">T-Test</option>
+                        <option value="z-test">Z-Test</option>
+                        <option value="jarque-bera">Jarque-Bera</option>
+                        <option value="shapiro-wilk">Shapiro-Wilk</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end gap-2">
+                    <button class="btn btn-primary w-100" @onclick="PerformAnalysis" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1 spinner-pulse"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-play-circle me-1"></i>
+                        }
+                        Analyze
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary spinner-pulse" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Analyzing...</span>
+                </div>
+                <p class="mt-3 text-white">Analyzing @symbol data...</p>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage
+                <button type="button" class="btn-close" @onclick="@(() => errorMessage = string.Empty)"></button>
+            </div>
+        }
+
+        @if (result != null && !isLoading)
+        {
+            <div class="row">
+                <!-- Main Results & AI Insights -->
+                <div class="col-lg-8 mb-3">
+                    <!-- Summary Cards -->
+                    <div class="row mb-3">
+                        <div class="col-md-3 mb-2">
+                            <div class="stats-card text-center">
+                                <div class="small text-white-50 mb-1">Symbol</div>
+                                <h4 class="text-white mb-0">@symbol</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <div class="stats-card text-center">
+                                <div class="small text-white-50 mb-1">Period</div>
+                                <h4 class="text-primary mb-0">@days</h4>
+                                <small class="text-muted">days</small>
+                            </div>
+                        </div>
+                        @if (result.HasValue && result.Value.TryGetProperty("dataPoints", out var dataPoints))
+                        {
+                            <div class="col-md-3 mb-2">
+                                <div class="stats-card text-center">
+                                    <div class="small text-white-50 mb-1">Data Points</div>
+                                    <h4 class="text-success mb-0">@dataPoints.GetInt32()</h4>
+                                </div>
+                            </div>
+                        }
+                        @if (result.HasValue && result.Value.TryGetProperty("result", out var resultData) && 
+                             resultData.TryGetProperty("pValue", out var pValue))
+                        {
+                            <div class="col-md-3 mb-2">
+                                <div class="stats-card text-center">
+                                    <div class="small text-white-50 mb-1">P-Value</div>
+                                    <h4 class="@(pValue.GetDouble() < 0.05 ? "text-danger" : "text-warning") mb-0">
+                                        @pValue.GetDouble().ToString("F4")
+                                    </h4>
+                                    <small class="@(pValue.GetDouble() < 0.05 ? "text-danger" : "text-warning")">
+                                        @(pValue.GetDouble() < 0.05 ? "Significant" : "Not Significant")
+                                    </small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- AI Insights -->
+                    <div class="ai-insights-card">
+                        <div class="insights-header">
+                            <i class="bi bi-stars text-warning" style="font-size: 1.5rem;"></i>
+                            <h6 class="text-white mb-0">AI Analytics</h6>
+                            <span class="ai-badge">DeepSeek</span>
+                        </div>
+
+                        <div class="chat-messages" id="chatMessages">
+                            @foreach (var message in chatMessages)
+                            {
+                                <div class="chat-message @(message.IsUser ? "user" : "ai")">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bi @(message.IsUser ? "bi-person-circle" : "bi-robot") me-2"></i>
+                                        <small class="text-white-50">@(message.IsUser ? "You" : "AI Analyst")</small>
+                                    </div>
+                                    <div class="text-white">@message.Content</div>
+                                </div>
+                            }
+                            @if (isAiThinking)
+                            {
+                                <div class="chat-message ai">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-robot me-2"></i>
+                                        <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                                        <small class="text-white-50">AI is analyzing...</small>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="chat-input-group">
+                            <input type="text" 
+                                   class="chat-input" 
+                                   @bind="chatInput" 
+                                   @bind:event="oninput"
+                                   @onkeyup="HandleChatKeyPress"
+                                   placeholder="Ask AI about these results..." 
+                                   disabled="@isAiThinking" />
+                            <button class="btn btn-primary" @onclick="SendChatMessage" disabled="@(isAiThinking || string.IsNullOrWhiteSpace(chatInput))">
+                                <i class="bi bi-send-fill"></i>
+                            </button>
+                            @if (chatMessages.Count == 0)
+                            {
+                                <button class="btn action-btn" @onclick="GetAutoInsights" disabled="@isAiThinking">
+                                    <i class="bi bi-lightbulb-fill me-1"></i> Auto Insights
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Detailed Results -->
+                    <div class="stats-card">
+                        <h6 class="mb-3 text-white">
+                            <i class="bi bi-clipboard-data"></i> Detailed Results
+                        </h6>
+                        <pre class="bg-black text-white-50 p-3 rounded small" style="max-height: 400px; overflow-y: auto; font-size: 0.85rem;">@resultJson</pre>
+                    </div>
+                </div>
+
+                <!-- Sidebar - Metrics & Actions -->
+                <div class="col-lg-4 mb-3">
+                    @if (result.HasValue && result.Value.TryGetProperty("result", out var resultDetails))
+                    {
+                        <div class="stats-card mb-3">
+                            <h6 class="mb-3 text-white"><i class="bi bi-bar-chart-line"></i> Key Metrics</h6>
+                            <table class="table table-sm table-dark-custom">
+                                <tbody>
+                                    @foreach (var prop in resultDetails.EnumerateObject())
+                                    {
+                                        @if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Number)
+                                        {
+                                            <tr>
+                                                <td class="text-white-50 small">@FormatPropertyName(prop.Name)</td>
+                                                <td class="text-white text-end">
+                                                    <strong>@FormatValue(prop.Value)</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                        else if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.String)
+                                        {
+                                            <tr>
+                                                <td class="text-white-50 small" colspan="2">
+                                                    <strong>@FormatPropertyName(prop.Name):</strong> @prop.Value.GetString()
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+
+                    <div class="stats-card">
+                        <h6 class="mb-3 text-white"><i class="bi bi-lightning-charge"></i> Quick Actions</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn action-btn" @onclick="ExportResults">
+                                <i class="bi bi-download me-1"></i> Export JSON
+                            </button>
+                            <button class="btn action-btn" @onclick="CopyToClipboard">
+                                <i class="bi bi-clipboard me-1"></i> Copy Results
+                            </button>
+                            <button class="btn action-btn" @onclick="ExportChat">
+                                <i class="bi bi-chat-square-text me-1"></i> Export Chat
+                            </button>
+                            <button class="btn action-btn" @onclick="ResetAnalysis">
+                                <i class="bi bi-arrow-clockwise me-1"></i> New Analysis
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="stats-card">
+                        <h6 class="mb-3 text-white"><i class="bi bi-info-circle"></i> Analysis Info</h6>
+                        <p class="text-white-50 small mb-2">
+                            <strong class="text-white">Type:</strong><br/>
+                            @GetAnalysisName(analysisType)
+                        </p>
+                        <p class="text-white-50 small mb-0">
+                            <strong class="text-white">Test:</strong><br/>
+                            @testType.ToUpper()
+                        </p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string symbol = "AAPL";
+    private string analysisType = "statistical-test";
+    private int days = 252;
+    private string testType = "t-test";
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private JsonElement? result = null;
+    private string resultJson = "";
+
+    // AI Chat
+    private string chatInput = "";
+    private bool isAiThinking = false;
+    private List<ChatMessage> chatMessages = new();
+
+    private class ChatMessage
+    {
+        public string Content { get; set; } = "";
+        public bool IsUser { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+    }
+
+    private async Task PerformAnalysis()
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+        {
+            errorMessage = "Please enter a symbol";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = string.Empty;
+        result = null;
+        resultJson = "";
+        chatMessages.Clear();
+
+        try
+        {
+            var url = analysisType switch
+            {
+                "statistical-test" => $"/api/StatisticalAnalysis/statistical-test?symbol={symbol}&testType={testType}&days={days}",
+                "hypothesis-test" => $"/api/StatisticalAnalysis/hypothesis-test?symbol={symbol}&days={days}",
+                "power-analysis" => $"/api/StatisticalAnalysis/power-analysis?symbol={symbol}&days={days}",
+                "time-series-analysis" => $"/api/StatisticalAnalysis/time-series-analysis?symbol={symbol}&days={days}",
+                "stationarity-test" => $"/api/StatisticalAnalysis/stationarity-test?symbol={symbol}&testType=adf&days={days}",
+                "autocorrelation-analysis" => $"/api/StatisticalAnalysis/autocorrelation-analysis?symbol={symbol}&days={days}",
+                "seasonal-decomposition" => $"/api/StatisticalAnalysis/seasonal-decomposition?symbol={symbol}&days={Math.Max(days, 504)}",
+                "ts-analysis" => $"/api/StatisticalAnalysis/ts-analysis?symbol={symbol}&days={days}",
+                _ => $"/api/StatisticalAnalysis/statistical-test?symbol={symbol}&testType={testType}&days={days}"
+            };
+
+            var response = await Http.GetFromJsonAsync<JsonElement>(url);
+            result = response;
+            resultJson = System.Text.Json.JsonSerializer.Serialize(response, new System.Text.Json.JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            });
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error performing analysis: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleChatKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(chatInput) && !isAiThinking)
+        {
+            await SendChatMessage();
+        }
+    }
+
+    private async Task SendChatMessage()
+    {
+        if (string.IsNullOrWhiteSpace(chatInput) || isAiThinking || result == null) return;
+
+        var userMessage = chatInput.Trim();
+        chatMessages.Add(new ChatMessage { Content = userMessage, IsUser = true });
+        chatInput = "";
+        isAiThinking = true;
+
+        try
+        {
+            var requestBody = new
+            {
+                query = userMessage,
+                context = resultJson,
+                symbol = symbol,
+                analysisType = GetAnalysisName(analysisType)
+            };
+
+            var response = await Http.PostAsJsonAsync("/api/ai/analyze-stats", requestBody);
+            if (response.IsSuccessStatusCode)
+            {
+                var aiResponse = await response.Content.ReadFromJsonAsync<AiResponse>();
+                chatMessages.Add(new ChatMessage { Content = aiResponse?.Response ?? "No response received", IsUser = false });
+            }
+            else
+            {
+                chatMessages.Add(new ChatMessage { Content = "Sorry, I couldn't process that request. Please try again.", IsUser = false });
+            }
+        }
+        catch (Exception ex)
+        {
+            chatMessages.Add(new ChatMessage { Content = $"Error: {ex.Message}", IsUser = false });
+        }
+        finally
+        {
+            isAiThinking = false;
+            await JS.InvokeVoidAsync("eval", "document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight");
+        }
+    }
+
+    private async Task GetAutoInsights()
+    {
+        if (result == null) return;
+
+        isAiThinking = true;
+        chatMessages.Clear();
+
+        try
+        {
+            var requestBody = new
+            {
+                query = "Provide comprehensive insights about these statistical results. What do they mean? Are they significant? What should I know?",
+                context = resultJson,
+                symbol = symbol,
+                analysisType = GetAnalysisName(analysisType)
+            };
+
+            var response = await Http.PostAsJsonAsync("/api/ai/analyze-stats", requestBody);
+            if (response.IsSuccessStatusCode)
+            {
+                var aiResponse = await response.Content.ReadFromJsonAsync<AiResponse>();
+                chatMessages.Add(new ChatMessage { Content = aiResponse?.Response ?? "No insights available", IsUser = false });
+            }
+        }
+        catch (Exception ex)
+        {
+            chatMessages.Add(new ChatMessage { Content = $"Error generating insights: {ex.Message}", IsUser = false });
+        }
+        finally
+        {
+            isAiThinking = false;
+            await JS.InvokeVoidAsync("eval", "document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight");
+        }
+    }
+
+    private string GetAnalysisName(string type)
+    {
+        return type switch
+        {
+            "statistical-test" => "Statistical Hypothesis Test",
+            "hypothesis-test" => "Hypothesis Testing",
+            "power-analysis" => "Statistical Power Analysis",
+            "time-series-analysis" => "Time Series Analysis",
+            "stationarity-test" => "Stationarity Testing",
+            "autocorrelation-analysis" => "Autocorrelation Analysis",
+            "seasonal-decomposition" => "Seasonal Decomposition",
+            "ts-analysis" => "Stock Time Series Analysis",
+            _ => type
+        };
+    }
+
+    private string FormatPropertyName(string name)
+    {
+        return System.Text.RegularExpressions.Regex.Replace(name, "([a-z])([A-Z])", "$1 $2");
+    }
+
+    private string FormatValue(JsonElement value)
+    {
+        if (value.ValueKind == JsonValueKind.Number)
+        {
+            var num = value.GetDouble();
+            return Math.Abs(num) >= 1000 ? num.ToString("N0") : num.ToString("F4");
+        }
+        return value.ToString();
+    }
+
+    private async Task ExportResults()
+    {
+        if (result == null) return;
+        
+        var json = System.Text.Json.JsonSerializer.Serialize(result, new System.Text.Json.JsonSerializerOptions 
+        { 
+            WriteIndented = true 
+        });
+        
+        var fileName = $"{symbol}_{analysisType}_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+        await JS.InvokeVoidAsync("downloadFile", fileName, json);
+    }
+
+    private async Task CopyToClipboard()
+    {
+        if (!string.IsNullOrEmpty(resultJson))
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", resultJson);
+        }
+    }
+
+    private async Task ExportChat()
+    {
+        if (chatMessages.Count == 0) return;
+
+        var chatText = string.Join("\n\n", chatMessages.Select(m => 
+            $"[{(m.IsUser ? "USER" : "AI")}] {m.Timestamp:HH:mm:ss}\n{m.Content}"));
+        
+        var fileName = $"{symbol}_chat_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+        await JS.InvokeVoidAsync("downloadFile", fileName, chatText);
+    }
+
+    private void ResetAnalysis()
+    {
+        result = null;
+        resultJson = "";
+        chatMessages.Clear();
+        errorMessage = "";
+    }
+
+    private class AiResponse
+    {
+        public string Response { get; set; } = "";
+    }
+}
+
+                                <div class="col-md-6">
+                                    <h6 class="text-primary small">Analysis Details</h6>
+                                    <table class="table table-sm table-dark">
+                                        @foreach (var prop in analysisData.EnumerateObject())
+                                        {
+                                            <tr>
+                                                <td class="small text-white-50">@FormatPropertyName(prop.Name)</td>
+                                                <td class="small text-white">@prop.Value.ToString()</td>
+                                            </tr>
+                                        }
+                                    </table>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
