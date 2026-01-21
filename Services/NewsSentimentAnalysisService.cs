@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using QuantResearchAgent.Services;
+using QuantResearchAgent.Plugins;
 using System.Text;
 using System.Text.Json;
 
@@ -13,23 +14,28 @@ namespace QuantResearchAgent.Services
     public class NewsSentimentAnalysisService
     {
         private readonly ILogger<NewsSentimentAnalysisService> _logger;
-    //private readonly Kernel _kernel;
-    private readonly DeepSeekService _deepSeekService;
+        private readonly OpenAIService _openAIService;
         private readonly YFinanceNewsService _yfinanceNewsService;
         private readonly FinvizNewsService _finvizNewsService;
+        private readonly RedditScrapingService _redditScrapingService;
+        private readonly GoogleWebSearchPlugin _googleSearchPlugin;
         private readonly HttpClient _httpClient;
 
         public NewsSentimentAnalysisService(
             ILogger<NewsSentimentAnalysisService> logger,
-            DeepSeekService deepSeekService,
+            OpenAIService openAIService,
             YFinanceNewsService yfinanceNewsService,
             FinvizNewsService finvizNewsService,
+            RedditScrapingService redditScrapingService,
+            GoogleWebSearchPlugin googleSearchPlugin,
             HttpClient httpClient)
         {
             _logger = logger;
-            _deepSeekService = deepSeekService;
+            _openAIService = openAIService;
             _yfinanceNewsService = yfinanceNewsService;
             _finvizNewsService = finvizNewsService;
+            _redditScrapingService = redditScrapingService;
+            _googleSearchPlugin = googleSearchPlugin;
             _httpClient = httpClient;
         }
 
@@ -42,39 +48,181 @@ namespace QuantResearchAgent.Services
             {
                 _logger.LogInformation($"Starting sentiment analysis for {symbol}");
 
-                // Gather news from multiple sources
-                var yahooNewsTask = _yfinanceNewsService.GetNewsAsync(symbol, newsLimit);
-                var finvizNewsTask = _finvizNewsService.GetNewsAsync(symbol, newsLimit);
-
-                await Task.WhenAll(yahooNewsTask, finvizNewsTask);
-
-                var yahooNews = yahooNewsTask.Result;
-                var finvizNews = finvizNewsTask.Result;
-
-                // Combine and analyze all news
+                // Gather news from multiple sources IN PARALLEL for speed
                 var allNews = new List<NewsItem>();
                 
-                // Convert Yahoo Finance news
-                allNews.AddRange(yahooNews.Select(yn => new NewsItem
+                // Google Search for latest news
+                var googleTask = Task.Run(async () =>
                 {
-                    Title = yn.Title,
-                    Summary = yn.Summary,
-                    Publisher = yn.Publisher,
-                    PublishedDate = yn.PublishedDate,
-                    Link = yn.Link,
-                    Source = "Yahoo Finance"
-                }));
+                    try
+                    {
+                        var searchQuery = $"{symbol} stock news latest";
+                        var googleResults = await _googleSearchPlugin.SearchAsync(searchQuery, maxResults: newsLimit);
+                        var items = googleResults.Select(gr => new NewsItem
+                        {
+                            Title = gr.Title ?? "",
+                            Summary = gr.Snippet ?? "",
+                            Publisher = "Google Search",
+                            PublishedDate = DateTime.Now,
+                            Link = gr.Url ?? "",
+                            Source = "Google Search"
+                        }).ToList();
+                        _logger.LogInformation($"Retrieved {items.Count} news items from Google Search");
+                        return items;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, $"Failed to get Google Search results for {symbol}");
+                        return new List<NewsItem>();
+                    }
+                });
 
-                // Convert Finviz news
-                allNews.AddRange(finvizNews.Select(fn => new NewsItem
+                var finvizTask = Task.Run(async () =>
                 {
-                    Title = fn.Title,
-                    Summary = fn.Summary,
-                    Publisher = fn.Publisher,
-                    PublishedDate = fn.PublishedDate,
-                    Link = fn.Link,
-                    Source = "Finviz"
-                }));
+                    try
+                    {
+                        var finvizNews = await _finvizNewsService.GetNewsAsync(symbol, newsLimit);
+                        var items = finvizNews.Select(fn => new NewsItem
+                        {
+                            Title = fn.Title,
+                            Summary = fn.Summary,
+                            Publisher = fn.Publisher,
+                            PublishedDate = fn.PublishedDate,
+                            Link = fn.Link,
+                            Source = "Finviz"
+                        }).ToList();
+                        _logger.LogInformation($"Retrieved {items.Count} news items from Finviz");
+                        return items;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, $"Failed to get Finviz news for {symbol}");
+                        return new List<NewsItem>();
+                    }
+                });
+
+                var redditTask = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var redditPosts = await _redditScrapingService.ScrapeSubredditAsync("wallstreetbets", newsLimit);
+                        var symbolPosts = redditPosts.Where(p => 
+                            p.Title.Contains(symbol, StringComparison.OrdinalIgnoreCase) ||
+                            p.Content.Contains(symbol, StringComparison.OrdinalIgnoreCase))
+                            .Take(newsLimit / 2);
+                        
+                        var items = symbolPosts.Select(rp => new NewsItem
+                        {
+                            Title = rp.Title,
+                            Summary = rp.Content.Length > 200 ? rp.Content.Substring(0, 200) + "..." : rp.Content,
+                            Publisher = $"u/{rp.Author}",
+                            PublishedDate = rp.CreatedUtc,
+                            Link = rp.Url,
+                            Source = "Reddit"
+                        }).ToList();
+                        _logger.LogInformation($"Retrieved {items.Count} relevant posts from Reddit");
+                        return items;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, $"Failed to get Reddit posts for {symbol}");
+                        return new List<NewsItem>();
+                    }
+                });
+
+                // Yahoo Finance news
+                var yahooTask = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var yahooNews = await _yfinanceNewsService.GetNewsAsync(symbol, newsLimit);
+                        var items = yahooNews.Select(yn => new NewsItem
+                        {
+                            Title = yn.Title,
+                            Summary = yn.Summary,
+                            Publisher = yn.Publisher,
+                            PublishedDate = yn.PublishedDate,
+                            Link = yn.Link,
+                            Source = "Yahoo Finance"
+                        }).ToList();
+                        _logger.LogInformation($"Retrieved {items.Count} news items from Yahoo Finance");
+                        return items;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, $"Failed to get Yahoo Finance news for {symbol}");
+                        return new List<NewsItem>();
+                    }
+                });
+
+                // MarketWatch news scraping
+                var marketWatchTask = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var url = $"https://www.marketwatch.com/search?q={symbol}&ts=0&tab=All%20News";
+                        var response = await _httpClient.GetAsync(url);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var html = await response.Content.ReadAsStringAsync();
+                            var items = new List<NewsItem>();
+                            
+                            // Simple regex parsing for MarketWatch articles
+                            var titlePattern = new System.Text.RegularExpressions.Regex(@"<h3[^>]*class=""[^""]*article__headline[^""]*""[^>]*>\s*<a[^>]*href=""([^""]*)""[^>]*>([^<]*)</a>");
+                            var matches = titlePattern.Matches(html);
+                            
+                            foreach (System.Text.RegularExpressions.Match match in matches.Take(newsLimit))
+                            {
+                                if (match.Groups.Count >= 3)
+                                {
+                                    items.Add(new NewsItem
+                                    {
+                                        Title = System.Net.WebUtility.HtmlDecode(match.Groups[2].Value.Trim()),
+                                        Summary = "",
+                                        Publisher = "MarketWatch",
+                                        PublishedDate = DateTime.Now,
+                                        Link = match.Groups[1].Value.StartsWith("http") ? match.Groups[1].Value : $"https://www.marketwatch.com{match.Groups[1].Value}",
+                                        Source = "MarketWatch"
+                                    });
+                                }
+                            }
+                            _logger.LogInformation($"Retrieved {items.Count} news items from MarketWatch");
+                            return items;
+                        }
+                        return new List<NewsItem>();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, $"Failed to scrape MarketWatch news for {symbol}");
+                        return new List<NewsItem>();
+                    }
+                });
+
+                // Wait for all sources to complete in parallel
+                await Task.WhenAll(googleTask, finvizTask, redditTask, yahooTask, marketWatchTask);
+                
+                allNews.AddRange(googleTask.Result);
+                allNews.AddRange(finvizTask.Result);
+                allNews.AddRange(redditTask.Result);
+                allNews.AddRange(yahooTask.Result);
+                allNews.AddRange(marketWatchTask.Result);
+
+                if (allNews.Count == 0)
+                {
+                    _logger.LogWarning($"No news items found for {symbol} from any source");
+                    return new SymbolSentimentAnalysis
+                    {
+                        Symbol = symbol,
+                        AnalysisDate = DateTime.Now,
+                        NewsItems = new List<NewsItem>(),
+                        OverallSentiment = "Neutral",
+                        SentimentScore = 0,
+                        Confidence = 0,
+                        Summary = "No news data available for analysis"
+                    };
+                }
+
+                _logger.LogInformation($"Total news items collected: {allNews.Count} from multiple sources");
 
                 // Remove duplicates and sort by date
                 var uniqueNews = allNews
@@ -84,12 +232,11 @@ namespace QuantResearchAgent.Services
                     .Take(newsLimit)
                     .ToList();
 
-                // Analyze sentiment for each news item
-                var sentimentTasks = uniqueNews.Select(AnalyzeNewsItemSentimentAsync).ToList();
-                var sentimentResults = await Task.WhenAll(sentimentTasks);
+                // BATCH analyze sentiment for all news items in one call for speed
+                var sentimentResults = await AnalyzeBatchSentimentAsync(uniqueNews);
 
                 // Combine results
-                for (int i = 0; i < uniqueNews.Count; i++)
+                for (int i = 0; i < uniqueNews.Count && i < sentimentResults.Count; i++)
                 {
                     uniqueNews[i].SentimentScore = sentimentResults[i].Score;
                     uniqueNews[i].SentimentLabel = sentimentResults[i].Label;
@@ -281,6 +428,211 @@ namespace QuantResearchAgent.Services
             }
         }
 
+        /// <summary>
+        /// Fetch full article content from URL
+        /// </summary>
+        private async Task<string?> FetchArticleContentAsync(string url)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync(url);
+                if (!response.IsSuccessStatusCode)
+                    return null;
+
+                var html = await response.Content.ReadAsStringAsync();
+                
+                // Extract main content using simple heuristics
+                // Remove script and style tags
+                html = System.Text.RegularExpressions.Regex.Replace(html, @"<script[^>]*>.*?</script>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                html = System.Text.RegularExpressions.Regex.Replace(html, @"<style[^>]*>.*?</style>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                
+                // Try to find main article content (common patterns)
+                var articlePatterns = new[] { 
+                    @"<article[^>]*>(.*?)</article>",
+                    @"<div[^>]*class=[""'][^""']*article[^""']*[""'][^>]*>(.*?)</div>",
+                    @"<div[^>]*class=[""'][^""']*content[^""']*[""'][^>]*>(.*?)</div>",
+                    @"<div[^>]*class=[""'][^""']*story[^""']*[""'][^>]*>(.*?)</div>"
+                };
+                
+                string? articleContent = null;
+                foreach (var pattern in articlePatterns)
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(html, pattern, System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    if (match.Success)
+                    {
+                        articleContent = match.Groups[1].Value;
+                        break;
+                    }
+                }
+                
+                // If no specific article tag found, use body content
+                if (string.IsNullOrEmpty(articleContent))
+                {
+                    var bodyMatch = System.Text.RegularExpressions.Regex.Match(html, @"<body[^>]*>(.*?)</body>", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    articleContent = bodyMatch.Success ? bodyMatch.Groups[1].Value : html;
+                }
+                
+                // Strip all HTML tags
+                articleContent = System.Text.RegularExpressions.Regex.Replace(articleContent, @"<[^>]+>", " ");
+                
+                // Decode HTML entities
+                articleContent = System.Net.WebUtility.HtmlDecode(articleContent);
+                
+                // Clean up whitespace
+                articleContent = System.Text.RegularExpressions.Regex.Replace(articleContent, @"\s+", " ");
+                articleContent = articleContent.Trim();
+                
+                // Limit to first 2000 chars to avoid token limits while getting substantial content
+                if (articleContent.Length > 2000)
+                    articleContent = articleContent.Substring(0, 2000) + "...";
+                
+                return string.IsNullOrWhiteSpace(articleContent) ? null : articleContent;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, $"Failed to fetch article content from {url}");
+                return null;
+            }
+        }
+
+        private async Task<List<NewsItemSentiment>> AnalyzeBatchSentimentAsync(List<NewsItem> newsItems)
+        {
+            try
+            {
+                if (newsItems.Count == 0)
+                    return new List<NewsItemSentiment>();
+
+                _logger.LogInformation($"Fetching full article content for {newsItems.Count} items...");
+                
+                // Fetch article content in parallel (with timeout per article)
+                var contentTasks = newsItems.Select(async n => 
+                {
+                    if (string.IsNullOrEmpty(n.Link))
+                        return (n, (string?)null);
+                    
+                    try
+                    {
+                        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                        var content = await FetchArticleContentAsync(n.Link);
+                        return (n, content);
+                    }
+                    catch
+                    {
+                        return (n, (string?)null);
+                    }
+                }).ToList();
+                
+                var contentResults = await Task.WhenAll(contentTasks);
+                var articleContents = contentResults.ToDictionary(r => r.Item1, r => r.Item2);
+                
+                var fetchedCount = articleContents.Count(kv => !string.IsNullOrEmpty(kv.Value));
+                _logger.LogInformation($"Successfully fetched {fetchedCount}/{newsItems.Count} full articles");
+
+                var newsItemsJson = newsItems.Select((n, i) =>
+                {
+                    var content = articleContents.TryGetValue(n, out var c) && !string.IsNullOrEmpty(c) 
+                        ? c 
+                        : n.Summary;
+                    
+                    return $@"
+Item {i + 1}:
+Title: {n.Title}
+Publisher: {n.Publisher}
+Date: {n.PublishedDate:yyyy-MM-dd}
+Content: {content}
+Source URL: {n.Link}";
+                }).ToList();
+
+                var prompt = $@"
+Analyze the financial sentiment of these {newsItems.Count} news articles in a SINGLE batch response.
+Each article includes the FULL CONTENT (not just summary) for comprehensive analysis.
+
+{string.Join("\n\n", newsItemsJson)}
+
+Provide DEEP analysis for ALL articles based on the full content in this exact JSON array format:
+[
+    {{
+        ""score"": <number between -1.0 and 1.0>,
+        ""label"": ""<Very Negative|Negative|Neutral|Positive|Very Positive>"",
+        ""keyTopics"": [""topic1"", ""topic2"", ""topic3""],
+        ""impact"": ""<Low|Medium|High>"",
+        ""reasoning"": ""<comprehensive explanation based on full article analysis>""
+    }},
+    ... (repeat for all {newsItems.Count} items in order)
+]
+
+Perform COMPREHENSIVE analysis considering:
+- Full article context and narrative flow
+- Financial metrics and quantitative data mentioned
+- Expert quotes and analyst opinions with specific details
+- Market impact indicators (earnings beats/misses, guidance, partnerships)
+- Forward-looking statements and growth projections
+- Risk factors and challenges discussed
+- Competitive positioning and market share insights
+- Regulatory, legal, or compliance issues
+- Sentiment shifts throughout the article
+- Technical language indicating bullish/bearish positioning
+
+Provide nuanced scores reflecting the depth of content, not just headline sentiment.
+";
+
+                var jsonResponse = await _openAIService.GetChatCompletionAsync(prompt);
+                var cleanJson = ExtractJsonFromResponse(jsonResponse);
+                
+                if (string.IsNullOrWhiteSpace(cleanJson))
+                {
+                    _logger.LogWarning("No JSON extracted from OpenAI response");
+                    throw new Exception("Failed to extract JSON from response");
+                }
+                
+                _logger.LogInformation($"Extracted complete JSON response: {cleanJson}");
+                
+                var sentimentArray = JsonSerializer.Deserialize<JsonElement>(cleanJson);
+
+                var results = new List<NewsItemSentiment>();
+                if (sentimentArray.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var item in sentimentArray.EnumerateArray())
+                    {
+                        results.Add(new NewsItemSentiment
+                        {
+                            Score = item.TryGetProperty("score", out var score) ? score.GetDouble() : 0.0,
+                            Label = item.TryGetProperty("label", out var label) ? label.GetString() ?? "Neutral" : "Neutral",
+                            KeyTopics = item.TryGetProperty("keyTopics", out var topics) 
+                                ? topics.EnumerateArray().Select(t => t.GetString() ?? "").Where(t => !string.IsNullOrEmpty(t)).ToList()
+                                : new List<string>(),
+                            Impact = item.TryGetProperty("impact", out var impact) ? impact.GetString() ?? "Medium" : "Medium"
+                        });
+                    }
+                }
+
+                // Fill in any missing results with neutral sentiment
+                while (results.Count < newsItems.Count)
+                {
+                    results.Add(new NewsItemSentiment
+                    {
+                        Score = 0.0,
+                        Label = "Neutral",
+                        KeyTopics = new List<string>(),
+                        Impact = "Medium"
+                    });
+                }
+
+                return results;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error in batch sentiment analysis, falling back to neutral");
+                return newsItems.Select(_ => new NewsItemSentiment
+                {
+                    Score = 0.0,
+                    Label = "Neutral",
+                    KeyTopics = new List<string>(),
+                    Impact = "Medium"
+                }).ToList();
+            }
+        }
+
         private async Task<NewsItemSentiment> AnalyzeNewsItemSentimentAsync(NewsItem newsItem)
         {
             try
@@ -311,7 +663,7 @@ Consider:
 ";
 
 
-                var jsonResponse = await _deepSeekService.GetChatCompletionAsync(prompt);
+                var jsonResponse = await _openAIService.GetChatCompletionAsync(prompt);
 
                 // Clean and parse JSON
                 var cleanJson = ExtractJsonFromResponse(jsonResponse);
@@ -378,9 +730,9 @@ Focus on:
 - Revenue/profit margin trends
 - Market share and competitive positioning";
 
-            var jsonResponse = await _deepSeekService.GetChatCompletionAsync(prompt);
+            var jsonResponse = await _openAIService.GetChatCompletionAsync(prompt);
             var jsonClean = ExtractJsonFromResponse(jsonResponse);
-            var data = JsonSerializer.Deserialize<JsonElement>(jsonResponse);
+            var data = JsonSerializer.Deserialize<JsonElement>(jsonClean);
 
             return new OverallSentimentResult
             {
@@ -428,7 +780,7 @@ Provide analysis in this JSON format:
     ""summary"": ""<2-3 sentence market summary>""
 }}";
 
-            var jsonResponse = await _deepSeekService.GetChatCompletionAsync(prompt);
+            var jsonResponse = await _openAIService.GetChatCompletionAsync(prompt);
             var jsonClean = ExtractJsonFromResponse(jsonResponse);
             var data = JsonSerializer.Deserialize<JsonElement>(jsonResponse);
 
@@ -457,22 +809,34 @@ Provide analysis in this JSON format:
 
         private string ExtractJsonFromResponse(string response)
         {
-            // Extract JSON from AI response, handling markdown code blocks
+            // Extract JSON from AI response, handling markdown code blocks and both objects and arrays
             var lines = response.Split('\n');
             var jsonLines = new List<string>();
             bool inJson = false;
+            char jsonStart = ' ';
 
             foreach (var line in lines)
             {
-                if (line.Trim().StartsWith("{") && !inJson)
+                var trimmed = line.Trim();
+                
+                // Check for start of JSON object or array
+                if ((trimmed.StartsWith("{") || trimmed.StartsWith("[")) && !inJson)
                 {
                     inJson = true;
+                    jsonStart = trimmed[0];
                     jsonLines.Add(line);
                 }
                 else if (inJson)
                 {
                     jsonLines.Add(line);
-                    if (line.Trim().EndsWith("}") && CountBraces(string.Join("\n", jsonLines)) == 0)
+                    
+                    // Check for end of JSON
+                    var jsonSoFar = string.Join("\n", jsonLines);
+                    if (jsonStart == '{' && trimmed.EndsWith("}") && CountBraces(jsonSoFar) == 0)
+                    {
+                        break;
+                    }
+                    else if (jsonStart == '[' && trimmed.EndsWith("]") && CountBrackets(jsonSoFar) == 0)
                     {
                         break;
                     }
@@ -489,6 +853,17 @@ Provide analysis in this JSON format:
             {
                 if (c == '{') count++;
                 else if (c == '}') count--;
+            }
+            return count;
+        }
+        
+        private int CountBrackets(string json)
+        {
+            int count = 0;
+            foreach (char c in json)
+            {
+                if (c == '[') count++;
+                else if (c == ']') count--;
             }
             return count;
         }
