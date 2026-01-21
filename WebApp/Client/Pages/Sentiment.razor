@@ -349,61 +349,72 @@
                     <p>Analyzing sentiment...</p>
                 </div>
             }
-            else if (symbolSentiment != null)
+            else if (symbolSentiment is not null && symbolSentiment is System.Text.Json.JsonElement)
             {
-                <div class="sentiment-card">
-                    <h3 style="color: #ffffff; margin-bottom: 1rem;">@symbolSentiment.symbol</h3>
-                    
-                    <div class="sentiment-score">
-                        <span class="score-badge @GetSentimentClass(symbolSentiment.overallSentiment)">
-                            @symbolSentiment.overallSentiment
-                        </span>
-                        <span style="color: #9ca3af;">Score: @symbolSentiment.sentimentScore.ToString("F2")</span>
-                        <span style="color: #9ca3af;">Confidence: @(symbolSentiment.confidence * 100).ToString("F0")%</span>
-                    </div>
+                var ss = (System.Text.Json.JsonElement)symbolSentiment;
+                if (ss.ValueKind != System.Text.Json.JsonValueKind.Null && ss.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+                {
+                    <div class="sentiment-card">
+                        <h3 style="color: #ffffff; margin-bottom: 1rem;">@GetStringProperty(ss, "symbol")</h3>
+                        
+                        <div class="sentiment-score">
+                            <span class="score-badge @GetSentimentClass(GetStringProperty(ss, "overallSentiment"))">
+                                @GetStringProperty(ss, "overallSentiment")
+                            </span>
+                            <span style="color: #9ca3af;">Score: @GetDoubleProperty(ss, "sentimentScore").ToString("F2")</span>
+                            <span style="color: #9ca3af;">Confidence: @(GetDoubleProperty(ss, "confidence") * 100).ToString("F0")%</span>
+                        </div>
 
-                    <div class="metric-grid">
-                        <div class="metric-card">
-                            <div class="metric-label">News Count</div>
-                            <div class="metric-value">@symbolSentiment.newsCount</div>
+                        <div class="metric-grid">
+                            <div class="metric-card">
+                                <div class="metric-label">News Count</div>
+                                <div class="metric-value">@GetIntProperty(ss, "newsCount")</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Sources</div>
+                                <div class="metric-value">@GetArrayLength(ss, "sourcesAnalyzed")</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Positive</div>
+                                <div class="metric-value" style="color: #10b981;">@((GetObjectDoubleProperty(ss, "sentimentBreakdown", "Positive") * 100).ToString("F0"))%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Negative</div>
+                                <div class="metric-value" style="color: #ef4444;">@((GetObjectDoubleProperty(ss, "sentimentBreakdown", "Negative") * 100).ToString("F0"))%</div>
+                            </div>
                         </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Sources</div>
-                            <div class="metric-value">@symbolSentiment.sourcesAnalyzed?.Length</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Positive</div>
-                            <div class="metric-value" style="color: #10b981;">@((symbolSentiment.sentimentBreakdown?.GetValueOrDefault("Positive", 0) * 100).ToString("F0"))%</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Negative</div>
-                            <div class="metric-value" style="color: #ef4444;">@((symbolSentiment.sentimentBreakdown?.GetValueOrDefault("Negative", 0) * 100).ToString("F0"))%</div>
-                        </div>
-                    </div>
 
-                    @if (!string.IsNullOrEmpty(symbolSentiment.aiInsights))
-                    {
-                        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(16, 185, 129, 0.05); border-left: 3px solid #10b981; border-radius: 4px;">
-                            <h4 style="color: #10b981; margin-bottom: 0.5rem;">AI Insights</h4>
-                            <p style="color: #d1d5db; line-height: 1.6;">@symbolSentiment.aiInsights</p>
-                        </div>
-                    }
-
-                    @if (symbolSentiment.recentNews != null && symbolSentiment.recentNews.Any())
-                    {
-                        <h4 style="color: #ffffff; margin-top: 1.5rem; margin-bottom: 1rem;">Recent News</h4>
-                        @foreach (var news in symbolSentiment.recentNews)
+                        @if (!string.IsNullOrEmpty(GetStringProperty(ss, "aiInsights")))
                         {
-                            <div class="news-item">
-                                <div class="news-title">@news.title</div>
-                                <div class="news-meta">
-                                    @news.source · @news.publishedDate.ToString("MMM dd, yyyy") · 
-                                    <span style="color: @GetSentimentColor(news.sentiment);">@news.sentiment</span>
-                                </div>
+                            <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(16, 185, 129, 0.05); border-left: 3px solid #10b981; border-radius: 4px;">
+                                <h4 style="color: #10b981; margin-bottom: 0.5rem;">AI Insights</h4>
+                                <p style="color: #d1d5db; line-height: 1.6;">@GetStringProperty(ss, "aiInsights")</p>
                             </div>
                         }
-                    }
-                </div>
+
+                        @try
+                        {
+                            @if (HasProperty(ss, "recentNews") && GetArrayLength(ss, "recentNews") > 0)
+                            {
+                                <h4 style="color: #ffffff; margin-top: 1.5rem; margin-bottom: 1rem;">Recent News</h4>
+                                @if (ss.TryGetProperty("recentNews", out System.Text.Json.JsonElement recentNewsArray))
+                                {
+                                    @foreach (var news in recentNewsArray.EnumerateArray())
+                                    {
+                                        <div class="news-item">
+                                            <div class="news-title">@GetStringProperty(news, "title")</div>
+                                            <div class="news-meta">
+                                                @GetStringProperty(news, "source") · @GetStringProperty(news, "publishedDate") · 
+                                                <span style="color: @GetSentimentColor(GetStringProperty(news, "sentiment"));">@GetStringProperty(news, "sentiment")</span>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            }
+                        }
+                        catch { }
+                    </div>
+                }
             }
         }
 
@@ -429,22 +440,23 @@
                     <p>Analyzing market sentiment...</p>
                 </div>
             }
-            else if (marketSentiment != null)
+            else if (marketSentiment is not null && ((System.Text.Json.JsonElement)marketSentiment).ValueKind != System.Text.Json.JsonValueKind.Null && ((System.Text.Json.JsonElement)marketSentiment).ValueKind != System.Text.Json.JsonValueKind.Undefined)
             {
+                var ms = (System.Text.Json.JsonElement)marketSentiment;
                 <div class="sentiment-card">
-                    <h3 style="color: #ffffff; margin-bottom: 1rem;">@marketSentiment.assetClass Market</h3>
+                    <h3 style="color: #ffffff; margin-bottom: 1rem;">@GetStringProperty(ms, "assetClass") Market</h3>
                     
                     <div class="sentiment-score">
-                        <span class="score-badge @GetSentimentClass(marketSentiment.overallSentiment?.label ?? "Neutral")">
-                            @marketSentiment.overallSentiment?.label
+                        <span class="score-badge @GetSentimentClass(GetNestedStringProperty(ms, "overallSentiment", "label"))">
+                            @GetNestedStringProperty(ms, "overallSentiment", "label")
                         </span>
-                        <span style="color: #9ca3af;">Score: @marketSentiment.overallSentiment?.score.ToString("F2")</span>
+                        <span style="color: #9ca3af;">Score: @GetNestedDoubleProperty(ms, "overallSentiment", "score").ToString("F2")</span>
                     </div>
 
-                    @if (!string.IsNullOrEmpty(marketSentiment.overallSentiment?.analysis))
+                    @if (!string.IsNullOrEmpty(GetNestedStringProperty(ms, "overallSentiment", "analysis")))
                     {
                         <div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.02); border-radius: 8px;">
-                            <p style="color: #d1d5db; line-height: 1.6;">@marketSentiment.overallSentiment.analysis</p>
+                            <p style="color: #d1d5db; line-height: 1.6;">@GetNestedStringProperty(ms, "overallSentiment", "analysis")</p>
                         </div>
                     }
 
@@ -452,23 +464,23 @@
                     <div class="metric-grid">
                         <div class="metric-card">
                             <div class="metric-label">News</div>
-                            <div class="metric-value">@marketSentiment.breakdown?.news?.label</div>
-                            <div style="color: #9ca3af; font-size: 0.8rem;">@marketSentiment.breakdown?.news?.score.ToString("F2")</div>
+                            <div class="metric-value">@GetNestedStringProperty(ms, "breakdown.news", "label")</div>
+                            <div style="color: #9ca3af; font-size: 0.8rem;">@GetNestedDoubleProperty(ms, "breakdown.news", "score").ToString("F2")</div>
                         </div>
                         <div class="metric-card">
                             <div class="metric-label">Social Media</div>
-                            <div class="metric-value">@marketSentiment.breakdown?.socialMedia?.label</div>
-                            <div style="color: #9ca3af; font-size: 0.8rem;">@marketSentiment.breakdown?.socialMedia?.score.ToString("F2")</div>
+                            <div class="metric-value">@GetNestedStringProperty(ms, "breakdown.socialMedia", "label")</div>
+                            <div style="color: #9ca3af; font-size: 0.8rem;">@GetNestedDoubleProperty(ms, "breakdown.socialMedia", "score").ToString("F2")</div>
                         </div>
                         <div class="metric-card">
                             <div class="metric-label">Fear & Greed</div>
-                            <div class="metric-value">@marketSentiment.breakdown?.fearGreed?.label</div>
-                            <div style="color: #9ca3af; font-size: 0.8rem;">@marketSentiment.breakdown?.fearGreed?.score.ToString("F2")</div>
+                            <div class="metric-value">@GetNestedStringProperty(ms, "breakdown.fearGreed", "label")</div>
+                            <div style="color: #9ca3af; font-size: 0.8rem;">@GetNestedDoubleProperty(ms, "breakdown.fearGreed", "score").ToString("F2")</div>
                         </div>
                         <div class="metric-card">
                             <div class="metric-label">Technical</div>
-                            <div class="metric-value">@marketSentiment.breakdown?.technical?.label</div>
-                            <div style="color: #9ca3af; font-size: 0.8rem;">@marketSentiment.breakdown?.technical?.score.ToString("F2")</div>
+                            <div class="metric-value">@GetNestedStringProperty(ms, "breakdown.technical", "label")</div>
+                            <div style="color: #9ca3af; font-size: 0.8rem;">@GetNestedDoubleProperty(ms, "breakdown.technical", "score").ToString("F2")</div>
                         </div>
                     </div>
                 </div>
@@ -492,31 +504,36 @@
                     <p>Scraping Reddit...</p>
                 </div>
             }
-            else if (redditSentiment != null)
+            else if (redditSentiment is not null && ((System.Text.Json.JsonElement)redditSentiment).ValueKind != System.Text.Json.JsonValueKind.Null && ((System.Text.Json.JsonElement)redditSentiment).ValueKind != System.Text.Json.JsonValueKind.Undefined)
             {
+                var rs = (System.Text.Json.JsonElement)redditSentiment;
                 <div class="sentiment-card">
-                    <h3 style="color: #ffffff; margin-bottom: 1rem;">Reddit Sentiment for @redditSentiment.symbol</h3>
+                    <h3 style="color: #ffffff; margin-bottom: 1rem;">Reddit Sentiment for @GetStringProperty(rs, "symbol")</h3>
                     
                     <div class="sentiment-score">
-                        <span class="score-badge @GetSentimentClass(redditSentiment.overallSentiment)">
-                            @redditSentiment.overallSentiment
+                        <span class="score-badge @GetSentimentClass(GetStringProperty(rs, "overallSentiment"))">
+                            @GetStringProperty(rs, "overallSentiment")
                         </span>
-                        <span style="color: #9ca3af;">Average Score: @redditSentiment.averageSentimentScore.ToString("F2")</span>
-                        <span style="color: #9ca3af;">Posts Analyzed: @redditSentiment.totalPostsAnalyzed</span>
+                        <span style="color: #9ca3af;">Average Score: @GetDoubleProperty(rs, "averageSentimentScore").ToString("F2")</span>
+                        <span style="color: #9ca3af;">Posts Analyzed: @GetIntProperty(rs, "totalPostsAnalyzed")</span>
                     </div>
 
                     <h4 style="color: #ffffff; margin-top: 1.5rem; margin-bottom: 1rem;">Subreddit Breakdown</h4>
-                    @foreach (var analysis in redditSentiment.subredditAnalyses)
+                    @if (rs.TryGetProperty("subredditAnalyses", out var subredditAnalyses))
                     {
-                        <div class="subreddit-card">
-                            <div class="subreddit-name">r/@analysis.subreddit</div>
-                            <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
-                                <span class="score-badge @GetSentimentClass(analysis.sentiment)">@analysis.sentiment</span>
-                                <span style="color: #9ca3af;">@analysis.postsAnalyzed posts</span>
-                                <span style="color: #10b981;">@((analysis.bullishPercentage * 100).ToString("F0"))% bullish</span>
-                                <span style="color: #ef4444;">@((analysis.bearishPercentage * 100).ToString("F0"))% bearish</span>
+                        @foreach (var analysis in subredditAnalyses.EnumerateArray())
+                        {
+                            <div class="subreddit-card">
+                                <div class="subreddit-name">r/@GetStringProperty(analysis, "subreddit")</div>
+                                <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                                    <span class="score-badge @GetSentimentClass(GetStringProperty(analysis, "sentiment"))">@GetStringProperty(analysis, "sentiment")</span>
+                                    <span style="color: #9ca3af;">@GetIntProperty(analysis, "postsAnalyzed") posts</span>
+                                    <span style="color: #10b981;">@((GetDoubleProperty(analysis, "bullishPercentage") * 100).ToString("F0"))% bullish</span>
+                                    <span style="color: #ef4444;">@((GetDoubleProperty(analysis, "bearishPercentage") * 100).ToString("F0"))% bearish</span>
+                                </div>
                             </div>
-                        </div>
+                        }
+                    }
                     }
                 </div>
             }
@@ -615,23 +632,27 @@
                     <p>Analyzing market pulse...</p>
                 </div>
             }
-            else if (marketPulse != null)
+            else if (marketPulse is not null && ((System.Text.Json.JsonElement)marketPulse).ValueKind != System.Text.Json.JsonValueKind.Null && ((System.Text.Json.JsonElement)marketPulse).ValueKind != System.Text.Json.JsonValueKind.Undefined)
             {
+                var mp = (System.Text.Json.JsonElement)marketPulse;
                 <div class="pulse-card">
-                    <div class="pulse-mood @GetMoodClass(marketPulse.marketMood)">
-                        @marketPulse.marketMood
+                    <div class="pulse-mood @GetMoodClass(GetStringProperty(mp, "marketMood"))">
+                        @GetStringProperty(mp, "marketMood")
                     </div>
-                    <p style="color: #9ca3af;">Overall Score: @marketPulse.overallScore.ToString("F2")</p>
+                    <p style="color: #9ca3af;">Overall Score: @GetDoubleProperty(mp, "overallScore").ToString("F2")</p>
                 </div>
 
                 <div class="metric-grid" style="margin-top: 1.5rem;">
-                    @foreach (var asset in marketPulse.assetClasses)
+                    @if (mp.TryGetProperty("assetClasses", out var assetClasses))
                     {
-                        <div class="metric-card">
-                            <div class="metric-label">@asset.assetClass (@asset.symbol)</div>
-                            <div class="metric-value">@asset.sentiment</div>
-                            <div style="color: #9ca3af; font-size: 0.8rem;">Score: @asset.score.ToString("F2")</div>
-                        </div>
+                        @foreach (var asset in assetClasses.EnumerateArray())
+                        {
+                            <div class="metric-card">
+                                <div class="metric-label">@GetStringProperty(asset, "assetClass") (@GetStringProperty(asset, "symbol"))</div>
+                                <div class="metric-value">@GetStringProperty(asset, "sentiment")</div>
+                                <div style="color: #9ca3af; font-size: 0.8rem;">Score: @GetDoubleProperty(asset, "score").ToString("F2")</div>
+                            </div>
+                        }
                     }
                 </div>
             }
@@ -873,5 +894,140 @@
             "risk-off" => "risk-off",
             _ => "neutral"
         };
+    }
+    
+    private bool HasProperty(dynamic obj, string propertyName)
+    {
+        try
+        {
+            if (obj is System.Text.Json.JsonElement jsonElement)
+            {
+                return jsonElement.ValueKind == System.Text.Json.JsonValueKind.Object && 
+                       jsonElement.TryGetProperty(propertyName, out _);
+            }
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+    
+    private string GetStringProperty(System.Text.Json.JsonElement element, string propertyName)
+    {
+        try
+        {
+            if (element.TryGetProperty(propertyName, out var prop))
+            {
+                return prop.GetString() ?? "";
+            }
+            return "";
+        }
+        catch
+        {
+            return "";
+        }
+    }
+    
+    private double GetDoubleProperty(System.Text.Json.JsonElement element, string propertyName)
+    {
+        try
+        {
+            if (element.TryGetProperty(propertyName, out var prop))
+            {
+                return prop.GetDouble();
+            }
+            return 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+    
+    private int GetIntProperty(System.Text.Json.JsonElement element, string propertyName)
+    {
+        try
+        {
+            if (element.TryGetProperty(propertyName, out var prop))
+            {
+                return prop.GetInt32();
+            }
+            return 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+    
+    private int GetArrayLength(System.Text.Json.JsonElement element, string propertyName)
+    {
+        try
+        {
+            if (element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                return prop.GetArrayLength();
+            }
+            return 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+    
+    private double GetObjectDoubleProperty(System.Text.Json.JsonElement element, string objectName, string propertyName)
+    {
+        try
+        {
+            if (element.TryGetProperty(objectName, out var obj) && 
+                obj.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                obj.TryGetProperty(propertyName, out var prop))
+            {
+                return prop.GetDouble();
+            }
+            return 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+    
+    private string GetNestedStringProperty(System.Text.Json.JsonElement element, string objectName, string propertyName)
+    {
+        try
+        {
+            if (element.TryGetProperty(objectName, out var obj) && 
+                obj.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                obj.TryGetProperty(propertyName, out var prop))
+            {
+                return prop.GetString() ?? "";
+            }
+            return "";
+        }
+        catch
+        {
+            return "";
+        }
+    }
+    
+    private double GetNestedDoubleProperty(System.Text.Json.JsonElement element, string objectName, string propertyName)
+    {
+        try
+        {
+            if (element.TryGetProperty(objectName, out var obj) && 
+                obj.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                obj.TryGetProperty(propertyName, out var prop))
+            {
+                return prop.GetDouble();
+            }
+            return 0;
+        }
+        catch
+        {
+            return 0;
+        }
     }
 }
