@@ -208,15 +208,22 @@ public class MarketDataService
                 return localData;
             }
 
-            // Fallback to Yahoo for US stocks
+            // Try Alpaca for US stocks
+            var alpacaData = await FetchAlpacaCurrentDataAsync(symbol);
+            if (alpacaData != null)
+            {
+                _logger.LogInformation($"Fetched market data for {symbol} from Alpaca");
+                return alpacaData;
+            }
+
+            // Fallback to Yahoo if Alpaca fails
             var yahooData = await FetchYahooFinanceCurrentData(symbol);
             if (yahooData != null)
             {
-                _logger.LogInformation($"Fetched market data for {symbol} from Yahoo Finance");
+                _logger.LogInformation($"Fetched market data for {symbol} from Yahoo Finance (fallback)");
                 return yahooData;
             }
 
-            // TODO: Use Alpaca WebSocket for recent data if needed
             _logger.LogWarning($"No market data found for {symbol} (all sources failed)");
             return null;
         }
@@ -405,6 +412,46 @@ public class MarketDataService
         }
     }
 
+    // Fetch current data from Alpaca
+    private async Task<MarketData?> FetchAlpacaCurrentDataAsync(string symbol)
+    {
+        try
+        {
+            var quote = await _alpacaService.GetLatestQuoteAsync(symbol);
+            if (quote == null)
+                return null;
+
+            var bars = await _alpacaService.GetHistoricalBarsAsync(symbol, 2);
+            var latestBar = bars?.LastOrDefault();
+            var prevBar = bars != null && bars.Count > 1 ? bars[^2] : null;
+
+            if (latestBar == null)
+                return null;
+
+            double change24h = prevBar != null ? (double)(latestBar.Close - prevBar.Close) : (double)(latestBar.Close - latestBar.Open);
+            double prevClose = prevBar != null ? (double)prevBar.Close : (double)latestBar.Open;
+            double changePercent24h = prevClose != 0 ? (change24h / prevClose) * 100 : 0;
+
+            return new MarketData
+            {
+                Symbol = symbol.ToUpper(),
+                Price = (double)latestBar.Close,
+                Close = (double)latestBar.Close,
+                Volume = (double)latestBar.Volume,
+                Change24h = change24h,
+                ChangePercent24h = changePercent24h,
+                High24h = (double)latestBar.High,
+                Low24h = (double)latestBar.Low,
+                Timestamp = latestBar.TimeUtc,
+                Source = "Alpaca"
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching current Alpaca data for symbol: {Symbol}", symbol);
+            return null;
+        }
+    }
 
     // Fetch current data from Yahoo Finance
     private async Task<MarketData?> FetchYahooFinanceCurrentData(string symbol)
@@ -449,7 +496,15 @@ public class MarketDataService
             }
             else
             {
-                // Try local data first
+                // Try Alpaca first for US stocks
+                _logger.LogInformation($"Fetching historical data for {symbol} from Alpaca API");
+                var alpacaData = await FetchAlpacaHistoricalDataAsync(symbol, limit);
+                if (alpacaData != null && alpacaData.Any())
+                {
+                    return alpacaData;
+                }
+                
+                // Fall back to local data if Alpaca fails
                 var data = FetchStockHistoricalData(symbol, limit);
                 if (data != null && data.Any())
                 {
@@ -463,9 +518,8 @@ public class MarketDataService
                     return data;
                 }
                 
-                // No local data - fall back to Alpaca API
-                _logger.LogInformation($"Fetching historical data for {symbol} from Alpaca API");
-                return await FetchAlpacaHistoricalDataAsync(symbol, limit);
+                _logger.LogWarning($"No historical data found for {symbol} from any source");
+                return null;
             }
         }
         catch (Exception ex)
