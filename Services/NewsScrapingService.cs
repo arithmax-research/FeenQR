@@ -20,7 +20,9 @@ namespace QuantResearchAgent.Services
         public NewsScrapingService(ILogger<NewsScrapingService> logger)
         {
             _logger = logger;
-            _pythonScriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Scripts", "news_scraper.py");
+            // Use project root Scripts directory
+            var projectRoot = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../.."));
+            _pythonScriptPath = Path.Combine(projectRoot, "Scripts", "news_scraper.py");
         }
 
         public async Task<List<NewsArticle>> GetNewsArticlesAsync(string ticker, string source = "Yahoo Finance", int maxArticles = 10)
