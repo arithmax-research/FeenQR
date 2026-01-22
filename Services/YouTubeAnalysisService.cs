@@ -399,11 +399,41 @@ public class YouTubeAnalysisService
                 return string.Empty;
             }
 
+            // Try to find Python executable
+            var pythonExe = "python3";
+            var pythonLocations = new[] { "python3", "python", "/usr/bin/python3", "/usr/bin/python" };
+            foreach (var pyExe in pythonLocations)
+            {
+                try
+                {
+                    var testProcess = new System.Diagnostics.Process
+                    {
+                        StartInfo = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = pyExe,
+                            Arguments = "--version",
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        }
+                    };
+                    testProcess.Start();
+                    await testProcess.WaitForExitAsync();
+                    if (testProcess.ExitCode == 0)
+                    {
+                        pythonExe = pyExe;
+                        break;
+                    }
+                }
+                catch { }
+            }
+
             var process = new System.Diagnostics.Process
             {
                 StartInfo = new System.Diagnostics.ProcessStartInfo
                 {
-                    FileName = "python3",
+                    FileName = pythonExe,
                     Arguments = $"\"{scriptPath}\" {videoId}",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -412,7 +442,8 @@ public class YouTubeAnalysisService
                 }
             };
 
-            _logger.LogInformation("Fetching transcript for video {VideoId} using Python API...", videoId);
+            _logger.LogInformation("Attempting to fetch transcript for video {VideoId} using Python API at {ScriptPath}...", 
+                videoId, scriptPath);
             process.Start();
             
             var output = await process.StandardOutput.ReadToEndAsync();

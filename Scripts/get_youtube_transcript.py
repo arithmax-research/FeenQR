@@ -19,10 +19,11 @@ def get_transcript(video_id):
         dict with transcript data or error
     """
     try:
+        # Initialize API and fetch transcript
         api = YouTubeTranscriptApi()
         result = api.fetch(video_id)
         
-        # Extract full text
+        # Extract full text from snippets
         full_text = " ".join([snippet.text for snippet in result.snippets])
         
         return {
@@ -32,7 +33,8 @@ def get_transcript(video_id):
             "language_code": result.language_code,
             "is_generated": result.is_generated,
             "transcript": full_text,
-            "length": len(full_text)
+            "length": len(full_text),
+            "entries": len(result.snippets)
         }
     except Exception as e:
         return {
