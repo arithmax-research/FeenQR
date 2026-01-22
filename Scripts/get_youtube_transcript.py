@@ -6,7 +6,9 @@ Extracts transcripts/captions from YouTube videos using youtube-transcript-api
 
 import sys
 import json
+import os
 from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.formatters import TextFormatter
 
 def get_transcript(video_id):
     """
@@ -19,22 +21,54 @@ def get_transcript(video_id):
         dict with transcript data or error
     """
     try:
-        # Initialize API and fetch transcript
+        # Create API instance
         api = YouTubeTranscriptApi()
-        result = api.fetch(video_id)
         
-        # Extract full text from snippets
-        full_text = " ".join([snippet.text for snippet in result.snippets])
+        # Get list of available transcripts
+        transcript_list = api.list(video_id)
+        
+        # Try to get manual transcript first (more accurate)
+        transcript = None
+        is_generated = False
+        
+        try:
+            transcript = transcript_list.find_manually_created_transcript(['en'])
+            is_generated = False
+        except:
+            # Fall back to auto-generated
+            try:
+                transcript = transcript_list.find_generated_transcript(['en'])
+                is_generated = True
+            except:
+                # Try any available transcript
+                try:
+                    transcript = transcript_list.find_transcript(['en'])
+                    is_generated = transcript.is_generated
+                except:
+                    # Last resort - just get any transcript
+                    for t in transcript_list:
+                        transcript = t
+                        is_generated = t.is_generated
+                        break
+        
+        if transcript is None:
+            raise Exception("No transcript found for this video")
+        
+        # Fetch the actual transcript data
+        transcript_data = transcript.fetch()
+        
+        # Extract full text
+        full_text = " ".join([entry['text'] for entry in transcript_data])
         
         return {
             "success": True,
-            "video_id": result.video_id,
-            "language": result.language,
-            "language_code": result.language_code,
-            "is_generated": result.is_generated,
+            "video_id": video_id,
+            "language": transcript.language,
+            "language_code": transcript.language_code,
+            "is_generated": is_generated,
             "transcript": full_text,
             "length": len(full_text),
-            "entries": len(result.snippets)
+            "entries": len(transcript_data)
         }
     except Exception as e:
         return {
