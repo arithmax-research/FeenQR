@@ -27,6 +27,7 @@ public class YouTubeAnalysisService
     private readonly Kernel _kernel;
     private readonly HttpClient _httpClient;
     private readonly string _youTubeApiKey;
+    private readonly string _openAiApiKey;
     private readonly IWebSearchPlugin _webSearchPlugin;
     private readonly IFinancialDataPlugin _financialDataPlugin;
 
@@ -48,6 +49,7 @@ public class YouTubeAnalysisService
         _kernel = kernel;
         _httpClient = httpClient;
         _youTubeApiKey = _configuration["YouTube:ApiKey"] ?? string.Empty;
+        _openAiApiKey = _configuration["OpenAI:ApiKey"] ?? string.Empty;
         _webSearchPlugin = webSearchPlugin;
         _financialDataPlugin = financialDataPlugin;
     }
@@ -71,18 +73,42 @@ public class YouTubeAnalysisService
             // Fetch video metadata from YouTube API
             var episode = await FetchVideoDataAsync(videoId);
             
-            // Try to fetch actual transcript from captions
-            var transcript = await FetchVideoTranscriptAsync(videoId);
-            if (!string.IsNullOrEmpty(transcript))
+            // Try Python youtube-transcript-api first (most reliable)
+            var transcript = await FetchTranscriptWithPythonAsync(videoId);
+            if (!string.IsNullOrEmpty(transcript) && transcript.Length > 100)
             {
                 episode.Transcript = transcript;
-                _logger.LogInformation("Using actual transcript for video: {VideoTitle}", episode.Name);
+                _logger.LogInformation("Using Python transcript API for video: {VideoTitle}", episode.Name);
             }
             else
             {
-                // Fallback to description and title as content for analysis
-                episode.Transcript = $"{episode.Name}\n\n{episode.Description}";
-                _logger.LogInformation("Using metadata fallback for video: {VideoTitle}", episode.Name);
+                // Fallback to YouTube API captions
+                _logger.LogInformation("Python transcript failed, trying YouTube API for video: {VideoTitle}", episode.Name);
+                transcript = await FetchVideoTranscriptAsync(videoId);
+                
+                if (!string.IsNullOrEmpty(transcript) && transcript.Length > 100)
+                {
+                    episode.Transcript = transcript;
+                    _logger.LogInformation("Using YouTube API transcript for video: {VideoTitle}", episode.Name);
+                }
+                else
+                {
+                    // Try audio transcription with Whisper as fallback
+                    _logger.LogInformation("No captions found, attempting audio transcription for video: {VideoTitle}", episode.Name);
+                    transcript = await TranscribeVideoWithWhisperAsync(videoId);
+                    
+                    if (!string.IsNullOrEmpty(transcript) && transcript.Length > 100)
+                    {
+                        episode.Transcript = transcript;
+                        _logger.LogInformation("Using Whisper transcription for video: {VideoTitle}", episode.Name);
+                    }
+                    else
+                    {
+                        // Final fallback to description and title as content for analysis
+                        episode.Transcript = $"{episode.Name}\n\n{episode.Description}";
+                        _logger.LogInformation("Using metadata fallback for video: {VideoTitle}", episode.Name);
+                    }
+                }
             }
             
             // Analyze the content for technical insights
@@ -334,6 +360,88 @@ public class YouTubeAnalysisService
         {
             _logger.LogError(ex, "Failed to fetch video data from YouTube for video ID: {VideoId}", videoId);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Fetch transcript using Python youtube-transcript-api (most reliable method)
+    /// </summary>
+    private async Task<string> FetchTranscriptWithPythonAsync(string videoId)
+    {
+        try
+        {
+            // Try multiple possible script locations
+            var possiblePaths = new[]
+            {
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "Scripts", "get_youtube_transcript.py"), // From WebApp/Server/bin/Debug/net9.0
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Scripts", "get_youtube_transcript.py"), // From WebApp/Server
+                Path.Combine(Directory.GetCurrentDirectory(), "Scripts", "get_youtube_transcript.py"), // From current directory
+                Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "Scripts", "get_youtube_transcript.py"), // From project root
+                "/home/misango/codechest/FeenQR/Scripts/get_youtube_transcript.py" // Absolute fallback
+            };
+
+            string? scriptPath = null;
+            foreach (var path in possiblePaths)
+            {
+                var normalizedPath = Path.GetFullPath(path);
+                if (File.Exists(normalizedPath))
+                {
+                    scriptPath = normalizedPath;
+                    _logger.LogInformation("Found Python transcript script at: {ScriptPath}", scriptPath);
+                    break;
+                }
+            }
+
+            if (scriptPath == null)
+            {
+                _logger.LogWarning("Python transcript script not found in any expected location. Tried: {Paths}", 
+                    string.Join(", ", possiblePaths));
+                return string.Empty;
+            }
+
+            var process = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "python3",
+                    Arguments = $"\"{scriptPath}\" {videoId}",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            _logger.LogInformation("Fetching transcript for video {VideoId} using Python API...", videoId);
+            process.Start();
+            
+            var output = await process.StandardOutput.ReadToEndAsync();
+            var error = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            if (process.ExitCode != 0)
+            {
+                _logger.LogWarning("Python transcript script failed with exit code {ExitCode}. Error: {Error}", 
+                    process.ExitCode, error);
+                return string.Empty;
+            }
+
+            // Parse JSON response
+            var result = JsonSerializer.Deserialize<PythonTranscriptResult>(output);
+            if (result?.Success == true && !string.IsNullOrEmpty(result.Transcript))
+            {
+                _logger.LogInformation("Successfully fetched transcript using Python API ({Length} chars, {Language})", 
+                    result.Length, result.Language);
+                return result.Transcript;
+            }
+
+            _logger.LogWarning("Python transcript API returned no transcript: {Error}", result?.Error ?? "Unknown error");
+            return string.Empty;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch transcript using Python API for video {VideoId}", videoId);
+            return string.Empty;
         }
     }
 
@@ -865,6 +973,208 @@ Educational content without strong directional bias should be close to 0.0.
         
         return signals.Take(5).ToList(); // Allow up to 5 signals for complex strategies
     }
+
+    /// <summary>
+    /// Transcribe YouTube video audio using OpenAI Whisper API
+    /// </summary>
+    private async Task<string> TranscribeVideoWithWhisperAsync(string videoId)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_openAiApiKey))
+            {
+                _logger.LogWarning("OpenAI API key not configured, cannot transcribe audio");
+                return string.Empty;
+            }
+
+            // Download audio from YouTube video
+            var audioFilePath = await DownloadVideoAudioAsync(videoId);
+            if (string.IsNullOrEmpty(audioFilePath) || !File.Exists(audioFilePath))
+            {
+                _logger.LogWarning("Failed to download audio for video {VideoId}", videoId);
+                return string.Empty;
+            }
+
+            try
+            {
+                // Call OpenAI Whisper API for transcription
+                var transcript = await TranscribeAudioWithWhisperAsync(audioFilePath);
+                return transcript;
+            }
+            finally
+            {
+                // Cleanup: delete the temporary audio file
+                try
+                {
+                    if (File.Exists(audioFilePath))
+                    {
+                        File.Delete(audioFilePath);
+                        _logger.LogInformation("Deleted temporary audio file: {FilePath}", audioFilePath);
+                    }
+                }
+                catch (Exception cleanupEx)
+                {
+                    _logger.LogWarning(cleanupEx, "Failed to delete temporary audio file: {FilePath}", audioFilePath);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to transcribe video audio for video {VideoId}", videoId);
+            return string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Download audio from YouTube video using yt-dlp
+    /// </summary>
+    private async Task<string> DownloadVideoAudioAsync(string videoId)
+    {
+        try
+        {
+            var videoUrl = $"https://www.youtube.com/watch?v={videoId}";
+            var outputDir = Path.Combine(Path.GetTempPath(), "youtube_audio");
+            Directory.CreateDirectory(outputDir);
+            
+            var outputPath = Path.Combine(outputDir, $"{videoId}.mp3");
+
+            // Check if yt-dlp is available
+            var ytDlpPath = await FindYtDlpExecutableAsync();
+            if (string.IsNullOrEmpty(ytDlpPath))
+            {
+                _logger.LogWarning("yt-dlp not found, cannot download audio. Install with: pip install yt-dlp");
+                return string.Empty;
+            }
+
+            // Use yt-dlp to download audio
+            var process = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = ytDlpPath,
+                    Arguments = $"-x --audio-format mp3 --audio-quality 5 -o \\\"{outputPath}\\\" \\\"{videoUrl}\\\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            _logger.LogInformation("Downloading audio for video {VideoId}...", videoId);
+            process.Start();
+            
+            var output = await process.StandardOutput.ReadToEndAsync();
+            var error = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            if (process.ExitCode != 0)
+            {
+                _logger.LogError("yt-dlp failed with exit code {ExitCode}. Error: {Error}", process.ExitCode, error);
+                return string.Empty;
+            }
+
+            if (File.Exists(outputPath))
+            {
+                _logger.LogInformation("Successfully downloaded audio to {OutputPath} ({Size} bytes)", 
+                    outputPath, new FileInfo(outputPath).Length);
+                return outputPath;
+            }
+
+            _logger.LogWarning("Audio file not found after download: {OutputPath}", outputPath);
+            return string.Empty;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to download video audio for {VideoId}", videoId);
+            return string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Find yt-dlp executable in PATH or common locations
+    /// </summary>
+    private async Task<string> FindYtDlpExecutableAsync()
+    {
+        var possibleNames = new[] { "yt-dlp", "yt-dlp.exe" };
+        
+        foreach (var name in possibleNames)
+        {
+            try
+            {
+                var process = new System.Diagnostics.Process
+                {
+                    StartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "which",
+                        Arguments = name,
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+                
+                process.Start();
+                var output = await process.StandardOutput.ReadToEndAsync();
+                await process.WaitForExitAsync();
+                
+                if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output))
+                {
+                    return output.Trim();
+                }
+            }
+            catch { /* Continue to next attempt */ }
+        }
+        
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Transcribe audio file using OpenAI Whisper API
+    /// </summary>
+    private async Task<string> TranscribeAudioWithWhisperAsync(string audioFilePath)
+    {
+        try
+        {
+            using var form = new MultipartFormDataContent();
+            
+            // Read audio file
+            var fileBytes = await File.ReadAllBytesAsync(audioFilePath);
+            var fileContent = new ByteArrayContent(fileBytes);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("audio/mpeg");
+            
+            form.Add(fileContent, "file", Path.GetFileName(audioFilePath));
+            form.Add(new StringContent("whisper-1"), "model");
+            form.Add(new StringContent("text"), "response_format");
+
+            // Call OpenAI Whisper API
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/audio/transcriptions")
+            {
+                Content = form
+            };
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _openAiApiKey);
+
+            _logger.LogInformation("Sending audio to Whisper API for transcription ({Size} bytes)...", fileBytes.Length);
+            var response = await _httpClient.SendAsync(request);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Whisper API failed with status {StatusCode}: {Error}", 
+                    response.StatusCode, errorContent);
+                return string.Empty;
+            }
+
+            var transcript = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation("Successfully transcribed audio ({Length} characters)", transcript.Length);
+            
+            return transcript;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to transcribe audio with Whisper API");
+            return string.Empty;
+        }
+    }
 }
 
 // YouTube API response models
@@ -920,4 +1230,32 @@ public class YouTubeSnippet
     
     [JsonPropertyName("channelTitle")]
     public string ChannelTitle { get; set; } = string.Empty;
+}
+
+// Python transcript API response model
+public class PythonTranscriptResult
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; set; }
+    
+    [JsonPropertyName("video_id")]
+    public string VideoId { get; set; } = string.Empty;
+    
+    [JsonPropertyName("language")]
+    public string Language { get; set; } = string.Empty;
+    
+    [JsonPropertyName("language_code")]
+    public string LanguageCode { get; set; } = string.Empty;
+    
+    [JsonPropertyName("is_generated")]
+    public bool IsGenerated { get; set; }
+    
+    [JsonPropertyName("transcript")]
+    public string Transcript { get; set; } = string.Empty;
+    
+    [JsonPropertyName("length")]
+    public int Length { get; set; }
+    
+    [JsonPropertyName("error")]
+    public string? Error { get; set; }
 }

@@ -217,6 +217,29 @@ namespace Server.Controllers
             }
         }
 
+        [HttpGet("test-captions")]
+        public async Task<IActionResult> TestCaptions([FromQuery] string videoUrl)
+        {
+            try
+            {
+                var transcript = await _youtubeAnalysisService.GetVideoTranscriptAsync(videoUrl);
+                
+                return Ok(new ResearchResponse
+                {
+                    Result = $"Transcript Length: {transcript.Length} characters\n\n" +
+                           $"Preview (first 500 chars):\n{transcript.Substring(0, Math.Min(500, transcript.Length))}\n\n" +
+                           $"Full Transcript:\n{transcript}",
+                    Timestamp = DateTime.UtcNow,
+                    Type = "caption-test"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error testing captions");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
         [HttpPost("search-finance-videos")]
         public async Task<IActionResult> SearchFinanceVideos([FromBody] VideoSearchRequest request)
         {
