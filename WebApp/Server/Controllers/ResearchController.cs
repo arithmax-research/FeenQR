@@ -918,19 +918,22 @@ Keep it concise and actionable. Focus on what's useful for quantitative research
                 var combinedTranscript = string.Join("\n\n═══════════════════════\n\n", 
                     request.Videos.Select(v => $"Video: {v.Title}\n\n{v.Transcript}"));
 
-                var prompt = $@"Analyze the following video content and provide comprehensive trading signals and market insights:
+                var prompt = $@"Analyze the following video transcript and provide comprehensive trading signals and market insights:
 
 {combinedTranscript}
 
-Please provide:
-1. **Key Trading Signals**: Specific actionable signals (bullish/bearish) with reasoning
-2. **Market Sentiment**: Overall market sentiment from the content
-3. **Risk Factors**: Important risks or concerns mentioned
-4. **Time Horizon**: Short-term vs long-term implications
-5. **Asset Classes**: Which markets/assets are discussed (stocks, forex, commodities, crypto)
-6. **Key Insights**: Most important takeaways for traders
+IMPORTANT: Cite specific quotes from the transcript to support your analysis. Use direct quotes in ""quotation marks"" when referencing key statements.
 
-Format your response in clear sections with bullet points.";
+Please provide:
+1. **Key Trading Signals**: Specific actionable signals (bullish/bearish) with reasoning - CITE DIRECT QUOTES from the transcript
+2. **Market Sentiment**: Overall market sentiment from the content - Include specific quotes that reveal sentiment
+3. **Risk Factors**: Important risks or concerns mentioned - Quote the speaker's exact words
+4. **Time Horizon**: Short-term vs long-term implications
+5. **Asset Classes**: Which markets/assets are discussed (stocks, forex, commodities, crypto) - Quote specific mentions
+6. **Key Quotes**: Extract 5-7 important quotes that reveal market outlook, policy changes, or trading opportunities
+7. **Key Insights**: Most important takeaways for traders
+
+Format your response in clear sections with bullet points. Always include relevant quotes to support your analysis.";
 
                 var result = await _feenRAGenticService.ChatAsync(prompt, "openai", new List<QuantResearchAgent.Services.FeenRAGenticService.ConversationMessage>());
                 
