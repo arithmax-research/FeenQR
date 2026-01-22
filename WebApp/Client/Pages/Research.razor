@@ -418,7 +418,7 @@
             @if (!string.IsNullOrEmpty(videoError))
             {
                 <div style="padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; margin-bottom: 1rem;">
-                    <p style="color: #ef4444; margin: 0;">❌ @videoError</p>
+                    <p style="color: #ef4444; margin: 0;">Error: @videoError</p>
                 </div>
             }
 
@@ -554,7 +554,6 @@
                         {
                             <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; text-align: center;">
                                 <div>
-                                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📄</div>
                                     <div>Load a video to view its transcript</div>
                                 </div>
                             </div>
@@ -569,7 +568,7 @@
             @if (!string.IsNullOrEmpty(ragError))
             {
                 <div style="padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; margin-bottom: 1rem;">
-                    <p style="color: #ef4444; margin: 0;">❌ @ragError</p>
+                    <p style="color: #ef4444; margin: 0;">Error: @ragError</p>
                 </div>
             }
 

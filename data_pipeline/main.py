@@ -14,7 +14,7 @@ from config import (
 )
 from alpaca_downloader import AlpacaDataDownloader
 from binance_downloader import BinanceDataDownloader
-from yfinance_options_downloader import YFinanceOptionsDownloader
+# from yfinance_options_downloader import YFinanceOptionsDownloader
 from polygon_futures_downloader import PolygonFuturesDownloader
 from databento_downloader import DatabentoFuturesDownloader
 from utils import setup_logging
@@ -119,10 +119,10 @@ def main():
     # Download options data from yfinance (free, no API key required)
     if args.source in ['options', 'all']:
         try:
-            logger.info("Starting Options data download...")
-            options_downloader = YFinanceOptionsDownloader()
-            options_downloader.download_symbols(args.option_symbols)
-            logger.info("Options download completed")
+            logger.info("Options data download skipped - YFinanceOptionsDownloader not implemented")
+            # options_downloader = YFinanceOptionsDownloader()
+            # options_downloader.download_symbols(args.option_symbols)
+            # logger.info("Options download completed")
         except Exception as e:
             logger.error(f"Error with Options download: {str(e)}")
             if args.source == 'options':

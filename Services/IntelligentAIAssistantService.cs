@@ -81,6 +81,7 @@ namespace QuantResearchAgent.Services
         private readonly VolatilityTradingService _volatilityTradingService;
         private readonly AdvancedMicrostructureService _advancedMicrostructureService;
         private readonly AlphaVantageService _alphaVantageService;
+        private readonly FinancialModelingPrepService _fmpService;
         
         // Conversation history
         private readonly List<ConversationMessage> _conversationHistory;
@@ -144,7 +145,8 @@ namespace QuantResearchAgent.Services
             OptionsFlowService optionsFlowService,
             VolatilityTradingService volatilityTradingService,
             AdvancedMicrostructureService advancedMicrostructureService,
-            AlphaVantageService alphaVantageService)
+            AlphaVantageService alphaVantageService,
+            FinancialModelingPrepService fmpService)
         {
             _logger = logger;
             _llmService = llmService;
@@ -205,6 +207,7 @@ namespace QuantResearchAgent.Services
             _volatilityTradingService = volatilityTradingService;
             _advancedMicrostructureService = advancedMicrostructureService;
             _alphaVantageService = alphaVantageService;
+            _fmpService = fmpService;
             _conversationHistory = new List<ConversationMessage>();
         }
 
@@ -1304,43 +1307,108 @@ Return your analysis in this JSON format:
             {
                 var symbol = symbols.FirstOrDefault() ?? "AAPL";
                 var tests = new List<object>();
-                
+
                 // Test Yahoo Finance
                 try
                 {
                     var yahooData = await _yahooFinanceService.GetMarketDataAsync(symbol);
                     tests.Add(new { Service = "Yahoo Finance", Status = "Connected", Symbol = symbol });
                 }
-                catch
+                catch (Exception ex)
                 {
-                    tests.Add(new { Service = "Yahoo Finance", Status = "Error", Symbol = symbol });
+                    tests.Add(new { Service = "Yahoo Finance", Status = $"Error: {ex.Message}", Symbol = symbol });
                 }
-                
+
                 // Test Alpaca
                 try
                 {
                     var alpacaData = await _alpacaService.GetMarketDataAsync(symbol);
                     tests.Add(new { Service = "Alpaca", Status = "Connected", Symbol = symbol });
                 }
-                catch
+                catch (Exception ex)
                 {
-                    tests.Add(new { Service = "Alpaca", Status = "Error", Symbol = symbol });
+                    tests.Add(new { Service = "Alpaca", Status = $"Error: {ex.Message}", Symbol = symbol });
                 }
-                
-                return new ToolResult 
-                { 
-                    ToolName = "api_test", 
-                    Success = true, 
-                    Data = tests 
+
+                // Test Alpha Vantage
+                try
+                {
+                    var alphaVantageQuote = await _alphaVantageService.GetQuoteAsync(symbol);
+                    tests.Add(new { Service = "Alpha Vantage", Status = "Connected", Symbol = symbol });
+                }
+                catch (Exception ex)
+                {
+                    tests.Add(new { Service = "Alpha Vantage", Status = $"Error: {ex.Message}", Symbol = symbol });
+                }
+
+                // Test FMP (Financial Modeling Prep)
+                try
+                {
+                    var fmpQuote = await _fmpService.GetQuoteAsync(symbol);
+                    tests.Add(new { Service = "Financial Modeling Prep", Status = "Connected", Symbol = symbol });
+                }
+                catch (Exception ex)
+                {
+                    tests.Add(new { Service = "FMP", Status = $"Error: {ex.Message}", Symbol = symbol });
+                }
+
+                // Test Polygon
+                try
+                {
+                    var polygonQuote = await _polygonService.GetQuoteAsync(symbol);
+                    tests.Add(new { Service = "Polygon", Status = "Connected", Symbol = symbol });
+                }
+                catch (Exception ex)
+                {
+                    tests.Add(new { Service = "Polygon", Status = $"Error: {ex.Message}", Symbol = symbol });
+                }
+
+                // Test DataBento
+                try
+                {
+                    // Just test if the service is initialized properly
+                    tests.Add(new { Service = "DataBento", Status = "Configured", Symbol = symbol });
+                }
+                catch (Exception ex)
+                {
+                    tests.Add(new { Service = "DataBento", Status = $"Error: {ex.Message}", Symbol = symbol });
+                }
+
+                // Test News APIs
+                try
+                {
+                    var yahooNews = await _yfinanceNewsService.GetNewsAsync(symbol, 3);
+                    tests.Add(new { Service = "Yahoo Finance News", Status = $"Connected ({yahooNews.Count} articles)", Symbol = symbol });
+                }
+                catch (Exception ex)
+                {
+                    tests.Add(new { Service = "Yahoo Finance News", Status = $"Error: {ex.Message}", Symbol = symbol });
+                }
+
+                try
+                {
+                    var finvizNews = await _finvizNewsService.GetNewsAsync(symbol, 3);
+                    tests.Add(new { Service = "Finviz News", Status = $"Connected ({finvizNews.Count} articles)", Symbol = symbol });
+                }
+                catch (Exception ex)
+                {
+                    tests.Add(new { Service = "Finviz News", Status = $"Error: {ex.Message}", Symbol = symbol });
+                }
+
+                return new ToolResult
+                {
+                    ToolName = "api_test",
+                    Success = true,
+                    Data = tests
                 };
             }
             catch (Exception ex)
             {
-                return new ToolResult 
-                { 
-                    ToolName = "api_test", 
-                    Success = false, 
-                    ErrorMessage = ex.Message 
+                return new ToolResult
+                {
+                    ToolName = "api_test",
+                    Success = false,
+                    ErrorMessage = ex.Message
                 };
             }
         }

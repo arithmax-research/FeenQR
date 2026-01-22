@@ -782,7 +782,7 @@ Provide analysis in this JSON format:
 
             var jsonResponse = await _openAIService.GetChatCompletionAsync(prompt);
             var jsonClean = ExtractJsonFromResponse(jsonResponse);
-            var data = JsonSerializer.Deserialize<JsonElement>(jsonResponse);
+            var data = JsonSerializer.Deserialize<JsonElement>(jsonClean);
 
             var sectorSentiments = new Dictionary<string, double>();
             if (data.TryGetProperty("sectorSentiments", out var sectors))
