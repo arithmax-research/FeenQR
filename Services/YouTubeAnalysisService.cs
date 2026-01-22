@@ -73,42 +73,18 @@ public class YouTubeAnalysisService
             // Fetch video metadata from YouTube API
             var episode = await FetchVideoDataAsync(videoId);
             
-            // Try Python youtube-transcript-api first (most reliable)
+            // Use Python script for transcript (includes yt-dlp fallback)
             var transcript = await FetchTranscriptWithPythonAsync(videoId);
             if (!string.IsNullOrEmpty(transcript) && transcript.Length > 100)
             {
                 episode.Transcript = transcript;
-                _logger.LogInformation("Using Python transcript API for video: {VideoTitle}", episode.Name);
+                _logger.LogInformation("Successfully fetched transcript for video: {VideoTitle} ({Length} chars)", 
+                    episode.Name, transcript.Length);
             }
             else
             {
-                // Fallback to YouTube API captions
-                _logger.LogInformation("Python transcript failed, trying YouTube API for video: {VideoTitle}", episode.Name);
-                transcript = await FetchVideoTranscriptAsync(videoId);
-                
-                if (!string.IsNullOrEmpty(transcript) && transcript.Length > 100)
-                {
-                    episode.Transcript = transcript;
-                    _logger.LogInformation("Using YouTube API transcript for video: {VideoTitle}", episode.Name);
-                }
-                else
-                {
-                    // Try audio transcription with Whisper as fallback
-                    _logger.LogInformation("No captions found, attempting audio transcription for video: {VideoTitle}", episode.Name);
-                    transcript = await TranscribeVideoWithWhisperAsync(videoId);
-                    
-                    if (!string.IsNullOrEmpty(transcript) && transcript.Length > 100)
-                    {
-                        episode.Transcript = transcript;
-                        _logger.LogInformation("Using Whisper transcription for video: {VideoTitle}", episode.Name);
-                    }
-                    else
-                    {
-                        // Final fallback to description and title as content for analysis
-                        episode.Transcript = $"{episode.Name}\n\n{episode.Description}";
-                        _logger.LogInformation("Using metadata fallback for video: {VideoTitle}", episode.Name);
-                    }
-                }
+                _logger.LogWarning("No transcript available for video: {VideoTitle}", episode.Name);
+                episode.Transcript = "No transcript available for this video.";
             }
             
             // Analyze the content for technical insights
@@ -368,72 +344,31 @@ public class YouTubeAnalysisService
     /// </summary>
     private async Task<string> FetchTranscriptWithPythonAsync(string videoId)
     {
+        // Use yt-dlp directly since youtube-transcript-api gets IP-blocked
+        return await FetchTranscriptWithYtDlpAsync(videoId);
+    }
+
+    private async Task<string> FetchTranscriptWithYtDlpAsync(string videoId)
+    {
         try
         {
-            // Try multiple possible script locations
-            var possiblePaths = new[]
+            var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "Scripts", "get_youtube_transcript_ytdlp.py");
+            if (!File.Exists(scriptPath))
             {
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "Scripts", "get_youtube_transcript.py"), // From WebApp/Server/bin/Debug/net9.0
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Scripts", "get_youtube_transcript.py"), // From WebApp/Server
-                Path.Combine(Directory.GetCurrentDirectory(), "Scripts", "get_youtube_transcript.py"), // From current directory
-                Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "Scripts", "get_youtube_transcript.py"), // From project root
-                "/home/misango/codechest/FeenQR/Scripts/get_youtube_transcript.py" // Absolute fallback
-            };
-
-            string? scriptPath = null;
-            foreach (var path in possiblePaths)
-            {
-                var normalizedPath = Path.GetFullPath(path);
-                if (File.Exists(normalizedPath))
-                {
-                    scriptPath = normalizedPath;
-                    _logger.LogInformation("Found Python transcript script at: {ScriptPath}", scriptPath);
-                    break;
-                }
+                scriptPath = "/home/misango/codechest/FeenQR/Scripts/get_youtube_transcript_ytdlp.py";
             }
 
-            if (scriptPath == null)
+            if (!File.Exists(scriptPath))
             {
-                _logger.LogWarning("Python transcript script not found in any expected location. Tried: {Paths}", 
-                    string.Join(", ", possiblePaths));
+                _logger.LogWarning("yt-dlp transcript script not found");
                 return string.Empty;
-            }
-
-            // Try to find Python executable
-            var pythonExe = "python3";
-            var pythonLocations = new[] { "python3", "python", "/usr/bin/python3", "/usr/bin/python" };
-            foreach (var pyExe in pythonLocations)
-            {
-                try
-                {
-                    var testProcess = new System.Diagnostics.Process
-                    {
-                        StartInfo = new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = pyExe,
-                            Arguments = "--version",
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true,
-                            UseShellExecute = false,
-                            CreateNoWindow = true
-                        }
-                    };
-                    testProcess.Start();
-                    await testProcess.WaitForExitAsync();
-                    if (testProcess.ExitCode == 0)
-                    {
-                        pythonExe = pyExe;
-                        break;
-                    }
-                }
-                catch { }
             }
 
             var process = new System.Diagnostics.Process
             {
                 StartInfo = new System.Diagnostics.ProcessStartInfo
                 {
-                    FileName = pythonExe,
+                    FileName = "python3",
                     Arguments = $"\"{scriptPath}\" {videoId}",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -442,36 +377,25 @@ public class YouTubeAnalysisService
                 }
             };
 
-            _logger.LogInformation("Attempting to fetch transcript for video {VideoId} using Python API at {ScriptPath}...", 
-                videoId, scriptPath);
             process.Start();
-            
             var output = await process.StandardOutput.ReadToEndAsync();
-            var error = await process.StandardError.ReadToEndAsync();
             await process.WaitForExitAsync();
 
-            if (process.ExitCode != 0)
+            if (process.ExitCode == 0)
             {
-                _logger.LogWarning("Python transcript script failed with exit code {ExitCode}. Error: {Error}", 
-                    process.ExitCode, error);
-                return string.Empty;
+                var result = JsonSerializer.Deserialize<PythonTranscriptResult>(output);
+                if (result?.Success == true && !string.IsNullOrEmpty(result.Transcript))
+                {
+                    _logger.LogInformation("Successfully fetched transcript using yt-dlp ({Length} chars)", result.Length);
+                    return result.Transcript;
+                }
             }
 
-            // Parse JSON response
-            var result = JsonSerializer.Deserialize<PythonTranscriptResult>(output);
-            if (result?.Success == true && !string.IsNullOrEmpty(result.Transcript))
-            {
-                _logger.LogInformation("Successfully fetched transcript using Python API ({Length} chars, {Language})", 
-                    result.Length, result.Language);
-                return result.Transcript;
-            }
-
-            _logger.LogWarning("Python transcript API returned no transcript: {Error}", result?.Error ?? "Unknown error");
             return string.Empty;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to fetch transcript using Python API for video {VideoId}", videoId);
+            _logger.LogWarning(ex, "Failed to fetch transcript using yt-dlp for video {VideoId}", videoId);
             return string.Empty;
         }
     }
@@ -678,9 +602,10 @@ public class YouTubeAnalysisService
                 throw new ArgumentException("Invalid YouTube URL format");
             }
 
-            var transcript = await FetchVideoTranscriptAsync(videoId);
-
-            if (string.IsNullOrEmpty(transcript) || transcript == "No captions/transcript available for this video.")
+            // Use Python script for transcript (includes yt-dlp fallback)
+            var transcript = await FetchTranscriptWithPythonAsync(videoId);
+            
+            if (string.IsNullOrEmpty(transcript))
             {
                 _logger.LogWarning("No transcript available for video: {VideoUrl}", videoUrl);
                 return "No captions/transcript available for this video.";
@@ -834,6 +759,10 @@ public class YouTubeAnalysisService
                 string.Join("\n", newsList.Select(n => $"- {n.Headline}: {n.Summary} [{n.Source}] ({n.Url})"));
 
             // Region-specific prompt
+            var transcriptPreview = !string.IsNullOrEmpty(episode.Transcript) && episode.Transcript.Length > 8000 
+                ? episode.Transcript.Substring(0, 8000) + "...[transcript truncated]" 
+                : episode.Transcript ?? "No transcript available";
+
             var prompt = $@"
 You are a world-class quantitative finance expert and research analyst. Analyze the following YouTube video content for trading insights, real-world applications, and global context for {region}.
 
@@ -842,19 +771,23 @@ Video Description: {episode.Description}
 Channel: Quantopian/Finance Channel
 Region: {region}
 
+VIDEO TRANSCRIPT:
+{transcriptPreview}
+
 {context}
 
 Please provide CLEAN TEXT OUTPUT (no markdown, no asterisks, no hashtags) with:
-1. Technical trading concepts mentioned (indicators, strategies, patterns)
-2. Market analysis or predictions (specific markets, sectors, trends)
-3. Investment strategies discussed (portfolio management, risk strategies)
+1. Technical trading concepts mentioned (indicators, strategies, patterns) - CITE SPECIFIC QUOTES from the transcript
+2. Market analysis or predictions (specific markets, sectors, trends) - INCLUDE DIRECT QUOTES
+3. Investment strategies discussed (portfolio management, risk strategies) - CITE SPEAKER'S EXACT WORDS
 4. Risk management principles (position sizing, stop losses, hedging)
 5. Quantitative methods or indicators mentioned (algorithms, backtesting, statistics)
 6. Educational concepts (finance theory, market mechanics)
-7. Real-world applications: Summarize how these concepts and strategies are being applied in {region}. Include recent news, case studies, or notable funds if possible.
-8. Possible securities: List stocks, ETFs, futures, or other instruments (from {region}) that could be used to implement these strategies. Be creative and global.
+7. Key quotes and sentiments: Extract 3-5 important quotes from the transcript that reveal market sentiment, predictions, or policy changes
+8. Real-world applications: Summarize how these concepts and strategies are being applied in {region}. Include recent news, case studies, or notable funds if possible.
+9. Possible securities: List stocks, ETFs, futures, or other instruments (from {region}) that could be used to implement these strategies. Be creative and global.
 
-Format as simple numbered points with NO SPECIAL FORMATTING. Focus on actionable, concrete insights that could inform trading decisions. Prioritize practical, implementable ideas and global context over general theory.
+Format as simple numbered points with NO SPECIAL FORMATTING. Focus on actionable, concrete insights that could inform trading decisions. ALWAYS CITE DIRECT QUOTES when available to support analysis. Prioritize practical, implementable ideas and global context over general theory.
 ";
 
             try
@@ -883,6 +816,9 @@ Format as simple numbered points with NO SPECIAL FORMATTING. Focus on actionable
     private async Task ExtractTradingSignalsAsync(PodcastEpisode episode)
     {
         var insightsText = string.Join("\n", episode.TechnicalInsights);
+        var transcriptContext = !string.IsNullOrEmpty(episode.Transcript) && episode.Transcript.Length > 3000
+            ? "\n\nKEY TRANSCRIPT EXCERPTS:\n" + episode.Transcript.Substring(0, 3000) + "..."
+            : "";
         
         var prompt = $@"
 You are an expert quantitative analyst. Based on the following technical insights from a financial YouTube video, generate SPECIFIC, ACTIONABLE trading signals and implementation strategies.
@@ -890,6 +826,7 @@ You are an expert quantitative analyst. Based on the following technical insight
 Video Title: {episode.Name}
 Technical Insights:
 {insightsText}
+{transcriptContext}
 
 Video Sentiment Score: {episode.SentimentScore:F2}
 
