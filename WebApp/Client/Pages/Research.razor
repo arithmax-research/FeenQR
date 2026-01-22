@@ -415,26 +415,153 @@
 
         @if (activeTab == "video-analysis")
         {
-            <div class="section-header">
-                Video Analysis
-            </div>
-
-            <div class="chat-interface">
-                <input type="text" class="chat-input" placeholder="Enter YouTube URL or search for finance videos..." @bind="videoQuery" />
-                <button class="chat-submit" @onclick="AnalyzeVideo">Analyze</button>
-            </div>
-
-            @if (isLoading)
+            @if (!string.IsNullOrEmpty(videoError))
             {
-                <div class="progress-container">
-                    <div class="spinner"></div>
-                    <div class="progress-text">Analyzing video content...</div>
+                <div style="padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; margin-bottom: 1rem;">
+                    <p style="color: #ef4444; margin: 0;">❌ @videoError</p>
                 </div>
             }
-            else if (!string.IsNullOrEmpty(lastResult))
-            {
-                <AIOutputRenderer Content="@lastResult" />
-            }
+
+            <!-- Split View: Chat + Transcript -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; height: calc(100vh - 200px); min-height: 750px;">
+                
+                <!-- Left: Chat Interface with Controls -->
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    
+                    <!-- Input Controls - Above chat -->
+                    <div style="padding: 1rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px;">
+                        <div style="margin-bottom: 0.75rem; color: #9ca3af; font-size: 0.85rem; font-weight: 500;">Load Content</div>
+                        
+                        <!-- YouTube URL 1 -->
+                        <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+                            <input type="text" @bind="videoUrl1" placeholder="YouTube URL 1 (required)" 
+                                   style="flex: 1; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff; font-size: 0.9rem;" />
+                        </div>
+
+                        <!-- YouTube URL 2 OR PDF Upload -->
+                        <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem;">
+                            <input type="text" @bind="videoUrl2" placeholder="YouTube URL 2 OR..." 
+                                   style="flex: 1; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff; font-size: 0.9rem;" />
+                            <InputFile OnChange="HandleVideoPdfUpload" accept=".pdf" style="display: none;" id="videoPdfUpload" />
+                            <label for="videoPdfUpload" style="padding: 0.75rem 1rem; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; color: #a78bfa; cursor: pointer; font-size: 0.85rem; white-space: nowrap; transition: all 0.2s;">
+                                @(string.IsNullOrEmpty(uploadedPdfName) ? "Upload PDF" : uploadedPdfName)
+                            </label>
+                        </div>
+
+                        <button class="action-btn" @onclick="LoadVideoContent" disabled="@isLoadingVideo" style="width: 100%; padding: 0.75rem;">
+                            @if (isLoadingVideo)
+                            {
+                                <span>Loading...</span>
+                            }
+                            else
+                            {
+                                <span>Load & Analyze</span>
+                            }
+                        </button>
+
+                        @if (loadedVideos.Any())
+                        {
+                            <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                @foreach (var video in loadedVideos)
+                                {
+                                    <span style="padding: 0.4rem 0.75rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; font-size: 0.8rem; color: #10b981;">
+                                        @video.Title.Substring(0, Math.Min(30, video.Title.Length))@(video.Title.Length > 30 ? "..." : "")
+                                    </span>
+                                }
+                                <button @onclick="ClearVideoContent" style="padding: 0.4rem 0.75rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; font-size: 0.8rem; color: #ef4444; cursor: pointer;">
+                                    Clear All
+                                </button>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Chat Interface -->
+                    <div style="flex: 1; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
+                        <div style="padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.3);">
+                            <div style="color: #f59e0b; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">AI Trading Analyst</div>
+                            <div style="color: #9ca3af; font-size: 0.8rem;">Powered by DeepSeek + Semantic Kernel</div>
+                        </div>
+                        
+                        <!-- Chat Messages -->
+                        <div style="flex: 1; overflow-y: auto; padding: 1rem; background: rgba(0, 0, 0, 0.2);" id="videoChatContainer">
+                            @if (videoMessages.Any())
+                            {
+                                @foreach (var msg in videoMessages)
+                                {
+                                    <div style="margin-bottom: 1rem; padding: 1rem; background: @(msg.IsUser ? "rgba(59, 130, 246, 0.1)" : "rgba(245, 158, 11, 0.1)"); border-radius: 8px; border-left: 3px solid @(msg.IsUser ? "#3b82f6" : "#f59e0b");">
+                                        <div style="color: @(msg.IsUser ? "#3b82f6" : "#f59e0b"); font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem;">
+                                            @(msg.IsUser ? "You" : "Trading Analyst")
+                                        </div>
+                                        @if (msg.IsUser)
+                                        {
+                                            <div style="color: #d1d5db; line-height: 1.6;">@msg.Content</div>
+                                        }
+                                        else
+                                        {
+                                            <AIOutputRenderer Content="@msg.Content" />
+                                        }
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; text-align: center;">
+                                    <div>
+                                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">💡</div>
+                                        <div>@(loadedVideos.Any() ? "Ask about trading signals, market insights, or video content" : "Load a video to start analyzing")</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Chat Input -->
+                        <div style="padding: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.3);">
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="text" @bind="videoQuestion" @bind:event="oninput" @onkeydown="HandleVideoChatKeyPress"
+                                       placeholder="Ask about trading signals, market insights..." 
+                                       disabled="@(!loadedVideos.Any() || isSendingVideoMessage)"
+                                       style="flex: 1; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #fff; font-size: 0.9rem;" />
+                                <button class="action-btn" @onclick="SendVideoQuestion" disabled="@(!loadedVideos.Any() || isSendingVideoMessage || string.IsNullOrWhiteSpace(videoQuestion))" 
+                                        style="padding: 0.75rem 1.25rem; white-space: nowrap;">
+                                    @if (isSendingVideoMessage)
+                                    {
+                                        <span>Sending...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Send</span>
+                                    }
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Transcript Viewer -->
+                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
+                    <div style="padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.3);">
+                        <div style="color: #10b981; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">Video Transcript</div>
+                        <div style="color: #9ca3af; font-size: 0.8rem;">@(!string.IsNullOrEmpty(currentVideoTitle) ? currentVideoTitle : "No video loaded")</div>
+                    </div>
+                    <div style="flex: 1; overflow: auto; padding: 1.5rem; background: rgba(0, 0, 0, 0.2);">
+                        @if (!string.IsNullOrEmpty(currentTranscript))
+                        {
+                            <div style="color: #d1d5db; line-height: 1.8; font-size: 0.95rem; white-space: pre-wrap; word-wrap: break-word;">
+                                @currentTranscript
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; text-align: center;">
+                                <div>
+                                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📄</div>
+                                    <div>Load a video to view its transcript</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
         }
 
         @if (activeTab == "rag-chat")
@@ -1031,6 +1158,28 @@
     private List<LoadedPaperInfo> loadedPapers = new();
     private string currentPdfUrl = "";
     private string currentPaperTitle = "";
+
+    // Video Analysis fields
+    private string videoUrl1 = "";
+    private string videoUrl2 = "";
+    private string videoQuestion = "";
+    private string videoError = "";
+    private bool isLoadingVideo = false;
+    private bool isSendingVideoMessage = false;
+    private List<RagMessage> videoMessages = new();
+    private List<LoadedVideoInfo> loadedVideos = new();
+    private string currentTranscript = "";
+    private string currentVideoTitle = "";
+    private string uploadedPdfName = "";
+    private IBrowserFile? uploadedVideoPdf;
+
+    public class LoadedVideoInfo
+    {
+        public string VideoId { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Transcript { get; set; } = "";
+        public string Url { get; set; } = "";
+    }
 
     public class LoadedPaperInfo
     {
@@ -1639,6 +1788,214 @@
     }
 
     // Video Analysis tab methods
+    private async Task LoadVideoContent()
+    {
+        if (string.IsNullOrWhiteSpace(videoUrl1)) 
+        {
+            videoError = "Please enter at least one YouTube URL";
+            return;
+        }
+
+        isLoadingVideo = true;
+        videoError = "";
+        videoMessages.Clear();
+        StateHasChanged();
+
+        try
+        {
+            // Load first video (required)
+            var response1 = await Http.PostAsJsonAsync("api/research/load-video-transcript", new { VideoUrl = videoUrl1 });
+            if (response1.IsSuccessStatusCode)
+            {
+                var result1 = await response1.Content.ReadFromJsonAsync<VideoTranscriptResponse>();
+                if (result1 != null && !string.IsNullOrEmpty(result1.Transcript))
+                {
+                    loadedVideos.Add(new LoadedVideoInfo
+                    {
+                        VideoId = result1.VideoId,
+                        Title = result1.Title,
+                        Transcript = result1.Transcript,
+                        Url = videoUrl1
+                    });
+
+                    // Display the first video's transcript
+                    currentTranscript = result1.Transcript;
+                    currentVideoTitle = result1.Title;
+
+                    // Generate initial analysis
+                    var analysisResponse = await Http.PostAsJsonAsync("api/research/analyze-video-content", new 
+                    { 
+                        Videos = loadedVideos.Select(v => new { v.VideoId, v.Title, v.Transcript }).ToList() 
+                    });
+                    
+                    if (analysisResponse.IsSuccessStatusCode)
+                    {
+                        var analysis = await analysisResponse.Content.ReadFromJsonAsync<VideoAnalysisResponse>();
+                        if (analysis != null && !string.IsNullOrEmpty(analysis.Analysis))
+                        {
+                            videoMessages.Add(new RagMessage
+                            {
+                                Content = analysis.Analysis,
+                                IsUser = false
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Load second video or PDF if provided
+            if (!string.IsNullOrWhiteSpace(videoUrl2))
+            {
+                var response2 = await Http.PostAsJsonAsync("api/research/load-video-transcript", new { VideoUrl = videoUrl2 });
+                if (response2.IsSuccessStatusCode)
+                {
+                    var result2 = await response2.Content.ReadFromJsonAsync<VideoTranscriptResponse>();
+                    if (result2 != null && !string.IsNullOrEmpty(result2.Transcript))
+                    {
+                        loadedVideos.Add(new LoadedVideoInfo
+                        {
+                            VideoId = result2.VideoId,
+                            Title = result2.Title,
+                            Transcript = result2.Transcript,
+                            Url = videoUrl2
+                        });
+                    }
+                }
+            }
+            else if (uploadedVideoPdf != null)
+            {
+                // Handle PDF upload
+                var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(uploadedVideoPdf.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024));
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+                content.Add(fileContent, "file", uploadedVideoPdf.Name);
+
+                var pdfResponse = await Http.PostAsync("/api/research/upload-video-pdf", content);
+                if (pdfResponse.IsSuccessStatusCode)
+                {
+                    var pdfResult = await pdfResponse.Content.ReadFromJsonAsync<PdfContentResponse>();
+                    if (pdfResult != null && !string.IsNullOrEmpty(pdfResult.Content))
+                    {
+                        loadedVideos.Add(new LoadedVideoInfo
+                        {
+                            VideoId = "pdf_" + Guid.NewGuid().ToString("N"),
+                            Title = uploadedVideoPdf.Name,
+                            Transcript = pdfResult.Content,
+                            Url = ""
+                        });
+                    }
+                }
+            }
+
+            // Scroll to chat
+            await JS.InvokeVoidAsync("scrollToBottom", "videoChatContainer");
+        }
+        catch (Exception ex)
+        {
+            videoError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingVideo = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleVideoPdfUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null || !file.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            videoError = "Please upload a PDF file";
+            return;
+        }
+
+        uploadedVideoPdf = file;
+        uploadedPdfName = file.Name;
+        videoUrl2 = ""; // Clear URL 2 if PDF is uploaded
+        StateHasChanged();
+    }
+
+    private async Task SendVideoQuestion()
+    {
+        if (string.IsNullOrWhiteSpace(videoQuestion) || !loadedVideos.Any()) return;
+
+        isSendingVideoMessage = true;
+        videoError = "";
+        
+        // Add user message
+        videoMessages.Add(new RagMessage
+        {
+            Content = videoQuestion,
+            IsUser = true
+        });
+
+        var currentQuestion = videoQuestion;
+        videoQuestion = "";
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/research/video-chat", new
+            {
+                Question = currentQuestion,
+                Videos = loadedVideos.Select(v => new { v.VideoId, v.Title, v.Transcript }).ToList(),
+                ConversationHistory = videoMessages.Where(m => m.IsUser).Take(5).Select(m => m.Content).ToList()
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<VideoChatResponse>();
+                if (result != null && !string.IsNullOrEmpty(result.Answer))
+                {
+                    videoMessages.Add(new RagMessage
+                    {
+                        Content = result.Answer,
+                        IsUser = false
+                    });
+
+                    // Scroll to bottom
+                    await JS.InvokeVoidAsync("scrollToBottom", "videoChatContainer");
+                }
+            }
+            else
+            {
+                videoError = $"Error: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            videoError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isSendingVideoMessage = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleVideoChatKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(videoQuestion) && loadedVideos.Any() && !isSendingVideoMessage)
+        {
+            await SendVideoQuestion();
+        }
+    }
+
+    private void ClearVideoContent()
+    {
+        loadedVideos.Clear();
+        videoMessages.Clear();
+        currentTranscript = "";
+        currentVideoTitle = "";
+        videoUrl1 = "";
+        videoUrl2 = "";
+        uploadedVideoPdf = null;
+        uploadedPdfName = "";
+        videoError = "";
+        StateHasChanged();
+    }
+
     private async Task AnalyzeVideoFeature()
     {
         if (string.IsNullOrWhiteSpace(videoQuery)) return;
@@ -2261,6 +2618,31 @@
     public class AskQuestionResponse
     {
         public string Answer { get; set; } = "";
+    }
+
+    public class VideoTranscriptResponse
+    {
+        public string VideoId { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Transcript { get; set; } = "";
+        public int TranscriptLength { get; set; }
+    }
+
+    public class VideoAnalysisResponse
+    {
+        public string Analysis { get; set; } = "";
+        public List<string>? TradingSignals { get; set; }
+    }
+
+    public class VideoChatResponse
+    {
+        public string Answer { get; set; } = "";
+    }
+
+    public class PdfContentResponse
+    {
+        public string Content { get; set; } = "";
+        public string FileName { get; set; } = "";
     }
 
 }

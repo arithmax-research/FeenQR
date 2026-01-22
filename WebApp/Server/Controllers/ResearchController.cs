@@ -884,6 +884,176 @@ Keep it concise and actionable. Focus on what's useful for quantitative research
                 return StatusCode(500, new { error = ex.Message });
             }
         }
+
+        // Video Analysis Endpoints
+        [HttpPost("load-video-transcript")]
+        public async Task<IActionResult> LoadVideoTranscript([FromBody] LoadVideoRequest request)
+        {
+            try
+            {
+                var transcript = await _youtubeAnalysisService.GetVideoTranscriptAsync(request.VideoUrl);
+                var videoId = ExtractVideoId(request.VideoUrl);
+                var metadata = await _youtubeAnalysisService.GetVideoMetadataAsync(videoId);
+
+                return Ok(new
+                {
+                    VideoId = videoId,
+                    Title = metadata.Name ?? "Unknown",
+                    Transcript = transcript,
+                    TranscriptLength = transcript.Length
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading video transcript");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("analyze-video-content")]
+        public async Task<IActionResult> AnalyzeVideoContent([FromBody] AnalyzeVideoContentRequest request)
+        {
+            try
+            {
+                var combinedTranscript = string.Join("\n\n═══════════════════════\n\n", 
+                    request.Videos.Select(v => $"Video: {v.Title}\n\n{v.Transcript}"));
+
+                var prompt = $@"Analyze the following video content and provide comprehensive trading signals and market insights:
+
+{combinedTranscript}
+
+Please provide:
+1. **Key Trading Signals**: Specific actionable signals (bullish/bearish) with reasoning
+2. **Market Sentiment**: Overall market sentiment from the content
+3. **Risk Factors**: Important risks or concerns mentioned
+4. **Time Horizon**: Short-term vs long-term implications
+5. **Asset Classes**: Which markets/assets are discussed (stocks, forex, commodities, crypto)
+6. **Key Insights**: Most important takeaways for traders
+
+Format your response in clear sections with bullet points.";
+
+                var result = await _feenRAGenticService.ChatAsync(prompt, "openai", new List<QuantResearchAgent.Services.FeenRAGenticService.ConversationMessage>());
+                
+                return Ok(new
+                {
+                    Analysis = result.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error analyzing video content");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("video-chat")]
+        public async Task<IActionResult> VideoChat([FromBody] VideoChatRequest request)
+        {
+            try
+            {
+                var combinedTranscript = string.Join("\n\n═══════════════════════\n\n", 
+                    request.Videos.Select(v => $"Video: {v.Title}\n\n{v.Transcript}"));
+
+                var conversationContext = request.ConversationHistory.Any() 
+                    ? $"\n\nPrevious questions: {string.Join(", ", request.ConversationHistory)}"
+                    : "";
+
+                var prompt = $@"You are a professional trading analyst with expertise in financial markets, technical analysis, and trading strategies.
+
+Based on the following video content, answer the user's question:
+
+{combinedTranscript}
+
+{conversationContext}
+
+User Question: {request.Question}
+
+Provide a clear, actionable answer that:
+- Addresses the specific question
+- References relevant parts of the video content
+- Includes specific trading signals or insights when applicable
+- Uses proper formatting (bullet points, sections, etc.)
+- Maintains professional trading terminology
+
+Answer:";
+
+                var result = await _feenRAGenticService.ChatAsync(prompt, "openai", new List<QuantResearchAgent.Services.FeenRAGenticService.ConversationMessage>());
+                
+                return Ok(new
+                {
+                    Answer = result.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in video chat");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("upload-video-pdf")]
+        public async Task<IActionResult> UploadVideoPdf(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest(new { error = "No file uploaded" });
+                }
+
+                using var memoryStream = new MemoryStream();
+                await file.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
+
+                // Extract text from PDF using iTextSharp or similar
+                var content = await ExtractPdfText(memoryStream);
+
+                return Ok(new
+                {
+                    Content = content,
+                    FileName = file.FileName
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading PDF");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        private string ExtractVideoId(string url)
+        {
+            // Extract video ID from YouTube URL
+            var patterns = new[]
+            {
+                @"(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\?\s]+)",
+                @"^([a-zA-Z0-9_-]{11})$" // Direct ID
+            };
+
+            foreach (var pattern in patterns)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(url, pattern);
+                if (match.Success && match.Groups.Count > 1)
+                {
+                    return match.Groups[1].Value;
+                }
+            }
+
+            return url; // Return as-is if no pattern matches
+        }
+
+        private async Task<string> ExtractPdfText(Stream pdfStream)
+        {
+            try
+            {
+                // For now, return placeholder. You'll need to add a PDF library like iTextSharp
+                return "PDF text extraction requires additional library. Please install itext7 or similar.";
+            }
+            catch
+            {
+                return "Error extracting PDF text";
+            }
+        }
     }
 
     // Request/Response models
@@ -970,6 +1140,30 @@ Keep it concise and actionable. Focus on what's useful for quantitative research
     {
         public string CollectionName { get; set; } = string.Empty;
         public string Question { get; set; } = string.Empty;
+    }
+
+    public class LoadVideoRequest
+    {
+        public string VideoUrl { get; set; } = string.Empty;
+    }
+
+    public class AnalyzeVideoContentRequest
+    {
+        public List<VideoInfo> Videos { get; set; } = new();
+    }
+
+    public class VideoInfo
+    {
+        public string VideoId { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Transcript { get; set; } = string.Empty;
+    }
+
+    public class VideoChatRequest
+    {
+        public string Question { get; set; } = string.Empty;
+        public List<VideoInfo> Videos { get; set; } = new();
+        public List<string> ConversationHistory { get; set; } = new();
     }
 
     public class ResearchResponse

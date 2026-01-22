@@ -352,7 +352,7 @@ public class YouTubeAnalysisService
                 Id = video.Id,
                 Name = video.Snippet.Title,
                 Description = video.Snippet.Description,
-                PublishedDate = DateTime.Parse(video.Snippet.PublishedAt),
+                PublishedDate = video.Snippet.PublishedAt,
                 PodcastUrl = $"https://www.youtube.com/watch?v={videoId}"
             };
         }
@@ -661,6 +661,62 @@ public class YouTubeAnalysisService
         {
             _logger.LogError(ex, "Failed to get transcript for video: {VideoUrl}", videoUrl);
             return $"Error fetching transcript: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Get video metadata (title, description, etc.)
+    /// </summary>
+    public async Task<PodcastEpisode> GetVideoMetadataAsync(string videoId)
+    {
+        try
+        {
+            var url = $"{YOUTUBE_API_BASE}/videos?part=snippet,contentDetails&id={videoId}&key={_youTubeApiKey}";
+            var response = await _httpClient.GetStringAsync(url);
+            var videoResponse = JsonSerializer.Deserialize<YouTubeVideoResponse>(response);
+
+            if (videoResponse?.Items?.Any() == true)
+            {
+                var video = videoResponse.Items[0];
+                return new PodcastEpisode
+                {
+                    Name = video.Snippet?.Title ?? "Unknown",
+                    Description = video.Snippet?.Description ?? "",
+                    PodcastUrl = $"https://www.youtube.com/watch?v={videoId}",
+                    PublishedDate = video.Snippet?.PublishedAt ?? DateTime.MinValue
+                };
+            }
+
+            return new PodcastEpisode { Name = "Unknown", PodcastUrl = $"https://www.youtube.com/watch?v={videoId}" };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get video metadata for: {VideoId}", videoId);
+            return new PodcastEpisode { Name = "Unknown", PodcastUrl = $"https://www.youtube.com/watch?v={videoId}" };
+        }
+    }
+
+    /// <summary>
+    /// Parse YouTube duration format (PT1H2M3S) to TimeSpan
+    /// </summary>
+    private TimeSpan ParseDuration(string duration)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(duration)) return TimeSpan.Zero;
+            
+            var match = Regex.Match(duration, @"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?");
+            if (!match.Success) return TimeSpan.Zero;
+
+            var hours = match.Groups[1].Success ? int.Parse(match.Groups[1].Value) : 0;
+            var minutes = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
+            var seconds = match.Groups[3].Success ? int.Parse(match.Groups[3].Value) : 0;
+
+            return new TimeSpan(hours, minutes, seconds);
+        }
+        catch
+        {
+            return TimeSpan.Zero;
         }
     }
 
@@ -1215,6 +1271,15 @@ public class YouTubeVideo
     
     [JsonPropertyName("snippet")]
     public YouTubeSnippet Snippet { get; set; } = new();
+
+    [JsonPropertyName("contentDetails")]
+    public YouTubeContentDetails? ContentDetails { get; set; }
+}
+
+public class YouTubeContentDetails
+{
+    [JsonPropertyName("duration")]
+    public string Duration { get; set; } = string.Empty;
 }
 
 public class YouTubeSnippet
@@ -1226,7 +1291,7 @@ public class YouTubeSnippet
     public string Description { get; set; } = string.Empty;
     
     [JsonPropertyName("publishedAt")]
-    public string PublishedAt { get; set; } = string.Empty;
+    public DateTime PublishedAt { get; set; }
     
     [JsonPropertyName("channelTitle")]
     public string ChannelTitle { get; set; } = string.Empty;
