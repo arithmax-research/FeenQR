@@ -8,6 +8,10 @@
     <NoWarn>CS1998,CS8625,CS8603,CS8604,CS8629,CS8601,CS8600,CS8602,CS8632,SKEXP0001,SKEXP0010,SKEXP0050,SKEXP0110</NoWarn>
     <EnableDefaultItems>true</EnableDefaultItems>
     <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+    <!-- Build optimization -->
+    <UseSharedCompilation>true</UseSharedCompilation>
+    <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+    <Deterministic>true</Deterministic>
   </PropertyGroup>
 
   <!-- Exclude FeenQR.Web and WebApp subfolders to prevent compilation conflicts -->
@@ -49,7 +53,7 @@
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="OpenAI-DotNet" Version="8.6.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="RestSharp" Version="110.2.0" />
+    <PackageReference Include="RestSharp" Version="112.0.0" />
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="CsvHelper" Version="31.0.4" />
     <PackageReference Include="Alpaca.Markets" Version="7.2.0" />
