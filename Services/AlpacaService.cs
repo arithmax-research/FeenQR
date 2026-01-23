@@ -195,6 +195,18 @@ public class AlpacaService
     {
         try
         {
+            // Handle comma-separated symbols - fetch data for first symbol only
+            var symbols = symbol.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                .Select(s => s.Trim())
+                                .ToList();
+            
+            if (symbols.Count > 1)
+            {
+                _logger.LogWarning("Multiple symbols provided ({Count}): {Symbols}. Using first symbol only: {FirstSymbol}", 
+                    symbols.Count, string.Join(", ", symbols), symbols[0]);
+                symbol = symbols[0];
+            }
+            
             // First try to get data from Alpaca API if client is initialized
             if (_dataClient != null)
             {
