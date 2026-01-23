@@ -22,7 +22,7 @@ if [ -z "$AWS_ACCOUNT_ID" ]; then
 fi
 
 echo -e "${YELLOW}Building updated Docker image...${NC}"
-docker build -f Dockerfile.webapp -t feenqr:webapp .
+DOCKER_BUILDKIT=1 docker build -f Dockerfile.webapp -t feenqr:webapp .
 
 echo -e "\n${YELLOW}Tagging for ECR...${NC}"
 docker tag feenqr:webapp $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/feenqr:webapp
