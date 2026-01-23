@@ -14,6 +14,7 @@
         "outputPath": "/home/misango/codechest/FeenQR/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
+          "/home/misango/codechest/FeenQR/NuGet.config",
           "/home/misango/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
@@ -151,7 +152,7 @@
             },
             "RestSharp": {
               "target": "Package",
-              "version": "[110.2.0, )"
+              "version": "[112.0.0, )"
             },
             "Skender.Stock.Indicators": {
               "target": "Package",
