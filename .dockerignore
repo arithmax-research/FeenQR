@@ -1,0 +1,66 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Storage and data
+chroma_storage/
+qdrant_storage/
+downloaded_papers/
+logs/
+*.log
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosgitignore
+*.sln.docstates
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# AWS
+aws-deploy/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Misc
+*.md
+!README.md
+*.sh
+!deploy-apprunner.sh
+Dockerfile
+Dockerfile.*
+!Dockerfile.webapp
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp
+*.swp
+YOUR_CREDENTIALS.json
+requirements.txt
+Procfile
+*.yaml
+*.yml
+!appsettings.json

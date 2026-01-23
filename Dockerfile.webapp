@@ -6,14 +6,19 @@ ENV ASPNETCORE_URLS=http://+:8080
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
+# Copy NuGet config for better timeout handling
+COPY ["NuGet.config", "./"]
+
 # Copy the main project files
 COPY ["QuantResearchAgent.csproj", "./"]
 COPY ["WebApp/Server/Server.csproj", "WebApp/Server/"]
 COPY ["WebApp/Client/Client.csproj", "WebApp/Client/"]
 COPY ["WebApp/Core/Core.csproj", "WebApp/Core/"]
 
-# Restore all projects
-RUN dotnet restore "WebApp/Server/Server.csproj"
+# Restore all projects with retry
+RUN dotnet restore "WebApp/Server/Server.csproj" --disable-parallel || \
+    (sleep 5 && dotnet restore "WebApp/Server/Server.csproj" --disable-parallel) || \
+    (sleep 10 && dotnet restore "WebApp/Server/Server.csproj" --disable-parallel)
 
 # Copy everything
 COPY . .
