@@ -21,7 +21,10 @@ if [ -z "$AWS_ACCOUNT_ID" ]; then
     exit 1
 fi
 
-echo -e "${YELLOW}Building updated Docker image...${NC}"
+echo -e "${YELLOW}Building .NET application locally (much faster!)...${NC}"
+dotnet publish WebApp/Server/Server.csproj -c Release -o WebApp/Server/bin/Release/net9.0/publish
+
+echo -e "\n${YELLOW}Building Docker image (pre-built binaries only)...${NC}"
 DOCKER_BUILDKIT=1 docker build -f Dockerfile.webapp -t feenqr:webapp .
 
 echo -e "\n${YELLOW}Tagging for ECR...${NC}"

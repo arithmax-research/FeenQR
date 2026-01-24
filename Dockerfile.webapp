@@ -1,52 +1,24 @@
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+# FAST DEPLOYMENT: Use pre-built binaries (build locally, not in Docker)
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /src
+# Pre-download Python image layers (no network calls during build)
+# Python will be installed on first container start via entrypoint script
 
-# Copy NuGet config
-COPY ["NuGet.config", "./"]
-
-# Copy the main project files
-COPY ["QuantResearchAgent.csproj", "./"]
-COPY ["WebApp/Server/Server.csproj", "WebApp/Server/"]
-COPY ["WebApp/Client/Client.csproj", "WebApp/Client/"]
-COPY ["WebApp/Core/Core.csproj", "WebApp/Core/"]
-
-# Restore with cache mount for NuGet packages (much faster!)
-RUN --mount=type=cache,target=/root/.nuget/packages \
-    dotnet restore "WebApp/Server/Server.csproj"
-
-# Copy everything
-COPY . .
-
-# Build the WebApp Server project
-WORKDIR "/src/WebApp/Server"
-RUN dotnet build "Server.csproj" -c Release -o /app/build
-
-FROM build AS publish
-RUN dotnet publish "Server.csproj" -c Release -o /app/publish /p:UseAppHost=false
-
-FROM base AS final
-WORKDIR /app
-
-# Install Python3 and yt-dlp for video analysis
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    && pip3 install --no-cache-dir yt-dlp \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY --from=publish /app/publish .
+# Copy pre-built application files
+COPY ["WebApp/Server/bin/Release/net9.0/publish/", "/app/"]
 
 # Copy Scripts directory for Python-based services
-COPY --from=build /src/Scripts /app/Scripts
+COPY ["Scripts/", "/app/Scripts/"]
 
-# Copy appsettings.json to both locations the app expects
-COPY --from=build /src/appsettings.json /app/appsettings.json
-COPY --from=build /src/appsettings.json /appsettings.json
+# Copy appsettings.json to both locations
+COPY ["appsettings.json", "/app/appsettings.json"]
+COPY ["appsettings.json", "/appsettings.json"]
 
-ENTRYPOINT ["dotnet", "Server.dll"]
+# Copy entrypoint script for runtime Python installation
+COPY ["entrypoint.sh", "/app/entrypoint.sh"]
+RUN chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]

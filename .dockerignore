@@ -1,5 +1,5 @@
-# Build artifacts
-**/bin/
+# Build artifacts (but allow Release/publish for fast deployments)
+**/bin/Debug/
 **/obj/
 **/out/
 
@@ -50,6 +50,7 @@ aws-deploy/
 !README.md
 *.sh
 !deploy-apprunner.sh
+!entrypoint.sh
 Dockerfile
 Dockerfile.*
 !Dockerfile.webapp
