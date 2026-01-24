@@ -216,7 +216,7 @@ if [ "$STATUS" == "RUNNING" ]; then
     
     echo ""
     echo -e "${GREEN}========================================${NC}"
-    echo -e "${GREEN}   Deployment Successful! 🚀${NC}"
+    echo -e "${GREEN}   Deployment Successful! ${NC}"
     echo -e "${GREEN}========================================${NC}"
     echo ""
     echo -e "${GREEN}Your application is now live at:${NC}"

@@ -352,17 +352,27 @@ public class YouTubeAnalysisService
     {
         try
         {
+            // Try multiple possible script locations
             var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "Scripts", "get_youtube_transcript_ytdlp.py");
             if (!File.Exists(scriptPath))
             {
+                // Docker container location
+                scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Scripts", "get_youtube_transcript_ytdlp.py");
+            }
+            if (!File.Exists(scriptPath))
+            {
+                // Local development fallback
                 scriptPath = "/home/misango/codechest/FeenQR/Scripts/get_youtube_transcript_ytdlp.py";
             }
 
             if (!File.Exists(scriptPath))
             {
-                _logger.LogWarning("yt-dlp transcript script not found");
+                _logger.LogWarning("yt-dlp transcript script not found at any expected location. BaseDirectory: {BaseDir}", 
+                    AppDomain.CurrentDomain.BaseDirectory);
                 return string.Empty;
             }
+
+            _logger.LogDebug("Using transcript script at: {ScriptPath}", scriptPath);
 
             var process = new System.Diagnostics.Process
             {
@@ -379,7 +389,13 @@ public class YouTubeAnalysisService
 
             process.Start();
             var output = await process.StandardOutput.ReadToEndAsync();
+            var error = await process.StandardError.ReadToEndAsync();
             await process.WaitForExitAsync();
+
+            if (!string.IsNullOrEmpty(error))
+            {
+                _logger.LogWarning("yt-dlp stderr: {Error}", error);
+            }
 
             if (process.ExitCode == 0)
             {

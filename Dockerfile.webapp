@@ -31,8 +31,22 @@ RUN dotnet publish "Server.csproj" -c Release -o /app/publish /p:UseAppHost=fals
 
 FROM base AS final
 WORKDIR /app
+
+# Install Python3 and yt-dlp for video analysis
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    && pip3 install --no-cache-dir yt-dlp \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=publish /app/publish .
+
+# Copy Scripts directory for Python-based services
+COPY --from=build /src/Scripts /app/Scripts
+
 # Copy appsettings.json to both locations the app expects
 COPY --from=build /src/appsettings.json /app/appsettings.json
 COPY --from=build /src/appsettings.json /appsettings.json
+
 ENTRYPOINT ["dotnet", "Server.dll"]
