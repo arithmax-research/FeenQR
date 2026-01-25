@@ -5,6 +5,7 @@
 /qdrant_storage/collections/
 /webapp/server/uploads/
 /data_pipeline/__pycache__/
+/New_features/
 
 # Ignore config file
 appsettings.json
