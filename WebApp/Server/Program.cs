@@ -109,7 +109,11 @@ builder.Services.AddSingleton<ISemanticTextMemory>(sp =>
 });
 
 // Register FeenQR services
-builder.Services.AddHttpClient();
+builder.Services.AddHttpClient().ConfigureHttpClientDefaults(http => 
+{
+    // Increase timeout for long-running operations like video analysis
+    http.ConfigureHttpClient(client => client.Timeout = TimeSpan.FromMinutes(10));
+});
 builder.Services.AddSingleton<LeanDataService>();
 builder.Services.AddSingleton<AlpacaService>();
 builder.Services.AddSingleton<AlphaVantageService>();

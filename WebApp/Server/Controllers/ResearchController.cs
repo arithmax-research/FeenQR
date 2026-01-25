@@ -155,6 +155,7 @@ namespace Server.Controllers
         {
             try
             {
+                _logger.LogInformation("Starting video analysis for: {VideoUrl}", request.VideoUrl);
                 var podcastResult = await _youtubeAnalysisService.AnalyzeVideoAsync(request.VideoUrl);
                 
                 // Extract URLs from insights and signals

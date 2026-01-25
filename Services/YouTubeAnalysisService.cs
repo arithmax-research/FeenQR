@@ -87,31 +87,36 @@ public class YouTubeAnalysisService
                 episode.Transcript = "No transcript available for this video.";
             }
             
-            // Analyze the content for technical insights
+            // Detect if video is finance/trading related
+            var isFinanceRelated = await DetectFinanceContentAsync(episode);
+            _logger.LogInformation("Video finance relevance for '{VideoTitle}': {IsFinance}", episode.Name, isFinanceRelated);
+            
+            // Analyze the content based on type
             try
             {
-                await AnalyzeTechnicalContentAsync(episode);
+                if (isFinanceRelated)
+                {
+                    await AnalyzeTechnicalContentAsync(episode);
+                    await ExtractTradingSignalsAsync(episode);
+                }
+                else
+                {
+                    await AnalyzeGeneralContentAsync(episode);
+                    episode.TradingSignals = new List<string>(); // No trading signals for non-finance content
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "Technical content analysis failed for video {VideoTitle}, continuing with basic analysis", episode.Name);
+                _logger.LogDebug(ex, "Content analysis failed for video {VideoTitle}, using fallback", episode.Name);
                 
-                // Provide basic fallback analysis when web search fails
+                // Provide basic fallback analysis
                 episode.TechnicalInsights = new List<string>
                 {
-                    $"Basic analysis of video: {episode.Name} - Analysis completed despite API limitations"
+                    $"Video: {episode.Name}",
+                    $"Description: {episode.Description}",
+                    "Note: Detailed analysis unavailable. The video may not contain trading/finance content."
                 };
-            }
-            
-            // Extract trading signals from insights
-            try
-            {
-                await ExtractTradingSignalsAsync(episode);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Trading signal extraction failed for video {VideoTitle}", episode.Name);
-                episode.TradingSignals = new List<string>(); // Empty list as fallback
+                episode.TradingSignals = new List<string>();
             }
             
             episode.AnalyzedAt = DateTime.UtcNow;
@@ -723,6 +728,124 @@ public class YouTubeAnalysisService
         {
             _logger.LogError(ex, "Failed to save transcript for video: {VideoUrl}", videoUrl);
             return $"Error saving transcript: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Detect if video content is finance/trading related
+    /// </summary>
+    private async Task<bool> DetectFinanceContentAsync(PodcastEpisode episode)
+    {
+        try
+        {
+            var contentSample = $"{episode.Name} {episode.Description} ";
+            if (!string.IsNullOrEmpty(episode.Transcript) && episode.Transcript.Length > 1000)
+            {
+                contentSample += episode.Transcript.Substring(0, 1000);
+            }
+            
+            var prompt = @$"
+Analyze if this YouTube video is related to finance, trading, investing, economics, or business.
+
+Title: {episode.Name}
+Description: {episode.Description}
+Content Sample: {contentSample.Substring(0, Math.Min(contentSample.Length, 1500))}
+
+Respond with ONLY 'YES' if the video discusses:
+- Stock trading, investing, markets
+- Finance, economics, business
+- Crypto, forex, commodities
+- Portfolio management, risk
+- Financial news, analysis
+- Quantitative finance, algorithms
+- Personal finance, wealth
+
+Respond with ONLY 'NO' if the video is about:
+- Entertainment, gaming, sports
+- Technology tutorials (non-finance)
+- Lifestyle, cooking, travel
+- General education (non-business)
+- Other non-financial topics
+
+Answer (YES or NO):";
+
+            var function = _kernel.CreateFunctionFromPrompt(prompt);
+            var result = await _kernel.InvokeAsync(function);
+            var response = result.ToString().Trim().ToUpper();
+            
+            return response.Contains("YES");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to detect finance content, assuming YES");
+            return true; // Default to finance analysis if detection fails
+        }
+    }
+
+    /// <summary>
+    /// Analyze general (non-finance) video content
+    /// </summary>
+    private async Task AnalyzeGeneralContentAsync(PodcastEpisode episode)
+    {
+        var transcriptPreview = !string.IsNullOrEmpty(episode.Transcript) && episode.Transcript.Length > 5000 
+            ? episode.Transcript.Substring(0, 5000) + "...[truncated]" 
+            : episode.Transcript ?? "No transcript available";
+
+        var prompt = @$"
+You are an expert content analyst. Provide a comprehensive summary of this YouTube video.
+
+Video Title: {episode.Name}
+Description: {episode.Description}
+
+TRANSCRIPT:
+{transcriptPreview}
+
+Provide a clear, structured analysis with:
+
+1. MAIN TOPIC & PURPOSE
+What is this video about? What is the creator trying to achieve?
+
+2. KEY POINTS & INSIGHTS
+List the 5-7 most important points, facts, or takeaways from the video.
+Include direct quotes when relevant.
+
+3. TARGET AUDIENCE
+Who is this video for? What background knowledge is assumed?
+
+4. PRACTICAL VALUE
+What can viewers learn or apply from this content?
+Any actionable advice or recommendations?
+
+5. CONTENT QUALITY
+Production quality, clarity of explanation, credibility of information.
+
+6. BUSINESS/PROFESSIONAL ANGLE (if applicable)
+If there are ANY business, career, or professional development aspects, 
+mention them here. Otherwise, state 'Not applicable.'
+
+Format as plain text with clear section headers. Be concise but informative.";
+
+        try
+        {
+            var function = _kernel.CreateFunctionFromPrompt(prompt);
+            var result = await _kernel.InvokeAsync(function);
+            
+            episode.TechnicalInsights = new List<string>
+            {
+                "=== GENERAL CONTENT ANALYSIS ===",
+                result.ToString(),
+                $"\nNote: This video does not contain trading/finance content. For financial analysis, try videos about stocks, trading, investing, or economics."
+            };
+            
+            // Calculate sentiment for general content
+            episode.SentimentScore = await CalculateSentimentAsync($"{episode.Name}\n{episode.Description}");
+            
+            _logger.LogInformation("Completed general content analysis for: {VideoTitle}", episode.Name);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to analyze general content for video: {VideoId}", episode.Id);
+            throw;
         }
     }
 
