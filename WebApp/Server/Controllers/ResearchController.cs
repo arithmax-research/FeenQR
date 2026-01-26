@@ -1046,16 +1046,16 @@ Answer:";
             return url; // Return as-is if no pattern matches
         }
 
-        private async Task<string> ExtractPdfText(Stream pdfStream)
+        private Task<string> ExtractPdfText(Stream pdfStream)
         {
             try
             {
                 // For now, return placeholder. You'll need to add a PDF library like iTextSharp
-                return "PDF text extraction requires additional library. Please install itext7 or similar.";
+                return Task.FromResult("PDF text extraction requires additional library. Please install itext7 or similar.");
             }
             catch
             {
-                return "Error extracting PDF text";
+                return Task.FromResult("Error extracting PDF text");
             }
         }
     }

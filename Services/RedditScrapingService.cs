@@ -20,30 +20,14 @@ public class RedditScrapingService
         _httpClient = httpClient;
         _configuration = configuration;
         
-        // Initialize Reddit API client if credentials are available
-        var clientId = _configuration["Reddit:ClientId"];
-        var clientSecret = _configuration["Reddit:ClientSecret"];
         var userAgent = _configuration["Reddit:UserAgent"] ?? "QuantResearchAgent/1.0";
-
-        if (!string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(clientSecret))
-        {
-            try
-            {
-                _redditClient = new RedditClient(clientId, clientSecret, userAgent);
-                _logger.LogInformation("Reddit API client initialized successfully");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to initialize Reddit API client, falling back to web scraping");
-                _redditClient = null;
-            }
-        }
-        else
-        {
-            _logger.LogWarning("Reddit API credentials not found, using web scraping fallback");
-        }
         
-        // Set user agent for HTTP client fallback
+        // Always use HTTP scraping - Reddit API OAuth is unreliable and requires complex setup
+        // The public JSON endpoints work well without authentication
+        _redditClient = null;
+        _logger.LogInformation("Reddit scraping service initialized with HTTP client (API disabled)");
+        
+        // Set user agent for HTTP client
         _httpClient.DefaultRequestHeaders.Add("User-Agent", userAgent);
     }
 
@@ -175,22 +159,21 @@ public class RedditScrapingService
 
     public async Task<List<RedditPost>> SearchSubredditAsync(string subreddit, string query, int limit = 25)
     {
-        try
+        if (_redditClient != null)
         {
-            if (_redditClient != null)
+            try
             {
                 return await SearchSubredditWithApiAsync(subreddit, query, limit);
             }
-            else
+            catch (Exception ex)
             {
-                return await SearchSubredditWithHttpAsync(subreddit, query, limit);
+                _logger.LogWarning(ex, "Reddit API failed for r/{Subreddit}, falling back to HTTP", subreddit);
+                // Fall through to HTTP method
             }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to search r/{Subreddit} for '{Query}'", subreddit, query);
-            return new List<RedditPost>();
-        }
+        
+        // Use HTTP method (either as primary or as fallback)
+        return await SearchSubredditWithHttpAsync(subreddit, query, limit);
     }
 
     private async Task<List<RedditPost>> SearchSubredditWithApiAsync(string subreddit, string query, int limit)
@@ -243,7 +226,37 @@ public class RedditScrapingService
             
             _logger.LogInformation("Searching r/{Subreddit} for '{Query}' using HTTP fallback with {Limit} results", subreddit, query, limit);
             
-            var response = await _httpClient.GetStringAsync(url);
+            // Some subreddits (like wallstreetbets) are sensitive to rapid requests
+            // Add a small delay and retry logic for 403 errors
+            string response = null!;
+            int retries = 0;
+            const int maxRetries = 3;
+            
+            while (retries < maxRetries)
+            {
+                try
+                {
+                    if (retries > 0)
+                    {
+                        var delay = 1000 * retries; // 1s, 2s, 3s delays
+                        _logger.LogInformation("Retry {Retry}/{MaxRetries} for r/{Subreddit} after {Delay}ms delay", retries, maxRetries, subreddit, delay);
+                        await Task.Delay(delay);
+                    }
+                    
+                    response = await _httpClient.GetStringAsync(url);
+                    break; // Success, exit retry loop
+                }
+                catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    retries++;
+                    if (retries >= maxRetries)
+                    {
+                        _logger.LogWarning("r/{Subreddit} returned 403 Forbidden after {MaxRetries} retries - skipping", subreddit, maxRetries);
+                        throw;
+                    }
+                }
+            }
+            
             var jsonDoc = JsonDocument.Parse(response);
             
             var data = jsonDoc.RootElement.GetProperty("data");
@@ -261,7 +274,7 @@ public class RedditScrapingService
                     Upvotes = postData.GetProperty("ups").GetInt32(),
                     Downvotes = postData.GetProperty("downs").GetInt32(),
                     Comments = postData.GetProperty("num_comments").GetInt32(),
-                    CreatedUtc = DateTimeOffset.FromUnixTimeSeconds(postData.GetProperty("created_utc").GetInt64()).DateTime,
+                    CreatedUtc = DateTimeOffset.FromUnixTimeSeconds((long)postData.GetProperty("created_utc").GetDouble()).DateTime,
                     Url = $"https://reddit.com{postData.GetProperty("permalink").GetString()}",
                     Subreddit = subreddit,
                     Content = postData.TryGetProperty("selftext", out var selftext) ? selftext.GetString() ?? "" : "",

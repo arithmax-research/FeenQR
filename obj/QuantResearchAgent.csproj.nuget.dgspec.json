@@ -152,7 +152,7 @@
             },
             "RestSharp": {
               "target": "Package",
-              "version": "[112.0.0, )"
+              "version": "[106.15.0, )"
             },
             "Skender.Stock.Indicators": {
               "target": "Package",

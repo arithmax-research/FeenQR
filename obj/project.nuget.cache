@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "A2sdYDbNhaI=",
+  "dgSpecHash": "BHKCrIw3I5M=",
   "success": true,
   "projectFilePath": "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj",
   "expectedPackageFiles": [
@@ -84,7 +84,7 @@
     "/home/misango/.nuget/packages/polly.core/8.5.0/polly.core.8.5.0.nupkg.sha512",
     "/home/misango/.nuget/packages/qdrant.client/1.16.1/qdrant.client.1.16.1.nupkg.sha512",
     "/home/misango/.nuget/packages/reddit/1.5.2/reddit.1.5.2.nupkg.sha512",
-    "/home/misango/.nuget/packages/restsharp/112.0.0/restsharp.112.0.0.nupkg.sha512",
+    "/home/misango/.nuget/packages/restsharp/106.15.0/restsharp.106.15.0.nupkg.sha512",
     "/home/misango/.nuget/packages/skender.stock.indicators/3.0.0-preview.1/skender.stock.indicators.3.0.0-preview.1.nupkg.sha512",
     "/home/misango/.nuget/packages/spectre.console/0.49.1/spectre.console.0.49.1.nupkg.sha512",
     "/home/misango/.nuget/packages/system.clientmodel/1.1.0/system.clientmodel.1.1.0.nupkg.sha512",

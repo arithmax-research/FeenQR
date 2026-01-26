@@ -1597,15 +1597,15 @@
           }
         }
       },
-      "RestSharp/112.0.0": {
+      "RestSharp/106.15.0": {
         "type": "package",
         "compile": {
-          "lib/net8.0/RestSharp.dll": {
+          "lib/netstandard2.0/RestSharp.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net8.0/RestSharp.dll": {
+          "lib/netstandard2.0/RestSharp.dll": {
             "related": ".xml"
           }
         }
@@ -4287,27 +4287,18 @@
         "reddit.nuspec"
       ]
     },
-    "RestSharp/112.0.0": {
-      "sha512": "vezxJ6DLk0eDx+rmXwVHQvJ3elZCJfnLd8neRrkA+IvTs9falf2CEAolsjI1YKkkHTOvG13xWTnHK7gU0zgaaw==",
+    "RestSharp/106.15.0": {
+      "sha512": "HM7ohR6AscxedNenrrl93DSZG6hvdnA7O+NHyCl/6ZKTfn8psQ9rRmUpcb9eWr+140vmfxoVemql0bUoeGEW3A==",
       "type": "package",
-      "path": "restsharp/112.0.0",
+      "path": "restsharp/106.15.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
-        "README.md",
-        "lib/net471/RestSharp.dll",
-        "lib/net471/RestSharp.xml",
-        "lib/net48/RestSharp.dll",
-        "lib/net48/RestSharp.xml",
-        "lib/net6.0/RestSharp.dll",
-        "lib/net6.0/RestSharp.xml",
-        "lib/net7.0/RestSharp.dll",
-        "lib/net7.0/RestSharp.xml",
-        "lib/net8.0/RestSharp.dll",
-        "lib/net8.0/RestSharp.xml",
+        "lib/net452/RestSharp.dll",
+        "lib/net452/RestSharp.xml",
         "lib/netstandard2.0/RestSharp.dll",
         "lib/netstandard2.0/RestSharp.xml",
-        "restsharp.112.0.0.nupkg.sha512",
+        "restsharp.106.15.0.nupkg.sha512",
         "restsharp.nuspec",
         "restsharp.png"
       ]
@@ -5685,7 +5676,7 @@
       "PdfPig >= 0.1.11",
       "Qdrant.Client >= 1.16.1",
       "Reddit >= 1.5.2",
-      "RestSharp >= 112.0.0",
+      "RestSharp >= 106.15.0",
       "Skender.Stock.Indicators >= 3.0.0-preview.1",
       "Spectre.Console >= 0.49.1",
       "System.Text.Json >= 10.0.0",
@@ -5844,7 +5835,7 @@
           },
           "RestSharp": {
             "target": "Package",
-            "version": "[112.0.0, )"
+            "version": "[106.15.0, )"
           },
           "Skender.Stock.Indicators": {
             "target": "Package",

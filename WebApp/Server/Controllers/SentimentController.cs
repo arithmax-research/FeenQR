@@ -192,8 +192,8 @@ public class SentimentController : ControllerBase
 
             // Calculate aggregate sentiment
             var avgScore = analyses.Any() 
-                ? analyses.Average(a => ((dynamic)a).sentimentScore) 
-                : 0;
+                ? analyses.Average(a => (double)((dynamic)a).sentimentScore) 
+                : 0.0;
             
             var overallSentiment = avgScore > 0.2 ? "Bullish" 
                 : avgScore < -0.2 ? "Bearish" 
@@ -340,9 +340,7 @@ public class SentimentController : ControllerBase
         {
             _logger.LogInformation("Getting overall market pulse");
             
-            // Analyze major indices and asset classes
-            var analyses = new List<object>();
-            
+            // Analyze major indices and asset classes IN PARALLEL for speed
             var assetClasses = new[] 
             { 
                 ("stocks", "SPY"), 
@@ -350,25 +348,31 @@ public class SentimentController : ControllerBase
                 ("bonds", "TLT") 
             };
 
-            foreach (var (assetClass, symbol) in assetClasses)
+            // Run all analyses in parallel to reduce wait time
+            var analysisTasks = assetClasses.Select(async item =>
             {
+                var (assetClass, symbol) = item;
                 try
                 {
                     var report = await _marketSentimentService.AnalyzeMarketSentimentAsync(assetClass, symbol);
-                    analyses.Add(new
+                    return new
                     {
                         assetClass = assetClass,
                         symbol = symbol,
                         sentiment = report.OverallSentiment.Label,
                         score = report.OverallSentiment.Score,
                         confidence = report.OverallSentiment.Confidence
-                    });
+                    };
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, $"Failed to analyze {assetClass}");
+                    return null;
                 }
-            }
+            });
+
+            var results = await Task.WhenAll(analysisTasks);
+            var analyses = results.Where(r => r != null).ToList()!;
 
             // Calculate overall market sentiment
             var avgScore = analyses.Any() 

@@ -1899,19 +1899,20 @@
         }
     }
 
-    private async Task HandleVideoPdfUpload(InputFileChangeEventArgs e)
+    private Task HandleVideoPdfUpload(InputFileChangeEventArgs e)
     {
         var file = e.File;
         if (file == null || !file.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
         {
             videoError = "Please upload a PDF file";
-            return;
+            return Task.CompletedTask;
         }
 
         uploadedVideoPdf = file;
         uploadedPdfName = file.Name;
         videoUrl2 = ""; // Clear URL 2 if PDF is uploaded
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private async Task SendVideoQuestion()
