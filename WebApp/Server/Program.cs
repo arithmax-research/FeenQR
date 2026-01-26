@@ -165,6 +165,9 @@ builder.Services.AddSingleton<LinkedInScrapingService>();
 builder.Services.AddSingleton<PaperRAGService>();
 builder.Services.AddSingleton<MarketSentimentAgentService>();
 builder.Services.AddSingleton<RedditScrapingService>();
+builder.Services.AddSingleton<SatelliteImageryAnalysisService>();
+// Satellite imagery service enabled with Google OAuth and ESA Copernicus credentials
+builder.Services.AddSingleton<PortContainerAnalysisService>();
 
 // Register Portfolio Management services
 builder.Services.AddSingleton<PortfolioService>();

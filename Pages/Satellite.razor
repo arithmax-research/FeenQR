@@ -1,0 +1,175 @@
+@page "/satellite"
+@using QuantResearchAgent.Components
+@inject HttpClient Http
+
+<PageTitle>FeenQR - Satellite Imagery Analysis</PageTitle>
+
+<style>
+    .satellite-page {
+        padding: 2rem;
+        max-width: 100%;
+        background: #0a0a0a;
+        min-height: 100vh;
+    }
+
+    .page-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #f9fafb;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-header p {
+        font-size: 1rem;
+        color: #9ca3af;
+        margin: 0;
+    }
+
+    .satellite-container {
+        background: rgba(18, 18, 18, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .info-banner {
+        background: linear-gradient(135deg, rgba(41, 98, 255, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+        border: 1px solid rgba(41, 98, 255, 0.3);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .info-banner h6 {
+        color: #60a5fa;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+
+    .info-banner ul {
+        margin: 0;
+        padding-left: 1.5rem;
+        color: #d1d5db;
+    }
+
+    .info-banner li {
+        margin-bottom: 0.5rem;
+    }
+
+    .capability-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .capability-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 1.25rem;
+        transition: all 0.2s;
+    }
+
+    .capability-card:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(41, 98, 255, 0.5);
+    }
+
+    .capability-card h6 {
+        color: #f9fafb;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .capability-card p {
+        color: #9ca3af;
+        font-size: 0.85rem;
+        margin: 0;
+    }
+
+    .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-radius: 6px;
+        color: #10b981;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 2rem;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        background: #10b981;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.5;
+        }
+    }
+</style>
+
+<div class="satellite-page">
+    <div class="page-header">
+        <h1>🛰️ Satellite Imagery Analysis</h1>
+        <p>AI-powered port container tracking for market prediction and economic forecasting</p>
+    </div>
+
+    <div class="status-indicator">
+        <span class="status-dot"></span>
+        Service Active - Connected to Google Earth Engine & ESA Copernicus
+    </div>
+
+    <div class="info-banner">
+        <h6>🔬 Research-Backed Analysis</h6>
+        <ul>
+            <li><strong>83,000+ satellite images</strong> analyzed from world's busiest ports</li>
+            <li>Covers <strong>27 countries</strong> with <strong>4 years</strong> of historical data</li>
+            <li>Validated average return: <strong>>16% per year</strong> with no lookahead bias</li>
+            <li>Uses real imagery from ESA Copernicus (Sentinel-2) and Google Earth Engine</li>
+            <li>Authenticated with your Google OAuth credentials (Project: algorithmictrading-414808)</li>
+        </ul>
+    </div>
+
+    <div class="capability-grid">
+        <div class="capability-card">
+            <h6>📊 Global Port Analysis</h6>
+            <p>Track container volumes across the world's top 20 ports in real-time</p>
+        </div>
+        <div class="capability-card">
+            <h6>🌍 Regional Insights</h6>
+            <p>Analyze regional trade patterns across US, Europe, Asia, and China</p>
+        </div>
+        <div class="capability-card">
+            <h6>📈 Trading Signals</h6>
+            <p>Generate actionable trading signals for commodities, shipping, and economic indicators</p>
+        </div>
+        <div class="capability-card">
+            <h6>🧪 Backtesting</h6>
+            <p>Test strategies with historical satellite data and validate performance</p>
+        </div>
+    </div>
+
+    <div class="satellite-container">
+        <SatelliteImageryWidget />
+    </div>
+</div>

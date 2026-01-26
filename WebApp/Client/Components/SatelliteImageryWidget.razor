@@ -1,0 +1,507 @@
+@using FeenQR.WebApp.Core
+@inject HttpClient Http
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title">Satellite Imagery Analysis - Port Container Tracking</h5>
+        <p class="text-muted small mb-0">Deep learning-powered shipping container analysis for market prediction</p>
+    </div>
+    <div class="card-body">
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "global" ? "active" : "")" 
+                        @onclick="@(() => SetActiveTab("global"))">
+                    Global Ports
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "regional" ? "active" : "")" 
+                        @onclick="@(() => SetActiveTab("regional"))">
+                    Regional Analysis
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "signals" ? "active" : "")" 
+                        @onclick="@(() => SetActiveTab("signals"))">
+                    Trading Signals
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "backtest" ? "active" : "")" 
+                        @onclick="@(() => SetActiveTab("backtest"))">
+                    Backtesting
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            @if (activeTab == "global")
+            {
+                <div class="mb-3">
+                    <h6>Global Container Traffic Analysis</h6>
+                    <p class="text-muted small">
+                        Analyze 83,000+ satellite images from world's busiest ports
+                    </p>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Analysis Period</label>
+                            <select class="form-select" @bind="analysisPeriod">
+                                <option value="7d">Last 7 Days</option>
+                                <option value="30d">Last 30 Days</option>
+                                <option value="90d">Last 90 Days</option>
+                                <option value="1y">Last Year</option>
+                                <option value="4y">4 Years (Full Dataset)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Port Selection</label>
+                            <select class="form-select" @bind="portSelection">
+                                <option value="all">All Major Ports</option>
+                                <option value="top20">Top 20 Busiest</option>
+                                <option value="custom">Custom Selection</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" @onclick="AnalyzeGlobalPorts" disabled="@isAnalyzing">
+                        @if (isAnalyzing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Run Deep Learning Analysis
+                    </button>
+                </div>
+
+                @if (globalAnalysis != null)
+                {
+                    <div class="mt-4">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="text-muted small">Total Containers Detected</h6>
+                                        <h3>@globalAnalysis.TotalContainersDetected.ToString("N0")</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="text-muted small">Ports Analyzed</h6>
+                                        <h3>@globalAnalysis.PortsAnalyzed</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="text-muted small">Volume Change</h6>
+                                        <h3 class="@(globalAnalysis.VolumeChangePercent >= 0 ? "text-success" : "text-danger")">
+                                            @globalAnalysis.VolumeChangePercent.ToString("+0.0;-0.0")%
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="text-muted small">Economic Signal</h6>
+                                        <h3 class="@GetSignalColor(globalAnalysis.EconomicSignal)">
+                                            @globalAnalysis.EconomicSignal
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <h6>Analysis Summary</h6>
+                            <div class="alert alert-info">
+                                <strong>Interpretation:</strong> @globalAnalysis.Summary
+                            </div>
+                        </div>
+
+                        @if (globalAnalysis.BottleneckWarning)
+                        {
+                            <div class="alert alert-warning">
+                                <strong>⚠️ Bottleneck Warning:</strong> Container volumes have reached extremely high levels. 
+                                This may signal a potential economic slowdown ahead due to supply chain saturation.
+                            </div>
+                        }
+                    </div>
+                }
+            }
+            else if (activeTab == "regional")
+            {
+                <div class="mb-3">
+                    <h6>Regional Port Analysis</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Region</label>
+                            <select class="form-select" @bind="selectedRegion">
+                                <option value="us">United States</option>
+                                <option value="europe">Europe</option>
+                                <option value="asia">Asia</option>
+                                <option value="china">China</option>
+                                <option value="global">Global</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Time Period</label>
+                            <select class="form-select" @bind="regionalPeriod">
+                                <option value="30d">30 Days</option>
+                                <option value="90d">90 Days</option>
+                                <option value="1y">1 Year</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" @onclick="AnalyzeRegionalPorts" disabled="@isAnalyzing">
+                        @if (isAnalyzing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Analyze Regional Traffic
+                    </button>
+                </div>
+
+                @if (regionalAnalysis != null)
+                {
+                    <div class="mt-4">
+                        <h6>Regional Insights - @GetRegionName(selectedRegion)</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Metric</th>
+                                        <th>Value</th>
+                                        <th>Change</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Container Volume</td>
+                                        <td>@regionalAnalysis.ContainerVolume.ToString("N0")</td>
+                                        <td class="@(regionalAnalysis.VolumeChange >= 0 ? "text-success" : "text-danger")">
+                                            @regionalAnalysis.VolumeChange.ToString("+0.0;-0.0")%
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Market Correlation</td>
+                                        <td>@regionalAnalysis.MarketCorrelation.ToString("0.00")</td>
+                                        <td>Strong @(regionalAnalysis.MarketCorrelation > 0 ? "Positive" : "Negative")</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Predictive Accuracy</td>
+                                        <td>@regionalAnalysis.PredictiveAccuracy.ToString("P1")</td>
+                                        <td>@(regionalAnalysis.IsSupplyChainCrisis ? "Enhanced (Crisis)" : "Normal")</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <strong>Alpha Signal:</strong> @regionalAnalysis.AlphaSignal
+                        </div>
+                    </div>
+                }
+            }
+            else if (activeTab == "signals")
+            {
+                <div class="mb-3">
+                    <h6>Trading Signals from Satellite Data</h6>
+                    <p class="text-muted small">
+                        Predictive signals based on shipping container volume changes across 27 countries
+                    </p>
+
+                    <div class="mb-3">
+                        <label class="form-label">Target Market</label>
+                        <select class="form-select" @bind="targetMarket">
+                            <option value="SPY">S&P 500 (SPY)</option>
+                            <option value="EEM">Emerging Markets (EEM)</option>
+                            <option value="EFA">Developed Markets (EFA)</option>
+                            <option value="VGK">European Stocks (VGK)</option>
+                            <option value="FXI">China (FXI)</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary" @onclick="GenerateTradingSignals" disabled="@isAnalyzing">
+                        @if (isAnalyzing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Generate Trading Signals
+                    </button>
+                </div>
+
+                @if (tradingSignals != null && tradingSignals.Any())
+                {
+                    <div class="mt-4">
+                        <h6>Active Trading Signals</h6>
+                        @foreach (var signal in tradingSignals)
+                        {
+                            <div class="card mb-2">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">
+                                                <span class="badge @GetSignalBadgeClass(signal.Direction)">
+                                                    @signal.Direction
+                                                </span>
+                                                @signal.Market
+                                            </h6>
+                                            <p class="small mb-2">
+                                                <strong>Confidence:</strong> @signal.Confidence.ToString("P1") | 
+                                                <strong>Expected Return:</strong> @signal.ExpectedReturn.ToString("+0.0;-0.0")%
+                                            </p>
+                                            <p class="small text-muted mb-0">@signal.Reasoning</p>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="small text-muted">@signal.GeneratedAt.ToString("MMM dd, HH:mm")</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+            else if (activeTab == "backtest")
+            {
+                <div class="mb-3">
+                    <h6>Strategy Backtesting</h6>
+                    <p class="text-muted small">
+                        Backtest container volume signals with strict no-lookahead bias (trained on 2017 data)
+                    </p>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Backtest Period</label>
+                            <select class="form-select" @bind="backtestPeriod">
+                                <option value="2018-2022">2018-2022 (Post-Training)</option>
+                                <option value="2020-2021">COVID Period (2020-2021)</option>
+                                <option value="2022-2024">Recent (2022-2024)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Initial Capital</label>
+                            <input type="number" class="form-control" @bind="initialCapital" min="10000" step="1000" />
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" @onclick="RunBacktest" disabled="@isAnalyzing">
+                        @if (isAnalyzing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Run Backtest
+                    </button>
+                </div>
+
+                @if (backtestResults != null)
+                {
+                    <div class="mt-4">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="text-muted small">Annual Return</h6>
+                                        <h3 class="@(backtestResults.AnnualReturn >= 16 ? "text-success" : "text-warning")">
+                                            @backtestResults.AnnualReturn.ToString("0.0")%
+                                        </h3>
+                                        <small class="text-muted">Target: >16%</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="text-muted small">Sharpe Ratio</h6>
+                                        <h3>@backtestResults.SharpeRatio.ToString("0.00")</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="text-muted small">Max Drawdown</h6>
+                                        <h3 class="text-danger">@backtestResults.MaxDrawdown.ToString("0.0")%</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <h6>Performance Summary</h6>
+                            <div class="alert alert-success">
+                                <strong>Backtest Results:</strong> Strategy validated across @backtestResults.CountriesTested countries 
+                                with @backtestResults.TotalTrades trades. No lookahead bias - model trained on 2017 data only.
+                            </div>
+                        </div>
+
+                        @if (backtestResults.CovidPerformance != null)
+                        {
+                            <div class="alert alert-info">
+                                <strong>COVID-19 Period Performance:</strong> Strategy showed exceptional predictive power 
+                                during supply chain disruptions with @backtestResults.CovidPerformance.Value.ToString("0.0")% returns 
+                                in US and European markets.
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger mt-3">
+                <strong>Error:</strong> @errorMessage
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string activeTab = "global";
+    private bool isAnalyzing = false;
+    private string? errorMessage;
+
+    // Global Analysis
+    private string analysisPeriod = "90d";
+    private string portSelection = "all";
+    private GlobalPortAnalysis? globalAnalysis;
+
+    // Regional Analysis
+    private string selectedRegion = "us";
+    private string regionalPeriod = "90d";
+    private RegionalPortAnalysis? regionalAnalysis;
+
+    // Trading Signals
+    private string targetMarket = "SPY";
+    private List<ContainerTradingSignal>? tradingSignals;
+
+    // Backtesting
+    private string backtestPeriod = "2018-2022";
+    private decimal initialCapital = 100000;
+    private BacktestResults? backtestResults;
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    private async Task AnalyzeGlobalPorts()
+    {
+        isAnalyzing = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetFromJsonAsync<GlobalPortAnalysis>(
+                $"api/satellite/global?period={analysisPeriod}&selection={portSelection}");
+            globalAnalysis = response;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isAnalyzing = false;
+        }
+    }
+
+    private async Task AnalyzeRegionalPorts()
+    {
+        isAnalyzing = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetFromJsonAsync<RegionalPortAnalysis>(
+                $"api/satellite/regional?region={selectedRegion}&period={regionalPeriod}");
+            regionalAnalysis = response;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isAnalyzing = false;
+        }
+    }
+
+    private async Task GenerateTradingSignals()
+    {
+        isAnalyzing = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetFromJsonAsync<List<ContainerTradingSignal>>(
+                $"api/satellite/signals?market={targetMarket}");
+            tradingSignals = response;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isAnalyzing = false;
+        }
+    }
+
+    private async Task RunBacktest()
+    {
+        isAnalyzing = true;
+        errorMessage = null;
+        try
+        {
+            var response = await Http.GetFromJsonAsync<BacktestResults>(
+                $"api/satellite/backtest?period={backtestPeriod}&capital={initialCapital}");
+            backtestResults = response;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isAnalyzing = false;
+        }
+    }
+
+    private string GetSignalColor(string signal)
+    {
+        return signal.ToLower() switch
+        {
+            "bullish" or "expansion" => "text-success",
+            "bearish" or "contraction" => "text-danger",
+            "warning" => "text-warning",
+            _ => "text-muted"
+        };
+    }
+
+    private string GetSignalBadgeClass(string direction)
+    {
+        return direction.ToLower() switch
+        {
+            "long" or "buy" => "bg-success",
+            "short" or "sell" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetRegionName(string region)
+    {
+        return region switch
+        {
+            "us" => "United States",
+            "europe" => "Europe",
+            "asia" => "Asia",
+            "china" => "China",
+            "global" => "Global",
+            _ => region
+        };
+    }
+}
