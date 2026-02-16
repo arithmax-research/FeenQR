@@ -9,6 +9,9 @@
         <button class="nav-link active" id="academic-tab" data-bs-toggle="tab" data-bs-target="#academic" type="button" role="tab" aria-controls="academic" aria-selected="true">Academic Research</button>
     </li>
     <li class="nav-item" role="presentation">
+        <button class="nav-link" id="news-scraper-tab" data-bs-toggle="tab" data-bs-target="#news-scraper" type="button" role="tab" aria-controls="news-scraper" aria-selected="false">News Scraper & Analytics</button>
+    </li>
+    <li class="nav-item" role="presentation">
         <button class="nav-link" id="linkedin-tab" data-bs-toggle="tab" data-bs-target="#linkedin" type="button" role="tab" aria-controls="linkedin" aria-selected="false">LinkedIn Scraper</button>
     </li>
 </ul>
@@ -18,6 +21,13 @@
         <div class="row mt-3">
             <div class="col-md-12">
                 <ResearchWidget />
+            </div>
+        </div>
+    </div>
+    <div class="tab-pane fade" id="news-scraper" role="tabpanel" aria-labelledby="news-scraper-tab">
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <NewsScraperWidget />
             </div>
         </div>
     </div>

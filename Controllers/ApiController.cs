@@ -22,6 +22,7 @@ public class ApiController : ControllerBase
     private readonly PolygonService _polygonService;
     private readonly NewsSentimentAnalysisService _newsSentimentService;
     private readonly LinkedInScrapingService _linkedInScrapingService;
+    private readonly UrlNewsScrapingService _urlNewsScrapingService;
 
     public ApiController(
         Kernel kernel,
@@ -33,7 +34,8 @@ public class ApiController : ControllerBase
         AlpacaService alpacaService,
         PolygonService polygonService,
         NewsSentimentAnalysisService newsSentimentService,
-        LinkedInScrapingService linkedInScrapingService)
+        LinkedInScrapingService linkedInScrapingService,
+        UrlNewsScrapingService urlNewsScrapingService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -45,6 +47,7 @@ public class ApiController : ControllerBase
         _polygonService = polygonService;
         _newsSentimentService = newsSentimentService;
         _linkedInScrapingService = linkedInScrapingService;
+        _urlNewsScrapingService = urlNewsScrapingService;
     }
 
     [HttpGet("health")]
@@ -243,6 +246,58 @@ public class ApiController : ControllerBase
             _logger.LogError(ex, "Error fetching Alpaca positions");
             return StatusCode(500, new { error = ex.Message });
         }
+
+    // News URL Scraping with DeepSeek Analytics
+    [HttpPost("scrape-news-url")]
+    public async Task<IActionResult> ScrapeNewsUrl([FromBody] NewsUrlScrapeRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.Url))
+            {
+                return BadRequest(new { error = "URL is required" });
+            }
+
+            _logger.LogInformation($"Scraping news URL: {request.Url}");
+            
+            var result = await _urlNewsScrapingService.ScrapeAndAnalyzeUrlAsync(request.Url);
+            
+            if (!result.Success)
+            {
+                return BadRequest(new { error = result.Error });
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error scraping news URL");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    // Batch scrape multiple URLs
+    [HttpPost("scrape-news-urls-batch")]
+    public async Task<IActionResult> ScrapeNewsUrlsBatch([FromBody] NewsUrlsBatchRequest request)
+    {
+        try
+        {
+            if (request.Urls == null || !request.Urls.Any())
+            {
+                return BadRequest(new { error = "At least one URL is required" });
+            }
+
+            _logger.LogInformation($"Batch scraping {request.Urls.Count} URLs");
+            
+            var results = await _urlNewsScrapingService.ScrapeAndAnalyzeMultipleUrlsAsync(request.Urls);
+            
+            return Ok(new { results, total = results.Count, successful = results.Count(r => r.Success) });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error batch scraping news URLs");
+            return StatusCode(500, new { error = ex.Message });
+        }
     }
 }
 
@@ -254,5 +309,16 @@ public class ResearchRequest
 
 public class LinkedInScrapeRequest
 {
+    public string Url { get; set; } = "";
+}
+
+public class NewsUrlScrapeRequest
+{
+    public string Url { get; set; } = "";
+}
+
+public class NewsUrlsBatchRequest
+{
+    public List<string> Urls { get; set; } = new()
     public string Url { get; set; } = "";
 }

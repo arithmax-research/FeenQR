@@ -318,6 +318,7 @@
             <button class="tab-btn @(activeTab == "scraper" ? "active" : "")" @onclick='() => SwitchTab("scraper")'>Scraper</button>
             <button class="tab-btn @(activeTab == "research-synthesis" ? "active" : "")" @onclick='() => SwitchTab("research-synthesis")'>Synthesis</button>
             <button class="tab-btn @(activeTab == "research-reports" ? "active" : "")" @onclick='() => SwitchTab("research-reports")'>Reports</button>
+            <button class="tab-btn @(activeTab == "news-analytics" ? "active" : "")" @onclick='() => SwitchTab("news-analytics")'>News Analytics</button>
         </div>
     </div>
 
@@ -1122,6 +1123,203 @@
                 </div>
             </div>
         }
+
+        @if (activeTab == "news-analytics")
+        {
+            <div class="section-header">
+                News Scraper with AI Analytics
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                <h6 style="color: #10b981; margin-bottom: 1rem; font-weight: 600;">Scrape Financial News with DeepSeek AI</h6>
+                <p style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 0;">Extract and analyze news articles from CNBC, Bloomberg, Reuters, Yahoo Finance, and more. Get AI-powered insights including sentiment analysis, key topics, market impact, and actionable insights.</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <!-- Left Column: Input Forms -->
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; padding: 1.5rem; height: fit-content;">
+                        <h6 style="color: #ffffff; margin-bottom: 1rem; font-weight: 600;">Single Article Scraping</h6>
+                        
+                        <div style="margin-bottom: 1rem;">
+                            <label style="color: #9ca3af; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">News Article URL</label>
+                            <input type="text" class="chat-input" style="margin-bottom: 0.5rem; width: 100%; padding: 0.75rem; font-size: 0.95rem;" @bind="scraperUrl" placeholder="https://www.cnbc.com/2026/01/01/article-url.html" />
+                            <small style="color: #6b7280; font-size: 0.85rem;">Supported: CNBC, Bloomberg, Reuters, Yahoo Finance, MarketWatch, WSJ, FT</small>
+                        </div>
+
+                        <button class="chat-submit" style="width: 100%;" @onclick="ScrapeNewsUrl" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span>Scraping...</span>
+                            }
+                            else
+                            {
+                                <span>Scrape & Analyze</span>
+                            }
+                        </button>
+                    </div>
+
+                    <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; padding: 1.5rem; flex: 1; display: flex; flex-direction: column;">
+                        <h6 style="color: #ffffff; margin-bottom: 1rem; font-weight: 600;">Batch URL Scraping</h6>
+                        
+                        <div style="margin-bottom: 1rem; flex: 1; display: flex; flex-direction: column;">
+                            <label style="color: #9ca3af; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Multiple URLs (one per line)</label>
+                            <textarea class="chat-input" style="flex: 1; min-height: 300px; width: 100%; padding: 0.75rem; font-size: 0.95rem; resize: vertical; font-family: monospace;" @bind="batchNewsUrls" placeholder="https://www.cnbc.com/article1&#10;https://www.bloomberg.com/article2&#10;https://www.reuters.com/article3&#10;https://www.wsj.com/article4&#10;https://finance.yahoo.com/article5"></textarea>
+                        </div>
+
+                        <button class="chat-submit" style="width: 100%;" @onclick="ScrapeBatchNewsUrls" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span>Scraping All...</span>
+                            }
+                            else
+                            {
+                                <span>Scrape All & Analyze</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Column: AI Analytics Results -->
+                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1.5rem; max-height: 85vh; overflow-y: auto;">
+                    <h6 style="color: #10b981; margin-bottom: 1rem; font-weight: 600; position: sticky; top: 0; background: rgba(17, 24, 39, 0.95); padding: 0.75rem 0; z-index: 10;">DeepSeek AI Analytics</h6>
+                    
+                    @if (isLoading)
+                    {
+                        <div class="progress-container" style="margin-top: 5rem;">
+                            <div class="spinner"></div>
+                            <div class="progress-text">Scraping and analyzing with DeepSeek AI...</div>
+                        </div>
+                    }
+                    else if (newsArticles != null && newsArticles.Any())
+                    {
+                        <div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(16, 185, 129, 0.15); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                            <strong style="color: #10b981;">Total Articles Analyzed: @newsArticles.Count</strong>
+                        </div>
+
+                        @foreach (var article in newsArticles)
+                        {
+                            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid @(article.Success ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.3)"); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                                @if (article.Success && article.Article != null)
+                                {
+                                    <div style="margin-bottom: 1rem;">
+                                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                                            <span style="background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">@article.Article.Source</span>
+                                            <span style="color: #6b7280; font-size: 0.85rem;">@article.Article.PublishedDate</span>
+                                        </div>
+                                        <h5 style="color: #ffffff; font-weight: 600; margin-bottom: 0.5rem; font-size: 1.05rem; line-height: 1.4;">@article.Article.Title</h5>
+                                        @if (!string.IsNullOrEmpty(article.Article.Author))
+                                        {
+                                            <p style="color: #9ca3af; font-size: 0.85rem; margin-bottom: 0.75rem;">By @article.Article.Author</p>
+                                        }
+                                        <a href="@article.Article.Url" target="_blank" style="color: #60a5fa; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                            View Original Article →
+                                        </a>
+                                    </div>
+
+                                    @if (article.Analytics != null)
+                                    {
+                                        <div style="background: rgba(16, 185, 129, 0.05); border-left: 3px solid #10b981; padding: 1.25rem; margin-top: 1rem; border-radius: 4px;">
+                                            
+                                            @if (!string.IsNullOrEmpty(article.Analytics.Summary))
+                                            {
+                                                <div style="background: rgba(96, 165, 250, 0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                                                    <strong style="color: #60a5fa; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Summary</strong>
+                                                    <p style="color: #d1d5db; font-size: 0.9rem; margin: 0; line-height: 1.6;">@article.Analytics.Summary</p>
+                                                </div>
+                                            }
+
+                                            @if (article.Analytics.KeyTopics != null && article.Analytics.KeyTopics.Any())
+                                            {
+                                                <div style="margin-bottom: 1rem;">
+                                                    <strong style="color: #d1d5db; font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Key Topics</strong>
+                                                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                                        @foreach (var topic in article.Analytics.KeyTopics)
+                                                        {
+                                                            <span style="background: rgba(96, 165, 250, 0.2); color: #60a5fa; padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500;">@topic</span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+
+                                            @if (!string.IsNullOrEmpty(article.Analytics.Sentiment))
+                                            {
+                                                <div style="margin-bottom: 1rem;">
+                                                    <strong style="color: #d1d5db; font-size: 0.85rem;">Sentiment:</strong>
+                                                    <span style="color: @GetSentimentColor(article.Analytics.Sentiment); margin-left: 0.5rem; font-size: 0.85rem; font-weight: 600;">@article.Analytics.Sentiment</span>
+                                                </div>
+                                            }
+
+                                            @if (!string.IsNullOrEmpty(article.Analytics.MarketImpact))
+                                            {
+                                                <div style="margin-bottom: 1rem;">
+                                                    <strong style="color: #d1d5db; font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Market Impact</strong>
+                                                    <p style="color: #9ca3af; font-size: 0.85rem; margin: 0; line-height: 1.5;">@article.Analytics.MarketImpact</p>
+                                                </div>
+                                            }
+
+                                            @if (article.Analytics.ActionableInsights != null && article.Analytics.ActionableInsights.Any())
+                                            {
+                                                <div style="margin-bottom: 1rem;">
+                                                    <strong style="color: #d1d5db; font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Actionable Insights</strong>
+                                                    <ul style="margin: 0; padding-left: 1.25rem; color: #9ca3af; font-size: 0.85rem;">
+                                                        @foreach (var insight in article.Analytics.ActionableInsights.Take(5))
+                                                        {
+                                                            <li style="margin-bottom: 0.5rem; line-height: 1.5;">@insight</li>
+                                                        }
+                                                    </ul>
+                                                </div>
+                                            }
+
+                                            @if (article.Analytics.KeyEntities != null && article.Analytics.KeyEntities.Any())
+                                            {
+                                                <div style="margin-bottom: 1rem;">
+                                                    <strong style="color: #d1d5db; font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Key Entities</strong>
+                                                    <div style="color: #9ca3af; font-size: 0.85rem;">
+                                                        @string.Join(", ", article.Analytics.KeyEntities.Take(5))
+                                                    </div>
+                                                </div>
+                                            }
+
+                                            @if (article.Analytics.RelatedSectors != null && article.Analytics.RelatedSectors.Any())
+                                            {
+                                                <div>
+                                                    <strong style="color: #d1d5db; font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Related Sectors</strong>
+                                                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                                        @foreach (var sector in article.Analytics.RelatedSectors)
+                                                        {
+                                                            <span style="background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500;">@sector</span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div style="color: #ef4444; font-size: 0.9rem;">
+                                        <strong>Error:</strong> @article.Error
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div style="text-align: center; padding: 4rem 2rem; color: #6b7280;">
+                            <p style="font-size: 1rem; color: #9ca3af; margin-bottom: 0.5rem;">No articles analyzed yet</p>
+                            <p style="font-size: 0.9rem; color: #6b7280;">Enter a news article URL on the left to get started</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (!isLoading && !string.IsNullOrEmpty(lastResult) && (newsArticles == null || !newsArticles.Any()))
+            {
+                <AIOutputRenderer Content="@lastResult" />
+            }
+        }
     </div>
 </div>
 
@@ -1137,12 +1335,14 @@
     private string activeScraperType = "";
     private string scraperUrl = "";
     private string scraperQuery = "";
+    private string batchNewsUrls = "";
     private bool isLoading = false;
     private string? lastResult = null;
     private IBrowserFile? selectedPdf;
     private string selectedPdfName = "";
     private List<PaperResult> foundPapers = new();
     private List<ScrapedPost> scrapedPosts = new();
+    private List<NewsScraperResult> newsArticles = new();
 
     // RAG Chat fields
     private string paperUrl = "";
@@ -1215,13 +1415,160 @@
         public string DownloadLink { get; set; } = "";
     }
 
+    // News Scraper Models
+    public class NewsScraperResult
+    {
+        public bool Success { get; set; }
+        public string Error { get; set; } = string.Empty;
+        public ScrapedNewsArticle? Article { get; set; }
+        public NewsAnalytics? Analytics { get; set; }
+    }
+
+    public class ScrapedNewsArticle
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+        public string Source { get; set; } = string.Empty;
+        public string Author { get; set; } = string.Empty;
+        public string PublishedDate { get; set; } = string.Empty;
+        public string ImageUrl { get; set; } = string.Empty;
+    }
+
+    public class NewsAnalytics
+    {
+        public string Summary { get; set; } = string.Empty;
+        public List<string> KeyTopics { get; set; } = new();
+        public string Sentiment { get; set; } = string.Empty;
+        public string MarketImpact { get; set; } = string.Empty;
+        public List<string> KeyEntities { get; set; } = new();
+        public List<string> ActionableInsights { get; set; } = new();
+        public List<string> RelatedSectors { get; set; } = new();
+        public string FullAnalysis { get; set; } = string.Empty;
+        public DateTime AnalyzedAt { get; set; }
+    }
+
+    public class NewsBatchResponse
+    {
+        public List<NewsScraperResult> Results { get; set; } = new();
+        public int Total { get; set; }
+        public int Successful { get; set; }
+    }
+
+    private string GetSentimentColor(string sentiment)
+    {
+        if (sentiment.Contains("positive", StringComparison.OrdinalIgnoreCase))
+            return "#10b981";
+        if (sentiment.Contains("negative", StringComparison.OrdinalIgnoreCase))
+            return "#ef4444";
+        return "#9ca3af";
+    }
+
     private void SwitchTab(string tab)
     {
         activeTab = tab;
         lastResult = null;
         scrapedPosts.Clear();
+        newsArticles.Clear();
         activeScraperType = "";
+        scraperUrl = "";
+        batchNewsUrls = "";
         StateHasChanged();
+    }
+
+    private async Task ScrapeNewsUrl()
+    {
+        if (string.IsNullOrWhiteSpace(scraperUrl))
+        {
+            lastResult = "Please enter a valid news article URL.";
+            return;
+        }
+
+        try
+        {
+            isLoading = true;
+            newsArticles.Clear();
+            lastResult = null;
+            StateHasChanged();
+
+            var response = await Http.PostAsJsonAsync("api/scrape-news-url", new { Url = scraperUrl });
+            response.EnsureSuccessStatusCode();
+            
+            var article = await response.Content.ReadFromJsonAsync<NewsScraperResult>();
+            if (article != null)
+            {
+                newsArticles = new List<NewsScraperResult> { article };
+                if (!article.Success)
+                {
+                    lastResult = $"Error: {article.Error}";
+                }
+            }
+            else
+            {
+                lastResult = "Failed to scrape article. Please check URL is a valid news article.";
+            }
+        }
+        catch (Exception ex)
+        {
+            lastResult = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ScrapeBatchNewsUrls()
+    {
+        if (string.IsNullOrWhiteSpace(batchNewsUrls))
+        {
+            lastResult = "Please enter at least one news article URL.";
+            return;
+        }
+
+        try
+        {
+            isLoading = true;
+            newsArticles.Clear();
+            lastResult = null;
+            StateHasChanged();
+
+            var urls = batchNewsUrls.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                                    .Select(u => u.Trim())
+                                    .Where(u => !string.IsNullOrWhiteSpace(u))
+                                    .ToList();
+            
+            if (!urls.Any())
+            {
+                lastResult = "No valid URLs found. Please enter at least one URL.";
+                isLoading = false;
+                StateHasChanged();
+                return;
+            }
+
+            var response = await Http.PostAsJsonAsync("api/scrape-news-urls-batch", new { Urls = urls });
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<NewsBatchResponse>();
+            if (result?.Results != null && result.Results.Any())
+            {
+                newsArticles = result.Results;
+            }
+            else
+            {
+                lastResult = "No articles scraped. Please check URLs are valid news article links.";
+            }
+        }
+        catch (Exception ex)
+        {
+            lastResult = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
     }
 
     private void ShowScraperDetails(string scraperType)
@@ -1229,7 +1576,9 @@
         activeScraperType = scraperType;
         scraperUrl = GetDefaultUrl(scraperType);
         scraperQuery = "";
+        batchNewsUrls = "";
         scrapedPosts.Clear();
+        newsArticles.Clear();
         lastResult = null;
         StateHasChanged();
     }
@@ -1244,6 +1593,7 @@
             "ssrn" => "https://papers.ssrn.com/sol3/JELJOUR_Results.cfm?form_name=journalBrowse&journal_id=1079991",
             "github" => "https://github.com/topics/quantitative-finance",
             "medium" => "https://medium.com/tag/quantitative-finance",
+            "news" => "https://www.cnbc.com/",
             _ => ""
         };
     }
@@ -1301,7 +1651,7 @@
             lastResult = null;
             StateHasChanged();
 
-            // Use existing LinkedIn endpoint for LinkedIn, generic for others
+            // Use existing LinkedIn endpoint for LinkedIn scraper
             if (activeScraperType == "linkedin")
             {
                 var response = await Http.PostAsJsonAsync("api/research/linkedin-scrape", new { Url = scraperUrl });

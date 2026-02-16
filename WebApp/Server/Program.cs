@@ -132,6 +132,7 @@ builder.Services.AddSingleton<TechnicalAnalysisService>();
 builder.Services.AddSingleton<YFinanceNewsService>();
 builder.Services.AddSingleton<FinvizNewsService>();
 builder.Services.AddSingleton<NewsScrapingService>();
+builder.Services.AddSingleton<UrlNewsScrapingService>();
 builder.Services.AddSingleton<SocialMediaScrapingService>();
 builder.Services.AddSingleton<NewsSentimentAnalysisService>();
 builder.Services.AddSingleton<WebDataExtractionService>();
