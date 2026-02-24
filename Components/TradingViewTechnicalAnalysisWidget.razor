@@ -1,0 +1,201 @@
+@inject IJSRuntime JS
+@implements IDisposable
+
+<style>
+    .technical-analysis-container {
+        background: rgba(18, 18, 18, 0.95);
+        border-radius: 8px;
+        padding: 20px;
+        min-height: 600px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .widget-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .widget-title {
+        color: #fff;
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .symbol-selector {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .symbol-selector label {
+        color: #fff;
+        margin: 0;
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .symbol-selector input {
+        padding: 6px 10px;
+        background: #1a1a1a;
+        color: #fff;
+        border: 1px solid #333;
+        border-radius: 4px;
+        font-size: 14px;
+        min-width: 150px;
+    }
+
+    .symbol-selector input:focus {
+        outline: none;
+        border-color: #2962ff;
+    }
+
+    .interval-selector {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .interval-selector label {
+        color: #fff;
+        margin: 0;
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .interval-selector select {
+        padding: 6px 10px;
+        background: #1a1a1a;
+        color: #fff;
+        border: 1px solid #333;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .interval-selector select:focus {
+        outline: none;
+        border-color: #2962ff;
+    }
+
+    .tradingview-widget-container {
+        flex: 1;
+        position: relative;
+        min-height: 0;
+        background: #0f0f0f;
+    }
+
+    .tradingview-widget-container__widget {
+        height: 100%;
+        background: #0f0f0f;
+    }
+
+    .controls-row {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+</style>
+
+<div class="technical-analysis-container">
+    <div class="widget-header">
+        <h3 class="widget-title">Technical Analysis</h3>
+        <div class="controls-row">
+            <div class="symbol-selector">
+                <label for="symbolInput">Symbol:</label>
+                <input type="text" id="symbolInput" @bind="symbol" @bind:event="oninput" @onkeyup="OnSymbolKeyUp" placeholder="e.g., BINANCE:BTCUSDT" />
+            </div>
+            <div class="interval-selector">
+                <label for="intervalSelect">Interval:</label>
+                <select id="intervalSelect" @onchange="OnIntervalChanged">
+                    <option value="1m">1 Minute</option>
+                    <option value="5m">5 Minutes</option>
+                    <option value="15m">15 Minutes</option>
+                    <option value="1h">1 Hour</option>
+                    <option value="4h">4 Hours</option>
+                    <option value="1D" selected>1 Day</option>
+                    <option value="1W">1 Week</option>
+                    <option value="1M">1 Month</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="tradingview-widget-container" id="technicalAnalysisContainer">
+        <div class="tradingview-widget-container__widget" id="technicalAnalysisWidget"></div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string InitialSymbol { get; set; } = "BINANCE:BTCUSDT";
+    
+    [Parameter]
+    public string InitialInterval { get; set; } = "1D";
+
+    private string symbol = "BINANCE:BTCUSDT";
+    private string interval = "1D";
+    private bool initialized = false;
+    private System.Timers.Timer? debounceTimer;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !initialized)
+        {
+            symbol = InitialSymbol;
+            interval = InitialInterval;
+            initialized = true;
+            await UpdateWidget();
+        }
+    }
+
+    private void OnSymbolKeyUp(KeyboardEventArgs e)
+    {
+        // Debounce the symbol input
+        if (debounceTimer != null)
+        {
+            debounceTimer.Stop();
+            debounceTimer.Dispose();
+        }
+
+        debounceTimer = new System.Timers.Timer(500); // 500ms debounce
+        debounceTimer.Elapsed += async (sender, args) =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await UpdateWidget();
+            });
+            debounceTimer?.Dispose();
+            debounceTimer = null;
+        };
+        debounceTimer.AutoReset = false;
+        debounceTimer.Start();
+    }
+
+    private async Task OnIntervalChanged(ChangeEventArgs e)
+    {
+        interval = e.Value?.ToString() ?? "1D";
+        await UpdateWidget();
+    }
+
+    private async Task UpdateWidget()
+    {
+        if (!string.IsNullOrWhiteSpace(symbol))
+        {
+            await JS.InvokeVoidAsync("createTechnicalAnalysisWidget", symbol, interval);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (debounceTimer != null)
+        {
+            debounceTimer.Stop();
+            debounceTimer.Dispose();
+        }
+    }
+}

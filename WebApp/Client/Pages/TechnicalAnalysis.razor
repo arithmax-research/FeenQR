@@ -414,6 +414,11 @@
                         </div>
                     }
                 </div>
+
+                <!-- TradingView Technical Analysis Widget -->
+                <div style="margin-top: 2rem;">
+                    <TradingViewTechnicalAnalysisWidget InitialSymbol="@GetTradingViewSymbol(symbol)" InitialInterval="1D" Title="@($"{symbol} - TradingView Technical Analysis")" />
+                </div>
             }
         }
 
@@ -767,30 +772,52 @@
 
     private async Task AnalyzeSymbol()
     {
-        if (string.IsNullOrWhiteSpace(symbol)) return;
+        if (string.IsNullOrWhiteSpace(symbol))
+        {
+            Console.WriteLine("Symbol is empty, cannot analyze");
+            return;
+        }
 
         isLoading = true;
+        analysisResult = null;
+        Console.WriteLine($"Starting analysis for {symbol} with {lookbackDays} days lookback");
+        
         try
         {
             var cleanSymbol = SanitizeSymbol(symbol);
+            Console.WriteLine($"Clean symbol: {cleanSymbol}");
+            
             var response = await Http.PostAsJsonAsync("/api/technicalanalysis/analyze", new
             {
                 Symbol = cleanSymbol,
                 LookbackDays = lookbackDays
             });
 
+            Console.WriteLine($"Response status: {response.StatusCode}");
+
             if (response.IsSuccessStatusCode)
             {
                 analysisResult = await response.Content.ReadFromJsonAsync<TechnicalAnalysisResponse>();
+                Console.WriteLine($"Analysis result received for {analysisResult?.Symbol}");
+                Console.WriteLine($"Result has reasoning: {!string.IsNullOrEmpty(analysisResult?.Reasoning)}");
+                Console.WriteLine($"Reasoning preview: {analysisResult?.Reasoning?.Substring(0, Math.Min(100, analysisResult?.Reasoning?.Length ?? 0))}");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error response: {error}");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
         }
         finally
         {
             isLoading = false;
+            Console.WriteLine($"Analysis complete. Result is null: {analysisResult == null}");
+            StateHasChanged(); // Force UI update
         }
     }
 
@@ -1004,6 +1031,33 @@
     private string FormatIndicatorName(string name)
     {
         return name.Replace("_", " ");
+    }
+
+    private string GetTradingViewSymbol(string symbol)
+    {
+        // If symbol already has exchange prefix, return as is
+        if (symbol.Contains(':'))
+        {
+            return symbol;
+        }
+
+        // Convert common symbols to TradingView format
+        var upperSymbol = symbol.ToUpper();
+        
+        // Crypto patterns
+        if (upperSymbol.EndsWith("USD") || upperSymbol.EndsWith("USDT") || upperSymbol.EndsWith("BTC") || upperSymbol.EndsWith("ETH"))
+        {
+            return $"BINANCE:{upperSymbol}";
+        }
+        
+        // Common crypto symbols without suffix
+        if (upperSymbol == "BTC" || upperSymbol == "ETH" || upperSymbol == "BNB" || upperSymbol == "ADA" || upperSymbol == "SOL")
+        {
+            return $"BINANCE:{upperSymbol}USDT";
+        }
+
+        // Default to NASDAQ for US stocks
+        return $"NASDAQ:{upperSymbol}";
     }
 
     // Response models (must match controller)

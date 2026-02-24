@@ -853,359 +853,242 @@
             // Load web components
             loadTradingViewWebComponents();
             
-            // Wait for TradingView to be ready
-            function waitForTradingView(callback) {
-                if (typeof TradingView !== 'undefined') {
-                    callback();
-                } else {
-                    setTimeout(() => waitForTradingView(callback), 100);
-                }
-            }
-
-            waitForTradingView(() => {
+            // Initialize widgets with a small delay to ensure DOM is ready
+            setTimeout(() => {
                 try {
+                    console.log('Creating widgets...');
+                    
                     // Chart 1: Market Summary (Web Component)
-                    createMarketSummaryWidget(exchange);
+                    _homeMarketSummary(exchange);
 
                     // Chart 2: Market Overview
-                    createMarketOverviewWidget();
+                    _homeMarketOverview();
 
                     // Chart 3: Economic Map (Web Component)
-                    createEconomicMapWidget();
+                    _homeEconomicMap();
 
                     // Chart 4: Economic Calendar
-                    createEconomicCalendarWidget();
+                    _homeEconomicCalendar();
 
                     // Chart 5: News Timeline
-                    createNewsTimelineWidget();
+                    _homeNewsTimeline();
 
                     // Chart 6: Economic Events
-                    createEconomicEventsWidget();
+                    _homeEconomicEvents();
 
                     // Chart 7: Forex Screener
-                    createForexScreenerWidget();
+                    _homeForexScreener();
 
                     // Chart 8: Crypto Markets
-                    createCryptoMarketsWidget();
+                    _homeCryptoMarkets();
 
                     console.log('All TradingView widgets initialized successfully');
                 } catch (error) {
                     console.error('Error initializing widgets:', error);
                 }
-            });
+            }, 500);
         };
 
         // Update Market Summary when exchange changes
         window.updateMarketSummary = function(exchange) {
-            createMarketSummaryWidget(exchange);
+            _homeMarketSummary(exchange);
         };
 
-        // Chart 1: Market Summary Widget
-        function createMarketSummaryWidget(exchange) {
-            const container = document.getElementById('marketSummaryWidget');
-            if (!container) return;
+        // Shared helper for home page widgets — direct script injection, proven pattern
+        function _homeInjectWidget(containerId, scriptSrc, config) {
+            var container = document.getElementById(containerId);
+            if (!container) { console.error('Home widget container not found:', containerId); return; }
+            container.innerHTML = '';
+            var widgetDiv = document.createElement('div');
+            widgetDiv.className = 'tradingview-widget-container__widget';
+            widgetDiv.style.cssText = 'width:100%;height:100%;';
+            container.appendChild(widgetDiv);
+            var script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = scriptSrc;
+            script.async = true;
+            script.innerHTML = JSON.stringify(config);
+            container.appendChild(script);
+        }
 
-            container.innerHTML = `
-                <script type="module" src="https://widgets.tradingview-widget.com/w/en/tv-market-summary.js"><\/script>
-                <tv-market-summary exchange="${exchange}" show-time-range direction="horizontal" theme="dark"></tv-market-summary>
-            `;
+        // Chart 1: Market Summary Widget (_homeMarketSummary — unique name, no window collision)
+        function _homeMarketSummary(exchange) {
+            var container = document.getElementById('marketSummaryWidget');
+            if (!container) return;
+            container.innerHTML = '<script type="module" src="https://widgets.tradingview-widget.com/w/en/tv-market-summary.js"><\/script>'
+                + '<tv-market-summary exchange="' + exchange + '" show-time-range direction="horizontal" theme="dark"></tv-market-summary>';
         }
 
         // Chart 2: Market Overview Widget
-        function createMarketOverviewWidget() {
-            const widgetDiv = document.getElementById('marketOverviewWidget');
-            if (!widgetDiv) return;
-
-            const script = document.createElement('script');
-            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js';
-            script.async = true;
-            script.innerHTML = JSON.stringify({
-                "colorTheme": "dark",
-                "dateRange": "12M",
-                "locale": "en",
-                "largeChartUrl": "",
-                "isTransparent": true,
-                "showFloatingTooltip": false,
-                "plotLineColorGrowing": "rgba(41, 98, 255, 1)",
-                "plotLineColorFalling": "rgba(41, 98, 255, 1)",
-                "gridLineColor": "rgba(42, 46, 57, 0)",
-                "scaleFontColor": "rgba(120, 123, 134, 1)",
-                "belowLineFillColorGrowing": "rgba(41, 98, 255, 0.12)",
-                "belowLineFillColorFalling": "rgba(41, 98, 255, 0.12)",
-                "belowLineFillColorGrowingBottom": "rgba(41, 98, 255, 0)",
-                "belowLineFillColorFallingBottom": "rgba(41, 98, 255, 0)",
-                "symbolActiveColor": "rgba(41, 98, 255, 0.12)",
-                "tabs": [
-                    {
-                        "title": "Indices",
-                        "symbols": [
-                            {
-                                "s": "FOREXCOM:SPXUSD",
-                                "d": "S&P 500 Index"
-                            },
-                            {
-                                "s": "FOREXCOM:NSXUSD",
-                                "d": "US 100 Cash CFD"
-                            },
-                            {
-                                "s": "FOREXCOM:DJI",
-                                "d": "Dow Jones Industrial Average Index"
-                            },
-                            {
-                                "s": "INDEX:NKY",
-                                "d": "Japan 225"
-                            },
-                            {
-                                "s": "INDEX:DEU40",
-                                "d": "DAX Index"
-                            },
-                            {
-                                "s": "FOREXCOM:UKXGBP",
-                                "d": "FTSE 100 Index"
-                            }
-                        ],
-                        "originalTitle": "Indices"
-                    },
-                    {
-                        "title": "Futures",
-                        "symbols": [
-                            {
-                                "s": "BMFBOVESPA:ISP1!",
-                                "d": "S&P 500"
-                            },
-                            {
-                                "s": "BMFBOVESPA:EUR1!",
-                                "d": "Euro"
-                            },
-                            {
-                                "s": "CMCMARKETS:GOLD",
-                                "d": "Gold"
-                            },
-                            {
-                                "s": "PYTH:WTI3!",
-                                "d": "WTI Crude Oil"
-                            },
-                            {
-                                "s": "BMFBOVESPA:CCM1!",
-                                "d": "Corn"
-                            }
-                        ],
-                        "originalTitle": "Futures"
-                    },
-                    {
-                        "title": "Bonds",
-                        "symbols": [
-                            {
-                                "s": "EUREX:FGBL1!",
-                                "d": "Euro Bund"
-                            },
-                            {
-                                "s": "EUREX:FBTP1!",
-                                "d": "Euro BTP"
-                            },
-                            {
-                                "s": "EUREX:FGBM1!",
-                                "d": "Euro BOBL"
-                            }
-                        ],
-                        "originalTitle": "Bonds"
-                    },
-                    {
-                        "title": "Forex",
-                        "symbols": [
-                            {
-                                "s": "FX:EURUSD",
-                                "d": "EUR to USD"
-                            },
-                            {
-                                "s": "FX:GBPUSD",
-                                "d": "GBP to USD"
-                            },
-                            {
-                                "s": "FX:USDJPY",
-                                "d": "USD to JPY"
-                            },
-                            {
-                                "s": "FX:USDCHF",
-                                "d": "USD to CHF"
-                            },
-                            {
-                                "s": "FX:AUDUSD",
-                                "d": "AUD to USD"
-                            },
-                            {
-                                "s": "FX:USDCAD",
-                                "d": "USD to CAD"
-                            }
-                        ],
-                        "originalTitle": "Forex"
-                    }
-                ],
-                "support_host": "https://www.tradingview.com",
-                "backgroundColor": "rgba(0, 0, 0, 0)",
-                "width": "100%",
-                "height": "550",
-                "showSymbolLogo": true,
-                "showChart": true
-            });
-            widgetDiv.appendChild(script);
+        function _homeMarketOverview() {
+            _homeInjectWidget('marketOverview',
+                'https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js',
+                {
+                    "colorTheme": "dark",
+                    "dateRange": "12M",
+                    "locale": "en",
+                    "largeChartUrl": "",
+                    "isTransparent": true,
+                    "showFloatingTooltip": false,
+                    "plotLineColorGrowing": "rgba(41, 98, 255, 1)",
+                    "plotLineColorFalling": "rgba(41, 98, 255, 1)",
+                    "gridLineColor": "rgba(42, 46, 57, 0)",
+                    "scaleFontColor": "rgba(120, 123, 134, 1)",
+                    "belowLineFillColorGrowing": "rgba(41, 98, 255, 0.12)",
+                    "belowLineFillColorFalling": "rgba(41, 98, 255, 0.12)",
+                    "belowLineFillColorGrowingBottom": "rgba(41, 98, 255, 0)",
+                    "belowLineFillColorFallingBottom": "rgba(41, 98, 255, 0)",
+                    "symbolActiveColor": "rgba(41, 98, 255, 0.12)",
+                    "tabs": [
+                        {
+                            "title": "Indices",
+                            "symbols": [
+                                {"s": "FOREXCOM:SPXUSD", "d": "S&P 500 Index"},
+                                {"s": "FOREXCOM:NSXUSD", "d": "US 100 Cash CFD"},
+                                {"s": "FOREXCOM:DJI", "d": "Dow Jones Industrial Average Index"},
+                                {"s": "INDEX:NKY", "d": "Japan 225"},
+                                {"s": "INDEX:DEU40", "d": "DAX Index"},
+                                {"s": "FOREXCOM:UKXGBP", "d": "FTSE 100 Index"}
+                            ],
+                            "originalTitle": "Indices"
+                        },
+                        {
+                            "title": "Futures",
+                            "symbols": [
+                                {"s": "BMFBOVESPA:ISP1!", "d": "S&P 500"},
+                                {"s": "BMFBOVESPA:EUR1!", "d": "Euro"},
+                                {"s": "CMCMARKETS:GOLD", "d": "Gold"},
+                                {"s": "PYTH:WTI3!", "d": "WTI Crude Oil"},
+                                {"s": "BMFBOVESPA:CCM1!", "d": "Corn"}
+                            ],
+                            "originalTitle": "Futures"
+                        },
+                        {
+                            "title": "Bonds",
+                            "symbols": [
+                                {"s": "EUREX:FGBL1!", "d": "Euro Bund"},
+                                {"s": "EUREX:FBTP1!", "d": "Euro BTP"},
+                                {"s": "EUREX:FGBM1!", "d": "Euro BOBL"}
+                            ],
+                            "originalTitle": "Bonds"
+                        },
+                        {
+                            "title": "Forex",
+                            "symbols": [
+                                {"s": "FX:EURUSD", "d": "EUR to USD"},
+                                {"s": "FX:GBPUSD", "d": "GBP to USD"},
+                                {"s": "FX:USDJPY", "d": "USD to JPY"},
+                                {"s": "FX:USDCHF", "d": "USD to CHF"},
+                                {"s": "FX:AUDUSD", "d": "AUD to USD"},
+                                {"s": "FX:USDCAD", "d": "USD to CAD"}
+                            ],
+                            "originalTitle": "Forex"
+                        }
+                    ],
+                    "support_host": "https://www.tradingview.com",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "width": "100%",
+                    "height": "550",
+                    "showSymbolLogo": true,
+                    "showChart": true
+                });
         }
 
         // Chart 3: Economic Map Widget
-        function createEconomicMapWidget() {
-            const container = document.getElementById('economicMapWidget');
+        function _homeEconomicMap() {
+            var container = document.getElementById('economicMapWidget');
             if (!container) return;
-
-            container.innerHTML = `
-                <script type="module" src="https://widgets.tradingview-widget.com/w/en/tv-economic-map.js"><\/script>
-                <tv-economic-map theme="dark"></tv-economic-map>
-            `;
+            container.innerHTML = '<script type="module" src="https://widgets.tradingview-widget.com/w/en/tv-economic-map.js"><\/script>'
+                + '<tv-economic-map theme="dark"></tv-economic-map>';
         }
 
         // Chart 4: Economic Calendar Widget
-        function createEconomicCalendarWidget() {
-            const widgetDiv = document.getElementById('economicCalendarWidget');
-            if (!widgetDiv) {
-                console.error('Economic Calendar widget container not found');
-                return;
-            }
-
-            // Clear existing content
-            widgetDiv.innerHTML = '';
-            
-            console.log('Creating Economic Calendar widget...');
-            console.log('Widget container:', widgetDiv);
-            console.log('Container dimensions:', widgetDiv.clientWidth, 'x', widgetDiv.clientHeight);
-
-            // Create the widget container wrapper
-            const widgetWrapper = document.createElement('div');
-            widgetWrapper.className = 'tradingview-widget-container__widget';
-            widgetWrapper.style.height = '100%';
-            widgetWrapper.style.width = '100%';
-            
-            const script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-events.js';
-            script.async = true;
-            script.innerHTML = JSON.stringify({
-                "colorTheme": "dark",
-                "isTransparent": false,
-                "width": "100%",
-                "height": "550",
-                "locale": "en",
-                "importanceFilter": "-1,0,1",
-                "countryFilter": "ar,au,br,ca,cn,fr,de,in,id,it,jp,kr,mx,ru,sa,za,tr,gb,us,eu"
-            });
-            
-            script.onload = () => {
-                console.log('Economic Calendar widget script loaded successfully');
-            };
-            
-            script.onerror = (e) => {
-                console.error('Economic Calendar widget script failed to load:', e);
-            };
-            
-            widgetWrapper.appendChild(script);
-            widgetDiv.appendChild(widgetWrapper);
-            
-            console.log('Economic Calendar widget container setup complete');
+        // NOTE: named _homeEconomicCalendar to avoid collision with window.createEconomicCalendarWidget (Dashboard function)
+        function _homeEconomicCalendar() {
+            _homeInjectWidget('economicCalendar',
+                'https://s3.tradingview.com/external-embedding/embed-widget-events.js',
+                {
+                    "colorTheme": "dark",
+                    "isTransparent": false,
+                    "width": "100%",
+                    "height": "550",
+                    "locale": "en",
+                    "importanceFilter": "-1,0,1",
+                    "countryFilter": "ar,au,br,ca,cn,de,eg,eu,fr,gb,in,id,it,jp,kr,mx,ng,nz,pl,ru,sa,sg,tr,us,za"
+                });
         }
 
         // Chart 5: News Timeline Widget
-        function createNewsTimelineWidget() {
-            const widgetDiv = document.getElementById('newsTimelineWidget');
-            if (!widgetDiv) return;
-
-            const script = document.createElement('script');
-            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js';
-            script.async = true;
-            script.innerHTML = JSON.stringify({
-                "feedMode": "all_symbols",
-                "colorTheme": "dark",
-                "isTransparent": true,
-                "displayMode": "regular",
-                "width": "100%",
-                "height": "550",
-                "locale": "en"
-            });
-            widgetDiv.appendChild(script);
+        function _homeNewsTimeline() {
+            _homeInjectWidget('newsTimeline',
+                'https://s3.tradingview.com/external-embedding/embed-widget-timeline.js',
+                {
+                    "feedMode": "all_symbols",
+                    "colorTheme": "dark",
+                    "isTransparent": true,
+                    "displayMode": "regular",
+                    "width": "100%",
+                    "height": "550",
+                    "locale": "en"
+                });
         }
 
         // Chart 6: Economic Events Widget
-        function createEconomicEventsWidget() {
-            const widgetDiv = document.getElementById('economicEventsWidget');
-            if (!widgetDiv) return;
-
-            const script = document.createElement('script');
-            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-events.js';
-            script.async = true;
-            script.innerHTML = JSON.stringify({
-                "colorTheme": "dark",
-                "isTransparent": false,
-                "locale": "en",
-                "countryFilter": "",
-                "importanceFilter": "-1,0,1",
-                "width": "100%",
-                "height": "550"
-            });
-            widgetDiv.appendChild(script);
+        function _homeEconomicEvents() {
+            _homeInjectWidget('economicEvents',
+                'https://s3.tradingview.com/external-embedding/embed-widget-events.js',
+                {
+                    "colorTheme": "dark",
+                    "isTransparent": false,
+                    "locale": "en",
+                    "importanceFilter": "-1,0,1",
+                    "width": "100%",
+                    "height": "550"
+                });
         }
 
         // Chart 7: Forex Screener Widget
-        function createForexScreenerWidget() {
-            const widgetDiv = document.getElementById('forexScreenerWidget');
-            if (!widgetDiv) return;
-
-            const script = document.createElement('script');
-            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-screener.js';
-            script.async = true;
-            script.innerHTML = JSON.stringify({
-                "width": "100%",
-                "height": "550",
-                "defaultColumn": "overview",
-                "defaultScreen": "general",
-                "market": "forex",
-                "showToolbar": true,
-                "colorTheme": "dark",
-                "locale": "en",
-                "isTransparent": true
-            });
-            widgetDiv.appendChild(script);
+        function _homeForexScreener() {
+            _homeInjectWidget('forexScreener',
+                'https://s3.tradingview.com/external-embedding/embed-widget-screener.js',
+                {
+                    "width": "100%",
+                    "height": "550",
+                    "defaultColumn": "overview",
+                    "defaultScreen": "general",
+                    "market": "forex",
+                    "showToolbar": true,
+                    "colorTheme": "dark",
+                    "locale": "en",
+                    "isTransparent": true
+                });
         }
 
         // Chart 8: Crypto Markets Widget
-        function createCryptoMarketsWidget() {
-            const widgetDiv = document.getElementById('cryptoMarketsWidget');
-            if (!widgetDiv) return;
-
-            const script = document.createElement('script');
-            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-screener.js';
-            script.async = true;
-            script.innerHTML = JSON.stringify({
-                "width": "100%",
-                "height": "550",
-                "defaultColumn": "overview",
-                "screener_type": "crypto_mkt",
-                "displayCurrency": "USD",
-                "colorTheme": "dark",
-                "locale": "en",
-                "isTransparent": true
-            });
-            widgetDiv.appendChild(script);
+        function _homeCryptoMarkets() {
+            _homeInjectWidget('cryptoMarkets',
+                'https://s3.tradingview.com/external-embedding/embed-widget-screener.js',
+                {
+                    "width": "100%",
+                    "height": "550",
+                    "defaultColumn": "overview",
+                    "screener_type": "crypto_mkt",
+                    "displayCurrency": "USD",
+                    "colorTheme": "dark",
+                    "locale": "en",
+                    "isTransparent": true
+                });
         }
-        
+
         // Ticker Tape Widget for Home Page
         function createTickerTapeWidget() {
-            const container = document.getElementById('tickerTapeWidget');
-            if (!container) {
-                console.error('Ticker tape container not found');
-                return;
-            }
-
-            console.log('Creating ticker tape widget');
+            var container = document.getElementById('tickerTapeWidget');
+            if (!container) { console.error('Ticker tape container not found'); return; }
             container.innerHTML = '';
-            
-            const script = document.createElement('script');
+            var widgetDiv = document.createElement('div');
+            widgetDiv.className = 'tradingview-widget-container__widget';
+            container.appendChild(widgetDiv);
+            var script = document.createElement('script');
             script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
             script.async = true;
             script.innerHTML = JSON.stringify({
@@ -1246,9 +1129,8 @@
                 "locale": "en"
             });
             container.appendChild(script);
-            console.log('Ticker tape widget script added');
+            console.log('Ticker tape widget created');
         }
-        
         // Expose globally
         window.createTickerTapeWidget = createTickerTapeWidget;
         
