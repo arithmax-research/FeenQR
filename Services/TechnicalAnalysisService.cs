@@ -411,13 +411,19 @@ public class TechnicalAnalysisService
         // MACD strength
         var macd = (double)indicators["MACD"];
         var macdSignal = (double)indicators["MACD_Signal"];
-        strengthFactors.Add(Math.Min(Math.Abs(macd - macdSignal) / Math.Abs(macdSignal), 1.0));
+        // Guard against division by zero / NaN when macdSignal is zero
+        var macdStrength = Math.Abs(macdSignal) > 1e-10
+            ? Math.Min(Math.Abs(macd - macdSignal) / Math.Abs(macdSignal), 1.0)
+            : (macd != 0 ? 1.0 : 0.0);
+        strengthFactors.Add(double.IsNaN(macdStrength) || double.IsInfinity(macdStrength) ? 0.0 : macdStrength);
 
         // Volume strength (simplified)
         var mfi = (double)indicators["MFI"];
         strengthFactors.Add(Math.Abs(mfi - 50) / 50.0);
 
-        return strengthFactors.Average();
+        var avg = strengthFactors.Any() ? strengthFactors.Average() : 0.0;
+        // Ensure we never return NaN/Infinity which would break JSON serialization
+        return double.IsNaN(avg) || double.IsInfinity(avg) ? 0.0 : avg;
     }
 
     private async Task<string> GenerateReasoningAsync(TechnicalAnalysisResult result)

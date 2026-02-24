@@ -379,45 +379,82 @@
             {
                 <div class="loading-indicator">
                     <div class="spinner"></div>
-                    <div class="progress-text">Analyzing @symbol...</div>
+                    <div class="progress-text">Analyzing @symbol... (AI reasoning may take 10-30s)</div>
+                </div>
+            }
+            else if (errorMessage != null)
+            {
+                <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.4); border-radius: 8px; padding: 1.25rem; color: #fca5a5; margin-bottom: 1rem;">
+                    <strong>Analysis failed:</strong> @errorMessage
                 </div>
             }
             else if (analysisResult != null)
             {
-                <div class="results-card">
-                    <h2 style="margin-bottom: 1rem; color: #ffffff;">@analysisResult.Symbol - $@analysisResult.CurrentPrice.ToString("F2")</h2>
-                    
-                    <span class="signal-badge @GetSignalClass(analysisResult.OverallSignal)">
-                        @analysisResult.OverallSignal
-                    </span>
-                    
-                    <p style="color: #9ca3af; margin-top: 0.5rem;">
-                        Signal Strength: @analysisResult.SignalStrength.ToString("F2") | 
-                        @analysisResult.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC
-                    </p>
+                <!-- AI Analysis Results Section -->
+                <div class="results-card" style="background: rgba(26, 115, 232, 0.08); border: 2px solid rgba(26, 115, 232, 0.4); box-shadow: 0 4px 12px rgba(26, 115, 232, 0.15);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                        <span style="font-size: 1.5rem;">🤖</span>
+                        <h2 style="margin: 0; color: #ffffff; font-size: 1.5rem;">AI Technical Analysis</h2>
+                    </div>
 
-                    <div class="indicator-grid">
-                        @foreach (var indicator in GetKeyIndicators(analysisResult.Indicators))
-                        {
-                            <div class="indicator-card">
-                                <div class="indicator-label">@indicator.Key</div>
-                                <div class="indicator-value">@FormatIndicatorValue(indicator.Value)</div>
-                            </div>
-                        }
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                        <h3 style="margin: 0; color: #ffffff; font-size: 1.25rem;">@analysisResult.Symbol</h3>
+                        <span style="color: #10b981; font-size: 1.25rem; font-weight: 700;">$@analysisResult.CurrentPrice.ToString("F2")</span>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                        <span class="signal-badge @GetSignalClass(analysisResult.OverallSignal)" style="font-size: 1rem;">
+                            @analysisResult.OverallSignal
+                        </span>
+                        <span style="color: #9ca3af;">
+                            Signal Strength: <strong style="color: #ffffff;">@analysisResult.SignalStrength.ToString("F2")</strong>
+                        </span>
+                        <span style="color: #6b7280; font-size: 0.85rem;">
+                            @analysisResult.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC
+                        </span>
                     </div>
 
                     @if (!string.IsNullOrEmpty(analysisResult.Reasoning))
                     {
-                        <div class="reasoning-section">
-                            <strong>Analysis:</strong><br />
-                            @analysisResult.Reasoning
+                        <div class="reasoning-section" style="margin-bottom: 1.5rem;">
+                            <strong style="font-size: 1.1rem; color: #60a5fa;">📊 AI Reasoning:</strong><br /><br />
+                            <div style="line-height: 1.8;">
+                                @((MarkupString)analysisResult.Reasoning.Replace("\n", "<br />"))
+                            </div>
                         </div>
+                    }
+
+                    @if (analysisResult.Indicators != null && analysisResult.Indicators.Count > 0)
+                    {
+                        <div style="margin-top: 1.5rem;">
+                            <h3 style="color: #ffffff; margin-bottom: 1rem; font-size: 1.1rem;">📈 Key Technical Indicators</h3>
+                            <div class="indicator-grid">
+                                @foreach (var indicator in GetKeyIndicators(analysisResult.Indicators))
+                                {
+                                    <div class="indicator-card">
+                                        <div class="indicator-label">@FormatIndicatorName(indicator.Key)</div>
+                                        <div class="indicator-value">@FormatIndicatorValue(indicator.Value)</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <p style="color: #9ca3af; margin-top: 1rem; font-style: italic;">No indicators available</p>
                     }
                 </div>
 
                 <!-- TradingView Technical Analysis Widget -->
-                <div style="margin-top: 2rem;">
-                    <TradingViewTechnicalAnalysisWidget InitialSymbol="@GetTradingViewSymbol(symbol)" InitialInterval="1D" Title="@($"{symbol} - TradingView Technical Analysis")" />
+                <div style="margin-top: 2rem; padding: 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;">
+                    <h3 style="color: #ffffff; margin-bottom: 1rem;">📊 TradingView Technical Indicators</h3>
+                    <TradingViewTechnicalAnalysisWidget InitialSymbol="@GetTradingViewSymbol(symbol)" InitialInterval="1D" Title="@($"{symbol} - TradingView Analysis")" />
+                </div>
+            }
+            else
+            {
+                <div style="background: rgba(136, 136, 136, 0.1); border: 1px solid rgba(136, 136, 136, 0.2); border-radius: 8px; padding: 1.5rem; color: #9ca3af; text-align: center;">
+                    <p style="margin: 0;">Enter a symbol and click "Analyze" to view technical analysis</p>
                 </div>
             }
         }
@@ -672,6 +709,7 @@
 @code {
     private string activeTab = "analysis";
     private bool isLoading = false;
+    private string? errorMessage = null;
 
     // Input fields
     private string symbol = "AAPL";
@@ -775,48 +813,91 @@
         if (string.IsNullOrWhiteSpace(symbol))
         {
             Console.WriteLine("Symbol is empty, cannot analyze");
+            errorMessage = "Please enter a valid symbol";
             return;
         }
 
         isLoading = true;
         analysisResult = null;
+        errorMessage = null;
         Console.WriteLine($"Starting analysis for {symbol} with {lookbackDays} days lookback");
         
         try
         {
             var cleanSymbol = SanitizeSymbol(symbol);
             Console.WriteLine($"Clean symbol: {cleanSymbol}");
+            Console.WriteLine($"Making request to: /api/technicalanalysis/analyze");
             
-            var response = await Http.PostAsJsonAsync("/api/technicalanalysis/analyze", new
+            var requestBody = new
             {
                 Symbol = cleanSymbol,
                 LookbackDays = lookbackDays
-            });
+            };
+            
+            var response = await Http.PostAsJsonAsync("/api/technicalanalysis/analyze", requestBody);
 
             Console.WriteLine($"Response status: {response.StatusCode}");
+            Console.WriteLine($"Response headers: {string.Join(", ", response.Headers.Select(h => $"{h.Key}: {string.Join(",", h.Value)}"))}");
 
             if (response.IsSuccessStatusCode)
             {
-                analysisResult = await response.Content.ReadFromJsonAsync<TechnicalAnalysisResponse>();
-                Console.WriteLine($"Analysis result received for {analysisResult?.Symbol}");
-                Console.WriteLine($"Result has reasoning: {!string.IsNullOrEmpty(analysisResult?.Reasoning)}");
-                Console.WriteLine($"Reasoning preview: {analysisResult?.Reasoning?.Substring(0, Math.Min(100, analysisResult?.Reasoning?.Length ?? 0))}");
+                var responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Response content length: {responseContent.Length}");
+                Console.WriteLine($"Response content (first 500 chars): {responseContent.Substring(0, Math.Min(500, responseContent.Length))}");
+                
+                try
+                {
+                    // Use case-insensitive JSON deserialization options
+                    var jsonOptions = new System.Text.Json.JsonSerializerOptions 
+                    { 
+                        PropertyNameCaseInsensitive = true,
+                        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                        NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals
+                    };
+                    
+                    analysisResult = System.Text.Json.JsonSerializer.Deserialize<TechnicalAnalysisResponse>(responseContent, jsonOptions);
+                    Console.WriteLine($"Deserialization successful. Symbol: {analysisResult?.Symbol}, Price: {analysisResult?.CurrentPrice}");
+                    
+                    if (analysisResult == null)
+                    {
+                        errorMessage = "Received empty response from server after deserialization.";
+                        Console.WriteLine("ERROR: analysisResult is null after deserialization");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"SUCCESS: Analysis result received for {analysisResult.Symbol} at ${analysisResult.CurrentPrice}");
+                    }
+                }
+                catch (System.Text.Json.JsonException jsonEx)
+                {
+                    Console.WriteLine($"JSON Deserialization error: {jsonEx.Message}");
+                    errorMessage = $"Failed to parse server response: {jsonEx.Message}";
+                }
             }
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Error response: {error}");
+                Console.WriteLine($"Error response body: {error}");
+                errorMessage = $"Analysis failed (HTTP {(int)response.StatusCode}). {error}";
             }
+        }
+        catch (HttpRequestException httpEx)
+        {
+            Console.WriteLine($"HTTP Request error: {httpEx.Message}");
+            Console.WriteLine($"Stack trace: {httpEx.StackTrace}");
+            errorMessage = $"Network error: {httpEx.Message}. Make sure the server is running.";
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
+            Console.WriteLine($"Unexpected error: {ex.Message}");
+            Console.WriteLine($"Exception type: {ex.GetType().Name}");
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            errorMessage = $"Unexpected error: {ex.Message}";
         }
         finally
         {
             isLoading = false;
-            Console.WriteLine($"Analysis complete. Result is null: {analysisResult == null}");
+            Console.WriteLine($"=== Analysis complete. Result is null: {analysisResult == null}, Error: {errorMessage} ===");
             StateHasChanged(); // Force UI update
         }
     }
@@ -1003,27 +1084,57 @@
 
     private Dictionary<string, object> GetKeyIndicators(Dictionary<string, object> indicators)
     {
-        var keyIndicators = new[] { "RSI", "MACD", "MACD_Signal", "SMA_20", "SMA_50", "SMA_200", 
-            "ATR", "BB_Upper", "BB_Middle", "BB_Lower", "OBV", "ADX" };
-        
-        return indicators
-            .Where(kvp => keyIndicators.Contains(kvp.Key))
-            .Take(12)
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        try
+        {
+            Console.WriteLine($"GetKeyIndicators called with {indicators?.Count ?? 0} indicators");
+            
+            if (indicators == null || indicators.Count == 0)
+            {
+                Console.WriteLine("Indicators is null or empty");
+                return new Dictionary<string, object>();
+            }
+            
+            var keyIndicators = new[] { "RSI", "MACD", "MACD_Signal", "SMA_20", "SMA_50", "SMA_200", 
+                "ATR", "BB_Upper", "BB_Middle", "BB_Lower", "OBV", "ADX" };
+            
+            var result = indicators
+                .Where(kvp => keyIndicators.Contains(kvp.Key))
+                .Take(12)
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            
+            Console.WriteLine($"GetKeyIndicators returning {result.Count} indicators");
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetKeyIndicators: {ex.Message}");
+            return new Dictionary<string, object>();
+        }
     }
 
     private string FormatIndicatorValue(object value)
     {
         if (value == null) return "N/A";
         
-        if (value is double d)
+        // System.Text.Json deserializes Dictionary<string, object> values as JsonElement
+        if (value is System.Text.Json.JsonElement je)
         {
-            return d > 1000 ? d.ToString("N0") : d.ToString("F2");
+            return je.ValueKind switch
+            {
+                System.Text.Json.JsonValueKind.Number => je.TryGetDouble(out var d)
+                    ? (d > 1000 ? d.ToString("N0") : d.ToString("F2"))
+                    : je.GetRawText(),
+                System.Text.Json.JsonValueKind.Array => "[pattern data]",
+                System.Text.Json.JsonValueKind.Null => "N/A",
+                _ => je.GetRawText()
+            };
         }
+
+        if (value is double d2)
+            return d2 > 1000 ? d2.ToString("N0") : d2.ToString("F2");
+
         if (value is decimal dec)
-        {
             return dec > 1000 ? dec.ToString("N0") : dec.ToString("F2");
-        }
         
         return value.ToString() ?? "N/A";
     }
