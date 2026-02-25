@@ -111,6 +111,36 @@ builder.Services.AddSingleton<ISemanticTextMemory>(sp =>
 // Register FeenQR services
 builder.Services.AddHttpClient().ConfigureHttpClientDefaults(http => 
 {
+    // Configure proxy if enabled
+    var proxyEnabled = builder.Configuration.GetValue<bool>("Proxy:Enabled");
+    var proxyAddress = builder.Configuration["Proxy:Address"];
+    
+    if (proxyEnabled && !string.IsNullOrEmpty(proxyAddress))
+    {
+        var proxyUsername = builder.Configuration["Proxy:Username"];
+        var proxyPassword = builder.Configuration["Proxy:Password"];
+        var bypassOnLocal = builder.Configuration.GetValue<bool>("Proxy:BypassOnLocal", true);
+        
+        http.ConfigurePrimaryHttpMessageHandler(() =>
+        {
+            var proxy = new System.Net.WebProxy(proxyAddress, bypassOnLocal);
+            
+            if (!string.IsNullOrEmpty(proxyUsername))
+            {
+                proxy.Credentials = new System.Net.NetworkCredential(proxyUsername, proxyPassword);
+            }
+            
+            var handler = new HttpClientHandler
+            {
+                Proxy = proxy,
+                UseProxy = true
+            };
+            
+            Console.WriteLine($"✓ Proxy configured: {proxyAddress}");
+            return handler;
+        });
+    }
+    
     // Increase timeout for long-running operations like video analysis
     http.ConfigureHttpClient(client => client.Timeout = TimeSpan.FromMinutes(10));
 });
