@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuantResearchAgent.Services;
 using QuantResearchAgent.Core;
+using System.Text.Json;
 
 namespace Server.Controllers
 {
@@ -269,6 +270,270 @@ Keep the analysis concise but actionable.";
         }
 
         /// <summary>
+        /// Generate comprehensive AI comparison report for multiple symbols
+        /// </summary>
+        [HttpPost("comprehensive-compare-ai")]
+        public async Task<IActionResult> GenerateComprehensiveComparison([FromBody] ComprehensiveCompareRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("Comprehensive AI comparison for symbols: {Symbols}", 
+                    string.Join(", ", request.Symbols));
+
+                // Build comprehensive comparison data
+                var comparisonSummary = new System.Text.StringBuilder();
+                comparisonSummary.AppendLine($"Comparison of {request.Comparisons.Count} symbols over {request.LookbackDays} days:\n");
+
+                foreach (var comp in request.Comparisons)
+                {
+                    comparisonSummary.AppendLine($"**{comp.Symbol}**");
+                    comparisonSummary.AppendLine($"- Current Price: ${comp.CurrentPrice:F2}");
+                    comparisonSummary.AppendLine($"- Overall Signal: {comp.OverallSignal} (Strength: {comp.SignalStrength:F2})");
+                    comparisonSummary.AppendLine($"- RSI: {comp.RSI:F1}");
+                    comparisonSummary.AppendLine($"- MACD: {comp.MACD:F4}");
+                    comparisonSummary.AppendLine($"- SMA 50: ${comp.SMA50:F2}");
+                    comparisonSummary.AppendLine($"- SMA 200: ${comp.SMA200:F2}");
+                    comparisonSummary.AppendLine();
+                }
+
+                var prompt = $@"You are an expert quantitative analyst. Provide a comprehensive comparative analysis of the following stocks based on their technical indicators:
+
+{comparisonSummary}
+
+Your analysis should include:
+
+1. **Executive Summary**: Which stock(s) show the strongest/weakest technical position and why?
+
+2. **Individual Stock Analysis**: 
+   - Brief technical outlook for each stock
+   - Key strengths and weaknesses
+   - Notable technical patterns or divergences
+
+3. **Comparative Analysis**:
+   - Rank stocks by overall technical strength
+   - Compare momentum indicators (RSI, MACD)
+   - Compare trend strength (SMAs, price position)
+   - Identify which stocks are in similar technical phases
+
+4. **Correlation & Sector Insights**:
+   - Are these stocks moving together or independently?
+   - Which stock shows the most unique technical pattern?
+
+5. **Trading Recommendations**:
+   - Best long opportunity (if any)
+   - Stocks to avoid or consider shorting
+   - Risk-adjusted ranking for allocation
+   - Optimal entry points and stop-loss levels
+
+6. **Timeframe Considerations**:
+   - Short-term (days-weeks) vs Long-term (months) outlook for each
+   - How the {request.LookbackDays}-day analysis impacts interpretation
+
+7. **Risk Assessment**:
+   - Which stock has the highest volatility risk?
+   - Correlation risks if holding multiple positions
+   - Key technical levels that could change the outlook
+
+Provide actionable, specific insights with clear reasoning. Format with clear headings and bullet points.";
+
+                var analysis = await _deepSeekService.GetChatCompletionAsync(prompt);
+
+                return Ok(new AIAnalysisResponse
+                {
+                    Analysis = analysis,
+                    Timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in comprehensive AI comparison");
+                return StatusCode(500, new { error = ex.Message, details = "Make sure DeepSeek API key is configured" });
+            }
+        }
+
+        /// <summary>
+        /// Ask a specific question about the comparison
+        /// </summary>
+        [HttpPost("ask-comparison-question")]
+        public async Task<IActionResult> AskComparisonQuestion([FromBody] ComparisonQuestionRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("AI comparison question for symbols: {Symbols} - {Question}", 
+                    string.Join(", ", request.Symbols), request.Question);
+
+                var comparisonSummary = new System.Text.StringBuilder();
+                foreach (var comp in request.Comparisons)
+                {
+                    comparisonSummary.AppendLine($"{comp.Symbol}: ${comp.CurrentPrice:F2}, Signal: {comp.OverallSignal}, RSI: {comp.RSI:F1}, MACD: {comp.MACD:F4}");
+                }
+
+                var prompt = $@"Context: You are analyzing a comparison of these stocks over {request.LookbackDays} days:
+
+{comparisonSummary}
+
+";
+
+                if (!string.IsNullOrEmpty(request.PreviousReport))
+                {
+                    prompt += $"Your previous comprehensive analysis:\n{request.PreviousReport}\n\n";
+                }
+
+                prompt += $"Question: {request.Question}\n\nProvide a detailed, actionable answer based on technical analysis principles.";
+
+                var answer = await _deepSeekService.GetChatCompletionAsync(prompt);
+
+                return Ok(new AIAnalysisResponse
+                {
+                    Analysis = answer,
+                    Timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in AI comparison question");
+                return StatusCode(500, new { error = ex.Message, details = "Make sure DeepSeek API key is configured" });
+            }
+        }
+
+        /// <summary>
+        /// Generate comprehensive AI indicator analysis
+        /// </summary>
+        [HttpPost("comprehensive-indicator-ai")]
+        public async Task<IActionResult> GenerateComprehensiveIndicatorAnalysis([FromBody] IndicatorAnalysisRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("Comprehensive AI indicator analysis for {Symbol}, Category: {Category}", 
+                    request.Symbol, request.Category);
+
+                // Build indicator summary
+                var indicatorSummary = new System.Text.StringBuilder();
+                indicatorSummary.AppendLine($"Technical Indicators for {request.Symbol} ({request.Category.ToUpper()})");
+                indicatorSummary.AppendLine($"Analysis Period: {request.LookbackDays} days\n");
+                
+                if (request.Indicators != null && request.Indicators.Count > 0)
+                {
+                    indicatorSummary.AppendLine("**Current Indicator Values:**");
+                    foreach (var indicator in request.Indicators)
+                    {
+                        indicatorSummary.AppendLine($"- {indicator.Key}: {FormatIndicatorValue(indicator.Value)}");
+                    }
+                }
+
+                var prompt = $@"You are an expert technical analyst specializing in {request.Category} indicators. Provide a comprehensive analysis of the following technical indicators for {request.Symbol}:
+
+{indicatorSummary}
+
+Your analysis should include:
+
+1. **Indicator Interpretation**: What is each indicator telling us about the stock's current state?
+
+2. **Signal Convergence/Divergence**: Are the indicators aligned or showing conflicting signals? What does this mean?
+
+3. **Trading Implications**: 
+   - Current market position (overbought/oversold, trending/ranging, etc.)
+   - Potential entry/exit points
+   - Support and resistance levels suggested by indicators
+
+4. **Risk Assessment**: Key risks indicated by these technical metrics
+
+5. **Time Horizon**: Are these indicators better suited for short-term, medium-term, or long-term trading decisions?
+
+6. **Actionable Recommendations**: Specific trading strategies based on these indicators
+
+Provide clear, actionable insights formatted with markdown headings and bullet points.";
+
+                var analysis = await _deepSeekService.GetChatCompletionAsync(prompt);
+
+                return Ok(new Dictionary<string, object>
+                {
+                    { "analysis", analysis },
+                    { "timestamp", DateTime.UtcNow }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in comprehensive indicator AI analysis");
+                return StatusCode(500, new { error = ex.Message, details = "Make sure DeepSeek API key is configured" });
+            }
+        }
+
+        /// <summary>
+        /// Answer specific questions about indicator analysis
+        /// </summary>
+        [HttpPost("ask-indicator-question")]
+        public async Task<IActionResult> AskIndicatorQuestion([FromBody] IndicatorQuestionRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("AI indicator question for {Symbol} - {Question}", 
+                    request.Symbol, request.Question);
+
+                var indicatorSummary = new System.Text.StringBuilder();
+                indicatorSummary.AppendLine($"{request.Symbol} ({request.Category} indicators, {request.LookbackDays} day period):");
+                
+                if (request.Indicators != null && request.Indicators.Count > 0)
+                {
+                    foreach (var indicator in request.Indicators)
+                    {
+                        indicatorSummary.AppendLine($"- {indicator.Key}: {FormatIndicatorValue(indicator.Value)}");
+                    }
+                }
+
+                var prompt = $@"Context: You are analyzing technical indicators for {request.Symbol}:
+
+{indicatorSummary}
+
+";
+
+                if (!string.IsNullOrEmpty(request.CurrentAnalysis))
+                {
+                    prompt += $"Your previous analysis:\n{request.CurrentAnalysis}\n\n";
+                }
+
+                prompt += $"Question: {request.Question}\n\nProvide a detailed, technical answer based on these indicators.";
+
+                var answer = await _deepSeekService.GetChatCompletionAsync(prompt);
+
+                return Ok(new Dictionary<string, object>
+                {
+                    { "answer", answer },
+                    { "timestamp", DateTime.UtcNow }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in AI indicator question");
+                return StatusCode(500, new { error = ex.Message, details = "Make sure DeepSeek API key is configured" });
+            }
+        }
+
+        /// <summary>
+        /// Helper method to format indicator values
+        /// </summary>
+        private string FormatIndicatorValue(object? value)
+        {
+            if (value == null) return "N/A";
+            
+            if (value is JsonElement jsonElement)
+            {
+                return jsonElement.ValueKind switch
+                {
+                    JsonValueKind.Number => jsonElement.GetDouble().ToString("F2"),
+                    JsonValueKind.String => jsonElement.GetString() ?? "N/A",
+                    _ => value.ToString() ?? "N/A"
+                };
+            }
+            
+            if (value is double d) return d.ToString("F2");
+            if (value is decimal dec) return dec.ToString("F2");
+            if (value is float f) return f.ToString("F2");
+            
+            return value.ToString() ?? "N/A";
+        }
+
+        /// <summary>
         /// Get long-term technical analysis (7 years)
         /// </summary>
         [HttpPost("analyze-long")]
@@ -448,4 +713,37 @@ Keep the analysis concise but actionable.";
         public string PatternName { get; set; } = string.Empty;
         public string Explanation { get; set; } = string.Empty;
     }
-}
+
+    public class ComprehensiveCompareRequest
+    {
+        public List<TechnicalAnalysisComparison> Comparisons { get; set; } = new();
+        public List<string> Symbols { get; set; } = new();
+        public int LookbackDays { get; set; }
+    }
+
+    public class ComparisonQuestionRequest
+    {
+        public List<TechnicalAnalysisComparison> Comparisons { get; set; } = new();
+        public List<string> Symbols { get; set; } = new();
+        public string Question { get; set; } = string.Empty;
+        public string PreviousReport { get; set; } = string.Empty;
+        public int LookbackDays { get; set; }
+    }
+
+    public class IndicatorAnalysisRequest
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public string Category { get; set; } = "all";
+        public int LookbackDays { get; set; }
+        public Dictionary<string, object>? Indicators { get; set; }
+    }
+
+    public class IndicatorQuestionRequest
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public string Category { get; set; } = "all";
+        public int LookbackDays { get; set; }
+        public Dictionary<string, object>? Indicators { get; set; }
+        public string CurrentAnalysis { get; set; } = string.Empty;
+        public string Question { get; set; } = string.Empty;
+    }}

@@ -479,6 +479,178 @@
             grid-template-columns: 1fr;
         }
     }
+
+    /* Compare Multi-Widget Layout */
+    .compare-multi-widget {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .compare-layout-grid {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 1.5rem;
+    }
+
+    .compare-report-widget {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+    }
+
+    .compare-controls-widget {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .controls-section {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .submit-btn-compact {
+        background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+        border: none;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+
+    .submit-btn-compact:hover:not(:disabled) {
+        background: linear-gradient(135deg, #1557b0 0%, #1a73e8 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(26, 115, 232, 0.4);
+    }
+
+    .submit-btn-full {
+        background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+
+    .submit-btn-full:hover:not(:disabled) {
+        background: linear-gradient(135deg, #1557b0 0%, #1a73e8 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(26, 115, 232, 0.4);
+    }
+
+    .submit-btn-full:disabled,
+    .submit-btn-compact:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .comparison-report-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 1.5rem;
+    }
+
+    .comparison-report-content {
+        color: #e5e7eb;
+        line-height: 1.8;
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .comparison-chat-section {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .info-message {
+        background: rgba(26, 115, 232, 0.1);
+        border: 1px solid rgba(26, 115, 232, 0.3);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        color: #1a73e8;
+        font-size: 0.85rem;
+        margin-top: 0.75rem;
+    }
+
+    .quick-data-section {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .quick-data-table {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .quick-data-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        align-items: center;
+        gap: 0.75rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .quick-data-symbol {
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .quick-data-price {
+        color: #9ca3af;
+        font-size: 0.85rem;
+    }
+
+    .quick-data-signal {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .signal-badge-compact {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    @@media (max-width: 1200px) {
+        .compare-layout-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .compare-report-widget {
+            max-height: none;
+        }
+    }
+
+    .pattern-list {
         list-style: none;
         padding: 0;
         margin-top: 1rem;
@@ -591,6 +763,107 @@
     .tradingview-widget-container__widget {
         height: 100% !important;
         width: 100% !important;
+    }
+
+    /* Indicators Multi-Widget Layout */
+    .indicators-multi-widget {
+        margin-top: 1rem;
+    }
+
+    .indicators-layout-grid {
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        gap: 1.5rem;
+        align-items: start;
+    }
+
+    .indicators-analysis-widget {
+        background: rgba(30, 41, 59, 0.4);
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        border-radius: 12px;
+        padding: 1.5rem;
+        min-height: 400px;
+    }
+
+    .indicators-controls-widget {
+        background: rgba(30, 41, 59, 0.4);
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        border-radius: 12px;
+        padding: 1.5rem;
+        position: sticky;
+        top: 1rem;
+    }
+
+    .indicators-data-card {
+        margin-top: 1rem;
+    }
+
+    .indicator-header-info {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .comprehensive-indicator-report {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: rgba(26, 115, 232, 0.05);
+        border: 1px solid rgba(26, 115, 232, 0.2);
+        border-radius: 8px;
+    }
+
+    .indicator-analysis-content {
+        color: #e5e7eb;
+        line-height: 1.8;
+        font-size: 0.95rem;
+    }
+
+    .indicators-chat-section {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .key-indicators-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .key-indicator-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        background: rgba(51, 65, 85, 0.3);
+        border-radius: 6px;
+        transition: background 0.2s ease;
+    }
+
+    .key-indicator-row:hover {
+        background: rgba(51, 65, 85, 0.5);
+    }
+
+    .key-indicator-name {
+        color: #94a3b8;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .key-indicator-value {
+        color: #ffffff;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    @@media (max-width: 1024px) {
+        .indicators-layout-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .indicators-controls-widget {
+            position: static;
+        }
     }
 </style>
 
@@ -723,140 +996,322 @@
 
         @if (activeTab == "indicators")
         {
-            <div class="section-header">
-                Detailed Indicators
-            </div>
-
-            <div class="input-group">
-                <input type="text" class="input-field" placeholder="Enter symbol (e.g., AAPL)" @bind="symbol" />
-                <select class="select-field" @bind="indicatorCategory">
-                    <option value="all">All Indicators</option>
-                    <option value="trend">Trend Indicators</option>
-                    <option value="momentum">Momentum Indicators</option>
-                    <option value="volume">Volume Indicators</option>
-                    <option value="volatility">Volatility Indicators</option>
-                </select>
-                <button class="submit-btn" @onclick="GetIndicators" disabled="@isLoading">
-                    @(isLoading ? "Loading..." : "Get Indicators")
-                </button>
-            </div>
-
-            @if (isLoading)
-            {
-                <div class="loading-indicator">
-                    <div class="spinner"></div>
-                    <div class="progress-text">Fetching indicators...</div>
-                </div>
-            }
-            else if (indicatorResult != null)
-            {
-                @if (!string.IsNullOrEmpty(indicatorAnalysis))
-                {
-                    <div class="results-card" style="margin-bottom: 1.5rem;">
-                        <h2 style="margin-bottom: 0.5rem; color: #ffffff;">
-                            AI Analysis
-                        </h2>
-                        <div style="background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; padding: 1rem; border-radius: 0.5rem; color: #e5e7eb; line-height: 1.6;">
-                            @indicatorAnalysis
+            <div class="indicators-multi-widget">
+                <div class="indicators-layout-grid">
+                    <!-- Left Widget: Indicator Analysis & Data -->
+                    <div class="indicators-analysis-widget">
+                        <div class="section-header">
+                            Detailed Indicator Analysis
                         </div>
-                    </div>
-                }
-                
-                <div class="results-card">
-                    <h2 style="margin-bottom: 1rem; color: #ffffff;">
-                        @indicatorResult.Symbol - @indicatorResult.Category.ToUpper() Indicators
-                    </h2>
-                    
-                    <div class="indicator-grid">
-                        @foreach (var indicator in indicatorResult.Indicators)
+
+                        @if (isLoadingIndicators)
                         {
-                            <div class="indicator-card">
-                                <div class="indicator-label">@FormatIndicatorName(indicator.Key)</div>
-                                <div class="indicator-value">@FormatIndicatorValue(indicator.Value)</div>
+                            <div class="loading-indicator">
+                                <div class="spinner"></div>
+                                <div class="progress-text">Analyzing indicators...</div>
+                            </div>
+                        }
+                        else if (indicatorResult != null)
+                        {
+                            <div class="indicators-data-card">
+                                <div class="indicator-header-info">
+                                    <h3 style="color: #ffffff; font-size: 1.2rem; margin-bottom: 0.5rem;">
+                                        @indicatorResult.Symbol - @indicatorResult.Category.ToUpper() Indicators
+                                    </h3>
+                                    <p style="color: #9ca3af; font-size: 0.85rem;">
+                                        Analysis Period: @indicatorLookbackDays days | Category: @indicatorResult.Category
+                                    </p>
+                                </div>
+
+                                <div class="indicator-grid">
+                                    @foreach (var indicator in indicatorResult.Indicators)
+                                    {
+                                        <div class="indicator-card">
+                                            <div class="indicator-label">@FormatIndicatorName(indicator.Key)</div>
+                                            <div class="indicator-value">@FormatIndicatorValue(indicator.Value)</div>
+                                        </div>
+                                    }
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(comprehensiveIndicatorAnalysis))
+                                {
+                                    <div class="comprehensive-indicator-report">
+                                        <h3 style="color: #1a73e8; margin-bottom: 1rem; font-size: 1rem; font-weight: 600;">
+                                            AI Technical Analysis
+                                        </h3>
+                                        <div class="indicator-analysis-content" @key="comprehensiveIndicatorAnalysis">
+                                            @((MarkupString)FormatAIAnalysis(comprehensiveIndicatorAnalysis))
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <p>Enter a symbol and configure settings to analyze technical indicators</p>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Right Widget: Controls & AI Chat -->
+                    <div class="indicators-controls-widget">
+                        <div class="section-header" style="font-size: 0.95rem;">
+                            Indicator Setup
+                        </div>
+
+                        <div class="controls-section">
+                            <label class="input-label">Stock Symbol</label>
+                            <div class="input-group" style="margin-bottom: 1rem;">
+                                <input type="text" 
+                                       class="input-field" 
+                                       placeholder="Enter symbol (e.g., AAPL)" 
+                                       @bind="indicatorSymbol" 
+                                       @onkeypress="HandleIndicatorKeyPress" />
+                            </div>
+
+                            <label class="input-label">Indicator Category</label>
+                            <select class="input-field" @bind="indicatorCategory" style="margin-bottom: 1rem;">
+                                <option value="all">All Indicators</option>
+                                <option value="trend">Trend Indicators</option>
+                                <option value="momentum">Momentum Indicators</option>
+                                <option value="volume">Volume Indicators</option>
+                                <option value="volatility">Volatility Indicators</option>
+                            </select>
+
+                            <label class="input-label">Lookback Period: @GetLookbackLabel(indicatorLookbackDays)</label>
+                            <select class="input-field" @bind="indicatorLookbackDays" style="margin-bottom: 1.5rem;">
+                                <option value="30">1 Month (30 days)</option>
+                                <option value="90">3 Months (90 days)</option>
+                                <option value="180">6 Months (180 days)</option>
+                                <option value="365">1 Year (365 days)</option>
+                                <option value="730">2 Years (730 days)</option>
+                                <option value="1095">3 Years (1095 days)</option>
+                                <option value="1460">4 Years (1460 days)</option>
+                                <option value="1825">5 Years (1825 days)</option>
+                                <option value="2190">6 Years (2190 days)</option>
+                                <option value="2555">7 Years (2555 days)</option>
+                            </select>
+
+                            <button class="submit-btn-full" 
+                                    @onclick="GetComprehensiveIndicators" 
+                                    disabled="@(string.IsNullOrWhiteSpace(indicatorSymbol) || isLoadingIndicators)">
+                                @(isLoadingIndicators ? "Analyzing..." : "Analyze Indicators")
+                            </button>
+                        </div>
+
+                        <!-- AI Analytics Chat -->
+                        @if (!string.IsNullOrEmpty(comprehensiveIndicatorAnalysis))
+                        {
+                            <div class="indicators-chat-section">
+                                <h4 style="color: #ffffff; margin-bottom: 0.75rem; font-size: 0.9rem; font-weight: 600;">
+                                    AI Analytics Chat
+                                </h4>
+                                <p style="color: #9ca3af; font-size: 0.8rem; margin-bottom: 1rem;">
+                                    Ask DeepSeek for deeper insights about these indicators
+                                </p>
+                                
+                                <div class="input-group" style="margin-bottom: 0.75rem;">
+                                    <input type="text" 
+                                           class="input-field" 
+                                           placeholder="Ask about indicators..." 
+                                           @bind="indicatorQuestion" 
+                                           @onkeypress="HandleIndicatorQuestionKeyPress" 
+                                           style="font-size: 0.85rem;" />
+                                </div>
+                                <button class="submit-btn-full" 
+                                        @onclick="AskIndicatorQuestion" 
+                                        disabled="@isLoadingIndicators"
+                                        style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                                    @(isLoadingIndicators ? "Asking..." : "Ask AI")
+                                </button>
+                                
+                                @if (!string.IsNullOrEmpty(indicatorQuestionResponse))
+                                {
+                                    <div class="ai-response-card" style="margin-top: 1rem;">
+                                        <h5 style="color: #1a73e8; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600;">
+                                            Response:
+                                        </h5>
+                                        <div style="color: #e5e7eb; line-height: 1.6; font-size: 0.85rem;">
+                                            @((MarkupString)FormatAIAnalysis(indicatorQuestionResponse))
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <!-- Quick Reference -->
+                        @if (indicatorResult != null)
+                        {
+                            <div class="quick-data-section">
+                                <h4 style="color: #ffffff; margin-bottom: 0.75rem; font-size: 0.9rem; font-weight: 600;">
+                                    Key Indicators
+                                </h4>
+                                <div class="key-indicators-list">
+                                    @{
+                                        var keyIndicators = GetKeyIndicators(indicatorResult.Indicators);
+                                        foreach (var indicator in keyIndicators.Take(6))
+                                        {
+                                            <div class="key-indicator-row">
+                                                <span class="key-indicator-name">@FormatIndicatorName(indicator.Key)</span>
+                                                <span class="key-indicator-value">@FormatIndicatorValue(indicator.Value)</span>
+                                            </div>
+                                        }
+                                    }
+                                </div>
                             </div>
                         }
                     </div>
                 </div>
-            }
+            </div>
         }
 
         @if (activeTab == "compare")
         {
-            <div class="section-header">
-                Compare Symbols
-            </div>
+            <div class="compare-multi-widget">
+                <div class="compare-layout-grid">
+                    <!-- Left Widget: Comprehensive Report & Chat -->
+                    <div class="compare-report-widget">
+                        <div class="section-header">
+                            Comprehensive Comparison Report
+                        </div>
 
-            <div class="multi-symbol-input">
-                <div class="input-group">
-                    <input type="text" class="input-field" placeholder="Enter symbol to add (e.g., AAPL)" @bind="newSymbol" @onkeypress="HandleCompareKeyPress" />
-                    <button class="submit-btn" @onclick="AddSymbol">Add Symbol</button>
-                </div>
-                
-                @if (compareSymbols.Any())
-                {
-                    <div class="symbol-chips-container">
-                        @foreach (var sym in compareSymbols)
+                        @if (isLoadingComparison)
                         {
-                            <span class="symbol-chip">
-                                @sym
-                                <button class="remove-chip" @onclick="() => RemoveSymbol(sym)">×</button>
-                            </span>
+                            <div class="loading-indicator">
+                                <div class="spinner"></div>
+                                <div class="progress-text">Generating comprehensive analysis...</div>
+                            </div>
+                        }
+                        else if (!string.IsNullOrEmpty(comprehensiveComparisonReport))
+                        {
+                            <div class="comparison-report-card">
+                                <div class="comparison-report-content" @key="comprehensiveComparisonReport">
+                                    @((MarkupString)FormatAIAnalysis(comprehensiveComparisonReport))
+                                </div>
+
+                                <!-- Chat Section for Follow-up Questions -->
+                                <div class="comparison-chat-section">
+                                    <h4 style="color: #ffffff; margin-bottom: 0.75rem; font-size: 0.95rem; font-weight: 600;">
+                                        Ask DeepSeek for In-Depth Analysis
+                                    </h4>
+                                    <div class="input-group">
+                                        <input type="text" 
+                                               class="input-field" 
+                                               placeholder="Ask about these comparisons..." 
+                                               @bind="comparisonQuestion" 
+                                               @onkeypress="HandleComparisonQuestionKeyPress" />
+                                        <button class="submit-btn" @onclick="AskComparisonQuestion" disabled="@isLoadingComparison">
+                                            @(isLoadingComparison ? "Asking..." : "Ask AI")
+                                        </button>
+                                    </div>
+                                    
+                                    @if (!string.IsNullOrEmpty(comparisonQuestionResponse))
+                                    {
+                                        <div class="ai-response-card">
+                                            <h5 style="color: #1a73e8; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">
+                                                Response:
+                                            </h5>
+                                            <div style="color: #e5e7eb; line-height: 1.6;">
+                                                @((MarkupString)FormatAIAnalysis(comparisonQuestionResponse))
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <p>Add symbols and select a lookback period to generate a comprehensive comparison report</p>
+                            </div>
                         }
                     </div>
-                    
-                    <button class="submit-btn" @onclick="CompareSymbols" disabled="@isLoading">
-                        @(isLoading ? "Comparing..." : "Compare")
-                    </button>
-                }
-            </div>
 
-            @if (isLoading)
-            {
-                <div class="loading-indicator">
-                    <div class="spinner"></div>
-                    <div class="progress-text">Comparing symbols...</div>
-                </div>
-            }
-            else if (compareResult != null && compareResult.Comparisons.Any())
-            {
-                <div class="results-card">
-                    <h2 style="margin-bottom: 1rem; color: #ffffff;">Comparison Results</h2>
-                    
-                    <table class="comparison-table">
-                        <thead>
-                            <tr>
-                                <th>Symbol</th>
-                                <th>Price</th>
-                                <th>Signal</th>
-                                <th>Strength</th>
-                                <th>RSI</th>
-                                <th>MACD</th>
-                                <th>SMA 50</th>
-                                <th>SMA 200</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var comp in compareResult.Comparisons)
+                    <!-- Right Widget: Controls -->
+                    <div class="compare-controls-widget">
+                        <div class="section-header" style="font-size: 0.95rem;">
+                            Comparison Setup
+                        </div>
+
+                        <div class="controls-section">
+                            <label class="input-label">Add Symbols to Compare</label>
+                            <div class="input-group" style="margin-bottom: 1rem;">
+                                <input type="text" 
+                                       class="input-field" 
+                                       placeholder="Enter symbol (e.g., AAPL)" 
+                                       @bind="newSymbol" 
+                                       @onkeypress="HandleCompareKeyPress" />
+                                <button class="submit-btn-compact" @onclick="AddSymbol">Add</button>
+                            </div>
+                            
+                            @if (compareSymbols.Any())
                             {
-                                <tr>
-                                    <td><strong>@comp.Symbol</strong></td>
-                                    <td>$@comp.CurrentPrice.ToString("F2")</td>
-                                    <td>
-                                        <span class="signal-badge @GetSignalClass(comp.OverallSignal)">
-                                            @comp.OverallSignal
+                                <div class="symbol-chips-container" style="margin-bottom: 1.5rem;">
+                                    @foreach (var sym in compareSymbols)
+                                    {
+                                        <span class="symbol-chip">
+                                            @sym
+                                            <button class="remove-chip" @onclick="() => RemoveSymbol(sym)">×</button>
                                         </span>
-                                    </td>
-                                    <td>@comp.SignalStrength.ToString("F2")</td>
-                                    <td>@comp.RSI.ToString("F1")</td>
-                                    <td>@comp.MACD.ToString("F4")</td>
-                                    <td>$@comp.SMA50.ToString("F2")</td>
-                                    <td>$@comp.SMA200.ToString("F2")</td>
-                                </tr>
+                                    }
+                                </div>
                             }
-                        </tbody>
-                    </table>
+
+                            <label class="input-label">Lookback Period: @GetLookbackLabel(compareLookbackDays)</label>
+                            <select class="input-field" @bind="compareLookbackDays" style="margin-bottom: 1.5rem;">
+                                <option value="30">1 Month (30 days)</option>
+                                <option value="90">3 Months (90 days)</option>
+                                <option value="180">6 Months (180 days)</option>
+                                <option value="365">1 Year (365 days)</option>
+                                <option value="730">2 Years (730 days)</option>
+                                <option value="1095">3 Years (1095 days)</option>
+                                <option value="1460">4 Years (1460 days)</option>
+                                <option value="1825">5 Years (1825 days)</option>
+                                <option value="2190">6 Years (2190 days)</option>
+                                <option value="2555">7 Years (2555 days)</option>
+                            </select>
+
+                            <button class="submit-btn-full" 
+                                    @onclick="GenerateComprehensiveComparison" 
+                                    disabled="@(!compareSymbols.Any() || isLoadingComparison)">
+                                @(isLoadingComparison ? "Analyzing..." : "Generate Comprehensive Report")
+                            </button>
+
+                            @if (compareSymbols.Count < 2 && compareSymbols.Any())
+                            {
+                                <div class="info-message">
+                                    Add at least 2 symbols for meaningful comparison
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Quick Data Table -->
+                        @if (compareResult != null && compareResult.Comparisons.Any())
+                        {
+                            <div class="quick-data-section">
+                                <h4 style="color: #ffffff; margin-bottom: 0.75rem; font-size: 0.9rem; font-weight: 600;">
+                                    Quick Data Reference
+                                </h4>
+                                <div class="quick-data-table">
+                                    @foreach (var comp in compareResult.Comparisons)
+                                    {
+                                        <div class="quick-data-row">
+                                            <div class="quick-data-symbol">@comp.Symbol</div>
+                                            <div class="quick-data-price">$@comp.CurrentPrice.ToString("F2")</div>
+                                            <div class="quick-data-signal">
+                                                <span class="signal-badge-compact @GetSignalClass(comp.OverallSignal)">
+                                                    @comp.OverallSignal
+                                                </span>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
                 </div>
-            }
+            </div>
         }
 
         @if (activeTab == "patterns")
@@ -1106,6 +1561,21 @@
     private string aiQuestion = "";
     private string aiQuestionResponse = "";
 
+    // Comparison-specific fields
+    private int compareLookbackDays = 365;
+    private bool isLoadingComparison = false;
+    private string comprehensiveComparisonReport = "";
+    private string comparisonQuestion = "";
+    private string comparisonQuestionResponse = "";
+
+    // Indicator-specific fields
+    private string indicatorSymbol = "AAPL";
+    private int indicatorLookbackDays = 365;
+    private bool isLoadingIndicators = false;
+    private string comprehensiveIndicatorAnalysis = "";
+    private string indicatorQuestion = "";
+    private string indicatorQuestionResponse = "";
+
     // Results
     private TechnicalAnalysisResponse? analysisResult;
     private IndicatorResponse? indicatorResult;
@@ -1290,6 +1760,112 @@
         }
     }
 
+    private async Task GetComprehensiveIndicators()
+    {
+        if (string.IsNullOrWhiteSpace(indicatorSymbol)) return;
+
+        isLoadingIndicators = true;
+        comprehensiveIndicatorAnalysis = "";
+        indicatorQuestionResponse = "";
+        try
+        {
+            var cleanSymbol = SanitizeSymbol(indicatorSymbol);
+            
+            // Fetch indicators first
+            var indicatorsResponse = await Http.PostAsJsonAsync("/api/technicalanalysis/indicators", new
+            {
+                Symbol = cleanSymbol,
+                Category = indicatorCategory
+            });
+
+            if (indicatorsResponse.IsSuccessStatusCode)
+            {
+                indicatorResult = await indicatorsResponse.Content.ReadFromJsonAsync<IndicatorResponse>();
+                
+                // Now get comprehensive AI analysis
+                var aiResponse = await Http.PostAsJsonAsync("/api/technicalanalysis/comprehensive-indicator-ai", new
+                {
+                    Symbol = cleanSymbol,
+                    Category = indicatorCategory,
+                    LookbackDays = indicatorLookbackDays,
+                    Indicators = indicatorResult?.Indicators
+                });
+
+                if (aiResponse.IsSuccessStatusCode)
+                {
+                    var result = await aiResponse.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+                    if (result != null && result.ContainsKey("analysis"))
+                    {
+                        comprehensiveIndicatorAnalysis = result["analysis"]?.ToString() ?? "";
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            errorMessage = "Failed to analyze indicators. Please try again.";
+        }
+        finally
+        {
+            isLoadingIndicators = false;
+        }
+    }
+
+    private async Task AskIndicatorQuestion()
+    {
+        if (string.IsNullOrWhiteSpace(indicatorQuestion) || indicatorResult == null) return;
+
+        isLoadingIndicators = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/technicalanalysis/ask-indicator-question", new
+            {
+                Symbol = indicatorSymbol,
+                Category = indicatorCategory,
+                LookbackDays = indicatorLookbackDays,
+                Indicators = indicatorResult.Indicators,
+                CurrentAnalysis = comprehensiveIndicatorAnalysis,
+                Question = indicatorQuestion
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+                if (result != null && result.ContainsKey("answer"))
+                {
+                    indicatorQuestionResponse = result["answer"]?.ToString() ?? "";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            indicatorQuestionResponse = "Failed to get answer. Please try again.";
+        }
+        finally
+        {
+            isLoadingIndicators = false;
+        }
+    }
+
+    private async Task HandleIndicatorKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(indicatorSymbol))
+        {
+            await GetComprehensiveIndicators();
+        }
+    }
+
+    private async Task HandleIndicatorQuestionKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(indicatorQuestion))
+        {
+            await AskIndicatorQuestion();
+        }
+    }
+
+    // Keep old method for backward compatibility but not used in new UI
     private async Task GetIndicators()
     {
         if (string.IsNullOrWhiteSpace(symbol)) return;
@@ -1382,6 +1958,114 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    private async Task GenerateComprehensiveComparison()
+    {
+        if (compareSymbols.Count < 1) return;
+
+        isLoadingComparison = true;
+        comprehensiveComparisonReport = "";
+        comparisonQuestionResponse = "";
+        
+        try
+        {
+            // First, get the basic comparison data
+            var response = await Http.PostAsJsonAsync("/api/technicalanalysis/compare", new
+            {
+                Symbols = compareSymbols,
+                LookbackDays = compareLookbackDays
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                compareResult = await response.Content.ReadFromJsonAsync<CompareResponse>();
+                
+                // Then generate comprehensive AI analysis
+                if (compareResult != null && compareResult.Comparisons.Any())
+                {
+                    await GenerateComparisonReport();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            comprehensiveComparisonReport = "Failed to generate comparison. Please try again.";
+        }
+        finally
+        {
+            isLoadingComparison = false;
+        }
+    }
+
+    private async Task GenerateComparisonReport()
+    {
+        if (compareResult == null || !compareResult.Comparisons.Any()) return;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/technicalanalysis/comprehensive-compare-ai", new
+            {
+                Comparisons = compareResult.Comparisons,
+                Symbols = compareSymbols,
+                LookbackDays = compareLookbackDays
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<AIAnalysisResponse>();
+                comprehensiveComparisonReport = result?.Analysis ?? "No analysis available";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"AI Comparison Error: {ex.Message}");
+            comprehensiveComparisonReport = "Failed to generate AI comparison report. Please try again.";
+        }
+    }
+
+    private async Task AskComparisonQuestion()
+    {
+        if (string.IsNullOrWhiteSpace(comparisonQuestion) || compareResult == null) return;
+
+        isLoadingComparison = true;
+        comparisonQuestionResponse = "";
+        
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/technicalanalysis/ask-comparison-question", new
+            {
+                Comparisons = compareResult.Comparisons,
+                Symbols = compareSymbols,
+                Question = comparisonQuestion,
+                PreviousReport = comprehensiveComparisonReport,
+                LookbackDays = compareLookbackDays
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<AIAnalysisResponse>();
+                comparisonQuestionResponse = result?.Analysis ?? "No response available";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"AI Question Error: {ex.Message}");
+            comparisonQuestionResponse = "Failed to get AI response. Please try again.";
+        }
+        finally
+        {
+            isLoadingComparison = false;
+        }
+    }
+
+    private async Task HandleComparisonQuestionKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(comparisonQuestion))
+        {
+            await AskComparisonQuestion();
         }
     }
 
