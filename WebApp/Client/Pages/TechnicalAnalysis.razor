@@ -65,8 +65,44 @@
         overflow-y: auto;
         padding: 1.5rem;
         margin: 0 auto;
-        max-width: 1400px;
+        max-width: 1800px;
         width: 100%;
+    }
+
+    .two-column-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        height: calc(100vh - 120px);
+    }
+
+    .left-column {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .right-column {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        overflow-y: auto;
+    }
+
+    .widget-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+
+    .chart-container {
+        flex: 1;
+        min-height: 0;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
     }
 
     .section-header {
@@ -357,106 +393,116 @@
     <div class="ta-content">
         @if (activeTab == "analysis")
         {
-            <div class="section-header">
-                Technical Analysis
-            </div>
-
-            <div class="input-group">
-                <input type="text" class="input-field" placeholder="Enter symbol (e.g., AAPL)" @bind="symbol" @onkeypress="HandleKeyPress" />
-                <select class="select-field" @bind="lookbackDays">
-                    <option value="30">30 Days</option>
-                    <option value="60">60 Days</option>
-                    <option value="100" selected>100 Days</option>
-                    <option value="200">200 Days</option>
-                    <option value="365">1 Year</option>
-                </select>
-                <button class="submit-btn" @onclick="AnalyzeSymbol" disabled="@isLoading">
-                    @(isLoading ? "Analyzing..." : "Analyze")
-                </button>
-            </div>
-
-            @if (isLoading)
-            {
-                <div class="loading-indicator">
-                    <div class="spinner"></div>
-                    <div class="progress-text">Analyzing @symbol... (AI reasoning may take 10-30s)</div>
-                </div>
-            }
-            else if (errorMessage != null)
-            {
-                <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.4); border-radius: 8px; padding: 1.25rem; color: #fca5a5; margin-bottom: 1rem;">
-                    <strong>Analysis failed:</strong> @errorMessage
-                </div>
-            }
-            else if (analysisResult != null)
-            {
-                <!-- AI Analysis Results Section -->
-                <div style="background: #1a73e8; border: 5px solid #ff0000; padding: 2rem; margin-bottom: 2rem; border-radius: 12px; box-shadow: 0 8px 24px rgba(255, 0, 0, 0.5); position: relative; z-index: 1000;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
-                        <span style="font-size: 2rem;">🤖</span>
-                        <h2 style="margin: 0; color: #ffffff; font-size: 2rem; font-weight: 900;">AI ANALYSIS RESULTS HERE</h2>
-                    </div>
-
-                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                        <h3 style="margin: 0; color: #ffffff; font-size: 1.25rem;">@analysisResult.Symbol</h3>
-                        <span style="color: #10b981; font-size: 1.25rem; font-weight: 700;">$@analysisResult.CurrentPrice.ToString("F2")</span>
-                    </div>
-                    
-                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                        <span class="signal-badge @GetSignalClass(analysisResult.OverallSignal)" style="font-size: 1rem;">
-                            @analysisResult.OverallSignal
-                        </span>
-                        <span style="color: #9ca3af;">
-                            Signal Strength: <strong style="color: #ffffff;">@analysisResult.SignalStrength.ToString("F2")</strong>
-                        </span>
-                        <span style="color: #6b7280; font-size: 0.85rem;">
-                            @analysisResult.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC
-                        </span>
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(analysisResult.Reasoning))
-                    {
-                        <div class="reasoning-section" style="margin-bottom: 1.5rem;">
-                            <strong style="font-size: 1.1rem; color: #60a5fa;">📊 AI Reasoning:</strong><br /><br />
-                            <div style="line-height: 1.8;">
-                                @((MarkupString)analysisResult.Reasoning.Replace("\n", "<br />"))
+            <div class="two-column-layout">
+                <!-- Left Column: Chart -->
+                <div class="left-column">
+                    <div class="chart-container">
+                        <h3 style="color: #ffffff; margin-bottom: 1rem;">Technical Chart</h3>
+                        @if (!string.IsNullOrEmpty(symbol))
+                        {
+                            <TradingViewTechnicalAnalysisWidget @key="symbol" InitialSymbol="@GetTradingViewSymbol(symbol)" InitialInterval="1D" Title="@($"{symbol} - TradingView Analysis")" />
+                        }
+                        else
+                        {
+                            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #9ca3af;">
+                                <p>Enter a symbol to load the chart</p>
                             </div>
-                        </div>
-                    }
+                        }
+                    </div>
+                </div>
 
-                    @if (analysisResult.Indicators != null && analysisResult.Indicators.Count > 0)
-                    {
-                        <div style="margin-top: 1.5rem;">
-                            <h3 style="color: #ffffff; margin-bottom: 1rem; font-size: 1.1rem;">📈 Key Technical Indicators</h3>
-                            <div class="indicator-grid">
-                                @foreach (var indicator in GetKeyIndicators(analysisResult.Indicators))
-                                {
-                                    <div class="indicator-card">
-                                        <div class="indicator-label">@FormatIndicatorName(indicator.Key)</div>
-                                        <div class="indicator-value">@FormatIndicatorValue(indicator.Value)</div>
+                <!-- Right Column: Stock Selection & Analysis Results -->
+                <div class="right-column">
+                    <!-- Stock Selection Widget -->
+                    <div class="widget-card">
+                        <h3 style="color: #ffffff; margin-bottom: 1rem;">Stock Selection</h3>
+                        <div class="input-group" style="margin-bottom: 0;">
+                            <input type="text" class="input-field" placeholder="Enter symbol (e.g., AAPL)" @bind="symbol" @onkeypress="HandleKeyPress" />
+                            <select class="select-field" @bind="lookbackDays">
+                                <option value="30">30 Days</option>
+                                <option value="60">60 Days</option>
+                                <option value="100" selected>100 Days</option>
+                                <option value="200">200 Days</option>
+                                <option value="365">1 Year</option>
+                            </select>
+                        </div>
+                        <button class="submit-btn" style="width: 100%; margin-top: 1rem;" @onclick="AnalyzeSymbol" disabled="@isLoading">
+                            @(isLoading ? "Analyzing..." : "Analyze")
+                        </button>
+                    </div>
+
+                    <!-- AI Analysis Widget -->
+                    <div class="widget-card" style="flex: 1; overflow-y: auto;">
+                        <h3 style="color: #ffffff; margin-bottom: 1rem;">AI Analysis</h3>
+                        
+                        @if (isLoading)
+                        {
+                            <div class="loading-indicator">
+                                <div class="spinner"></div>
+                                <div class="progress-text">Analyzing @symbol... (AI reasoning may take 10-30s)</div>
+                            </div>
+                        }
+                        else if (errorMessage != null)
+                        {
+                            <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.4); border-radius: 8px; padding: 1.25rem; color: #fca5a5;">
+                                <strong>Analysis failed:</strong> @errorMessage
+                            </div>
+                        }
+                        else if (analysisResult != null)
+                        {
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                                <h4 style="margin: 0; color: #ffffff; font-size: 1.25rem;">@analysisResult.Symbol</h4>
+                                <span style="color: #10b981; font-size: 1.25rem; font-weight: 700;">$@analysisResult.CurrentPrice.ToString("F2")</span>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                                <span class="signal-badge @GetSignalClass(analysisResult.OverallSignal)" style="font-size: 1rem;">
+                                    @analysisResult.OverallSignal
+                                </span>
+                                <span style="color: #9ca3af;">
+                                    Signal Strength: <strong style="color: #ffffff;">@analysisResult.SignalStrength.ToString("F2")</strong>
+                                </span>
+                            </div>
+                            
+                            <div style="color: #6b7280; font-size: 0.85rem; margin-bottom: 1rem;">
+                                @analysisResult.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(analysisResult.Reasoning))
+                            {
+                                <div style="margin-bottom: 1.5rem;">
+                                    <strong style="font-size: 1rem; color: #e5e7eb;">Reasoning:</strong><br /><br />
+                                    <div style="line-height: 1.6; font-size: 0.9rem; color: #d1d5db;">
+                                        @((MarkupString)analysisResult.Reasoning.Replace("\n", "<br />"))
                                     </div>
-                                }
-                            </div>
-                        </div>
-                    }
-                    else
-                    {
-                        <p style="color: #9ca3af; margin-top: 1rem; font-style: italic;">No indicators available</p>
-                    }
-                </div>
+                                </div>
+                            }
 
-                <!-- TradingView Technical Analysis Widget -->
-                <div style="margin-top: 2rem; padding: 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;">
-                    <h3 style="color: #ffffff; margin-bottom: 1rem;">📊 TradingView Technical Indicators</h3>
-                    <TradingViewTechnicalAnalysisWidget InitialSymbol="@GetTradingViewSymbol(symbol)" InitialInterval="1D" Title="@($"{symbol} - TradingView Analysis")" />
+                            @if (analysisResult.Indicators != null && analysisResult.Indicators.Count > 0)
+                            {
+                                <div style="margin-top: 1.5rem;">
+                                    <strong style="color: #e5e7eb; margin-bottom: 0.75rem; display: block;">Key Indicators</strong>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                        @foreach (var indicator in GetKeyIndicators(analysisResult.Indicators))
+                                        {
+                                            <div class="indicator-card">
+                                                <div class="indicator-label" style="font-size: 0.75rem;">@FormatIndicatorName(indicator.Key)</div>
+                                                <div class="indicator-value" style="font-size: 1rem;">@FormatIndicatorValue(indicator.Value)</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div style="display: flex; align-items: center; justify-content: center; height: 200px; color: #9ca3af; text-align: center;">
+                                <p>Enter a symbol and click "Analyze" to view AI analysis results</p>
+                            </div>
+                        }
+                    </div>
                 </div>
-            }
-            else
-            {
-                <div style="background: rgba(136, 136, 136, 0.1); border: 1px solid rgba(136, 136, 136, 0.2); border-radius: 8px; padding: 1.5rem; color: #9ca3af; text-align: center;">
-                    <p style="margin: 0;">Enter a symbol and click "Analyze" to view technical analysis</p>
-                </div>
-            }
+            </div>
         }
 
         @if (activeTab == "indicators")
