@@ -10,13 +10,16 @@ namespace Server.Controllers
     {
         private readonly ILogger<TechnicalAnalysisController> _logger;
         private readonly TechnicalAnalysisService _technicalAnalysisService;
+        private readonly DeepSeekService _deepSeekService;
 
         public TechnicalAnalysisController(
             ILogger<TechnicalAnalysisController> logger,
-            TechnicalAnalysisService technicalAnalysisService)
+            TechnicalAnalysisService technicalAnalysisService,
+            DeepSeekService deepSeekService)
         {
             _logger = logger;
             _technicalAnalysisService = technicalAnalysisService;
+            _deepSeekService = deepSeekService;
         }
 
         /// <summary>
@@ -143,27 +146,125 @@ namespace Server.Controllers
         {
             try
             {
-                _logger.LogInformation("Pattern recognition request for {Symbol}", request.Symbol);
+                _logger.LogInformation("Pattern recognition request for {Symbol} with {Days} days lookback", 
+                    request.Symbol, request.LookbackDays);
 
-                var analysis = await _technicalAnalysisService.PerformFullAnalysisAsync(request.Symbol);
+                var analysis = await _technicalAnalysisService.PerformFullAnalysisAsync(
+                    request.Symbol, 
+                    request.LookbackDays);
                 
                 var patterns = analysis.Indicators.TryGetValue("Patterns", out var patternsObj) && 
                               patternsObj is List<string> patternsList 
                     ? patternsList 
                     : new List<string>();
 
+                var patternDetails = analysis.Indicators.TryGetValue("PatternDetails", out var detailsObj) &&
+                                    detailsObj is List<PatternDetection> detailsList
+                    ? detailsList
+                    : new List<PatternDetection>();
+
                 return Ok(new PatternResponse
                 {
                     Symbol = analysis.Symbol,
                     Patterns = patterns,
+                    PatternDetails = patternDetails.Select(pd => new PatternDetail
+                    {
+                        PatternName = pd.PatternName,
+                        Explanation = pd.Explanation
+                    }).ToList(),
                     Timestamp = analysis.Timestamp,
-                    Type = "patterns"
+                    Type = "patterns",
+                    LookbackDays = request.LookbackDays
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting patterns for {Symbol}", request.Symbol);
                 return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get AI analysis of detected patterns using DeepSeek
+        /// </summary>
+        [HttpPost("analyze-patterns-ai")]
+        public async Task<IActionResult> AnalyzePatternsWithAI([FromBody] AIPatternAnalysisRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("AI pattern analysis request for {Symbol}", request.Symbol);
+
+                var patternsList = string.Join(", ", request.Patterns.Select(p => p.PatternName));
+                var patternDetails = string.Join("\n", request.Patterns.Select(p => 
+                    $"- {p.PatternName}: {p.Explanation}"));
+
+                var prompt = $@"You are an expert technical analyst. Analyze the following chart patterns detected in {request.Symbol} over the past {request.LookbackDays} days:
+
+{patternDetails}
+
+Provide a comprehensive analysis covering:
+1. What these patterns indicate about the current market sentiment
+2. Potential price movements or trends these patterns suggest
+3. Key support and resistance levels to watch
+4. Trading recommendations (bullish/bearish outlook)
+5. Risk factors to consider
+
+Keep the analysis concise but actionable.";
+
+                var analysis = await _deepSeekService.GetChatCompletionAsync(prompt);
+
+                return Ok(new AIAnalysisResponse
+                {
+                    Analysis = analysis,
+                    Timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in AI pattern analysis for {Symbol}", request.Symbol);
+                return StatusCode(500, new { error = ex.Message, details = "Make sure DeepSeek API key is configured" });
+            }
+        }
+
+        /// <summary>
+        /// Ask a specific question about detected patterns using DeepSeek
+        /// </summary>
+        [HttpPost("ask-pattern-question")]
+        public async Task<IActionResult> AskPatternQuestion([FromBody] AIPatternQuestionRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("AI pattern question for {Symbol}: {Question}", 
+                    request.Symbol, request.Question);
+
+                var patternDetails = string.Join("\n", request.Patterns.Select(p => 
+                    $"- {p.PatternName}: {p.Explanation}"));
+
+                var prompt = $@"Context: You previously analyzed chart patterns for {request.Symbol}:
+
+{patternDetails}
+
+";
+
+                if (!string.IsNullOrEmpty(request.PreviousAnalysis))
+                {
+                    prompt += $"Your previous analysis:\n{request.PreviousAnalysis}\n\n";
+                }
+
+                prompt += $"Question: {request.Question}\n\nProvide a clear, concise answer based on technical analysis principles.";
+
+                var answer = await _deepSeekService.GetChatCompletionAsync(prompt);
+
+                return Ok(new AIAnalysisResponse
+                {
+                    Analysis = answer,
+                    Timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in AI pattern question for {Symbol}", request.Symbol);
+                return StatusCode(500, new { error = ex.Message, details = "Make sure DeepSeek API key is configured" });
             }
         }
 
@@ -308,13 +409,43 @@ namespace Server.Controllers
     public class PatternRequest
     {
         public string Symbol { get; set; } = string.Empty;
+        public int LookbackDays { get; set; } = 365;
+    }
+
+    public class AIPatternAnalysisRequest
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public List<PatternDetail> Patterns { get; set; } = new();
+        public int LookbackDays { get; set; }
+    }
+
+    public class AIPatternQuestionRequest
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public List<PatternDetail> Patterns { get; set; } = new();
+        public string Question { get; set; } = string.Empty;
+        public string PreviousAnalysis { get; set; } = string.Empty;
+    }
+
+    public class AIAnalysisResponse
+    {
+        public string Analysis { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
     }
 
     public class PatternResponse
     {
         public string Symbol { get; set; } = string.Empty;
         public List<string> Patterns { get; set; } = new();
+        public List<PatternDetail> PatternDetails { get; set; } = new();
         public DateTime Timestamp { get; set; }
         public string Type { get; set; } = string.Empty;
+        public int LookbackDays { get; set; }
+    }
+
+    public class PatternDetail
+    {
+        public string PatternName { get; set; } = string.Empty;
+        public string Explanation { get; set; } = string.Empty;
     }
 }

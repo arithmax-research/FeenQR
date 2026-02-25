@@ -1,5 +1,6 @@
 @page "/technical-analysis"
 @using System.Text.Json
+@using Microsoft.AspNetCore.Components
 @inject IJSRuntime JS
 @inject HttpClient Http
 
@@ -300,6 +301,186 @@
     .pattern-list {
         list-style: none;
         padding: 0;
+        margin: 0;
+    }
+
+    .pattern-item {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        color: #e5e7eb;
+        font-size: 0.9rem;
+    }
+
+    /* Multi-Widget Layout for Patterns */
+    .patterns-multi-widget {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .patterns-widget-grid {
+        display: grid;
+        grid-template-columns: 400px 1fr;
+        gap: 1.5rem;
+    }
+
+    .patterns-input-widget,
+    .patterns-results-widget {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+
+    .patterns-input-widget {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .input-label {
+        display: block;
+        color: #9ca3af;
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .results-card-compact {
+        padding: 0;
+    }
+
+    .pattern-details-list-compact {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .pattern-detail-card-compact {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .pattern-detail-card-compact:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(26, 115, 232, 0.4);
+        transform: translateX(4px);
+    }
+
+    .pattern-name-compact {
+        color: #1a73e8;
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .pattern-explanation-compact {
+        color: #e5e7eb;
+        font-size: 0.85rem;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .patterns-ai-widget {
+        background: rgba(26, 115, 232, 0.05);
+        border: 1px solid rgba(26, 115, 232, 0.2);
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+
+    .ai-analysis-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 1.5rem;
+    }
+
+    .ai-analysis-text {
+        color: #e5e7eb;
+        line-height: 1.8;
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .ai-analysis-text h3 {
+        color: #ffffff;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 1.5rem 0 1rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .ai-analysis-text h4 {
+        color: #1a73e8;
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 1.25rem 0 0.75rem 0;
+    }
+
+    .ai-analysis-text p {
+        margin: 0.75rem 0;
+        color: #e5e7eb;
+    }
+
+    .ai-analysis-text strong {
+        color: #ffffff;
+        font-weight: 600;
+    }
+
+    .ai-analysis-text ul {
+        margin: 0.75rem 0;
+        padding-left: 1.5rem;
+    }
+
+    .ai-analysis-text li {
+        margin: 0.5rem 0;
+        color: #e5e7eb;
+    }
+
+    .ai-analysis-text li strong {
+        color: #1a73e8;
+    }
+
+    .ai-question-section {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .ai-response-card {
+        background: rgba(26, 115, 232, 0.1);
+        border: 1px solid rgba(26, 115, 232, 0.3);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    .empty-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
+        color: #9ca3af;
+        font-style: italic;
+        text-align: center;
+    }
+
+    @@media (max-width: 1024px) {
+        .patterns-widget-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+        list-style: none;
+        padding: 0;
         margin-top: 1rem;
     }
 
@@ -311,6 +492,41 @@
         margin-bottom: 0.5rem;
         color: #10b981;
         font-weight: 500;
+    }
+
+    .pattern-details-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .pattern-detail-card {
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 8px;
+        padding: 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .pattern-detail-card:hover {
+        background: rgba(30, 41, 59, 0.7);
+        border-color: rgba(148, 163, 184, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .pattern-name {
+        color: #10b981;
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .pattern-explanation {
+        color: #cbd5e1;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin: 0;
     }
 
     .multi-symbol-input {
@@ -645,46 +861,164 @@
 
         @if (activeTab == "patterns")
         {
-            <div class="section-header">
-                Pattern Recognition
-            </div>
+            <div class="patterns-multi-widget">
+                <div class="patterns-widget-grid">
+                    <!-- Left Widget: Input Controls -->
+                    <div class="patterns-input-widget">
+                        <div class="section-header">
+                            Pattern Recognition Setup
+                        </div>
 
-            <div class="input-group">
-                <input type="text" class="input-field" placeholder="Enter symbol (e.g., AAPL)" @bind="symbol" />
-                <button class="submit-btn" @onclick="GetPatterns" disabled="@isLoading">
-                    @(isLoading ? "Detecting..." : "Detect Patterns")
-                </button>
-            </div>
+                        <div class="input-group">
+                            <label class="input-label">Stock Symbol</label>
+                            <input type="text" class="input-field" placeholder="Enter symbol (e.g., AAPL)" @bind="patternSymbol" />
+                        </div>
 
-            @if (isLoading)
-            {
-                <div class="loading-indicator">
-                    <div class="spinner"></div>
-                    <div class="progress-text">Detecting patterns...</div>
+                        <div class="input-group">
+                            <label class="input-label">Lookback Period: @GetLookbackLabel(patternLookbackDays)</label>
+                            <select class="input-field" @bind="patternLookbackDays">
+                                <option value="30">1 Month (30 days)</option>
+                                <option value="90">3 Months (90 days)</option>
+                                <option value="180">6 Months (180 days)</option>
+                                <option value="365">1 Year (365 days)</option>
+                                <option value="730">2 Years (730 days)</option>
+                                <option value="1095">3 Years (1095 days)</option>
+                                <option value="1460">4 Years (1460 days)</option>
+                                <option value="1825">5 Years (1825 days)</option>
+                                <option value="2190">6 Years (2190 days)</option>
+                                <option value="2555">7 Years (2555 days)</option>
+                            </select>
+                        </div>
+
+                        <button class="submit-btn" @onclick="GetPatterns" disabled="@isLoading">
+                            @(isLoading ? "Detecting..." : "Detect Patterns")
+                        </button>
+                    </div>
+
+                    <!-- Right Widget: Pattern Results -->
+                    <div class="patterns-results-widget">
+                        <div class="section-header">
+                            Detected Patterns
+                        </div>
+
+                        @if (isLoading)
+                        {
+                            <div class="loading-indicator">
+                                <div class="spinner"></div>
+                                <div class="progress-text">Detecting patterns...</div>
+                            </div>
+                        }
+                        else if (patternResult != null)
+                        {
+                            <div class="results-card-compact">
+                                <h3 style="margin-bottom: 0.5rem; color: #ffffff; font-size: 1.1rem;">
+                                    @patternResult.Symbol
+                                </h3>
+                                <p style="color: #9ca3af; margin-bottom: 1rem; font-size: 0.85rem;">
+                                    @patternResult.LookbackDays days | @patternResult.Patterns.Count patterns
+                                </p>
+                                
+                                @if (patternResult.PatternDetails.Any())
+                                {
+                                    <div class="pattern-details-list-compact">
+                                        @foreach (var detail in patternResult.PatternDetails)
+                                        {
+                                            <div class="pattern-detail-card-compact">
+                                                <h4 class="pattern-name-compact">@detail.PatternName</h4>
+                                                <p class="pattern-explanation-compact">@detail.Explanation</p>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else if (patternResult.Patterns.Any())
+                                {
+                                    <ul class="pattern-list">
+                                        @foreach (var pattern in patternResult.Patterns)
+                                        {
+                                            <li class="pattern-item">@pattern</li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <p style="color: #9ca3af; font-style: italic; text-align: center; padding: 2rem;">
+                                        No patterns detected for @patternResult.Symbol
+                                    </p>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <p>Enter a symbol and select a lookback period to detect patterns</p>
+                            </div>
+                        }
+                    </div>
                 </div>
-            }
-            else if (patternResult != null)
-            {
-                <div class="results-card">
-                    <h2 style="margin-bottom: 1rem; color: #ffffff;">
-                        @patternResult.Symbol - Pattern Analysis
-                    </h2>
-                    
-                    @if (patternResult.Patterns.Any())
-                    {
-                        <ul class="pattern-list">
-                            @foreach (var pattern in patternResult.Patterns)
-                            {
-                                <li class="pattern-item">@pattern</li>
-                            }
-                        </ul>
-                    }
-                    else
-                    {
-                        <p style="color: #9ca3af; font-style: italic;">No patterns detected for @patternResult.Symbol</p>
-                    }
-                </div>
-            }
+
+                <!-- Bottom Widget: AI Analysis -->
+                @if (patternResult != null && patternResult.Patterns.Any())
+                {
+                    <div class="patterns-ai-widget">
+                        <div class="section-header">
+                            AI Pattern Analysis (DeepSeek)
+                        </div>
+
+                        @if (isLoadingAI)
+                        {
+                            <div class="loading-indicator">
+                                <div class="spinner"></div>
+                                <div class="progress-text">Analyzing with DeepSeek AI...</div>
+                            </div>
+                        }
+                        else if (!string.IsNullOrEmpty(aiPatternAnalysis))
+                        {
+                            <div class="ai-analysis-card">
+                                <h3 style="color: #1a73e8; margin-bottom: 1rem; font-size: 1rem; font-weight: 600;">
+                                    AI Technical Analysis
+                                </h3>
+                                <div class="ai-analysis-text" @key="aiPatternAnalysis">
+                                    @((MarkupString)FormatAIAnalysis(aiPatternAnalysis))
+                                </div>
+                                
+                                <div class="ai-question-section">
+                                    <h4 style="color: #ffffff; margin-bottom: 0.75rem; font-size: 0.95rem;">
+                                        Ask DeepSeek a Question
+                                    </h4>
+                                    <div class="input-group">
+                                        <input type="text" 
+                                               class="input-field" 
+                                               placeholder="Ask about these patterns..." 
+                                               @bind="aiQuestion" 
+                                               @onkeypress="HandleAIQuestionKeyPress" />
+                                        <button class="submit-btn" @onclick="AskAIQuestion" disabled="@isLoadingAI">
+                                            @(isLoadingAI ? "Asking..." : "Ask AI")
+                                        </button>
+                                    </div>
+                                    
+                                    @if (!string.IsNullOrEmpty(aiQuestionResponse))
+                                    {
+                                        <div class="ai-response-card">
+                                            <h5 style="color: #1a73e8; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">
+                                                Response:
+                                            </h5>
+                                            <div style="color: #e5e7eb; line-height: 1.6;">
+                                                @((MarkupString)FormatAIAnalysis(aiQuestionResponse))
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <button class="submit-btn" @onclick="GetAIPatternAnalysis" disabled="@isLoadingAI">
+                                Get AI Analysis
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
         }
 
         @if (activeTab == "long-term")
@@ -763,6 +1097,14 @@
     private string indicatorCategory = "all";
     private string newSymbol = "";
     private List<string> compareSymbols = new();
+
+    // Pattern-specific fields
+    private string patternSymbol = "AAPL";
+    private int patternLookbackDays = 365;
+    private bool isLoadingAI = false;
+    private string aiPatternAnalysis = "";
+    private string aiQuestion = "";
+    private string aiQuestionResponse = "";
 
     // Results
     private TechnicalAnalysisResponse? analysisResult;
@@ -1045,20 +1387,29 @@
 
     private async Task GetPatterns()
     {
-        if (string.IsNullOrWhiteSpace(symbol)) return;
+        if (string.IsNullOrWhiteSpace(patternSymbol)) return;
 
         isLoading = true;
+        aiPatternAnalysis = ""; // Clear previous AI analysis
+        aiQuestionResponse = "";
         try
         {
-            var cleanSymbol = SanitizeSymbol(symbol);
+            var cleanSymbol = SanitizeSymbol(patternSymbol);
             var response = await Http.PostAsJsonAsync("/api/technicalanalysis/patterns", new
             {
-                Symbol = cleanSymbol
+                Symbol = cleanSymbol,
+                LookbackDays = patternLookbackDays
             });
 
             if (response.IsSuccessStatusCode)
             {
                 patternResult = await response.Content.ReadFromJsonAsync<PatternResponse>();
+                
+                // Automatically get AI analysis after patterns are detected
+                if (patternResult != null && patternResult.Patterns.Any())
+                {
+                    await GetAIPatternAnalysis();
+                }
             }
         }
         catch (Exception ex)
@@ -1069,6 +1420,198 @@
         {
             isLoading = false;
         }
+    }
+
+    private async Task GetAIPatternAnalysis()
+    {
+        if (patternResult == null || !patternResult.Patterns.Any()) return;
+
+        isLoadingAI = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/technicalanalysis/analyze-patterns-ai", new
+            {
+                Symbol = patternResult.Symbol,
+                Patterns = patternResult.PatternDetails,
+                LookbackDays = patternResult.LookbackDays
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<AIAnalysisResponse>();
+                aiPatternAnalysis = result?.Analysis ?? "No analysis available";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"AI Analysis Error: {ex.Message}");
+            aiPatternAnalysis = "Failed to get AI analysis. Please try again.";
+        }
+        finally
+        {
+            isLoadingAI = false;
+        }
+    }
+
+    private async Task AskAIQuestion()
+    {
+        if (string.IsNullOrWhiteSpace(aiQuestion) || patternResult == null) return;
+
+        isLoadingAI = true;
+        aiQuestionResponse = "";
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/technicalanalysis/ask-pattern-question", new
+            {
+                Symbol = patternResult.Symbol,
+                Patterns = patternResult.PatternDetails,
+                Question = aiQuestion,
+                PreviousAnalysis = aiPatternAnalysis
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<AIAnalysisResponse>();
+                aiQuestionResponse = result?.Analysis ?? "No response available";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"AI Question Error: {ex.Message}");
+            aiQuestionResponse = "Failed to get AI response. Please try again.";
+        }
+        finally
+        {
+            isLoadingAI = false;
+        }
+    }
+
+    private async Task HandleAIQuestionKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(aiQuestion))
+        {
+            await AskAIQuestion();
+        }
+    }
+
+    private string GetLookbackLabel(int days)
+    {
+        return days switch
+        {
+            30 => "1 Month",
+            90 => "3 Months",
+            180 => "6 Months",
+            365 => "1 Year",
+            730 => "2 Years",
+            1095 => "3 Years",
+            1460 => "4 Years",
+            1825 => "5 Years",
+            2190 => "6 Years",
+            2555 => "7 Years",
+            _ => $"{days} Days"
+        };
+    }
+
+    private string FormatAIAnalysis(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+
+        // Remove emojis
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]", "");
+        
+        var lines = text.Split('\n');
+        var html = new System.Text.StringBuilder();
+        bool inList = false;
+
+        foreach (var line in lines)
+        {
+            var trimmedLine = line.TrimStart();
+            
+            // Skip empty lines
+            if (string.IsNullOrWhiteSpace(trimmedLine))
+            {
+                if (inList)
+                {
+                    html.Append("</ul>");
+                    inList = false;
+                }
+                html.Append("<br/>");
+                continue;
+            }
+
+            // Handle markdown headers
+            if (trimmedLine.StartsWith("### "))
+            {
+                if (inList) { html.Append("</ul>"); inList = false; }
+                var headerText = trimmedLine.Substring(4).Trim();
+                html.Append($"<h3>{System.Net.WebUtility.HtmlEncode(headerText)}</h3>");
+            }
+            else if (trimmedLine.StartsWith("## "))
+            {
+                if (inList) { html.Append("</ul>"); inList = false; }
+                var headerText = trimmedLine.Substring(3).Trim();
+                html.Append($"<h3>{System.Net.WebUtility.HtmlEncode(headerText)}</h3>");
+            }
+            else if (trimmedLine.StartsWith("# "))
+            {
+                if (inList) { html.Append("</ul>"); inList = false; }
+                var headerText = trimmedLine.Substring(2).Trim();
+                html.Append($"<h3>{System.Net.WebUtility.HtmlEncode(headerText)}</h3>");
+            }
+            // Handle numbered lists
+            else if (System.Text.RegularExpressions.Regex.IsMatch(trimmedLine, @"^\d+\.\s"))
+            {
+                if (inList) { html.Append("</ul>"); inList = false; }
+                var content = System.Text.RegularExpressions.Regex.Replace(trimmedLine, @"^\d+\.\s", "");
+                html.Append($"<h4>{FormatInlineMarkdown(content)}</h4>");
+            }
+            // Handle bullet points
+            else if (trimmedLine.StartsWith("*   ") || trimmedLine.StartsWith("* ") || trimmedLine.StartsWith("- "))
+            {
+                if (!inList)
+                {
+                    html.Append("<ul>");
+                    inList = true;
+                }
+                var bulletContent = trimmedLine.TrimStart('*', '-', ' ');
+                html.Append($"<li>{FormatInlineMarkdown(bulletContent)}</li>");
+            }
+            // Regular paragraphs
+            else
+            {
+                if (inList) { html.Append("</ul>"); inList = false; }
+                html.Append($"<p>{FormatInlineMarkdown(trimmedLine)}</p>");
+            }
+        }
+
+        // Close any open list
+        if (inList)
+        {
+            html.Append("</ul>");
+        }
+
+        return html.ToString();
+    }
+
+    private string FormatInlineMarkdown(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+
+        // Handle bold text with **text**
+        text = System.Text.RegularExpressions.Regex.Replace(
+            text, 
+            @"\*\*([^\*]+)\*\*", 
+            "<strong>$1</strong>"
+        );
+
+        // Handle code/emphasis with `text`
+        text = System.Text.RegularExpressions.Regex.Replace(
+            text,
+            @"`([^`]+)`",
+            "<code style='background: rgba(255,255,255,0.1); padding: 0.2em 0.4em; border-radius: 3px;'>$1</code>"
+        );
+
+        return text;
     }
 
     private async Task AnalyzeSymbolLongTerm()
@@ -1262,7 +1805,21 @@
     {
         public string Symbol { get; set; } = string.Empty;
         public List<string> Patterns { get; set; } = new();
+        public List<PatternDetail> PatternDetails { get; set; } = new();
         public DateTime Timestamp { get; set; }
         public string Type { get; set; } = string.Empty;
+        public int LookbackDays { get; set; }
+    }
+
+    public class PatternDetail
+    {
+        public string PatternName { get; set; } = string.Empty;
+        public string Explanation { get; set; } = string.Empty;
+    }
+
+    public class AIAnalysisResponse
+    {
+        public string Analysis { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
     }
 }
