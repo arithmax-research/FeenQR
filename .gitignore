@@ -23,3 +23,6 @@ bin/
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+#Ignore papers_Backlog folder
+/papers_Backlog/
