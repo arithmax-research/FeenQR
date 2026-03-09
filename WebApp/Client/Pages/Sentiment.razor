@@ -12,8 +12,7 @@
         right: 0;
         bottom: 0;
         background: inherit;
-        overflow-x: hidden;
-        overflow-y: auto;
+        overflow: hidden;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
@@ -59,17 +58,118 @@
 
     .sentiment-content {
         flex: 1;
+        overflow: hidden;
+        display: flex;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .sources-panel {
+        width: 35%;
+        min-width: 300px;
+        max-width: 450px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .sources-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .sources-list {
+        flex: 1;
         overflow-y: auto;
-        padding: 1.5rem;
-        margin: 0 auto;
-        max-width: 1400px;
-        width: 100%;
+        padding: 1rem;
+    }
+
+    .source-item {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 0.875rem;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-left: 3px solid transparent;
+    }
+
+    .source-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-left-color: #10b981;
+    }
+
+    .source-item.bullish {
+        border-left-color: #10b981;
+    }
+
+    .source-item.bearish {
+        border-left-color: #ef4444;
+    }
+
+    .source-item.neutral {
+        border-left-color: #9ca3af;
+    }
+
+    .source-title {
+        color: #ffffff;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .source-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        color: #9ca3af;
+        flex-wrap: wrap;
+    }
+
+    .source-sentiment-badge {
+        padding: 0.125rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    .analysis-panel {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .analysis-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .analysis-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.25rem;
     }
 
     .search-bar {
         display: flex;
         gap: 0.5rem;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
     }
 
     .search-input {
@@ -121,6 +221,7 @@
         align-items: center;
         gap: 1rem;
         margin-bottom: 1rem;
+        flex-wrap: wrap;
     }
 
     .score-badge {
@@ -334,284 +435,729 @@
     <div class="sentiment-content">
         @if (activeTab == "symbol")
         {
-            <h2 style="color: #ffffff; margin-bottom: 1rem;">Symbol Sentiment Analysis</h2>
-            <p style="color: #9ca3af; margin-bottom: 1.5rem;">Analyze news sentiment for any stock symbol</p>
-
-            <div class="search-bar">
-                <input type="text" class="search-input" placeholder="Enter symbol (e.g., AAPL, TSLA)" @bind="symbolQuery" @onkeypress="HandleKeyPress" />
-                <button class="search-btn" @onclick="AnalyzeSymbolSentiment" disabled="@isLoading">Analyze</button>
-            </div>
-
-            @if (isLoading)
-            {
-                <div class="loading-indicator">
-                    <div class="spinner"></div>
-                    <p>Analyzing sentiment...</p>
+            <!-- Left Panel: Sources -->
+            <div class="sources-panel">
+                <div class="sources-header">
+                    <h3 style="color: #ffffff; font-size: 1rem; margin: 0;">News Sources</h3>
+                    @if (symbolSentiment is not null && symbolSentiment is System.Text.Json.JsonElement)
+                    {
+                        var ss = (System.Text.Json.JsonElement)symbolSentiment;
+                        if (ss.ValueKind != System.Text.Json.JsonValueKind.Null)
+                        {
+                            <p style="color: #9ca3af; font-size: 0.8rem; margin: 0.25rem 0 0 0;">
+                                @GetArrayLength(ss, "recentNews") articles found
+                            </p>
+                        }
+                    }
                 </div>
-            }
-            else if (symbolSentiment is not null && symbolSentiment is System.Text.Json.JsonElement)
-            {
-                var ss = (System.Text.Json.JsonElement)symbolSentiment;
-                if (ss.ValueKind != System.Text.Json.JsonValueKind.Null && ss.ValueKind != System.Text.Json.JsonValueKind.Undefined)
-                {
-                    <div class="sentiment-card">
-                        <h3 style="color: #ffffff; margin-bottom: 1rem;">@GetStringProperty(ss, "symbol")</h3>
-                        
-                        <div class="sentiment-score">
-                            <span class="score-badge @GetSentimentClass(GetStringProperty(ss, "overallSentiment"))">
-                                @GetStringProperty(ss, "overallSentiment")
-                            </span>
-                            <span style="color: #9ca3af;">Score: @GetDoubleProperty(ss, "sentimentScore").ToString("F2")</span>
-                            <span style="color: #9ca3af;">Confidence: @(GetDoubleProperty(ss, "confidence") * 100).ToString("F0")%</span>
+                <div class="sources-list">
+                    @if (isLoading)
+                    {
+                        <div style="text-align: center; padding: 2rem; color: #9ca3af;">
+                            <div class="spinner" style="width: 40px; height: 40px;"></div>
+                            <p style="margin-top: 1rem;">Loading sources...</p>
                         </div>
-
-                        <div class="metric-grid">
-                            <div class="metric-card">
-                                <div class="metric-label">News Count</div>
-                                <div class="metric-value">@GetIntProperty(ss, "newsCount")</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">Sources</div>
-                                <div class="metric-value">@GetArrayLength(ss, "sources")</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">Positive</div>
-                                <div class="metric-value" style="color: #10b981;">@(GetDoubleProperty(ss, "positivePercent").ToString("F0"))%</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">Negative</div>
-                                <div class="metric-value" style="color: #ef4444;">@(GetDoubleProperty(ss, "negativePercent").ToString("F0"))%</div>
-                            </div>
-                        </div>
-
-                        @if (GetArrayLength(ss, "sources") > 0)
+                    }
+                    else if (symbolSentiment is not null && symbolSentiment is System.Text.Json.JsonElement)
+                    {
+                        var ss = (System.Text.Json.JsonElement)symbolSentiment;
+                        if (ss.ValueKind != System.Text.Json.JsonValueKind.Null && HasProperty(ss, "recentNews") && GetArrayLength(ss, "recentNews") > 0)
                         {
-                            <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(255, 255, 255, 0.02); border-radius: 8px;">
-                                <div style="color: #9ca3af; font-size: 0.8rem; margin-bottom: 0.5rem;">News Sources:</div>
-                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                    @if (ss.TryGetProperty("sources", out var sourcesArray))
-                                    {
-                                        @foreach (var source in sourcesArray.EnumerateArray())
-                                        {
-                                            <span style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.8rem;">
-                                                @source.GetString()
-                                            </span>
-                                        }
-                                    }
-                                </div>
-                            </div>
-                        }
-
-                        @if (!string.IsNullOrEmpty(GetStringProperty(ss, "summary")))
-                        {
-                            <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(16, 185, 129, 0.05); border-left: 3px solid #10b981; border-radius: 4px;">
-                                <h4 style="color: #10b981; margin-bottom: 0.5rem;">Summary</h4>
-                                <p style="color: #d1d5db; line-height: 1.6;">@GetStringProperty(ss, "summary")</p>
-                            </div>
-                        }
-
-                        @try
-                        {
-                            @if (HasProperty(ss, "recentNews") && GetArrayLength(ss, "recentNews") > 0)
+                            if (ss.TryGetProperty("recentNews", out System.Text.Json.JsonElement recentNewsArray))
                             {
-                                <h4 style="color: #ffffff; margin-top: 1.5rem; margin-bottom: 1rem;">Recent News</h4>
-                                @if (ss.TryGetProperty("recentNews", out System.Text.Json.JsonElement recentNewsArray))
+                                @foreach (var news in recentNewsArray.EnumerateArray())
                                 {
-                                    @foreach (var news in recentNewsArray.EnumerateArray())
-                                    {
-                                        <div class="news-item">
-                                            <div class="news-title">
-                                                <a href="@GetStringProperty(news, "link")" target="_blank" style="color: #ffffff; text-decoration: none;">
-                                                    @GetStringProperty(news, "title")
-                                                    <i class="bi bi-box-arrow-up-right" style="font-size: 0.8rem; margin-left: 0.25rem;"></i>
-                                                </a>
-                                            </div>
-                                            <div class="news-meta">
-                                                @GetStringProperty(news, "source") · @GetStringProperty(news, "publishedDate") · 
-                                                <span style="color: @GetSentimentColor(GetStringProperty(news, "sentimentLabel"));">
-                                                    @GetStringProperty(news, "sentimentLabel") (@GetDoubleProperty(news, "sentimentScore").ToString("F2"))
+                                    var sentiment = GetStringProperty(news, "sentimentLabel");
+                                    <a href="@GetStringProperty(news, "link")" target="_blank" style="text-decoration: none;">
+                                        <div class="source-item @GetSentimentClass(sentiment)">
+                                            <div class="source-title">@GetStringProperty(news, "title")</div>
+                                            <div class="source-meta">
+                                                <span>@GetStringProperty(news, "source")</span>
+                                                <span>•</span>
+                                                <span>@GetStringProperty(news, "publishedDate")</span>
+                                                <span class="source-sentiment-badge @GetSentimentClass(sentiment)" 
+                                                      style="background: @(GetSentimentClass(sentiment) == "bullish" ? "rgba(16, 185, 129, 0.2)" : GetSentimentClass(sentiment) == "bearish" ? "rgba(239, 68, 68, 0.2)" : "rgba(156, 163, 175, 0.2)"); 
+                                                             color: @GetSentimentColor(sentiment);">
+                                                    @sentiment (@GetDoubleProperty(news, "sentimentScore").ToString("F2"))
                                                 </span>
                                             </div>
-                                            @if (!string.IsNullOrEmpty(GetStringProperty(news, "summary")))
-                                            {
-                                                <div style="color: #9ca3af; font-size: 0.85rem; margin-top: 0.5rem; line-height: 1.4;">
-                                                    @GetStringProperty(news, "summary")
-                                                </div>
-                                            }
-                                            @if (HasProperty(news, "keyTopics") && GetArrayLength(news, "keyTopics") > 0)
-                                            {
-                                                <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                                    @if (news.TryGetProperty("keyTopics", out var topicsArray))
-                                                    {
-                                                        @foreach (var topic in topicsArray.EnumerateArray())
-                                                        {
-                                                            <span style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">
-                                                                @topic.GetString()
-                                                            </span>
-                                                        }
-                                                    }
-                                                </div>
-                                            }
                                         </div>
-                                    }
+                                    </a>
                                 }
                             }
                         }
-                        catch { }
+                        else if (!isLoading)
+                        {
+                            <div style="text-align: center; padding: 2rem; color: #9ca3af;">
+                                <p>No news sources available</p>
+                                <p style="font-size: 0.8rem; margin-top: 0.5rem;">Try analyzing a symbol</p>
+                            </div>
+                        }
+                    }
+                    else if (!isLoading)
+                    {
+                        <div style="text-align: center; padding: 2rem; color: #9ca3af;">
+                            <p>Enter a symbol to see news sources</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Right Panel: Analysis -->
+            <div class="analysis-panel">
+                <div class="analysis-header">
+                    <h2 style="color: #ffffff; font-size: 1.25rem; margin: 0;">Symbol Sentiment Analysis</h2>
+                    <p style="color: #9ca3af; font-size: 0.875rem; margin: 0.5rem 0 0 0;">Analyze news sentiment for any stock symbol</p>
+                    
+                    <div class="search-bar" style="margin-top: 1rem;">
+                        <input type="text" class="search-input" placeholder="Enter symbol (e.g., AAPL, TSLA)" @bind="symbolQuery" @onkeypress="HandleKeyPress" />
+                        <button class="search-btn" @onclick="AnalyzeSymbolSentiment" disabled="@isLoading">Analyze</button>
                     </div>
-                }
-            }
+                </div>
+                <div class="analysis-content">
+                    @if (isLoading)
+                    {
+                        <div style="text-align: center; padding: 3rem; color: #9ca3af;">
+                            <div class="spinner"></div>
+                            <p>Analyzing sentiment...</p>
+                        </div>
+                    }
+                    else if (symbolSentiment is not null && symbolSentiment is System.Text.Json.JsonElement)
+                    {
+                        var ss = (System.Text.Json.JsonElement)symbolSentiment;
+                        if (ss.ValueKind != System.Text.Json.JsonValueKind.Null && ss.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+                        {
+                            <div class="sentiment-card">
+                                <h3 style="color: #ffffff; margin-bottom: 1rem;">@GetStringProperty(ss, "symbol")</h3>
+                                
+                                <div class="sentiment-score">
+                                    <span class="score-badge @GetSentimentClass(GetStringProperty(ss, "overallSentiment"))">
+                                        @GetStringProperty(ss, "overallSentiment")
+                                    </span>
+                                    <span style="color: #9ca3af;">Score: @GetDoubleProperty(ss, "sentimentScore").ToString("F2")</span>
+                                    <span style="color: #9ca3af;">Confidence: @(GetDoubleProperty(ss, "confidence") * 100).ToString("F0")%</span>
+                                </div>
+
+                                <div class="metric-grid">
+                                    <div class="metric-card">
+                                        <div class="metric-label">News Count</div>
+                                        <div class="metric-value">@GetIntProperty(ss, "newsCount")</div>
+                                    </div>
+                                    <div class="metric-card">
+                                        <div class="metric-label">Articles</div>
+                                        <div class="metric-value">@GetArrayLength(ss, "recentNews")</div>
+                                    </div>
+                                    <div class="metric-card">
+                                        <div class="metric-label">Positive</div>
+                                        <div class="metric-value" style="color: #10b981;">@(GetDoubleProperty(ss, "positivePercent").ToString("F0"))%</div>
+                                    </div>
+                                    <div class="metric-card">
+                                        <div class="metric-label">Negative</div>
+                                        <div class="metric-value" style="color: #ef4444;">@(GetDoubleProperty(ss, "negativePercent").ToString("F0"))%</div>
+                                    </div>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(GetStringProperty(ss, "summary")))
+                                {
+                                    <div style="margin-top: 1.5rem; padding: 1.5rem; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px;">
+                                        <h4 style="color: #ffffff; margin-bottom: 1rem; font-size: 1.1rem;">Comprehensive Sentiment Analysis</h4>
+                                        <div style="color: #d1d5db; line-height: 1.8; white-space: pre-wrap; font-size: 0.95rem;">@GetStringProperty(ss, "summary")</div>
+                                    </div>
+                                }
+
+                                <!-- Positive Themes with Citations -->
+                                @if (HasProperty(ss, "positiveThemes") && GetArrayLength(ss, "positiveThemes") > 0)
+                                {
+                                    <div style="margin-top: 1.5rem; padding: 1.25rem; background: rgba(59, 130, 246, 0.05); border-left: 4px solid #3b82f6; border-radius: 8px;">
+                                        <h4 style="color: #3b82f6; margin-bottom: 1rem; font-size: 1rem;">Positive Sentiment Drivers</h4>
+                                        @if (ss.TryGetProperty("positiveThemes", out var posThemes))
+                                        {
+                                            @foreach (var theme in posThemes.EnumerateArray())
+                                            {
+                                                <div style="margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid rgba(59, 130, 246, 0.1);">
+                                                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                                                        <span style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                                                            @GetStringProperty(theme, "theme")
+                                                        </span>
+                                                        <span style="color: #9ca3af; font-size: 0.8rem;">Impact: @GetStringProperty(theme, "impact")</span>
+                                                    </div>
+                                                    <p style="color: #d1d5db; line-height: 1.7; margin: 0.75rem 0; font-size: 0.9rem;">
+                                                        @GetStringProperty(theme, "evidence")
+                                                    </p>
+                                                    @if (HasProperty(theme, "citations") && GetArrayLength(theme, "citations") > 0)
+                                                    {
+                                                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                                            <span style="color: #9ca3af; font-size: 0.8rem;">Citations:</span>
+                                                            @if (theme.TryGetProperty("citations", out var citations))
+                                                            {
+                                                                @foreach (var citation in citations.EnumerateArray())
+                                                                {
+                                                                    <span style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                                                                        [@citation.GetInt32()]
+                                                                    </span>
+                                                                }
+                                                            }
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                }
+
+                                <!-- Negative Themes with Citations -->
+                                @if (HasProperty(ss, "negativeThemes") && GetArrayLength(ss, "negativeThemes") > 0)
+                                {
+                                    <div style="margin-top: 1.5rem; padding: 1.25rem; background: rgba(239, 68, 68, 0.05); border-left: 4px solid #ef4444; border-radius: 8px;">
+                                        <h4 style="color: #ef4444; margin-bottom: 1rem; font-size: 1rem;">Negative Sentiment Drivers</h4>
+                                        @if (ss.TryGetProperty("negativeThemes", out var negThemes))
+                                        {
+                                            @foreach (var theme in negThemes.EnumerateArray())
+                                            {
+                                                <div style="margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid rgba(239, 68, 68, 0.1);">
+                                                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                                                        <span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                                                            @GetStringProperty(theme, "theme")
+                                                        </span>
+                                                        <span style="color: #9ca3af; font-size: 0.8rem;">Impact: @GetStringProperty(theme, "impact")</span>
+                                                    </div>
+                                                    <p style="color: #d1d5db; line-height: 1.7; margin: 0.75rem 0; font-size: 0.9rem;">
+                                                        @GetStringProperty(theme, "evidence")
+                                                    </p>
+                                                    @if (HasProperty(theme, "citations") && GetArrayLength(theme, "citations") > 0)
+                                                    {
+                                                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                                            <span style="color: #9ca3af; font-size: 0.8rem;">Citations:</span>
+                                                            @if (theme.TryGetProperty("citations", out var citations))
+                                                            {
+                                                                @foreach (var citation in citations.EnumerateArray())
+                                                                {
+                                                                    <span style="background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                                                                        [@citation.GetInt32()]
+                                                                    </span>
+                                                                }
+                                                            }
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                }
+
+                                <!-- Trading Insights -->
+                                <div style="margin-top: 1.5rem;">
+                                    <h4 style="color: #ffffff; margin-bottom: 1rem;">Trading Insights</h4>
+                                    <div class="metric-grid">
+                                        @if (!string.IsNullOrEmpty(GetStringProperty(ss, "tradingSignal")))
+                                        {
+                                            <div class="metric-card">
+                                                <div class="metric-label">Trading Signal</div>
+                                                <div class="metric-value" style="font-size: 1rem;">@GetStringProperty(ss, "tradingSignal")</div>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(GetStringProperty(ss, "trendDirection")))
+                                        {
+                                            <div class="metric-card">
+                                                <div class="metric-label">Trend</div>
+                                                <div class="metric-value" style="font-size: 1rem;">@GetStringProperty(ss, "trendDirection")</div>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(GetStringProperty(ss, "momentumSignal")))
+                                        {
+                                            <div class="metric-card">
+                                                <div class="metric-label">Momentum</div>
+                                                <div class="metric-value" style="font-size: 1rem;">@GetStringProperty(ss, "momentumSignal")</div>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(GetStringProperty(ss, "volatilityIndicator")))
+                                        {
+                                            <div class="metric-card">
+                                                <div class="metric-label">Volatility</div>
+                                                <div class="metric-value" style="font-size: 1rem;">@GetStringProperty(ss, "volatilityIndicator")</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Market Sentiment Breakdown -->
+                                <div style="margin-top: 1.5rem;">
+                                    <h4 style="color: #ffffff; margin-bottom: 1rem;">Market Sentiment</h4>
+                                    <div class="metric-grid">
+                                        @if (!string.IsNullOrEmpty(GetStringProperty(ss, "institutionalSentiment")))
+                                        {
+                                            <div class="metric-card">
+                                                <div class="metric-label">Institutional</div>
+                                                <div class="metric-value" style="font-size: 1rem;">@GetStringProperty(ss, "institutionalSentiment")</div>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(GetStringProperty(ss, "retailSentiment")))
+                                        {
+                                            <div class="metric-card">
+                                                <div class="metric-label">Retail</div>
+                                                <div class="metric-value" style="font-size: 1rem;">@GetStringProperty(ss, "retailSentiment")</div>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(GetStringProperty(ss, "analystConsensus")))
+                                        {
+                                            <div class="metric-card">
+                                                <div class="metric-label">Analyst Consensus</div>
+                                                <div class="metric-value" style="font-size: 1rem;">@GetStringProperty(ss, "analystConsensus")</div>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(GetStringProperty(ss, "priceTargetBias")))
+                                        {
+                                            <div class="metric-card">
+                                                <div class="metric-label">Price Target Bias</div>
+                                                <div class="metric-value" style="font-size: 1rem;">@GetStringProperty(ss, "priceTargetBias")</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Key Themes -->
+                                @if (HasProperty(ss, "keyThemes") && GetArrayLength(ss, "keyThemes") > 0)
+                                {
+                                    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(59, 130, 246, 0.05); border-left: 3px solid #3b82f6; border-radius: 4px;">
+                                        <h4 style="color: #3b82f6; margin-bottom: 0.75rem;">Key Themes</h4>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                            @if (ss.TryGetProperty("keyThemes", out var themesArray))
+                                            {
+                                                @foreach (var theme in themesArray.EnumerateArray())
+                                                {
+                                                    <span style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.875rem;">
+                                                        @theme.GetString()
+                                                    </span>
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- Risk Factors -->
+                                @if (HasProperty(ss, "riskFactors") && GetArrayLength(ss, "riskFactors") > 0)
+                                {
+                                    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(239, 68, 68, 0.05); border-left: 3px solid #ef4444; border-radius: 4px;">
+                                        <h4 style="color: #ef4444; margin-bottom: 0.75rem;">Risk Factors</h4>
+                                        <ul style="color: #d1d5db; margin: 0; padding-left: 1.5rem; line-height: 1.8;">
+                                            @if (ss.TryGetProperty("riskFactors", out var risksArray))
+                                            {
+                                                @foreach (var risk in risksArray.EnumerateArray())
+                                                {
+                                                    <li>@risk.GetString()</li>
+                                                }
+                                            }
+                                        </ul>
+                                    </div>
+                                }
+
+                                <!-- Additional Metrics -->
+                                @if (!string.IsNullOrEmpty(GetStringProperty(ss, "earningsImpact")) || !string.IsNullOrEmpty(GetStringProperty(ss, "sectorComparison")))
+                                {
+                                    <div style="margin-top: 1.5rem;">
+                                        <h4 style="color: #ffffff; margin-bottom: 1rem;">Additional Metrics</h4>
+                                        <div class="metric-grid">
+                                            @if (!string.IsNullOrEmpty(GetStringProperty(ss, "earningsImpact")))
+                                            {
+                                                <div class="metric-card">
+                                                    <div class="metric-label">Earnings Impact</div>
+                                                    <div class="metric-value" style="font-size: 1rem;">@GetStringProperty(ss, "earningsImpact")</div>
+                                                </div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(GetStringProperty(ss, "sectorComparison")))
+                                            {
+                                                <div class="metric-card">
+                                                    <div class="metric-label">Sector Comparison</div>
+                                                    <div class="metric-value" style="font-size: 1rem;">@GetStringProperty(ss, "sectorComparison")</div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (GetArrayLength(ss, "sources") > 0)
+                                {
+                                    <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(255, 255, 255, 0.02); border-radius: 8px;">
+                                        <div style="color: #9ca3af; font-size: 0.8rem; margin-bottom: 0.5rem;">Data Sources:</div>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                            @if (ss.TryGetProperty("sources", out var sourcesArray))
+                                            {
+                                                @foreach (var source in sourcesArray.EnumerateArray())
+                                                {
+                                                    <span style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.8rem;">
+                                                        @source.GetString()
+                                                    </span>
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- References Section -->
+                                @if (HasProperty(ss, "recentNews") && GetArrayLength(ss, "recentNews") > 0)
+                                {
+                                    <div style="margin-top: 1.5rem; padding: 1.25rem; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px;">
+                                        <h4 style="color: #ffffff; margin-bottom: 1rem; font-size: 1rem;">References</h4>
+                                        @if (ss.TryGetProperty("recentNews", out var newsArray))
+                                        {
+                                            var index = 1;
+                                            @foreach (var news in newsArray.EnumerateArray())
+                                            {
+                                                <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                                                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                                                        <span style="color: #9ca3af; font-weight: 600; font-size: 0.85rem; min-width: 2rem;">[@index]</span>
+                                                        <div style="flex: 1;">
+                                                            <a href="@GetStringProperty(news, "link")" target="_blank" style="color: #3b82f6; text-decoration: none; font-size: 0.9rem; line-height: 1.5;">
+                                                                @GetStringProperty(news, "title")
+                                                            </a>
+                                                            <div style="color: #9ca3af; font-size: 0.8rem; margin-top: 0.25rem;">
+                                                                @GetStringProperty(news, "source") • @GetStringProperty(news, "publishedDate")
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                index++;
+                                            }
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div style="text-align: center; padding: 3rem; color: #9ca3af;">
+                            <p>Enter a symbol above to start analyzing sentiment</p>
+                        </div>
+                    }
+                </div>
+            </div>
         }
 
         @if (activeTab == "market")
         {
-            <h2 style="color: #ffffff; margin-bottom: 1rem;">Market Sentiment</h2>
-            <p style="color: #9ca3af; margin-bottom: 1.5rem;">Overall market sentiment across asset classes</p>
-
-            <div class="search-bar">
-                <select class="search-input" @bind="assetClass" style="flex: 0 0 200px;">
-                    <option value="stocks">Stocks</option>
-                    <option value="crypto">Crypto</option>
-                    <option value="bonds">Bonds</option>
-                </select>
-                <input type="text" class="search-input" placeholder="Specific asset (optional)" @bind="specificAsset" />
-                <button class="search-btn" @onclick="AnalyzeMarketSentiment" disabled="@isLoading">Analyze</button>
-            </div>
-
-            @if (isLoading)
-            {
-                <div class="loading-indicator">
-                    <div class="spinner"></div>
-                    <p>Analyzing market sentiment...</p>
+            <!-- Left Panel: Sources -->
+            <div class="sources-panel">
+                <div class="sources-header">
+                    <h3 style="color: #ffffff; font-size: 1rem; margin: 0;">Market Indicators</h3>
+                    <p style="color: #9ca3af; font-size: 0.8rem; margin: 0.25rem 0 0 0;">
+                        Sentiment breakdown by source
+                    </p>
                 </div>
-            }
-            else if (marketSentiment is not null && ((System.Text.Json.JsonElement)marketSentiment).ValueKind != System.Text.Json.JsonValueKind.Null && ((System.Text.Json.JsonElement)marketSentiment).ValueKind != System.Text.Json.JsonValueKind.Undefined)
-            {
-                var ms = (System.Text.Json.JsonElement)marketSentiment;
-                <div class="sentiment-card">
-                    <h3 style="color: #ffffff; margin-bottom: 1rem;">@GetStringProperty(ms, "assetClass") Market</h3>
-                    
-                    <div class="sentiment-score">
-                        <span class="score-badge @GetSentimentClass(GetNestedStringProperty(ms, "overallSentiment", "label"))">
-                            @GetNestedStringProperty(ms, "overallSentiment", "label")
-                        </span>
-                        <span style="color: #9ca3af;">Score: @GetNestedDoubleProperty(ms, "overallSentiment", "score").ToString("F2")</span>
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(GetNestedStringProperty(ms, "overallSentiment", "analysis")))
+                <div class="sources-list">
+                    @if (isLoading)
                     {
-                        <div style="margin-top: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.02); border-radius: 8px;">
-                            <p style="color: #d1d5db; line-height: 1.6;">@GetNestedStringProperty(ms, "overallSentiment", "analysis")</p>
+                        <div style="text-align: center; padding: 2rem; color: #9ca3af;">
+                            <div class="spinner" style="width: 40px; height: 40px;"></div>
+                            <p style="margin-top: 1rem;">Loading indicators...</p>
                         </div>
                     }
+                    else if (marketSentiment is not null && ((System.Text.Json.JsonElement)marketSentiment).ValueKind != System.Text.Json.JsonValueKind.Null)
+                    {
+                        var ms = (System.Text.Json.JsonElement)marketSentiment;
+                        <div class="source-item neutral">
+                            <div class="source-title">News Sentiment</div>
+                            <div class="source-meta">
+                                <span class="score-badge @GetSentimentClass(GetNestedStringProperty(ms, "breakdown.news", "label"))"
+                                      style="background: @(GetSentimentClass(GetNestedStringProperty(ms, "breakdown.news", "label")) == "bullish" ? "rgba(16, 185, 129, 0.2)" : GetSentimentClass(GetNestedStringProperty(ms, "breakdown.news", "label")) == "bearish" ? "rgba(239, 68, 68, 0.2)" : "rgba(156, 163, 175, 0.2)"); 
+                                             color: @GetSentimentColor(GetNestedStringProperty(ms, "breakdown.news", "label"));">
+                                    @GetNestedStringProperty(ms, "breakdown.news", "label") (@GetNestedDoubleProperty(ms, "breakdown.news", "score").ToString("F2"))
+                                </span>
+                            </div>
+                        </div>
+                        <div class="source-item neutral">
+                            <div class="source-title">Social Media</div>
+                            <div class="source-meta">
+                                <span class="score-badge @GetSentimentClass(GetNestedStringProperty(ms, "breakdown.socialMedia", "label"))"
+                                      style="background: @(GetSentimentClass(GetNestedStringProperty(ms, "breakdown.socialMedia", "label")) == "bullish" ? "rgba(16, 185, 129, 0.2)" : GetSentimentClass(GetNestedStringProperty(ms, "breakdown.socialMedia", "label")) == "bearish" ? "rgba(239, 68, 68, 0.2)" : "rgba(156, 163, 175, 0.2)"); 
+                                             color: @GetSentimentColor(GetNestedStringProperty(ms, "breakdown.socialMedia", "label"));">
+                                    @GetNestedStringProperty(ms, "breakdown.socialMedia", "label") (@GetNestedDoubleProperty(ms, "breakdown.socialMedia", "score").ToString("F2"))
+                                </span>
+                            </div>
+                        </div>
+                        <div class="source-item neutral">
+                            <div class="source-title">Fear & Greed Index</div>
+                            <div class="source-meta">
+                                <span class="score-badge @GetSentimentClass(GetNestedStringProperty(ms, "breakdown.fearGreed", "label"))"
+                                      style="background: @(GetSentimentClass(GetNestedStringProperty(ms, "breakdown.fearGreed", "label")) == "bullish" ? "rgba(16, 185, 129, 0.2)" : GetSentimentClass(GetNestedStringProperty(ms, "breakdown.fearGreed", "label")) == "bearish" ? "rgba(239, 68, 68, 0.2)" : "rgba(156, 163, 175, 0.2)"); 
+                                             color: @GetSentimentColor(GetNestedStringProperty(ms, "breakdown.fearGreed", "label"));">
+                                    @GetNestedStringProperty(ms, "breakdown.fearGreed", "label") (@GetNestedDoubleProperty(ms, "breakdown.fearGreed", "score").ToString("F2"))
+                                </span>
+                            </div>
+                        </div>
+                        <div class="source-item neutral">
+                            <div class="source-title">Technical Indicators</div>
+                            <div class="source-meta">
+                                <span class="score-badge @GetSentimentClass(GetNestedStringProperty(ms, "breakdown.technical", "label"))"
+                                      style="background: @(GetSentimentClass(GetNestedStringProperty(ms, "breakdown.technical", "label")) == "bullish" ? "rgba(16, 185, 129, 0.2)" : GetSentimentClass(GetNestedStringProperty(ms, "breakdown.technical", "label")) == "bearish" ? "rgba(239, 68, 68, 0.2)" : "rgba(156, 163, 175, 0.2)"); 
+                                             color: @GetSentimentColor(GetNestedStringProperty(ms, "breakdown.technical", "label"));">
+                                    @GetNestedStringProperty(ms, "breakdown.technical", "label") (@GetNestedDoubleProperty(ms, "breakdown.technical", "score").ToString("F2"))
+                                </span>
+                            </div>
+                        </div>
+                    }
+                    else if (!isLoading)
+                    {
+                        <div style="text-align: center; padding: 2rem; color: #9ca3af;">
+                            <p>Select an asset class to see indicators</p>
+                        </div>
+                    }
+                </div>
+            </div>
 
-                    <h4 style="color: #ffffff; margin-top: 1.5rem; margin-bottom: 1rem;">Sentiment Breakdown</h4>
-                    <div class="metric-grid">
-                        <div class="metric-card">
-                            <div class="metric-label">News</div>
-                            <div class="metric-value">@GetNestedStringProperty(ms, "breakdown.news", "label")</div>
-                            <div style="color: #9ca3af; font-size: 0.8rem;">@GetNestedDoubleProperty(ms, "breakdown.news", "score").ToString("F2")</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Social Media</div>
-                            <div class="metric-value">@GetNestedStringProperty(ms, "breakdown.socialMedia", "label")</div>
-                            <div style="color: #9ca3af; font-size: 0.8rem;">@GetNestedDoubleProperty(ms, "breakdown.socialMedia", "score").ToString("F2")</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Fear & Greed</div>
-                            <div class="metric-value">@GetNestedStringProperty(ms, "breakdown.fearGreed", "label")</div>
-                            <div style="color: #9ca3af; font-size: 0.8rem;">@GetNestedDoubleProperty(ms, "breakdown.fearGreed", "score").ToString("F2")</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Technical</div>
-                            <div class="metric-value">@GetNestedStringProperty(ms, "breakdown.technical", "label")</div>
-                            <div style="color: #9ca3af; font-size: 0.8rem;">@GetNestedDoubleProperty(ms, "breakdown.technical", "score").ToString("F2")</div>
-                        </div>
+            <!-- Right Panel: Analysis -->
+            <div class="analysis-panel">
+                <div class="analysis-header">
+                    <h2 style="color: #ffffff; font-size: 1.25rem; margin: 0;">Market Sentiment</h2>
+                    <p style="color: #9ca3af; font-size: 0.875rem; margin: 0.5rem 0 0 0;">Overall market sentiment across asset classes</p>
+                    
+                    <div class="search-bar" style="margin-top: 1rem;">
+                        <select class="search-input" @bind="assetClass" style="flex: 0 0 200px;">
+                            <option value="stocks">Stocks</option>
+                            <option value="crypto">Crypto</option>
+                            <option value="bonds">Bonds</option>
+                        </select>
+                        <input type="text" class="search-input" placeholder="Specific asset (optional)" @bind="specificAsset" />
+                        <button class="search-btn" @onclick="AnalyzeMarketSentiment" disabled="@isLoading">Analyze</button>
                     </div>
                 </div>
-            }
+                <div class="analysis-content">
+                    @if (isLoading)
+                    {
+                        <div style="text-align: center; padding: 3rem; color: #9ca3af;">
+                            <div class="spinner"></div>
+                            <p>Analyzing market sentiment...</p>
+                        </div>
+                    }
+                    else if (marketSentiment is not null && ((System.Text.Json.JsonElement)marketSentiment).ValueKind != System.Text.Json.JsonValueKind.Null && ((System.Text.Json.JsonElement)marketSentiment).ValueKind != System.Text.Json.JsonValueKind.Undefined)
+                    {
+                        var ms = (System.Text.Json.JsonElement)marketSentiment;
+                        <div class="sentiment-card">
+                            <h3 style="color: #ffffff; margin-bottom: 1rem;">@GetStringProperty(ms, "assetClass") Market</h3>
+                            
+                            <div class="sentiment-score">
+                                <span class="score-badge @GetSentimentClass(GetNestedStringProperty(ms, "overallSentiment", "label"))">
+                                    @GetNestedStringProperty(ms, "overallSentiment", "label")
+                                </span>
+                                <span style="color: #9ca3af;">Score: @GetNestedDoubleProperty(ms, "overallSentiment", "score").ToString("F2")</span>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(GetNestedStringProperty(ms, "overallSentiment", "analysis")))
+                            {
+                                <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(16, 185, 129, 0.05); border-left: 3px solid #10b981; border-radius: 4px;">
+                                    <h4 style="color: #10b981; margin-bottom: 0.5rem;">AI Analysis</h4>
+                                    <p style="color: #d1d5db; line-height: 1.6;">@GetNestedStringProperty(ms, "overallSentiment", "analysis")</p>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="text-align: center; padding: 3rem; color: #9ca3af;">
+                            <p>Select an asset class and click Analyze</p>
+                        </div>
+                    }
+                </div>
+            </div>
         }
 
         @if (activeTab == "reddit")
         {
-            <h2 style="color: #ffffff; margin-bottom: 1rem;">Reddit Sentiment Analysis</h2>
-            <p style="color: #9ca3af; margin-bottom: 1.5rem;">Analyze sentiment across financial subreddits</p>
-
-            <div class="search-bar">
-                <input type="text" class="search-input" placeholder="Enter symbol (e.g., GME, AMC)" @bind="redditSymbol" @onkeypress="HandleKeyPress" />
-                <button class="search-btn" @onclick="AnalyzeRedditSentiment" disabled="@isLoading">Analyze</button>
-            </div>
-
-            @if (isLoading)
-            {
-                <div class="loading-indicator">
-                    <div class="spinner"></div>
-                    <p>Scraping Reddit...</p>
-                </div>
-            }
-            else if (redditSentiment is not null && ((System.Text.Json.JsonElement)redditSentiment).ValueKind != System.Text.Json.JsonValueKind.Null && ((System.Text.Json.JsonElement)redditSentiment).ValueKind != System.Text.Json.JsonValueKind.Undefined)
-            {
-                var rs = (System.Text.Json.JsonElement)redditSentiment;
-                <div class="sentiment-card">
-                    <h3 style="color: #ffffff; margin-bottom: 1rem;">Reddit Sentiment for @GetStringProperty(rs, "symbol")</h3>
-                    
-                    <div class="sentiment-score">
-                        <span class="score-badge @GetSentimentClass(GetStringProperty(rs, "overallSentiment"))">
-                            @GetStringProperty(rs, "overallSentiment")
-                        </span>
-                        <span style="color: #9ca3af;">Average Score: @GetDoubleProperty(rs, "averageSentimentScore").ToString("F2")</span>
-                        <span style="color: #9ca3af;">Posts Analyzed: @GetIntProperty(rs, "totalPostsAnalyzed")</span>
-                    </div>
-
-                    <h4 style="color: #ffffff; margin-top: 1.5rem; margin-bottom: 1rem;">Subreddit Breakdown</h4>
-                    @if (rs.TryGetProperty("subredditAnalyses", out var subredditAnalyses))
+            <!-- Left Panel: Subreddit Sources -->
+            <div class="sources-panel">
+                <div class="sources-header">
+                    <h3 style="color: #ffffff; font-size: 1rem; margin: 0;">Subreddit Analysis</h3>
+                    @if (redditSentiment is not null && ((System.Text.Json.JsonElement)redditSentiment).ValueKind != System.Text.Json.JsonValueKind.Null)
                     {
-                        @foreach (var analysis in subredditAnalyses.EnumerateArray())
+                        var rs = (System.Text.Json.JsonElement)redditSentiment;
+                        <p style="color: #9ca3af; font-size: 0.8rem; margin: 0.25rem 0 0 0;">
+                            @GetIntProperty(rs, "totalPostsAnalyzed") posts analyzed
+                        </p>
+                    }
+                </div>
+                <div class="sources-list">
+                    @if (isLoading)
+                    {
+                        <div style="text-align: center; padding: 2rem; color: #9ca3af;">
+                            <div class="spinner" style="width: 40px; height: 40px;"></div>
+                            <p style="margin-top: 1rem;">Scraping Reddit...</p>
+                        </div>
+                    }
+                    else if (redditSentiment is not null && ((System.Text.Json.JsonElement)redditSentiment).ValueKind != System.Text.Json.JsonValueKind.Null)
+                    {
+                        var rs = (System.Text.Json.JsonElement)redditSentiment;
+                        if (rs.TryGetProperty("subredditAnalyses", out var subredditAnalyses))
                         {
-                            <div class="subreddit-card">
-                                <div class="subreddit-name">r/@GetStringProperty(analysis, "subreddit")</div>
-                                <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
-                                    <span class="score-badge @GetSentimentClass(GetStringProperty(analysis, "sentiment"))">@GetStringProperty(analysis, "sentiment")</span>
-                                    <span style="color: #9ca3af;">@GetIntProperty(analysis, "postsAnalyzed") posts</span>
-                                    <span style="color: #10b981;">@((GetDoubleProperty(analysis, "bullishPercentage") * 100).ToString("F0"))% bullish</span>
-                                    <span style="color: #ef4444;">@((GetDoubleProperty(analysis, "bearishPercentage") * 100).ToString("F0"))% bearish</span>
+                            @foreach (var analysis in subredditAnalyses.EnumerateArray())
+                            {
+                                var sentiment = GetStringProperty(analysis, "sentiment");
+                                <div class="source-item @GetSentimentClass(sentiment)">
+                                    <div class="source-title">r/@GetStringProperty(analysis, "subreddit")</div>
+                                    <div class="source-meta">
+                                        <span class="source-sentiment-badge @GetSentimentClass(sentiment)"
+                                              style="background: @(GetSentimentClass(sentiment) == "bullish" ? "rgba(16, 185, 129, 0.2)" : GetSentimentClass(sentiment) == "bearish" ? "rgba(239, 68, 68, 0.2)" : "rgba(156, 163, 175, 0.2)"); 
+                                                     color: @GetSentimentColor(sentiment);">
+                                            @sentiment
+                                        </span>
+                                        <span>@GetIntProperty(analysis, "postsAnalyzed") posts</span>
+                                    </div>
+                                    <div style="margin-top: 0.5rem; display: flex; gap: 0.75rem; font-size: 0.75rem;">
+                                        <span style="color: #10b981;">@((GetDoubleProperty(analysis, "bullishPercentage") * 100).ToString("F0"))% bullish</span>
+                                        <span style="color: #ef4444;">@((GetDoubleProperty(analysis, "bearishPercentage") * 100).ToString("F0"))% bearish</span>
+                                    </div>
                                 </div>
-                            </div>
+                            }
                         }
                     }
+                    else if (!isLoading)
+                    {
+                        <div style="text-align: center; padding: 2rem; color: #9ca3af;">
+                            <p>Enter a symbol to see Reddit analysis</p>
+                        </div>
                     }
                 </div>
-            }
+            </div>
+
+            <!-- Right Panel: Analysis -->
+            <div class="analysis-panel">
+                <div class="analysis-header">
+                    <h2 style="color: #ffffff; font-size: 1.25rem; margin: 0;">Reddit Sentiment Analysis</h2>
+                    <p style="color: #9ca3af; font-size: 0.875rem; margin: 0.5rem 0 0 0;">Analyze sentiment across financial subreddits</p>
+                    
+                    <div class="search-bar" style="margin-top: 1rem;">
+                        <input type="text" class="search-input" placeholder="Enter symbol (e.g., GME, AMC)" @bind="redditSymbol" @onkeypress="HandleKeyPress" />
+                        <button class="search-btn" @onclick="AnalyzeRedditSentiment" disabled="@isLoading">Analyze</button>
+                    </div>
+                </div>
+                <div class="analysis-content">
+                    @if (isLoading)
+                    {
+                        <div style="text-align: center; padding: 3rem; color: #9ca3af;">
+                            <div class="spinner"></div>
+                            <p>Scraping Reddit...</p>
+                        </div>
+                    }
+                    else if (redditSentiment is not null && ((System.Text.Json.JsonElement)redditSentiment).ValueKind != System.Text.Json.JsonValueKind.Null && ((System.Text.Json.JsonElement)redditSentiment).ValueKind != System.Text.Json.JsonValueKind.Undefined)
+                    {
+                        var rs = (System.Text.Json.JsonElement)redditSentiment;
+                        <div class="sentiment-card">
+                            <h3 style="color: #ffffff; margin-bottom: 1rem;">Reddit Sentiment for @GetStringProperty(rs, "symbol")</h3>
+                            
+                            <div class="sentiment-score">
+                                <span class="score-badge @GetSentimentClass(GetStringProperty(rs, "overallSentiment"))">
+                                    @GetStringProperty(rs, "overallSentiment")
+                                </span>
+                                <span style="color: #9ca3af;">Average Score: @GetDoubleProperty(rs, "averageSentimentScore").ToString("F2")</span>
+                                <span style="color: #9ca3af;">Posts: @GetIntProperty(rs, "totalPostsAnalyzed")</span>
+                            </div>
+
+                            <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(16, 185, 129, 0.05); border-left: 3px solid #10b981; border-radius: 4px;">
+                                <h4 style="color: #10b981; margin-bottom: 0.5rem;">Community Sentiment</h4>
+                                <p style="color: #d1d5db; line-height: 1.6;">
+                                    The Reddit community shows @GetStringProperty(rs, "overallSentiment").ToLower() sentiment for @GetStringProperty(rs, "symbol") 
+                                    based on analysis of @GetIntProperty(rs, "totalPostsAnalyzed") posts across multiple financial subreddits.
+                                </p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="text-align: center; padding: 3rem; color: #9ca3af;">
+                            <p>Enter a symbol above to analyze Reddit sentiment</p>
+                        </div>
+                    }
+                </div>
+            </div>
         }
 
         @if (activeTab == "trending")
         {
-            <h2 style="color: #ffffff; margin-bottom: 1rem;">Trending Symbols on Reddit</h2>
-            <p style="color: #9ca3af; margin-bottom: 1.5rem;">Most mentioned stocks on WallStreetBets and r/stocks</p>
-
-            <button class="search-btn" @onclick="GetTrendingSymbols" disabled="@isLoading" style="margin-bottom: 1.5rem;">
-                @(isLoading ? "Loading..." : "Refresh Trending")
-            </button>
-
-            @if (isLoading)
-            {
-                <div class="loading-indicator">
-                    <div class="spinner"></div>
-                    <p>Fetching trending symbols...</p>
-                </div>
-            }
-            else if (trendingSymbols != null && trendingSymbols.Any())
-            {
-                <div class="trending-list">
-                    @foreach (var item in trendingSymbols)
+            <!-- Left Panel: Trending Symbols -->
+            <div class="sources-panel">
+                <div class="sources-header">
+                    <h3 style="color: #ffffff; font-size: 1rem; margin: 0;">Trending Symbols</h3>
+                    @if (trendingSymbols != null && trendingSymbols.Any())
                     {
-                        <div class="trending-item" @onclick="() => AnalyzeTrendingSymbol(item.symbol)">
-                            <div class="trending-symbol">$@item.symbol</div>
-                            <div class="trending-mentions">@item.mentions mentions</div>
+                        <p style="color: #9ca3af; font-size: 0.8rem; margin: 0.25rem 0 0 0;">
+                            @trendingSymbols.Count symbols trending
+                        </p>
+                    }
+                </div>
+                <div class="sources-list">
+                    @if (isLoading)
+                    {
+                        <div style="text-align: center; padding: 2rem; color: #9ca3af;">
+                            <div class="spinner" style="width: 40px; height: 40px;"></div>
+                            <p style="margin-top: 1rem;">Fetching trending...</p>
+                        </div>
+                    }
+                    else if (trendingSymbols != null && trendingSymbols.Any())
+                    {
+                        @foreach (var item in trendingSymbols)
+                        {
+                            <div class="source-item neutral" @onclick="() => AnalyzeTrendingSymbol(item.symbol)" style="cursor: pointer;">
+                                <div class="source-title" style="color: #10b981; font-size: 1rem;">$@item.symbol</div>
+                                <div class="source-meta">
+                                    <span>@item.mentions mentions</span>
+                                    <span>•</span>
+                                    <span style="color: #10b981;">Click to analyze</span>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else if (!isLoading)
+                    {
+                        <div style="text-align: center; padding: 2rem; color: #9ca3af;">
+                            <p>Click Refresh to see trending symbols</p>
                         </div>
                     }
                 </div>
-            }
+            </div>
+
+            <!-- Right Panel: Analysis -->
+            <div class="analysis-panel">
+                <div class="analysis-header">
+                    <h2 style="color: #ffffff; font-size: 1.25rem; margin: 0;">Trending on Reddit</h2>
+                    <p style="color: #9ca3af; font-size: 0.875rem; margin: 0.5rem 0 0 0;">Most mentioned stocks on WallStreetBets and r/stocks</p>
+                    
+                    <button class="search-btn" @onclick="GetTrendingSymbols" disabled="@isLoading" style="margin-top: 1rem; width: 100%;">
+                        @(isLoading ? "Loading..." : "Refresh Trending")
+                    </button>
+                </div>
+                <div class="analysis-content">
+                    @if (isLoading)
+                    {
+                        <div style="text-align: center; padding: 3rem; color: #9ca3af;">
+                            <div class="spinner"></div>
+                            <p>Fetching trending symbols...</p>
+                        </div>
+                    }
+                    else if (trendingSymbols != null && trendingSymbols.Any())
+                    {
+                        <div class="sentiment-card">
+                            <h3 style="color: #ffffff; margin-bottom: 1rem;">Top Trending Symbols</h3>
+                            <p style="color: #9ca3af; line-height: 1.6; margin-bottom: 1rem;">
+                                These symbols are currently trending on financial subreddits. Click any symbol on the left to analyze its sentiment in detail.
+                            </p>
+                            <div class="trending-list">
+                                @foreach (var item in trendingSymbols.Take(10))
+                                {
+                                    <div class="trending-item" @onclick="() => AnalyzeTrendingSymbol(item.symbol)">
+                                        <div class="trending-symbol">$@item.symbol</div>
+                                        <div class="trending-mentions">@item.mentions mentions</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="text-align: center; padding: 3rem; color: #9ca3af;">
+                            <p>Click "Refresh Trending" to see what's hot on Reddit</p>
+                        </div>
+                    }
+                </div>
+            </div>
         }
 
         @if (activeTab == "compare")

@@ -283,6 +283,8 @@ namespace QuantResearchAgent.Services
                     TradingSignal = overallAnalysis.TradingSignal,
                     RiskFactors = overallAnalysis.RiskFactors,
                     Summary = overallAnalysis.Summary,
+                    PositiveThemes = overallAnalysis.PositiveThemes,
+                    NegativeThemes = overallAnalysis.NegativeThemes,
                     VolatilityIndicator = overallAnalysis.VolatilityIndicator,
                     PriceTargetBias = overallAnalysis.PriceTargetBias,
                     InstitutionalSentiment = overallAnalysis.InstitutionalSentiment,
@@ -449,6 +451,8 @@ namespace QuantResearchAgent.Services
                     TradingSignal = overallAnalysis.TradingSignal,
                     RiskFactors = overallAnalysis.RiskFactors,
                     Summary = overallAnalysis.Summary,
+                    PositiveThemes = overallAnalysis.PositiveThemes,
+                    NegativeThemes = overallAnalysis.NegativeThemes,
                     VolatilityIndicator = overallAnalysis.VolatilityIndicator,
                     PriceTargetBias = overallAnalysis.PriceTargetBias,
                     InstitutionalSentiment = overallAnalysis.InstitutionalSentiment,
@@ -1229,12 +1233,25 @@ Consider:
 
         private async Task<OverallSentimentResult> GenerateOverallSentimentAnalysisAsync(string symbol, List<NewsItem> newsItems)
         {
+            // Create detailed article references with indices for citation
+            var articleReferences = string.Join("\n\n", newsItems.Select((n, idx) => 
+                $"[{idx + 1}] {n.Title}\n" +
+                $"    Source: {n.Source} | Published: {n.PublishedDate:yyyy-MM-dd}\n" +
+                $"    Sentiment: {n.SentimentLabel} (Score: {n.SentimentScore:F2})\n" +
+                $"    Key Topics: {string.Join(", ", n.KeyTopics ?? new List<string>())}\n" +
+                $"    Impact Level: {n.Impact}\n" +
+                $"    URL: {n.Link}\n" +
+                $"    Summary: {(string.IsNullOrEmpty(n.Summary) ? "N/A" : (n.Summary.Length > 300 ? n.Summary.Substring(0, 300) + "..." : n.Summary))}"
+            ));
+
             var prompt = $@"
-As a quantitative financial analyst, provide comprehensive sentiment analysis for {symbol} based on these news articles:
+You are a senior quantitative financial analyst preparing an institutional-grade sentiment report for {symbol}. 
+Analyze the following {newsItems.Count} news articles and produce a comprehensive, evidence-based analysis.
 
-{string.Join("\n\n", newsItems.Take(10).Select(n => $"Title: {n.Title}\nSentiment: {n.SentimentLabel} ({n.SentimentScore:F2})\nTopics: {string.Join(", ", n.KeyTopics)}\nImpact: {n.Impact}"))}
+ARTICLES FOR ANALYSIS:
+{articleReferences}
 
-Provide QUANTITATIVE analysis in this JSON format:
+REQUIRED OUTPUT FORMAT (JSON):
 {{
     ""overallSentiment"": ""<Very Negative|Negative|Neutral|Positive|Very Positive>"",
     ""sentimentScore"": <-1.0 to 1.0>,
@@ -1243,7 +1260,23 @@ Provide QUANTITATIVE analysis in this JSON format:
     ""keyThemes"": [""theme1"", ""theme2"", ""theme3""],
     ""tradingSignal"": ""<Strong Buy|Buy|Hold|Sell|Strong Sell>"",
     ""riskFactors"": [""risk1"", ""risk2""],
-    ""summary"": ""<detailed quantitative summary>"",
+    ""summary"": ""<DETAILED ACADEMIC ANALYSIS - SEE REQUIREMENTS BELOW>"",
+    ""positiveThemes"": [
+        {{
+            ""theme"": ""theme description"",
+            ""evidence"": ""specific evidence from articles"",
+            ""citations"": [1, 3, 5],
+            ""impact"": ""High|Medium|Low""
+        }}
+    ],
+    ""negativeThemes"": [
+        {{
+            ""theme"": ""theme description"",
+            ""evidence"": ""specific evidence from articles"",
+            ""citations"": [2, 4],
+            ""impact"": ""High|Medium|Low""
+        }}
+    ],
     ""volatilityIndicator"": ""<Low|Medium|High>"",
     ""priceTargetBias"": ""<Bullish|Neutral|Bearish>"",
     ""institutionalSentiment"": ""<Positive|Neutral|Negative>"",
@@ -1254,17 +1287,46 @@ Provide QUANTITATIVE analysis in this JSON format:
     ""momentumSignal"": ""<Strong Positive|Positive|Neutral|Negative|Strong Negative>""
 }}
 
-Focus on:
-- Quantitative metrics and financial ratios mentioned
-- Analyst price targets and revisions
-- Earnings estimates and guidance changes
-- Institutional activity (insider trading, institutional buying/selling)
-- Technical indicators mentioned in news
-- Sector rotation and relative performance
-- Options flow and volatility expectations
-- Macroeconomic factors affecting the stock
-- Revenue/profit margin trends
-- Market share and competitive positioning";
+CRITICAL REQUIREMENTS FOR 'summary' FIELD:
+1. LENGTH: Minimum 800 words, structured in clear paragraphs
+2. STRUCTURE:
+   - Executive Summary (2-3 sentences)
+   - Positive Sentiment Analysis (detailed paragraph with citations)
+   - Negative Sentiment Analysis (detailed paragraph with citations)
+   - Market Context & Implications (paragraph)
+   - Technical & Fundamental Factors (paragraph)
+   - Risk Assessment (paragraph)
+   - Conclusion & Outlook (paragraph)
+
+3. CITATIONS: Use [1], [2], [3] format to reference specific articles. Every claim must be cited.
+4. SPECIFICITY: Include actual numbers, percentages, price targets, analyst names, dates when mentioned in articles
+5. EVIDENCE: Quote or paraphrase specific statements from articles
+6. BALANCE: Present both bullish and bearish perspectives with equal rigor
+7. QUANTITATIVE: Reference specific metrics, ratios, financial figures mentioned in sources
+
+EXAMPLE CITATION STYLE:
+""Recent earnings reports indicate strong revenue growth of 15% YoY [1], though margin compression remains a concern with operating margins declining to 12.3% [3]. Analyst consensus from major institutions suggests a price target of $150 [2], representing 8% upside from current levels. However, competitive pressures in the sector have intensified [4,5], with market share declining 2 percentage points in Q3 [5].""
+
+POSITIVE/NEGATIVE THEMES REQUIREMENTS:
+- Each theme must have specific evidence (not generic statements)
+- Citations must reference actual article numbers
+- Impact assessment must be justified
+- Minimum 3 themes per category (positive/negative)
+
+Focus your analysis on:
+- Specific financial metrics (revenue, earnings, margins, cash flow)
+- Analyst price targets and rating changes with names/firms
+- Institutional activity (insider trades, 13F filings, block trades)
+- Technical levels (support/resistance, moving averages, volume)
+- Sector dynamics and competitive positioning
+- Macroeconomic factors and their specific impact
+- Management guidance and forward estimates
+- Options market signals (put/call ratios, unusual activity)
+- Short interest and sentiment indicators
+- Regulatory or legal developments
+- Product launches, partnerships, or strategic initiatives
+
+Be rigorous, specific, and evidence-based. This is for institutional investors making multi-million dollar decisions.";
 
             var jsonResponse = await _openAIService.GetChatCompletionAsync(prompt);
             var jsonClean = ExtractJsonFromResponse(jsonResponse);
@@ -1282,6 +1344,28 @@ Focus on:
                 RiskFactors = data.GetProperty("riskFactors").EnumerateArray()
                     .Select(r => r.GetString() ?? "").Where(r => !string.IsNullOrEmpty(r)).ToList(),
                 Summary = data.GetProperty("summary").GetString() ?? "",
+                PositiveThemes = data.TryGetProperty("positiveThemes", out var posThemes) 
+                    ? posThemes.EnumerateArray().Select(t => new SentimentTheme
+                    {
+                        Theme = t.GetProperty("theme").GetString() ?? "",
+                        Evidence = t.GetProperty("evidence").GetString() ?? "",
+                        Citations = t.TryGetProperty("citations", out var cits) 
+                            ? cits.EnumerateArray().Select(c => c.GetInt32()).ToList() 
+                            : new List<int>(),
+                        Impact = t.GetProperty("impact").GetString() ?? "Medium"
+                    }).ToList()
+                    : new List<SentimentTheme>(),
+                NegativeThemes = data.TryGetProperty("negativeThemes", out var negThemes)
+                    ? negThemes.EnumerateArray().Select(t => new SentimentTheme
+                    {
+                        Theme = t.GetProperty("theme").GetString() ?? "",
+                        Evidence = t.GetProperty("evidence").GetString() ?? "",
+                        Citations = t.TryGetProperty("citations", out var cits)
+                            ? cits.EnumerateArray().Select(c => c.GetInt32()).ToList()
+                            : new List<int>(),
+                        Impact = t.GetProperty("impact").GetString() ?? "Medium"
+                    }).ToList()
+                    : new List<SentimentTheme>(),
                 VolatilityIndicator = data.TryGetProperty("volatilityIndicator", out var vol) ? vol.GetString() ?? "Medium" : "Medium",
                 PriceTargetBias = data.TryGetProperty("priceTargetBias", out var pt) ? pt.GetString() ?? "Neutral" : "Neutral",
                 InstitutionalSentiment = data.TryGetProperty("institutionalSentiment", out var inst) ? inst.GetString() ?? "Neutral" : "Neutral",
@@ -1419,6 +1503,8 @@ Provide analysis in this JSON format:
         public string TradingSignal { get; set; } = string.Empty;
         public List<string> RiskFactors { get; set; } = new();
         public string Summary { get; set; } = string.Empty;
+        public List<SentimentTheme> PositiveThemes { get; set; } = new();
+        public List<SentimentTheme> NegativeThemes { get; set; } = new();
         public string VolatilityIndicator { get; set; } = string.Empty;
         public string PriceTargetBias { get; set; } = string.Empty;
         public string InstitutionalSentiment { get; set; } = string.Empty;
@@ -1482,6 +1568,8 @@ Provide analysis in this JSON format:
         public string TradingSignal { get; set; } = string.Empty;
         public List<string> RiskFactors { get; set; } = new();
         public string Summary { get; set; } = string.Empty;
+        public List<SentimentTheme> PositiveThemes { get; set; } = new();
+        public List<SentimentTheme> NegativeThemes { get; set; } = new();
         public string VolatilityIndicator { get; set; } = string.Empty;
         public string PriceTargetBias { get; set; } = string.Empty;
         public string InstitutionalSentiment { get; set; } = string.Empty;
@@ -1490,6 +1578,14 @@ Provide analysis in this JSON format:
         public string EarningsImpact { get; set; } = string.Empty;
         public string SectorComparison { get; set; } = string.Empty;
         public string MomentumSignal { get; set; } = string.Empty;
+    }
+
+    public class SentimentTheme
+    {
+        public string Theme { get; set; } = string.Empty;
+        public string Evidence { get; set; } = string.Empty;
+        public List<int> Citations { get; set; } = new();
+        public string Impact { get; set; } = string.Empty;
     }
 
     public class MarketSentimentResult

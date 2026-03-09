@@ -53,6 +53,21 @@ public class SentimentController : ControllerBase
                 negativePercent = negativePercent,
                 sources = analysis.NewsItems?.Select(n => n.Source).Distinct().ToArray() ?? Array.Empty<string>(),
                 summary = analysis.Summary,
+                // Enhanced analysis fields
+                trendDirection = analysis.TrendDirection,
+                keyThemes = analysis.KeyThemes ?? new List<string>(),
+                tradingSignal = analysis.TradingSignal,
+                riskFactors = analysis.RiskFactors ?? new List<string>(),
+                positiveThemes = analysis.PositiveThemes ?? new List<SentimentTheme>(),
+                negativeThemes = analysis.NegativeThemes ?? new List<SentimentTheme>(),
+                volatilityIndicator = analysis.VolatilityIndicator,
+                priceTargetBias = analysis.PriceTargetBias,
+                institutionalSentiment = analysis.InstitutionalSentiment,
+                retailSentiment = analysis.RetailSentiment,
+                analystConsensus = analysis.AnalystConsensus,
+                earningsImpact = analysis.EarningsImpact,
+                sectorComparison = analysis.SectorComparison,
+                momentumSignal = analysis.MomentumSignal,
                 recentNews = analysis.NewsItems?.Select(n => new
                 {
                     title = n.Title,
@@ -62,7 +77,10 @@ public class SentimentController : ControllerBase
                     sentimentScore = n.SentimentScore,
                     link = n.Link,
                     summary = string.IsNullOrEmpty(n.Summary) ? "" : (n.Summary.Length > 200 ? n.Summary.Substring(0, 200) + "..." : n.Summary),
-                    keyTopics = n.KeyTopics ?? new List<string>()
+                    keyTopics = n.KeyTopics ?? new List<string>(),
+                    impact = n.Impact,
+                    contentScraped = n.ContentScraped,
+                    chunkCount = n.ChunkCount
                 }).ToArray() ?? Array.Empty<object>()
             });
         }

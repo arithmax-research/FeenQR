@@ -339,16 +339,16 @@ namespace QuantResearchAgent
                     var config = sp.GetRequiredService<IConfiguration>();
                     var timeoutSeconds = config.GetValue<int>("ArticleScraper:TimeoutSeconds", 10);
                     client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-            services.AddSingleton<ChunkGeneratorService>();
-            services.AddSingleton<EmbeddingService>();
-            services.AddSingleton<VectorStoreService>();
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
                     AllowAutoRedirect = true,
                     MaxAutomaticRedirections = 5
                 });
 
-            services.AddScoped<ChunkGeneratorService>();
-            services.AddScoped<EmbeddingService>();
-            services.AddScoped<VectorStoreService>();
+            services.AddSingleton<ChunkGeneratorService>();
+            services.AddSingleton<EmbeddingService>();
+            services.AddSingleton<VectorStoreService>();
             services.AddSingleton<NewsSentimentAnalysisService>(); // Uses DeepSeekService now
             services.AddSingleton<YahooFinanceService>();
             services.AddSingleton<RedditScrapingService>();
