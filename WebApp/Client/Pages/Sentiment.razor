@@ -372,23 +372,41 @@
                             </div>
                             <div class="metric-card">
                                 <div class="metric-label">Sources</div>
-                                <div class="metric-value">@GetArrayLength(ss, "sourcesAnalyzed")</div>
+                                <div class="metric-value">@GetArrayLength(ss, "sources")</div>
                             </div>
                             <div class="metric-card">
                                 <div class="metric-label">Positive</div>
-                                <div class="metric-value" style="color: #10b981;">@((GetObjectDoubleProperty(ss, "sentimentBreakdown", "Positive") * 100).ToString("F0"))%</div>
+                                <div class="metric-value" style="color: #10b981;">@(GetDoubleProperty(ss, "positivePercent").ToString("F0"))%</div>
                             </div>
                             <div class="metric-card">
                                 <div class="metric-label">Negative</div>
-                                <div class="metric-value" style="color: #ef4444;">@((GetObjectDoubleProperty(ss, "sentimentBreakdown", "Negative") * 100).ToString("F0"))%</div>
+                                <div class="metric-value" style="color: #ef4444;">@(GetDoubleProperty(ss, "negativePercent").ToString("F0"))%</div>
                             </div>
                         </div>
 
-                        @if (!string.IsNullOrEmpty(GetStringProperty(ss, "aiInsights")))
+                        @if (GetArrayLength(ss, "sources") > 0)
+                        {
+                            <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(255, 255, 255, 0.02); border-radius: 8px;">
+                                <div style="color: #9ca3af; font-size: 0.8rem; margin-bottom: 0.5rem;">News Sources:</div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                    @if (ss.TryGetProperty("sources", out var sourcesArray))
+                                    {
+                                        @foreach (var source in sourcesArray.EnumerateArray())
+                                        {
+                                            <span style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.8rem;">
+                                                @source.GetString()
+                                            </span>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(GetStringProperty(ss, "summary")))
                         {
                             <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(16, 185, 129, 0.05); border-left: 3px solid #10b981; border-radius: 4px;">
-                                <h4 style="color: #10b981; margin-bottom: 0.5rem;">AI Insights</h4>
-                                <p style="color: #d1d5db; line-height: 1.6;">@GetStringProperty(ss, "aiInsights")</p>
+                                <h4 style="color: #10b981; margin-bottom: 0.5rem;">Summary</h4>
+                                <p style="color: #d1d5db; line-height: 1.6;">@GetStringProperty(ss, "summary")</p>
                             </div>
                         }
 
@@ -402,11 +420,38 @@
                                     @foreach (var news in recentNewsArray.EnumerateArray())
                                     {
                                         <div class="news-item">
-                                            <div class="news-title">@GetStringProperty(news, "title")</div>
+                                            <div class="news-title">
+                                                <a href="@GetStringProperty(news, "link")" target="_blank" style="color: #ffffff; text-decoration: none;">
+                                                    @GetStringProperty(news, "title")
+                                                    <i class="bi bi-box-arrow-up-right" style="font-size: 0.8rem; margin-left: 0.25rem;"></i>
+                                                </a>
+                                            </div>
                                             <div class="news-meta">
                                                 @GetStringProperty(news, "source") · @GetStringProperty(news, "publishedDate") · 
-                                                <span style="color: @GetSentimentColor(GetStringProperty(news, "sentiment"));">@GetStringProperty(news, "sentiment")</span>
+                                                <span style="color: @GetSentimentColor(GetStringProperty(news, "sentimentLabel"));">
+                                                    @GetStringProperty(news, "sentimentLabel") (@GetDoubleProperty(news, "sentimentScore").ToString("F2"))
+                                                </span>
                                             </div>
+                                            @if (!string.IsNullOrEmpty(GetStringProperty(news, "summary")))
+                                            {
+                                                <div style="color: #9ca3af; font-size: 0.85rem; margin-top: 0.5rem; line-height: 1.4;">
+                                                    @GetStringProperty(news, "summary")
+                                                </div>
+                                            }
+                                            @if (HasProperty(news, "keyTopics") && GetArrayLength(news, "keyTopics") > 0)
+                                            {
+                                                <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                                    @if (news.TryGetProperty("keyTopics", out var topicsArray))
+                                                    {
+                                                        @foreach (var topic in topicsArray.EnumerateArray())
+                                                        {
+                                                            <span style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                                                                @topic.GetString()
+                                                            </span>
+                                                        }
+                                                    }
+                                                </div>
+                                            }
                                         </div>
                                     }
                                 }
@@ -702,7 +747,7 @@
 
         try
         {
-            var response = await Http.GetAsync($"api/sentiment/symbol/{symbolQuery}?newsLimit=10");
+            var response = await Http.GetAsync($"api/sentiment/symbol/{symbolQuery}?newsLimit=20");
             if (response.IsSuccessStatusCode)
             {
                 symbolSentiment = await response.Content.ReadFromJsonAsync<dynamic>();

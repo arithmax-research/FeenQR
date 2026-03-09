@@ -327,6 +327,28 @@ namespace QuantResearchAgent
             services.AddSingleton<YFinanceApiService>();
             services.AddSingleton<YFinanceNewsService>();
             services.AddSingleton<FinvizNewsService>();
+            services.AddSingleton<NewsApiClient>();
+            
+            // Add memory cache for embedding caching
+            services.AddMemoryCache();
+            
+            // Register enhanced article sentiment analysis services
+            services.AddHttpClient<ArticleScraperService>()
+                .ConfigureHttpClient((sp, client) =>
+                {
+                    var config = sp.GetRequiredService<IConfiguration>();
+                    var timeoutSeconds = config.GetValue<int>("ArticleScraper:TimeoutSeconds", 10);
+                    client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+            services.AddSingleton<ChunkGeneratorService>();
+            services.AddSingleton<EmbeddingService>();
+            services.AddSingleton<VectorStoreService>();
+                    AllowAutoRedirect = true,
+                    MaxAutomaticRedirections = 5
+                });
+
+            services.AddScoped<ChunkGeneratorService>();
+            services.AddScoped<EmbeddingService>();
+            services.AddScoped<VectorStoreService>();
             services.AddSingleton<NewsSentimentAnalysisService>(); // Uses DeepSeekService now
             services.AddSingleton<YahooFinanceService>();
             services.AddSingleton<RedditScrapingService>();
@@ -597,6 +619,18 @@ namespace QuantResearchAgent
 
             // Build the service provider
             var serviceProvider = services.BuildServiceProvider();
+
+            // Initialize VectorStoreService on application startup
+            try
+            {
+                var vectorStoreService = serviceProvider.GetRequiredService<VectorStoreService>();
+                await vectorStoreService.InitializeAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Failed to initialize VectorStoreService: {ex.Message}");
+                Console.WriteLine("The application will continue with in-memory fallback storage.");
+            }
 
             // Get the CLI and run it
             var cli = serviceProvider.GetRequiredService<InteractiveCLI>();

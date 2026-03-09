@@ -73,7 +73,12 @@
     <div class="tabs-container">
         <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="trading-tab" data-bs-toggle="tab" data-bs-target="#trading" type="button" role="tab">
+                <button class="nav-link active" id="sentiment-tab" data-bs-toggle="tab" data-bs-target="#sentiment" type="button" role="tab">
+                    Sentiment Analysis
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="trading-tab" data-bs-toggle="tab" data-bs-target="#trading" type="button" role="tab">
                     Trading Analysis
                 </button>
             </li>
@@ -87,8 +92,15 @@
 
     <!-- Tab Content -->
     <div class="tab-content">
+        <!-- Sentiment Analysis Tab -->
+        <div class="tab-pane fade show active" id="sentiment" role="tabpanel">
+            <div class="analysis-grid">
+                <SentimentWidget />
+            </div>
+        </div>
+
         <!-- Trading Analysis Tab -->
-        <div class="tab-pane fade show active" id="trading" role="tabpanel">
+        <div class="tab-pane fade" id="trading" role="tabpanel">
             <div class="analysis-grid">
                 <TradingViewTechnicalAnalysisWidget InitialSymbol="BINANCE:BTCUSDT" InitialInterval="1D" />
             </div>

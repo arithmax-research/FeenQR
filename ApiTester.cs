@@ -32,6 +32,9 @@ namespace QuantResearchAgent
             // Test Finviz
             await TestFinviz("AAPL");
 
+            // Test NewsAPI
+            await TestNewsApi("AAPL");
+
             // Test Alpha Vantage (if it has news)
             await TestAlphaVantageNews("AAPL");
 
@@ -77,6 +80,29 @@ namespace QuantResearchAgent
             catch (Exception ex)
             {
                 Console.WriteLine($"❌ Finviz failed: {ex.Message}");
+            }
+            Console.WriteLine();
+        }
+
+        private async Task TestNewsApi(string symbol)
+        {
+            try
+            {
+                Console.WriteLine("📰 Testing NewsAPI...");
+                var newsApiClient = new NewsApiClient(_httpClient, _config, NullLogger<NewsApiClient>.Instance);
+                var news = await newsApiClient.GetNewsAsync(symbol, 5);
+
+                Console.WriteLine($"✅ NewsAPI: Retrieved {news.Count} news items");
+                if (news.Count > 0)
+                {
+                    Console.WriteLine($"   Sample: {news[0].Title}");
+                    Console.WriteLine($"   Publisher: {news[0].Publisher}");
+                    Console.WriteLine($"   Published: {news[0].PublishedDate}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ NewsAPI failed: {ex.Message}");
             }
             Console.WriteLine();
         }

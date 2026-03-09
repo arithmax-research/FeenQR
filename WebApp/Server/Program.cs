@@ -165,6 +165,27 @@ builder.Services.AddSingleton<NewsScrapingService>();
 builder.Services.AddSingleton<UrlNewsScrapingService>();
 builder.Services.AddSingleton<SocialMediaScrapingService>();
 builder.Services.AddSingleton<NewsSentimentAnalysisService>();
+
+// Register enhanced article sentiment analysis services
+// ⚠️ IMPORTANT: These services must also be registered in main Program.cs
+// See SYNC_SERVICES.md for details
+builder.Services.AddHttpClient<ArticleScraperService>()
+    .ConfigureHttpClient((sp, client) =>
+    {
+        var config = sp.GetRequiredService<IConfiguration>();
+        var timeoutSeconds = config.GetValue<int>("ArticleScraper:TimeoutSeconds", 10);
+        client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+    })
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        AllowAutoRedirect = true,
+        MaxAutomaticRedirections = 5
+    });
+builder.Services.AddSingleton<ChunkGeneratorService>();
+builder.Services.AddSingleton<EmbeddingService>();
+builder.Services.AddSingleton<VectorStoreService>();
+builder.Services.AddSingleton<NewsApiClient>();
+
 builder.Services.AddSingleton<WebDataExtractionService>();
 builder.Services.AddSingleton<GoogleWebSearchPlugin>();
 builder.Services.AddSingleton<IWebSearchPlugin, GoogleWebSearchPlugin>();
@@ -210,6 +231,13 @@ builder.Services.AddSingleton<MonteCarloService>();
 builder.Services.AddSingleton<MachineLearningService>();
 
 var app = builder.Build();
+
+// Initialize VectorStoreService for Qdrant
+using (var scope = app.Services.CreateScope())
+{
+    var vectorStore = scope.ServiceProvider.GetRequiredService<VectorStoreService>();
+    await vectorStore.InitializeAsync();
+}
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())

@@ -252,18 +252,41 @@ namespace QuantResearchAgent.Services
         {
             try
             {
-                var currentYear = DateTime.Now.Year;
-                var fullDateStr = $"{currentYear}-{dateStr} {timeStr}";
+                var now = DateTime.Now;
+                var currentYear = now.Year;
                 
-                if (DateTime.TryParseExact(fullDateStr, "yyyy-MM-dd HH:mm", null, System.Globalization.DateTimeStyles.None, out var dateTime))
+                // Parse the month-day from Finviz format (MM-DD)
+                var parts = dateStr.Split('-');
+                if (parts.Length == 2 && int.TryParse(parts[0], out var month) && int.TryParse(parts[1], out var day))
                 {
-                    return dateTime;
-                }
-                
-                // Fallback: try without time
-                if (DateTime.TryParseExact($"{currentYear}-{dateStr}", "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var date))
-                {
-                    return date;
+                    // Try current year first
+                    var fullDateStr = $"{currentYear}-{dateStr} {timeStr}";
+                    
+                    if (DateTime.TryParseExact(fullDateStr, "yyyy-MM-dd HH:mm", null, System.Globalization.DateTimeStyles.None, out var dateTime))
+                    {
+                        // If the date is in the future (more than 1 day ahead), it's probably from last year
+                        if (dateTime > now.AddDays(1))
+                        {
+                            fullDateStr = $"{currentYear - 1}-{dateStr} {timeStr}";
+                            if (DateTime.TryParseExact(fullDateStr, "yyyy-MM-dd HH:mm", null, System.Globalization.DateTimeStyles.None, out var lastYearDate))
+                            {
+                                return lastYearDate;
+                            }
+                        }
+                        
+                        return dateTime;
+                    }
+                    
+                    // Fallback: try without time
+                    if (DateTime.TryParseExact($"{currentYear}-{dateStr}", "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var date))
+                    {
+                        // Same future check
+                        if (date > now.AddDays(1))
+                        {
+                            date = date.AddYears(-1);
+                        }
+                        return date;
+                    }
                 }
             }
             catch (Exception ex)

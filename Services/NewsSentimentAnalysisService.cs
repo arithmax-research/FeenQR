@@ -20,6 +20,15 @@ namespace QuantResearchAgent.Services
         private readonly RedditScrapingService _redditScrapingService;
         private readonly GoogleWebSearchPlugin _googleSearchPlugin;
         private readonly HttpClient _httpClient;
+        private readonly ArticleScraperService? _articleScraperService;
+        private readonly ChunkGeneratorService? _chunkGeneratorService;
+        private readonly EmbeddingService? _embeddingService;
+        private readonly VectorStoreService? _vectorStoreService;
+        private readonly NewsApiClient? _newsApiClient;
+        
+        // Circuit breaker state
+        private readonly Dictionary<string, CircuitBreakerState> _circuitBreakers = new();
+        private readonly object _circuitBreakerLock = new();
 
         public NewsSentimentAnalysisService(
             ILogger<NewsSentimentAnalysisService> logger,
@@ -28,7 +37,12 @@ namespace QuantResearchAgent.Services
             FinvizNewsService finvizNewsService,
             RedditScrapingService redditScrapingService,
             GoogleWebSearchPlugin googleSearchPlugin,
-            HttpClient httpClient)
+            HttpClient httpClient,
+            ArticleScraperService? articleScraperService = null,
+            ChunkGeneratorService? chunkGeneratorService = null,
+            EmbeddingService? embeddingService = null,
+            VectorStoreService? vectorStoreService = null,
+            NewsApiClient? newsApiClient = null)
         {
             _logger = logger;
             _openAIService = openAIService;
@@ -37,6 +51,11 @@ namespace QuantResearchAgent.Services
             _redditScrapingService = redditScrapingService;
             _googleSearchPlugin = googleSearchPlugin;
             _httpClient = httpClient;
+            _articleScraperService = articleScraperService;
+            _chunkGeneratorService = chunkGeneratorService;
+            _embeddingService = embeddingService;
+            _vectorStoreService = vectorStoreService;
+            _newsApiClient = newsApiClient;
         }
 
         /// <summary>
@@ -224,13 +243,17 @@ namespace QuantResearchAgent.Services
 
                 _logger.LogInformation($"Total news items collected: {allNews.Count} from multiple sources");
 
-                // Remove duplicates and sort by date
+                // Remove duplicates, filter old news (older than 30 days), and sort by date
+                var cutoffDate = DateTime.Now.AddDays(-30);
                 var uniqueNews = allNews
+                    .Where(n => n.PublishedDate >= cutoffDate) // Filter out old news
                     .GroupBy(n => n.Title.ToLower().Trim())
                     .Select(g => g.OrderByDescending(n => n.PublishedDate).First())
                     .OrderByDescending(n => n.PublishedDate)
                     .Take(newsLimit)
                     .ToList();
+
+                _logger.LogInformation($"After filtering: {uniqueNews.Count} recent news items (within 30 days)");
 
                 // BATCH analyze sentiment for all news items in one call for speed
                 var sentimentResults = await AnalyzeBatchSentimentAsync(uniqueNews);
@@ -273,6 +296,519 @@ namespace QuantResearchAgent.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error analyzing sentiment for {symbol}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Analyze sentiment for a symbol using full article content with vector storage
+        /// Fetches news from all 6 sources, scrapes full content, generates chunks, embeddings, and stores in vector DB
+        /// </summary>
+        public async Task<SymbolSentimentAnalysis> AnalyzeSymbolSentimentWithFullContentAsync(string symbol, int newsLimit = 10)
+        {
+            try
+            {
+                _logger.LogInformation($"Starting enhanced sentiment analysis with full content for {symbol}");
+
+                // Check if enhanced services are available
+                if (_articleScraperService == null || _chunkGeneratorService == null || 
+                    _embeddingService == null || _vectorStoreService == null)
+                {
+                    _logger.LogWarning("Enhanced services not available, falling back to standard analysis");
+                    return await AnalyzeSymbolSentimentAsync(symbol, newsLimit);
+                }
+
+                // Step 1: Fetch news from all 6 sources (including NewsAPI)
+                var allNews = await AggregateNewsFromAllSourcesAsync(symbol, newsLimit);
+
+                if (allNews.Count == 0)
+                {
+                    _logger.LogWarning($"No news items found for {symbol} from any source");
+                    return new SymbolSentimentAnalysis
+                    {
+                        Symbol = symbol,
+                        AnalysisDate = DateTime.Now,
+                        NewsItems = new List<NewsItem>(),
+                        OverallSentiment = "Neutral",
+                        SentimentScore = 0,
+                        Confidence = 0,
+                        Summary = "No news data available for analysis"
+                    };
+                }
+
+                _logger.LogInformation($"Total news items collected: {allNews.Count} from all sources");
+
+                // Remove duplicates, filter old news (older than 30 days), and sort by date
+                var cutoffDate = DateTime.Now.AddDays(-30);
+                var uniqueNews = allNews
+                    .Where(n => n.PublishedDate >= cutoffDate) // Filter out old news
+                    .GroupBy(n => n.Title.ToLower().Trim())
+                    .Select(g => g.OrderByDescending(n => n.PublishedDate).First())
+                    .OrderByDescending(n => n.PublishedDate)
+                    .Take(newsLimit)
+                    .ToList();
+
+                _logger.LogInformation($"After filtering: {uniqueNews.Count} recent news items (within 30 days)");
+
+                // Step 2: Scrape full article content for each news item
+                _logger.LogInformation($"Scraping full content for {uniqueNews.Count} articles...");
+                var urlsToScrape = uniqueNews.Where(n => !string.IsNullOrEmpty(n.Link)).Select(n => n.Link).ToList();
+                var scrapedArticles = await ExecuteWithCircuitBreaker("ArticleScraper", 
+                    () => _articleScraperService.ScrapeArticlesAsync(urlsToScrape));
+
+                // Map scraped content back to news items
+                var articleContentMap = scrapedArticles.ToDictionary(a => a.Url, a => a);
+                foreach (var newsItem in uniqueNews)
+                {
+                    if (articleContentMap.TryGetValue(newsItem.Link, out var articleContent) && articleContent.Success)
+                    {
+                        newsItem.FullContent = articleContent.Content;
+                        newsItem.ContentLength = articleContent.ContentLength;
+                        newsItem.ContentScraped = true;
+                    }
+                    else
+                    {
+                        // Fallback to summary if scraping failed
+                        newsItem.FullContent = newsItem.Summary;
+                        newsItem.ContentLength = newsItem.Summary.Length;
+                        newsItem.ContentScraped = false;
+                    }
+                }
+
+                var successfulScrapes = uniqueNews.Count(n => n.ContentScraped);
+                _logger.LogInformation($"Successfully scraped {successfulScrapes}/{uniqueNews.Count} articles");
+
+                // Step 3: Generate chunks for each article
+                _logger.LogInformation("Generating semantic chunks from articles...");
+                var allChunks = new List<ArticleChunk>();
+                foreach (var newsItem in uniqueNews)
+                {
+                    if (string.IsNullOrWhiteSpace(newsItem.FullContent))
+                        continue;
+
+                    var articleContent = new ArticleContent
+                    {
+                        Url = newsItem.Link,
+                        Content = newsItem.FullContent,
+                        ContentLength = newsItem.ContentLength ?? 0,
+                        Success = newsItem.ContentScraped
+                    };
+
+                    var chunks = _chunkGeneratorService.GenerateChunks(articleContent, newsItem);
+                    allChunks.AddRange(chunks);
+                    
+                    newsItem.ChunkIds = chunks.Select(c => c.ChunkId).ToList();
+                    newsItem.ChunkCount = chunks.Count;
+                }
+
+                _logger.LogInformation($"Generated {allChunks.Count} total chunks from {uniqueNews.Count} articles");
+
+                // Step 4: Generate embeddings for all chunks
+                if (allChunks.Count > 0)
+                {
+                    _logger.LogInformation($"Generating embeddings for {allChunks.Count} chunks...");
+                    var chunkTexts = allChunks.Select(c => c.Content).ToList();
+                    var embeddings = await ExecuteWithCircuitBreaker("EmbeddingService",
+                        () => _embeddingService.GenerateEmbeddingsAsync(chunkTexts));
+
+                    // Step 5: Store chunks with embeddings in vector store
+                    _logger.LogInformation($"Storing {allChunks.Count} chunks in vector store...");
+                    var chunksWithEmbeddings = allChunks.Zip(embeddings, (chunk, embedding) => (chunk, embedding)).ToList();
+                    var storedCount = await ExecuteWithCircuitBreaker("VectorStore",
+                        () => _vectorStoreService.StoreChunksAsync(chunksWithEmbeddings));
+
+                    _logger.LogInformation($"Stored {storedCount} chunks in vector store");
+                }
+
+                // Step 6: Analyze sentiment using full article content
+                _logger.LogInformation("Analyzing sentiment with full article content...");
+                var sentimentResults = await AnalyzeBatchSentimentAsync(uniqueNews);
+
+                // Combine results
+                for (int i = 0; i < uniqueNews.Count && i < sentimentResults.Count; i++)
+                {
+                    uniqueNews[i].SentimentScore = sentimentResults[i].Score;
+                    uniqueNews[i].SentimentLabel = sentimentResults[i].Label;
+                    uniqueNews[i].KeyTopics = sentimentResults[i].KeyTopics;
+                    uniqueNews[i].Impact = sentimentResults[i].Impact;
+                }
+
+                // Step 7: Generate overall analysis
+                var overallAnalysis = await GenerateOverallSentimentAnalysisAsync(symbol, uniqueNews);
+
+                return new SymbolSentimentAnalysis
+                {
+                    Symbol = symbol,
+                    AnalysisDate = DateTime.Now,
+                    NewsItems = uniqueNews,
+                    OverallSentiment = overallAnalysis.OverallSentiment,
+                    SentimentScore = overallAnalysis.SentimentScore,
+                    Confidence = overallAnalysis.Confidence,
+                    TrendDirection = overallAnalysis.TrendDirection,
+                    KeyThemes = overallAnalysis.KeyThemes,
+                    TradingSignal = overallAnalysis.TradingSignal,
+                    RiskFactors = overallAnalysis.RiskFactors,
+                    Summary = overallAnalysis.Summary,
+                    VolatilityIndicator = overallAnalysis.VolatilityIndicator,
+                    PriceTargetBias = overallAnalysis.PriceTargetBias,
+                    InstitutionalSentiment = overallAnalysis.InstitutionalSentiment,
+                    RetailSentiment = overallAnalysis.RetailSentiment,
+                    AnalystConsensus = overallAnalysis.AnalystConsensus,
+                    EarningsImpact = overallAnalysis.EarningsImpact,
+                    SectorComparison = overallAnalysis.SectorComparison,
+                    MomentumSignal = overallAnalysis.MomentumSignal
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error in enhanced sentiment analysis for {symbol}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Search for related articles using semantic search with natural language query
+        /// </summary>
+        /// <param name="query">Natural language search query</param>
+        /// <param name="limit">Maximum number of results to return (default: 10)</param>
+        /// <param name="filter">Optional filter criteria for date range, source, and symbol</param>
+        /// <returns>List of NewsItem with similarity scores</returns>
+        public async Task<List<NewsItem>> SearchRelatedArticlesAsync(
+            string query,
+            int limit = 10,
+            ChunkFilter? filter = null)
+        {
+            try
+            {
+                _logger.LogInformation($"Searching for related articles with query: '{query}', limit: {limit}");
+
+                // Check if enhanced services are available
+                if (_embeddingService == null || _vectorStoreService == null)
+                {
+                    _logger.LogWarning("Enhanced services not available for semantic search");
+                    return new List<NewsItem>();
+                }
+
+                if (string.IsNullOrWhiteSpace(query))
+                {
+                    throw new ArgumentException("Search query cannot be null or empty", nameof(query));
+                }
+
+                // Step 1: Generate query embedding from natural language text
+                _logger.LogDebug("Generating embedding for search query...");
+                var queryEmbedding = await ExecuteWithCircuitBreaker("EmbeddingService",
+                    () => _embeddingService.GenerateEmbeddingAsync(query));
+
+                // Step 2: Call VectorStoreService.SearchAsync with filters
+                _logger.LogDebug("Performing semantic search in vector store...");
+                var searchResults = await ExecuteWithCircuitBreaker("VectorStore",
+                    () => _vectorStoreService.SearchAsync(queryEmbedding, limit, filter));
+
+                if (searchResults.Count == 0)
+                {
+                    _logger.LogInformation("No results found for query: '{Query}'", query);
+                    return new List<NewsItem>();
+                }
+
+                _logger.LogInformation($"Found {searchResults.Count} matching chunks for query");
+
+                // Step 3: Group chunks by article and aggregate to NewsItem list
+                var articleGroups = searchResults
+                    .GroupBy(r => r.Chunk.ArticleUrl)
+                    .Select(g => new
+                    {
+                        Url = g.Key,
+                        Chunks = g.OrderBy(r => r.Chunk.ChunkIndex).ToList(),
+                        MaxSimilarity = g.Max(r => r.SimilarityScore),
+                        AvgSimilarity = g.Average(r => r.SimilarityScore)
+                    })
+                    .OrderByDescending(a => a.MaxSimilarity)
+                    .Take(limit)
+                    .ToList();
+
+                // Step 4: Convert to NewsItem list with similarity scores
+                var newsItems = new List<NewsItem>();
+                foreach (var articleGroup in articleGroups)
+                {
+                    var firstChunk = articleGroup.Chunks.First().Chunk;
+                    
+                    // Reconstruct full content from chunks
+                    var fullContent = string.Join(" ", articleGroup.Chunks.Select(c => c.Chunk.Content));
+                    
+                    // Create summary from first chunk or truncate full content
+                    var summary = firstChunk.Content.Length > 200 
+                        ? firstChunk.Content.Substring(0, 200) + "..." 
+                        : firstChunk.Content;
+
+                    var newsItem = new NewsItem
+                    {
+                        Title = firstChunk.Title,
+                        Summary = summary,
+                        Publisher = firstChunk.Publisher,
+                        PublishedDate = firstChunk.PublishedDate,
+                        Link = firstChunk.ArticleUrl,
+                        Source = firstChunk.Source,
+                        FullContent = fullContent,
+                        ContentLength = fullContent.Length,
+                        ContentScraped = true,
+                        ChunkIds = articleGroup.Chunks.Select(c => c.Chunk.ChunkId).ToList(),
+                        ChunkCount = articleGroup.Chunks.Count,
+                        // Store similarity score in SentimentScore field for now
+                        // (could add a dedicated SimilarityScore field to NewsItem in the future)
+                        SentimentScore = articleGroup.MaxSimilarity
+                    };
+
+                    newsItems.Add(newsItem);
+                }
+
+                _logger.LogInformation(
+                    $"Returning {newsItems.Count} articles for query '{query}' with similarity scores");
+
+                return newsItems;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error searching for related articles with query: '{query}'");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Aggregate news from all 6 sources in parallel
+        /// </summary>
+        private async Task<List<NewsItem>> AggregateNewsFromAllSourcesAsync(string symbol, int newsLimit)
+        {
+            var allNews = new List<NewsItem>();
+            
+            // Fetch more items per source (3x the limit) to ensure we have enough after deduplication
+            var perSourceLimit = newsLimit * 3;
+
+            // Google Search for latest news
+            var googleTask = Task.Run(async () =>
+            {
+                try
+                {
+                    var searchQuery = $"{symbol} stock news latest";
+                    var googleResults = await _googleSearchPlugin.SearchAsync(searchQuery, maxResults: perSourceLimit);
+                    var items = googleResults.Select(gr => new NewsItem
+                    {
+                        Title = gr.Title ?? "",
+                        Summary = gr.Snippet ?? "",
+                        Publisher = "Google Search",
+                        PublishedDate = DateTime.Now,
+                        Link = gr.Url ?? "",
+                        Source = "Google Search"
+                    }).ToList();
+                    _logger.LogInformation($"Retrieved {items.Count} news items from Google Search");
+                    return items;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Failed to get Google Search results for {symbol}");
+                    return new List<NewsItem>();
+                }
+            });
+
+            var finvizTask = Task.Run(async () =>
+            {
+                try
+                {
+                    var finvizNews = await _finvizNewsService.GetNewsAsync(symbol, perSourceLimit);
+                    var items = finvizNews.Select(fn => new NewsItem
+                    {
+                        Title = fn.Title,
+                        Summary = fn.Summary,
+                        Publisher = fn.Publisher,
+                        PublishedDate = fn.PublishedDate,
+                        Link = fn.Link,
+                        Source = "Finviz"
+                    }).ToList();
+                    _logger.LogInformation($"Retrieved {items.Count} news items from Finviz");
+                    return items;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Failed to get Finviz news for {symbol}");
+                    return new List<NewsItem>();
+                }
+            });
+
+            var redditTask = Task.Run(async () =>
+            {
+                try
+                {
+                    var redditPosts = await _redditScrapingService.ScrapeSubredditAsync("wallstreetbets", perSourceLimit);
+                    var symbolPosts = redditPosts.Where(p => 
+                        p.Title.Contains(symbol, StringComparison.OrdinalIgnoreCase) ||
+                        p.Content.Contains(symbol, StringComparison.OrdinalIgnoreCase))
+                        .Take(perSourceLimit);
+                    
+                    var items = symbolPosts.Select(rp => new NewsItem
+                    {
+                        Title = rp.Title,
+                        Summary = rp.Content.Length > 200 ? rp.Content.Substring(0, 200) + "..." : rp.Content,
+                        Publisher = $"u/{rp.Author}",
+                        PublishedDate = rp.CreatedUtc,
+                        Link = rp.Url,
+                        Source = "Reddit"
+                    }).ToList();
+                    _logger.LogInformation($"Retrieved {items.Count} relevant posts from Reddit");
+                    return items;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Failed to get Reddit posts for {symbol}");
+                    return new List<NewsItem>();
+                }
+            });
+
+            var yahooTask = Task.Run(async () =>
+            {
+                try
+                {
+                    var yahooNews = await _yfinanceNewsService.GetNewsAsync(symbol, perSourceLimit);
+                    var items = yahooNews.Select(yn => new NewsItem
+                    {
+                        Title = yn.Title,
+                        Summary = yn.Summary,
+                        Publisher = yn.Publisher,
+                        PublishedDate = yn.PublishedDate,
+                        Link = yn.Link,
+                        Source = "Yahoo Finance"
+                    }).ToList();
+                    _logger.LogInformation($"Retrieved {items.Count} news items from Yahoo Finance");
+                    return items;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Failed to get Yahoo Finance news for {symbol}");
+                    return new List<NewsItem>();
+                }
+            });
+
+            var marketWatchTask = Task.Run(async () =>
+            {
+                try
+                {
+                    var url = $"https://www.marketwatch.com/search?q={symbol}&ts=0&tab=All%20News";
+                    var response = await _httpClient.GetAsync(url);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var html = await response.Content.ReadAsStringAsync();
+                        var items = new List<NewsItem>();
+                        
+                        var titlePattern = new System.Text.RegularExpressions.Regex(@"<h3[^>]*class=""[^""]*article__headline[^""]*""[^>]*>\s*<a[^>]*href=""([^""]*)""[^>]*>([^<]*)</a>");
+                        var matches = titlePattern.Matches(html);
+                        
+                        foreach (System.Text.RegularExpressions.Match match in matches.Take(perSourceLimit))
+                        {
+                            if (match.Groups.Count >= 3)
+                            {
+                                items.Add(new NewsItem
+                                {
+                                    Title = System.Net.WebUtility.HtmlDecode(match.Groups[2].Value.Trim()),
+                                    Summary = "",
+                                    Publisher = "MarketWatch",
+                                    PublishedDate = DateTime.Now,
+                                    Link = match.Groups[1].Value.StartsWith("http") ? match.Groups[1].Value : $"https://www.marketwatch.com{match.Groups[1].Value}",
+                                    Source = "MarketWatch"
+                                });
+                            }
+                        }
+                        _logger.LogInformation($"Retrieved {items.Count} news items from MarketWatch");
+                        return items;
+                    }
+                    return new List<NewsItem>();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Failed to scrape MarketWatch news for {symbol}");
+                    return new List<NewsItem>();
+                }
+            });
+
+            // NewsAPI task (6th source)
+            var newsApiTask = Task.Run(async () =>
+            {
+                try
+                {
+                    if (_newsApiClient == null)
+                    {
+                        _logger.LogWarning("NewsApiClient not available");
+                        return new List<NewsItem>();
+                    }
+
+                    var newsApiItems = await _newsApiClient.GetNewsAsync(symbol, perSourceLimit);
+                    _logger.LogInformation($"Retrieved {newsApiItems.Count} news items from NewsAPI");
+                    return newsApiItems;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Failed to get NewsAPI results for {symbol}");
+                    return new List<NewsItem>();
+                }
+            });
+
+            // Wait for all sources to complete in parallel
+            await Task.WhenAll(googleTask, finvizTask, redditTask, yahooTask, marketWatchTask, newsApiTask);
+            
+            // Log results from each source
+            _logger.LogInformation($"Source results - Google: {googleTask.Result.Count}, Finviz: {finvizTask.Result.Count}, Reddit: {redditTask.Result.Count}, Yahoo: {yahooTask.Result.Count}, MarketWatch: {marketWatchTask.Result.Count}, NewsAPI: {newsApiTask.Result.Count}");
+            
+            allNews.AddRange(googleTask.Result);
+            allNews.AddRange(finvizTask.Result);
+            allNews.AddRange(redditTask.Result);
+            allNews.AddRange(yahooTask.Result);
+            allNews.AddRange(marketWatchTask.Result);
+            allNews.AddRange(newsApiTask.Result);
+
+            return allNews;
+        }
+
+        /// <summary>
+        /// Execute an operation with circuit breaker pattern
+        /// </summary>
+        private async Task<T> ExecuteWithCircuitBreaker<T>(string serviceName, Func<Task<T>> operation)
+        {
+            CircuitBreakerState state;
+            lock (_circuitBreakerLock)
+            {
+                if (!_circuitBreakers.ContainsKey(serviceName))
+                {
+                    _circuitBreakers[serviceName] = new CircuitBreakerState();
+                }
+                state = _circuitBreakers[serviceName];
+            }
+
+            // Check if circuit is open
+            if (state.IsOpen)
+            {
+                _logger.LogWarning($"Circuit breaker is OPEN for {serviceName}. Failing fast.");
+                throw new InvalidOperationException($"Circuit breaker is open for {serviceName}");
+            }
+
+            try
+            {
+                var result = await operation();
+                
+                // Success - reset circuit breaker
+                lock (_circuitBreakerLock)
+                {
+                    state.Reset();
+                }
+                
+                return result;
+            }
+            catch (Exception ex)
+            {
+                // Record failure
+                lock (_circuitBreakerLock)
+                {
+                    state.RecordFailure();
+                    _logger.LogError(ex, 
+                        $"Circuit breaker recorded failure for {serviceName}. Failure count: {state.FailureCount}/3");
+                }
+                
                 throw;
             }
         }
@@ -919,6 +1455,13 @@ Provide analysis in this JSON format:
         public string SentimentLabel { get; set; } = string.Empty;
         public List<string> KeyTopics { get; set; } = new();
         public string Impact { get; set; } = string.Empty;
+        
+        // Enhanced fields for full content analysis
+        public string? FullContent { get; set; }
+        public int? ContentLength { get; set; }
+        public bool ContentScraped { get; set; }
+        public List<string>? ChunkIds { get; set; }
+        public int? ChunkCount { get; set; }
     }
 
     public class NewsItemSentiment
@@ -959,5 +1502,28 @@ Provide analysis in this JSON format:
         public List<string> KeyThemes { get; set; } = new();
         public string RiskLevel { get; set; } = string.Empty;
         public string Summary { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Circuit breaker state for external API calls
+    /// </summary>
+    internal class CircuitBreakerState
+    {
+        public int FailureCount { get; set; }
+        public DateTime? LastFailureTime { get; set; }
+        public bool IsOpen => FailureCount >= 3 && LastFailureTime.HasValue && 
+                              (DateTime.UtcNow - LastFailureTime.Value).TotalSeconds < 60;
+        
+        public void RecordFailure()
+        {
+            FailureCount++;
+            LastFailureTime = DateTime.UtcNow;
+        }
+        
+        public void Reset()
+        {
+            FailureCount = 0;
+            LastFailureTime = null;
+        }
     }
 }

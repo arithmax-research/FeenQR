@@ -30,8 +30,16 @@ public class SentimentController : ControllerBase
     {
         try
         {
-            _logger.LogInformation($"Getting sentiment analysis for {symbol}");
-            var analysis = await _sentimentService.AnalyzeSymbolSentimentAsync(symbol, newsLimit);
+            _logger.LogInformation($"Getting enhanced sentiment analysis with full content for {symbol}");
+            var analysis = await _sentimentService.AnalyzeSymbolSentimentWithFullContentAsync(symbol, newsLimit);
+            
+            // Calculate sentiment percentages
+            var positiveCount = analysis.NewsItems?.Count(n => n.SentimentScore > 0.1) ?? 0;
+            var negativeCount = analysis.NewsItems?.Count(n => n.SentimentScore < -0.1) ?? 0;
+            var totalCount = analysis.NewsItems?.Count ?? 1;
+            
+            var positivePercent = (positiveCount * 100.0) / totalCount;
+            var negativePercent = (negativeCount * 100.0) / totalCount;
             
             return Ok(new
             {
@@ -39,29 +47,23 @@ public class SentimentController : ControllerBase
                 timestamp = DateTime.UtcNow,
                 overallSentiment = analysis.OverallSentiment,
                 sentimentScore = analysis.SentimentScore,
-                sentimentLabel = analysis.OverallSentiment,
                 confidence = analysis.Confidence,
-                newsCount = analysis.NewsItems?.Count ?? 0,
-                sourcesAnalyzed = analysis.NewsItems?.Select(n => n.Source).Distinct().ToArray() ?? Array.Empty<string>(),
-                keyTopics = analysis.KeyThemes,
-                sentimentBreakdown = new Dictionary<string, double>
-                {
-                    { "Positive", analysis.SentimentScore > 0 ? analysis.SentimentScore : 0 },
-                    { "Negative", analysis.SentimentScore < 0 ? Math.Abs(analysis.SentimentScore) : 0 },
-                    { "Neutral", Math.Abs(analysis.SentimentScore) < 0.1 ? 1.0 : 0 }
-                },
-                recentNews = analysis.NewsItems?.Take(5).Select(n => new
+                newsCount = totalCount,
+                positivePercent = positivePercent,
+                negativePercent = negativePercent,
+                sources = analysis.NewsItems?.Select(n => n.Source).Distinct().ToArray() ?? Array.Empty<string>(),
+                summary = analysis.Summary,
+                recentNews = analysis.NewsItems?.Select(n => new
                 {
                     title = n.Title,
                     source = n.Source,
                     publishedDate = n.PublishedDate,
-                    sentiment = n.SentimentLabel,
+                    sentimentLabel = n.SentimentLabel,
                     sentimentScore = n.SentimentScore,
-                    url = n.Link
-                }),
-                aiInsights = analysis.Summary,
-                risks = analysis.RiskFactors,
-                opportunities = new List<string>()
+                    link = n.Link,
+                    summary = string.IsNullOrEmpty(n.Summary) ? "" : (n.Summary.Length > 200 ? n.Summary.Substring(0, 200) + "..." : n.Summary),
+                    keyTopics = n.KeyTopics ?? new List<string>()
+                }).ToArray() ?? Array.Empty<object>()
             });
         }
         catch (Exception ex)
@@ -298,7 +300,7 @@ public class SentimentController : ControllerBase
             {
                 try
                 {
-                    var analysis = await _sentimentService.AnalyzeSymbolSentimentAsync(symbol, 5);
+                    var analysis = await _sentimentService.AnalyzeSymbolSentimentWithFullContentAsync(symbol, 5);
                     comparisons.Add(new
                     {
                         symbol = symbol,
