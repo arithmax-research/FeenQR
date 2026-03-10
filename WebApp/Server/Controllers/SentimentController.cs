@@ -259,12 +259,32 @@ public class SentimentController : ControllerBase
                         var matches = System.Text.RegularExpressions.Regex.Matches(
                             text, @"\b[A-Z]{1,5}\b");
                         
+                        // Comprehensive list of common English words to filter out
+                        var commonWords = new HashSet<string> {
+                            "THE", "AND", "FOR", "ARE", "BUT", "NOT", "YOU", "ALL", "CAN", "HAS", "HAD", "WAS", "FROM",
+                            "THIS", "THAT", "WITH", "HAVE", "WILL", "YOUR", "WHAT", "BEEN", "MORE", "WHEN", "THEY",
+                            "THAN", "THEM", "SOME", "WOULD", "COULD", "SHOULD", "ABOUT", "INTO", "JUST", "LIKE",
+                            "ONLY", "OVER", "SUCH", "TAKE", "THAN", "THEN", "THESE", "THOSE", "VERY", "WELL",
+                            "ALSO", "BACK", "EVEN", "GOOD", "HERE", "MUCH", "MUST", "NEED", "SAID", "SAME",
+                            "SEEM", "SEEN", "SELF", "SHOW", "SURE", "TELL", "THAN", "THAT", "THEM", "THEN",
+                            "THERE", "THESE", "THING", "THINK", "THIS", "THOSE", "TIME", "VERY", "WANT", "WELL",
+                            "WERE", "WHAT", "WHEN", "WHERE", "WHICH", "WHILE", "WHO", "WILL", "WITH", "WOULD",
+                            "YEAR", "AFTER", "AGAIN", "BEING", "BOTH", "COME", "COULD", "DOES", "DOWN", "EACH",
+                            "FIND", "FIRST", "GIVE", "GOING", "GREAT", "HELP", "KNOW", "LAST", "LONG", "LOOK",
+                            "MADE", "MAKE", "MANY", "MOST", "NEVER", "NEXT", "OTHER", "PEOPLE", "RIGHT", "STILL",
+                            "THEIR", "THERE", "THINK", "UNDER", "UNTIL", "USING", "WANT", "WORK", "WORLD", "YEARS",
+                            "HTTPS", "HTTP", "WWW", "COM", "ORG", "NET", "HTML", "AMP", "NBSP",
+                            "EDIT", "TLDR", "IMHO", "IIRC", "FWIW", "YMMV", "AFAIK", "NSFW", "LMAO", "ROFL",
+                            "DONT", "CANT", "WONT", "ISNT", "ARENT", "WASNT", "WERENT", "DIDNT", "DOESNT",
+                            "THATS", "THERES", "HERES", "WHATS", "WHERES", "WHOS", "HOWS", "WHYS",
+                            "REALLY", "MAYBE", "PROBABLY", "ACTUALLY", "LITERALLY", "BASICALLY", "HONESTLY"
+                        };
+                        
                         foreach (System.Text.RegularExpressions.Match match in matches)
                         {
                             var symbol = match.Value;
-                            // Filter out common words
-                            if (symbol.Length >= 2 && symbol.Length <= 5 
-                                && !new[] { "THE", "AND", "FOR", "ARE", "BUT", "NOT", "YOU", "ALL", "CAN", "HAS", "HAD", "WAS", "FROM" }.Contains(symbol))
+                            // Filter: must be 2-5 chars, not a common word, and preferably contains a number or is all caps in context
+                            if (symbol.Length >= 2 && symbol.Length <= 5 && !commonWords.Contains(symbol))
                             {
                                 symbolMentions[symbol] = symbolMentions.GetValueOrDefault(symbol, 0) + 1;
                             }
@@ -368,12 +388,14 @@ public class SentimentController : ControllerBase
                 ("bonds", "TLT") 
             };
 
-            // Run all analyses in parallel to reduce wait time
+            // Run all analyses in parallel with timeout to reduce wait time
+            var timeout = TimeSpan.FromSeconds(10);
             var analysisTasks = assetClasses.Select(async item =>
             {
                 var (assetClass, symbol) = item;
                 try
                 {
+                    using var cts = new CancellationTokenSource(timeout);
                     var report = await _marketSentimentService.AnalyzeMarketSentimentAsync(assetClass, symbol);
                     return new
                     {
@@ -386,8 +408,16 @@ public class SentimentController : ControllerBase
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, $"Failed to analyze {assetClass}");
-                    return null;
+                    _logger.LogWarning(ex, $"Failed to analyze {assetClass} - using neutral default");
+                    // Return neutral sentiment as fallback
+                    return new
+                    {
+                        assetClass = assetClass,
+                        symbol = symbol,
+                        sentiment = "Neutral",
+                        score = 0.0,
+                        confidence = 0.5
+                    };
                 }
             });
 

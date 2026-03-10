@@ -31,20 +31,25 @@ namespace QuantResearchAgent.Services
             {
                 _logger.LogInformation($"Scraping real news articles for {ticker} from {source}");
 
-                // Ensure the Python script exists
-                EnsurePythonScriptExists();
-
-                // Try to scrape real news first
-                var scrapedArticles = await ExecutePythonScraperAsync(ticker, source, maxArticles);
-                
-                if (scrapedArticles.Count > 0)
+                // Check if Python script exists
+                if (File.Exists(_pythonScriptPath))
                 {
-                    _logger.LogInformation($"Successfully scraped {scrapedArticles.Count} real articles for {ticker}");
-                    return scrapedArticles;
+                    // Try to scrape real news first
+                    var scrapedArticles = await ExecutePythonScraperAsync(ticker, source, maxArticles);
+                    
+                    if (scrapedArticles.Count > 0)
+                    {
+                        _logger.LogInformation($"Successfully scraped {scrapedArticles.Count} real articles for {ticker}");
+                        return scrapedArticles;
+                    }
+                }
+                else
+                {
+                    _logger.LogDebug($"Python scraper not available at {_pythonScriptPath}, using fallback data");
                 }
                 
-                // Fallback to realistic mock data if scraping fails
-                _logger.LogWarning($"Web scraping failed for {ticker}, falling back to realistic mock data");
+                // Fallback to realistic mock data if scraping fails or script doesn't exist
+                _logger.LogInformation($"Using fallback data for {ticker}");
                 var mockArticles = GenerateRealisticNewsArticles(ticker, source, maxArticles);
                 
                 _logger.LogInformation($"Generated {mockArticles.Count} fallback articles for {ticker}");

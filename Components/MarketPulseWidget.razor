@@ -1,0 +1,299 @@
+@using System.Text.Json
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-activity"></i> Market Pulse & Trending
+        </h5>
+    </div>
+    <div class="card-body">
+        <!-- Market Pulse Section -->
+        <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Overall Market Sentiment</h6>
+                <button class="btn btn-sm btn-primary" @onclick="LoadMarketPulse" disabled="@isLoadingPulse">
+                    @if (isLoadingPulse)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                    }
+                    Refresh
+                </button>
+            </div>
+
+            @if (marketPulse != null)
+            {
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <div class="alert alert-@GetMoodColorClass(marketPulse.MarketMood) mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Market Mood:</strong> @marketPulse.MarketMood
+                                </div>
+                                <div>
+                                    <strong>Score:</strong> @marketPulse.OverallScore.ToString("F2")
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @foreach (var asset in marketPulse.AssetClasses)
+                    {
+                        <div class="col-md-4">
+                            <div class="card border-@GetSentimentColorClass(asset.Sentiment)">
+                                <div class="card-body text-center">
+                                    <h6 class="text-uppercase text-muted mb-2">@asset.AssetClass</h6>
+                                    <div class="h5 mb-1">@asset.Symbol</div>
+                                    <div class="badge bg-@GetSentimentColorClass(asset.Sentiment) mb-2">
+                                        @asset.Sentiment
+                                    </div>
+                                    <div class="small text-muted">
+                                        Score: @asset.Score.ToString("F2") | Confidence: @((asset.Confidence * 100).ToString("F0"))%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else if (pulseError != null)
+            {
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>@pulseError
+                </div>
+            }
+        </div>
+
+        <hr />
+
+        <!-- Trending Symbols Section -->
+        <div>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0"><i class="bi bi-fire me-2"></i>Trending on Reddit</h6>
+                <button class="btn btn-sm btn-primary" @onclick="LoadTrending" disabled="@isLoadingTrending">
+                    @if (isLoadingTrending)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                    }
+                    Refresh
+                </button>
+            </div>
+
+            @if (trendingSymbols != null && trendingSymbols.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Symbol</th>
+                                <th>Mentions</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int rank = 1;
+                            }
+                            @foreach (var item in trendingSymbols.Take(15))
+                            {
+                                <tr>
+                                    <td>
+                                        @if (rank <= 3)
+                                        {
+                                            <span class="badge bg-warning text-dark">@rank</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@rank</span>
+                                        }
+                                    </td>
+                                    <td><strong>@item.Symbol</strong></td>
+                                    <td>
+                                        <span class="badge bg-info">@item.Mentions mentions</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => AnalyzeSymbol(item.Symbol)">
+                                            <i class="bi bi-search"></i> Analyze
+                                        </button>
+                                    </td>
+                                </tr>
+                                rank++;
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Total symbols found: @trendingData?.TotalSymbolsFound | Last updated: @trendingData?.Timestamp.ToString("HH:mm:ss")
+                </small>
+            }
+            else if (trendingError != null)
+            {
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>@trendingError
+                </div>
+            }
+            else if (!isLoadingTrending)
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>Click "Refresh" to load trending symbols from Reddit
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private MarketPulseData? marketPulse;
+    private TrendingData? trendingData;
+    private List<TrendingSymbol>? trendingSymbols;
+    private string? pulseError;
+    private string? trendingError;
+    private bool isLoadingPulse = false;
+    private bool isLoadingTrending = false;
+
+    [Inject]
+    private HttpClient Http { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<string> OnSymbolSelected { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMarketPulse();
+        await LoadTrending();
+    }
+
+    private async Task LoadMarketPulse()
+    {
+        isLoadingPulse = true;
+        pulseError = null;
+        
+        try
+        {
+            var response = await Http.GetAsync("api/sentiment/market-pulse");
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var options = new JsonSerializerOptions 
+                { 
+                    PropertyNameCaseInsensitive = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+                marketPulse = JsonSerializer.Deserialize<MarketPulseData>(json, options);
+            }
+            else
+            {
+                pulseError = $"Failed to load market pulse: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            pulseError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingPulse = false;
+        }
+    }
+
+    private async Task LoadTrending()
+    {
+        isLoadingTrending = true;
+        trendingError = null;
+        
+        try
+        {
+            var response = await Http.GetAsync("api/sentiment/reddit/trending?limit=20");
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var options = new JsonSerializerOptions 
+                { 
+                    PropertyNameCaseInsensitive = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+                trendingData = JsonSerializer.Deserialize<TrendingData>(json, options);
+                trendingSymbols = trendingData?.Trending?.ToList();
+            }
+            else
+            {
+                trendingError = $"Failed to load trending symbols: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            trendingError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingTrending = false;
+        }
+    }
+
+    private async Task AnalyzeSymbol(string symbol)
+    {
+        await OnSymbolSelected.InvokeAsync(symbol);
+    }
+
+    private string GetSentimentColorClass(string sentiment)
+    {
+        return sentiment?.ToLower() switch
+        {
+            "bullish" => "success",
+            "bearish" => "danger",
+            "positive" => "success",
+            "negative" => "danger",
+            _ => "secondary"
+        };
+    }
+
+    private string GetMoodColorClass(string mood)
+    {
+        return mood?.ToLower() switch
+        {
+            "risk-on" => "success",
+            "risk-off" => "danger",
+            _ => "info"
+        };
+    }
+
+    // Data models
+    public class MarketPulseData
+    {
+        public DateTime Timestamp { get; set; }
+        public string MarketMood { get; set; } = "";
+        public double OverallScore { get; set; }
+        public List<AssetClassData> AssetClasses { get; set; } = new();
+    }
+
+    public class AssetClassData
+    {
+        public string AssetClass { get; set; } = "";
+        public string Symbol { get; set; } = "";
+        public string Sentiment { get; set; } = "";
+        public double Score { get; set; }
+        public double Confidence { get; set; }
+    }
+
+    public class TrendingData
+    {
+        public DateTime Timestamp { get; set; }
+        public List<TrendingSymbol> Trending { get; set; } = new();
+        public int TotalSymbolsFound { get; set; }
+    }
+
+    public class TrendingSymbol
+    {
+        public string Symbol { get; set; } = "";
+        public int Mentions { get; set; }
+    }
+}

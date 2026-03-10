@@ -53,9 +53,10 @@ public class NewsApiClient
         {
             var url = BuildQueryUrl(symbol, limit);
             
-            // Add API key to request header
+            // Add API key and User-Agent to request headers
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Add("X-Api-Key", _apiKey);
+            request.Headers.Add("User-Agent", "QuantResearchAgent/1.0 (Financial Research Application)");
 
             _logger.LogInformation("NewsAPI request: symbol={Symbol}, limit={Limit}", symbol, limit);
 

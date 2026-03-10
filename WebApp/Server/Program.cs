@@ -216,7 +216,17 @@ builder.Services.AddSingleton<ReportGenerationService>();
 builder.Services.AddSingleton<LinkedInScrapingService>();
 builder.Services.AddSingleton<PaperRAGService>();
 builder.Services.AddSingleton<MarketSentimentAgentService>();
-builder.Services.AddSingleton<RedditScrapingService>();
+
+// Register RedditScrapingService with HttpClient
+builder.Services.AddHttpClient<RedditScrapingService>()
+    .ConfigureHttpClient((sp, client) =>
+    {
+        var config = sp.GetRequiredService<IConfiguration>();
+        var userAgent = config["Reddit:UserAgent"] ?? "QuantResearchAgent/1.0 (Financial Research Application)";
+        client.DefaultRequestHeaders.Add("User-Agent", userAgent);
+        client.Timeout = TimeSpan.FromSeconds(30);
+    });
+
 builder.Services.AddSingleton<SatelliteImageryAnalysisService>();
 // Satellite imagery service enabled with Google OAuth and ESA Copernicus credentials
 builder.Services.AddSingleton<PortContainerAnalysisService>();

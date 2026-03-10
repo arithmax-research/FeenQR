@@ -20,15 +20,10 @@ public class RedditScrapingService
         _httpClient = httpClient;
         _configuration = configuration;
         
-        var userAgent = _configuration["Reddit:UserAgent"] ?? "QuantResearchAgent/1.0";
-        
         // Always use HTTP scraping - Reddit API OAuth is unreliable and requires complex setup
         // The public JSON endpoints work well without authentication
         _redditClient = null;
         _logger.LogInformation("Reddit scraping service initialized with HTTP client (API disabled)");
-        
-        // Set user agent for HTTP client
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", userAgent);
     }
 
     public async Task<List<RedditPost>> ScrapeSubredditAsync(string subreddit, int limit = 25)
@@ -100,7 +95,18 @@ public class RedditScrapingService
 
             _logger.LogInformation("Scraping r/{Subreddit} using HTTP fallback for {Limit} posts", subreddit, limit);
 
-            var response = await _httpClient.GetStringAsync(url);
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            var httpResponse = await _httpClient.SendAsync(request);
+            
+            if (!httpResponse.IsSuccessStatusCode)
+            {
+                var errorContent = await httpResponse.Content.ReadAsStringAsync();
+                _logger.LogError("Reddit API returned {StatusCode} for r/{Subreddit}. Response: {Response}", 
+                    httpResponse.StatusCode, subreddit, errorContent);
+                return posts;
+            }
+            
+            var response = await httpResponse.Content.ReadAsStringAsync();
             _logger.LogDebug("Received response from Reddit API, length: {Length}", response.Length);
 
             var jsonDoc = JsonDocument.Parse(response);
