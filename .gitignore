@@ -30,3 +30,4 @@ bin/
 
 #Ignore papers_Backlog folder
 /papers_Backlog/
+.env
