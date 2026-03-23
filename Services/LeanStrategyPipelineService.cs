@@ -159,6 +159,8 @@ Requirements:
 - Implement on_data method with the trading logic from the strategy.
 - Use appropriate indicators and logic as described. Do not use RSI unless explicitly mentioned in the strategy description.
 - For EMA crossover strategies, use ExponentialMovingAverage indicators with the specified periods.
+- Store EMA periods as separate variables if you need to reference them (e.g., fast_period = 20). Do not try to access .Period attribute on EMA indicators as it doesn't exist.
+- Do not load interest rate data for equity strategies - only load it if the strategy requires options, futures, or other derivatives that need risk-free rates.
 - Include logging for buy/sell signals.
 - In OnEndOfAlgorithm, log the final portfolio value and total number of filled orders.
 - Use proper Lean API calls (e.g., self.set_holdings, self.liquidate).
@@ -304,6 +306,8 @@ Output only the Python code, no explanations.
             }
         }
 
+        var extractedResults = TryExtractStatistics(outputDirectory);
+
         var result = new LeanExecutionResult
         {
             Success = execution.ExitCode == 0 && !hasRuntimeErrors,
@@ -314,7 +318,8 @@ Output only the Python code, no explanations.
             StdOut = execution.StdOut,
             StdErr = execution.StdErr,
             OutputDirectory = outputDirectory,
-            Statistics = TryExtractStatistics(outputDirectory)
+            Results = extractedResults,
+            Statistics = extractedResults != null && extractedResults.TryGetValue("Statistics", out var stats) ? (Dictionary<string, object>?)stats : null
         };
 
         return result;
@@ -416,24 +421,55 @@ Output only the Python code, no explanations.
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(file));
 
+                var result = new Dictionary<string, object>();
+
+                // Extract Statistics
                 if (doc.RootElement.TryGetProperty("Statistics", out var stats) && stats.ValueKind == JsonValueKind.Object)
                 {
-                    return stats.EnumerateObject().ToDictionary(
+                    result["Statistics"] = stats.EnumerateObject().ToDictionary(
+                        p => p.Name,
+                        p => p.Value.ValueKind == JsonValueKind.String ? (object)(p.Value.GetString() ?? string.Empty) : p.Value.ToString());
+                }
+                else if (doc.RootElement.TryGetProperty("statistics", out var statsLower) && statsLower.ValueKind == JsonValueKind.Object)
+                {
+                    result["Statistics"] = statsLower.EnumerateObject().ToDictionary(
                         p => p.Name,
                         p => p.Value.ValueKind == JsonValueKind.String ? (object)(p.Value.GetString() ?? string.Empty) : p.Value.ToString());
                 }
 
-                if (doc.RootElement.TryGetProperty("statistics", out var statsLower) && statsLower.ValueKind == JsonValueKind.Object)
+                // Extract Charts
+                if (doc.RootElement.TryGetProperty("Charts", out var charts) && charts.ValueKind == JsonValueKind.Object)
                 {
-                    return statsLower.EnumerateObject().ToDictionary(
+                    result["Charts"] = charts.EnumerateObject().ToDictionary(
+                        p => p.Name,
+                        p => p.Value.ToString());
+                }
+
+                // Extract Orders
+                if (doc.RootElement.TryGetProperty("Orders", out var orders) && orders.ValueKind == JsonValueKind.Object)
+                {
+                    result["Orders"] = orders.EnumerateObject().ToDictionary(
+                        p => p.Name,
+                        p => p.Value.ToString());
+                }
+
+                // Extract RuntimeStatistics
+                if (doc.RootElement.TryGetProperty("RuntimeStatistics", out var runtimeStats) && runtimeStats.ValueKind == JsonValueKind.Object)
+                {
+                    result["RuntimeStatistics"] = runtimeStats.EnumerateObject().ToDictionary(
                         p => p.Name,
                         p => p.Value.ValueKind == JsonValueKind.String ? (object)(p.Value.GetString() ?? string.Empty) : p.Value.ToString());
+                }
+
+                if (result.Any())
+                {
+                    return result;
                 }
             }
         }
         catch
         {
-            // Ignore parse errors; statistics are optional.
+            // Ignore parse errors; results are optional.
         }
 
         return null;
@@ -511,4 +547,5 @@ public class LeanExecutionResult
     public string StdErr { get; set; } = string.Empty;
     public string OutputDirectory { get; set; } = string.Empty;
     public Dictionary<string, object>? Statistics { get; set; }
+    public Dictionary<string, object>? Results { get; set; }
 }

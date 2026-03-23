@@ -14,19 +14,22 @@ public class StrategyBuilderController : ControllerBase
     private readonly LeanDataService _leanDataService;
     private readonly StrategyTextParser _textParser;
     private readonly DataRequirementAdvisor _dataAdvisor;
+    private readonly DeepSeekService _deepSeekService;
 
     public StrategyBuilderController(
         ILogger<StrategyBuilderController> logger,
         LeanStrategyPipelineService pipelineService,
         LeanDataService leanDataService,
         StrategyTextParser textParser,
-        DataRequirementAdvisor dataAdvisor)
+        DataRequirementAdvisor dataAdvisor,
+        DeepSeekService deepSeekService)
     {
         _logger = logger;
         _pipelineService = pipelineService;
         _leanDataService = leanDataService;
         _textParser = textParser;
         _dataAdvisor = dataAdvisor;
+        _deepSeekService = deepSeekService;
     }
 
     [HttpPost("plan")]
@@ -312,6 +315,139 @@ public class StrategyBuilderController : ControllerBase
                 }
             });
         }
+    }
+
+    [HttpPost("analyze-backtest-chat")]
+    public async Task<IActionResult> AnalyzeBacktestChat([FromBody] BacktestAnalysisChatRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.BacktestOutputDirectory) || !Directory.Exists(request.BacktestOutputDirectory))
+        {
+            return BadRequest(new { error = "Valid backtestOutputDirectory is required." });
+        }
+
+        var resultSnapshot = TryReadBacktestSnapshot(request.BacktestOutputDirectory);
+        if (resultSnapshot is null)
+        {
+            return NotFound(new { error = "Could not find Lean result JSON in backtest output directory." });
+        }
+
+        var question = string.IsNullOrWhiteSpace(request.Message)
+            ? "Provide a complete performance analysis of this backtest."
+            : request.Message.Trim();
+
+        var prompt = $@"
+You are a quantitative trading performance analyst.
+
+Analyze the following Lean backtest snapshot and answer the user's question.
+
+User question:
+{question}
+
+Run ID: {request.RunId}
+Strategy context (if available):
+{request.StrategyText}
+
+Backtest JSON snapshot:
+{resultSnapshot}
+
+Requirements:
+- Be concrete and data-driven.
+- Include key stats when available (net profit, drawdown, sharpe, orders, win rate).
+- Always provide these sections:
+  1) Summary
+  2) Strengths
+  3) Weaknesses
+  4) Suggestions
+  5) Next validation steps
+- If data is missing, explicitly say what is missing.
+- Keep the answer concise and readable.
+";
+
+        var analysis = await _deepSeekService.GetChatCompletionAsync(prompt);
+
+        return Ok(new BacktestAnalysisChatResponse
+        {
+            Timestamp = DateTime.UtcNow,
+            Analysis = analysis,
+            RunId = request.RunId,
+            BacktestOutputDirectory = request.BacktestOutputDirectory
+        });
+    }
+
+    private static string? TryReadBacktestSnapshot(string outputDirectory)
+    {
+        try
+        {
+            var jsonFiles = Directory.GetFiles(outputDirectory, "*.json", SearchOption.AllDirectories)
+                .OrderByDescending(System.IO.File.GetLastWriteTimeUtc)
+                .ToList();
+
+            foreach (var file in jsonFiles)
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(System.IO.File.ReadAllText(file));
+                    var root = doc.RootElement;
+
+                    var snapshot = new Dictionary<string, object?>
+                    {
+                        ["sourceFile"] = Path.GetFileName(file)
+                    };
+
+                    if (root.TryGetProperty("Statistics", out var statistics) && statistics.ValueKind == JsonValueKind.Object)
+                    {
+                        snapshot["Statistics"] = statistics;
+                    }
+                    else if (root.TryGetProperty("statistics", out var statisticsLower) && statisticsLower.ValueKind == JsonValueKind.Object)
+                    {
+                        snapshot["Statistics"] = statisticsLower;
+                    }
+
+                    if (root.TryGetProperty("RuntimeStatistics", out var runtimeStatistics) && runtimeStatistics.ValueKind == JsonValueKind.Object)
+                    {
+                        snapshot["RuntimeStatistics"] = runtimeStatistics;
+                    }
+                    else if (root.TryGetProperty("runtimeStatistics", out var runtimeStatisticsLower) && runtimeStatisticsLower.ValueKind == JsonValueKind.Object)
+                    {
+                        snapshot["RuntimeStatistics"] = runtimeStatisticsLower;
+                    }
+
+                    if (root.TryGetProperty("TotalPerformance", out var totalPerformance))
+                    {
+                        snapshot["TotalPerformance"] = totalPerformance;
+                    }
+                    else if (root.TryGetProperty("totalPerformance", out var totalPerformanceLower))
+                    {
+                        snapshot["TotalPerformance"] = totalPerformanceLower;
+                    }
+
+                    if (root.TryGetProperty("Orders", out var orders) && orders.ValueKind == JsonValueKind.Object)
+                    {
+                        snapshot["OrdersCount"] = orders.EnumerateObject().Count();
+                    }
+                    else if (root.TryGetProperty("orders", out var ordersLower) && ordersLower.ValueKind == JsonValueKind.Array)
+                    {
+                        snapshot["OrdersCount"] = ordersLower.GetArrayLength();
+                    }
+
+                    if (snapshot.Count > 1)
+                    {
+                        return JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true });
+                    }
+                }
+                catch
+                {
+                    // Skip invalid/partial JSON files and continue scanning others (e.g. use -summary.json).
+                    continue;
+                }
+            }
+        }
+        catch
+        {
+            // Best-effort snapshot extraction.
+        }
+
+        return null;
     }
 
     private async Task<AgenticRunOutcome> ExecuteAgenticRunAsync(
@@ -631,4 +767,20 @@ public class StrategyRunRequest
     public decimal? EntryRsi { get; set; }
     public decimal? ExitRsi { get; set; }
     public decimal? PositionSizePercent { get; set; }
+}
+
+public class BacktestAnalysisChatRequest
+{
+    public string RunId { get; set; } = string.Empty;
+    public string BacktestOutputDirectory { get; set; } = string.Empty;
+    public string StrategyText { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+}
+
+public class BacktestAnalysisChatResponse
+{
+    public DateTime Timestamp { get; set; }
+    public string RunId { get; set; } = string.Empty;
+    public string BacktestOutputDirectory { get; set; } = string.Empty;
+    public string Analysis { get; set; } = string.Empty;
 }
