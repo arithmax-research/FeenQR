@@ -374,6 +374,86 @@ Requirements:
         });
     }
 
+    [HttpPost("backtest-summary")]
+    public IActionResult GetBacktestSummary([FromBody] BacktestSummaryRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.BacktestOutputDirectory) || !Directory.Exists(request.BacktestOutputDirectory))
+        {
+            return BadRequest(new { error = "Valid backtestOutputDirectory is required." });
+        }
+
+        try
+        {
+            var summaryFile = FindBacktestSummaryFile(request.BacktestOutputDirectory);
+            if (string.IsNullOrWhiteSpace(summaryFile) || !System.IO.File.Exists(summaryFile))
+            {
+                return NotFound(new { error = "Could not find summary JSON in backtest output directory." });
+            }
+
+            using var doc = JsonDocument.Parse(System.IO.File.ReadAllText(summaryFile));
+            var root = doc.RootElement;
+
+            if (!TryGetStatisticsElement(root, out var statisticsElement) || statisticsElement.ValueKind != JsonValueKind.Object)
+            {
+                return NotFound(new { error = "Summary JSON found, but statistics section is missing." });
+            }
+
+            var statistics = statisticsElement.EnumerateObject()
+                .ToDictionary(p => p.Name, p => p.Value.ToString());
+
+            return Ok(new BacktestSummaryResponse
+            {
+                BacktestOutputDirectory = request.BacktestOutputDirectory,
+                SummaryFilePath = summaryFile,
+                Statistics = statistics
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to read backtest summary from {Dir}", request.BacktestOutputDirectory);
+            return StatusCode(500, new { error = $"Failed to read backtest summary: {ex.Message}" });
+        }
+    }
+
+    private static string? FindBacktestSummaryFile(string outputDirectory)
+    {
+        var preferred = Path.Combine(outputDirectory, "-summary.json");
+        if (System.IO.File.Exists(preferred)) return preferred;
+
+        var summaryCandidates = Directory.GetFiles(outputDirectory, "*summary*.json", SearchOption.TopDirectoryOnly)
+            .OrderByDescending(System.IO.File.GetLastWriteTimeUtc)
+            .ToList();
+
+        if (summaryCandidates.Count > 0)
+        {
+            return summaryCandidates[0];
+        }
+
+        var fallback = Directory.GetFiles(outputDirectory, "*.json", SearchOption.TopDirectoryOnly)
+            .OrderByDescending(System.IO.File.GetLastWriteTimeUtc)
+            .FirstOrDefault();
+
+        return fallback;
+    }
+
+    private static bool TryGetStatisticsElement(JsonElement root, out JsonElement statisticsElement)
+    {
+        if (root.TryGetProperty("statistics", out var statsLower) && statsLower.ValueKind == JsonValueKind.Object)
+        {
+            statisticsElement = statsLower;
+            return true;
+        }
+
+        if (root.TryGetProperty("Statistics", out var statsUpper) && statsUpper.ValueKind == JsonValueKind.Object)
+        {
+            statisticsElement = statsUpper;
+            return true;
+        }
+
+        statisticsElement = default;
+        return false;
+    }
+
     private static string? TryReadBacktestSnapshot(string outputDirectory)
     {
         try
@@ -783,4 +863,16 @@ public class BacktestAnalysisChatResponse
     public string RunId { get; set; } = string.Empty;
     public string BacktestOutputDirectory { get; set; } = string.Empty;
     public string Analysis { get; set; } = string.Empty;
+}
+
+public class BacktestSummaryRequest
+{
+    public string BacktestOutputDirectory { get; set; } = string.Empty;
+}
+
+public class BacktestSummaryResponse
+{
+    public string BacktestOutputDirectory { get; set; } = string.Empty;
+    public string SummaryFilePath { get; set; } = string.Empty;
+    public Dictionary<string, string> Statistics { get; set; } = new();
 }

@@ -757,6 +757,7 @@
                         if (payload is not null)
                         {
                             ApplyRunPayload(payload, payloadElement);
+                            await LoadStatsFromJsonAsync(payload);
                             await InvokeAsync(StateHasChanged);
                         }
                     }
@@ -848,6 +849,66 @@
             : "Backtest completed with errors";
 
         AddAgentLog("Backtest Runner", strategyStatus);
+    }
+
+    private async Task LoadStatsFromJsonAsync(StrategyRunResponse payload)
+    {
+        if (strategyRunResult is null)
+        {
+            return;
+        }
+
+        if (strategyRunResult.KeyStats.Count > 0)
+        {
+            return;
+        }
+
+        var outputDir = payload.Artifacts?.BacktestOutputDirectory;
+        if (string.IsNullOrWhiteSpace(outputDir))
+        {
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/StrategyBuilder/backtest-summary", new
+            {
+                backtestOutputDirectory = outputDir
+            });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return;
+            }
+
+            var summary = await response.Content.ReadFromJsonAsync<BacktestSummaryPayload>();
+            if (summary?.Statistics is null || summary.Statistics.Count == 0)
+            {
+                return;
+            }
+
+            var preferredKeys = new[]
+            {
+                "Net Profit",
+                "Sharpe Ratio",
+                "Drawdown",
+                "Win Rate",
+                "Total Orders",
+                "End Equity"
+            };
+
+            foreach (var key in preferredKeys)
+            {
+                if (summary.Statistics.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value))
+                {
+                    strategyRunResult.KeyStats.Add(new StatEntry { Name = key, Value = value });
+                }
+            }
+        }
+        catch
+        {
+            // Best-effort fallback; keep UI functional even if summary lookup fails.
+        }
     }
 
     private static List<StatEntry> ExtractKeyStatsFromRawPayload(JsonElement payload)
@@ -1083,6 +1144,13 @@
         public string LeanMessage { get; set; } = string.Empty;
         public string BacktestOutputDirectory { get; set; } = string.Empty;
         public List<StatEntry> KeyStats { get; set; } = new();
+    }
+
+    public class BacktestSummaryPayload
+    {
+        public string BacktestOutputDirectory { get; set; } = string.Empty;
+        public string SummaryFilePath { get; set; } = string.Empty;
+        public Dictionary<string, string> Statistics { get; set; } = new();
     }
 
     public class StatEntry
