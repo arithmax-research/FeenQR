@@ -1,0 +1,84 @@
+@using Client.Extensions
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ILogger<ReinforcementLearningWidget> Logger
+
+<div class="rl-widget">
+    <div class="widget-header">
+        <h4>Reinforcement Learning</h4>
+        <button class="refresh-btn" @onclick="Refresh" disabled="@isLoading">@(isLoading ? "..." : "↻")</button>
+    </div>
+
+    <input class="widget-input" @bind="environment" placeholder="equity-market-sim" />
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="widget-error">@errorMessage</div>
+    }
+
+    @if (trainResult is not null)
+    {
+        <div class="metric-box"><span>Algorithm</span><strong>@trainResult.Algorithm</strong></div>
+        <div class="metric-box"><span>Final Reward</span><strong>@trainResult.FinalReward.ToString("F3")</strong></div>
+        <div class="metric-box"><span>Sharpe</span><strong>@trainResult.SharpeRatio.ToString("F2")</strong></div>
+
+        <button class="view-btn" @onclick="OpenFull">View Full RL Analysis</button>
+    }
+</div>
+
+@code {
+    private string environment = "equity-market-sim";
+    private bool isLoading;
+    private string errorMessage = string.Empty;
+    private TrainResult? trainResult;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            trainResult = await Http.PostAsJsonAsync<TrainResult>(
+                "/api/ReinforcementLearning/train-actor-critic",
+                new { environment, episodes = 250, actorLearningRate = 0.01m, criticLearningRate = 0.02m, discountFactor = 0.95m });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load RL widget data");
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OpenFull()
+    {
+        Navigation.NavigateTo("/reinforcement-learning");
+    }
+
+    private class TrainResult
+    {
+        public string Algorithm { get; set; } = string.Empty;
+        public decimal FinalReward { get; set; }
+        public decimal SharpeRatio { get; set; }
+    }
+}
+
+<style>
+.rl-widget { background: rgba(5, 10, 22, 0.72); border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 10px; padding: 14px; color: #e7ecf3; }
+.widget-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.widget-header h4 { margin: 0; color: #00d4ff; }
+.refresh-btn { background: rgba(0, 212, 255, 0.12); border: 1px solid rgba(0, 212, 255, 0.25); color: #00d4ff; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.widget-input { width: 100%; background: rgba(0, 212, 255, 0.06); border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 6px; color: #e7ecf3; padding: 8px; }
+.widget-error { margin-top: 10px; color: #ff9a9a; font-size: 0.85rem; }
+.metric-box { margin-top: 10px; background: rgba(0, 212, 255, 0.05); border: 1px solid rgba(0, 212, 255, 0.12); border-radius: 6px; padding: 8px; display: flex; justify-content: space-between; }
+.view-btn { width: 100%; margin-top: 10px; background: linear-gradient(135deg, #00d4ff, #1a8cff); border: none; color: #041220; padding: 9px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+</style>

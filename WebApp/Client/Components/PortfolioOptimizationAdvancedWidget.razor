@@ -1,0 +1,210 @@
+@using Client.Extensions
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ILogger<PortfolioOptimizationAdvancedWidget> Logger
+
+<div class="adv-opt-widget">
+    <div class="widget-header">
+        <h4>Advanced Optimization</h4>
+        <button class="refresh-btn" @onclick="Refresh" disabled="@isLoading">@(isLoading ? "..." : "↻")</button>
+    </div>
+
+    <div class="widget-inputs">
+        <input class="widget-input" @bind="assetsInput" placeholder="AAPL,MSFT,NVDA,SPY" />
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="widget-error">@errorMessage</div>
+    }
+
+    @if (result is not null)
+    {
+        <div class="widget-metrics">
+            <div class="metric"><span>Top Method</span><strong>@result.Summary.RecommendedMethod</strong></div>
+            <div class="metric"><span>Score</span><strong>@result.Summary.BestScore.ToString("F3")</strong></div>
+        </div>
+
+        <div class="scores-list">
+            @foreach (var score in result.Scores.OrderByDescending(s => s.Value).Take(3))
+            {
+                <div class="score-item">
+                    <span>@score.Key</span>
+                    <strong>@score.Value.ToString("F3")</strong>
+                </div>
+            }
+        </div>
+
+        <button class="view-btn" @onclick="OpenFullPage">View Full Optimization</button>
+    }
+</div>
+
+@code {
+    private string assetsInput = "AAPL,MSFT,NVDA,SPY";
+    private bool isLoading;
+    private string errorMessage = string.Empty;
+    private OptimizationComparisonResponse? result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var assets = assetsInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(a => a.ToUpperInvariant())
+                .Distinct()
+                .ToList();
+
+            if (assets.Count < 2)
+            {
+                errorMessage = "Need at least two assets.";
+                return;
+            }
+
+            var request = new
+            {
+                assets,
+                allowShortSelling = false,
+                minWeight = 0.0,
+                maxWeight = 0.35,
+                maxRisk = 0.35,
+                turnoverLimit = 0.5,
+                absoluteViews = new Dictionary<string, double> { [assets[0]] = 0.12 },
+                viewConfidences = new Dictionary<string, double> { [assets[0]] = 0.7 }
+            };
+
+            result = await Http.PostAsJsonAsync<OptimizationComparisonResponse>(
+                "/api/AdvancedPortfolioOptimization/compare-optimization",
+                request);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load optimization widget data");
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OpenFullPage()
+    {
+        Navigation.NavigateTo("/portfolio-optimization-advanced");
+    }
+
+    private class OptimizationComparisonResponse
+    {
+        public OptimizationSummary Summary { get; set; } = new();
+        public Dictionary<string, double> Scores { get; set; } = new();
+    }
+
+    private class OptimizationSummary
+    {
+        public string RecommendedMethod { get; set; } = string.Empty;
+        public double BestScore { get; set; }
+    }
+}
+
+<style>
+.adv-opt-widget {
+    background: rgba(5, 10, 22, 0.72);
+    border: 1px solid rgba(0, 212, 255, 0.15);
+    border-radius: 10px;
+    padding: 14px;
+    color: #e7ecf3;
+}
+
+.widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.widget-header h4 {
+    margin: 0;
+    color: #00d4ff;
+}
+
+.refresh-btn {
+    background: rgba(0, 212, 255, 0.12);
+    border: 1px solid rgba(0, 212, 255, 0.25);
+    color: #00d4ff;
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+}
+
+.widget-input {
+    width: 100%;
+    background: rgba(0, 212, 255, 0.06);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 6px;
+    color: #e7ecf3;
+    padding: 8px;
+}
+
+.widget-error {
+    margin-top: 10px;
+    color: #ff9a9a;
+    font-size: 0.85rem;
+}
+
+.widget-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.metric {
+    background: rgba(0, 212, 255, 0.05);
+    border: 1px solid rgba(0, 212, 255, 0.12);
+    border-radius: 6px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.metric span {
+    color: #9bb0cc;
+    font-size: 0.75rem;
+}
+
+.scores-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.score-item {
+    display: flex;
+    justify-content: space-between;
+    background: rgba(0, 212, 255, 0.04);
+    border: 1px solid rgba(0, 212, 255, 0.1);
+    border-radius: 6px;
+    padding: 7px 8px;
+}
+
+.view-btn {
+    width: 100%;
+    margin-top: 10px;
+    background: linear-gradient(135deg, #00d4ff, #1a8cff);
+    border: none;
+    color: #041220;
+    padding: 9px;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+}
+</style>

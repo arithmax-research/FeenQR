@@ -1,0 +1,117 @@
+@using Client.Extensions
+@inject HttpClient Http
+@inject ILogger<FeatureCategoryPanel> Logger
+
+<div class="fcp-container">
+    <div class="fcp-title">@Title</div>
+    <div class="fcp-controls">
+        <select class="fcp-input" @bind="selectedFeature">
+            @foreach (var f in Features)
+            {
+                <option value="@f">@f</option>
+            }
+        </select>
+        <input class="fcp-input" @bind="context" placeholder="AAPL, SPY, macro-risk-off" />
+        <button class="fcp-run" @onclick="Run" disabled="@isLoading">@(isLoading ? "Running..." : "Run")</button>
+    </div>
+
+    <div class="fcp-quick">
+        @foreach (var f in Features.Take(8))
+        {
+            <button class="fcp-quick-btn" @onclick="() => RunFeature(f)">@f</button>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="fcp-error">@errorMessage</div>
+    }
+
+    @if (result is not null)
+    {
+        <div class="fcp-result">
+            <div class="fcp-row"><span>Feature</span><strong>@result.Feature</strong></div>
+            <div class="fcp-row"><span>Status</span><strong>@result.IntegrationStatus</strong></div>
+            <div class="fcp-summary">@result.Message</div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string ApiBase { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<string> Features { get; set; } = Array.Empty<string>();
+    [Parameter] public string DefaultContext { get; set; } = "AAPL";
+
+    private string selectedFeature = string.Empty;
+    private string context = string.Empty;
+    private bool isLoading;
+    private string errorMessage = string.Empty;
+    private ResultDto? result;
+
+    protected override void OnParametersSet()
+    {
+        if (!Features.Contains(selectedFeature) && Features.Count > 0)
+        {
+            selectedFeature = Features[0];
+        }
+
+        if (string.IsNullOrWhiteSpace(context))
+        {
+            context = DefaultContext;
+        }
+    }
+
+    private Task Run() => RunFeature(selectedFeature);
+
+    private async Task RunFeature(string feature)
+    {
+        if (string.IsNullOrWhiteSpace(feature))
+        {
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = string.Empty;
+        try
+        {
+            result = await Http.PostAsJsonAsync<ResultDto>($"{ApiBase}/run/{feature}", new
+            {
+                context,
+                requestedAt = DateTime.UtcNow
+            });
+            selectedFeature = feature;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed running feature {Feature} via {ApiBase}", feature, ApiBase);
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private class ResultDto
+    {
+        public string Feature { get; set; } = string.Empty;
+        public string IntegrationStatus { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+    }
+}
+
+<style>
+.fcp-container { background: rgba(5,10,22,0.72); border: 1px solid rgba(0,212,255,0.15); border-radius: 10px; padding: 14px; color: #e7ecf3; }
+.fcp-title { color: #00d4ff; font-weight: 700; margin-bottom: 10px; font-size: 1.05rem; }
+.fcp-controls { display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 8px; }
+.fcp-input { width: 100%; padding: 9px; background: rgba(0,212,255,0.06); border: 1px solid rgba(0,212,255,0.2); color: #e7ecf3; border-radius: 6px; }
+.fcp-run { padding: 9px 12px; background: linear-gradient(135deg,#00d4ff,#1a8cff); color: #041220; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; }
+.fcp-quick { margin-top: 8px; display: grid; grid-template-columns: repeat(4, minmax(120px,1fr)); gap: 8px; }
+.fcp-quick-btn { text-align: left; padding: 7px 9px; border: 1px solid rgba(0,212,255,0.2); border-radius: 6px; background: rgba(0,212,255,0.05); color: #d8ebff; cursor: pointer; }
+.fcp-error { margin-top: 8px; padding: 8px; background: rgba(255,100,100,0.1); border-left: 3px solid #ff6464; }
+.fcp-result { margin-top: 8px; border: 1px solid rgba(0,212,255,0.1); background: rgba(0,212,255,0.04); border-radius: 8px; padding: 8px; }
+.fcp-row { display: flex; justify-content: space-between; padding: 6px 0; }
+.fcp-summary { padding: 8px; border-left: 3px solid #00d4ff; background: rgba(0,212,255,0.06); border-radius: 4px; }
+@media (max-width: 900px) { .fcp-controls, .fcp-quick { grid-template-columns: 1fr; } }
+</style>

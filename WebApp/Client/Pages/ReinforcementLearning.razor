@@ -1,0 +1,327 @@
+@page "/reinforcement-learning"
+@using Client.Extensions
+@inject HttpClient Http
+@inject ILogger<ReinforcementLearning> Logger
+
+<div class="rl-container">
+    <div class="page-header">
+        <h1>Reinforcement Learning</h1>
+        <p>Q-learning, policy gradient, actor-critic, bandits, adaptation, evaluation, and strategy reports.</p>
+    </div>
+
+    <div class="input-shell">
+        <div class="input-grid">
+            <div>
+                <label class="field-label">Environment</label>
+                <input class="field-input" @bind="environment" placeholder="equity-market-sim" />
+            </div>
+            <div>
+                <label class="field-label">Episodes</label>
+                <input class="field-input" type="number" min="50" max="5000" @bind="episodes" />
+            </div>
+            <div>
+                <label class="field-label">Learning Rate</label>
+                <input class="field-input" type="number" step="0.001" min="0.001" max="0.2" @bind="learningRate" />
+            </div>
+            <div>
+                <label class="field-label">Discount Factor</label>
+                <input class="field-input" type="number" step="0.01" min="0.5" max="0.99" @bind="discountFactor" />
+            </div>
+        </div>
+        <button class="run-btn" @onclick="RunSuite" disabled="@isLoading">@(isLoading ? "Running..." : "Run RL Suite")</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="error-box">@errorMessage</div>
+    }
+
+    @if (qLearning is not null)
+    {
+        <div class="summary-row">
+            <div class="summary-card"><span class="label">Top Algorithm</span><span class="value accent">@bestAlgorithm</span></div>
+            <div class="summary-card"><span class="label">Best Sharpe</span><span class="value">@bestSharpe.ToString("F2")</span></div>
+            <div class="summary-card"><span class="label">Win Rate</span><span class="value">@(evaluation?.WinRate.ToString("P1") ?? "-")</span></div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab @(activeTab == "training" ? "active" : "")" @onclick="() => activeTab = "training"">Training</button>
+            <button class="tab @(activeTab == "bandits" ? "active" : "")" @onclick="() => activeTab = "bandits"">Bandits</button>
+            <button class="tab @(activeTab == "adaptation" ? "active" : "")" @onclick="() => activeTab = "adaptation"">Adaptation</button>
+            <button class="tab @(activeTab == "evaluation" ? "active" : "")" @onclick="() => activeTab = "evaluation"">Evaluation</button>
+            <button class="tab @(activeTab == "report" ? "active" : "")" @onclick="() => activeTab = "report"">Report</button>
+        </div>
+
+        <div class="tab-content">
+            @if (activeTab == "training")
+            {
+                <h3>Training Results</h3>
+                <div class="grid3">
+                    @RenderTrainingCard("Q-Learning", qLearning)
+                    @RenderTrainingCard("Policy Gradient", policyGradient)
+                    @RenderTrainingCard("Actor-Critic", actorCritic)
+                </div>
+            }
+
+            @if (activeTab == "bandits")
+            {
+                <h3>Bandit Optimization</h3>
+                @if (bandit is not null)
+                {
+                    <div class="grid2">
+                        <div class="card-row"><span>Best Policy</span><strong>@bandit.BestPolicy</strong></div>
+                        <div class="card-row"><span>Algorithm</span><strong>@bandit.Algorithm</strong></div>
+                    </div>
+                    <div class="grid2" style="margin-top:10px;">
+                        @foreach (var p in bandit.Policies)
+                        {
+                            <div class="card-row"><span>@p.Policy</span><strong>UCB @p.UcbScore.ToString("F3")</strong></div>
+                        }
+                    </div>
+                }
+                @if (contextual is not null)
+                {
+                    <div class="grid2" style="margin-top:10px;">
+                        <div class="card-row"><span>Contextual Steps</span><strong>@contextual.TotalSteps</strong></div>
+                        <div class="card-row"><span>Avg Reward</span><strong>@contextual.AverageReward.ToString("F3")</strong></div>
+                    </div>
+                }
+            }
+
+            @if (activeTab == "adaptation" && adaptation is not null)
+            {
+                <h3>Strategy Adaptation</h3>
+                <div class="grid2">
+                    <div class="card-row"><span>Strategy</span><strong>@adaptation.StrategyName</strong></div>
+                    <div class="card-row"><span>Regime</span><strong>@adaptation.MarketRegime</strong></div>
+                    <div class="card-row"><span>Confidence</span><strong>@adaptation.Confidence.ToString("P1")</strong></div>
+                    <div class="card-row"><span>Expected Sharpe Delta</span><strong>@adaptation.ExpectedSharpeDelta.ToString("F2")</strong></div>
+                </div>
+                <div class="list-shell">
+                    @foreach (var a in adaptation.SuggestedActions)
+                    {
+                        <div class="list-item">@a</div>
+                    }
+                </div>
+            }
+
+            @if (activeTab == "evaluation" && evaluation is not null)
+            {
+                <h3>Agent Evaluation</h3>
+                <div class="grid2">
+                    <div class="card-row"><span>Mean Reward</span><strong>@evaluation.MeanEpisodeReward.ToString("F3")</strong></div>
+                    <div class="card-row"><span>Reward StdDev</span><strong>@evaluation.RewardStdDev.ToString("F3")</strong></div>
+                    <div class="card-row"><span>Sharpe</span><strong>@evaluation.SharpeRatio.ToString("F2")</strong></div>
+                    <div class="card-row"><span>Sortino</span><strong>@evaluation.SortinoRatio.ToString("F2")</strong></div>
+                    <div class="card-row"><span>Max Drawdown</span><strong>@evaluation.MaxDrawdown.ToString("F3")</strong></div>
+                    <div class="card-row"><span>Win Rate</span><strong>@evaluation.WinRate.ToString("P1")</strong></div>
+                </div>
+            }
+
+            @if (activeTab == "report" && report is not null)
+            {
+                <h3>RL Strategy Report</h3>
+                <pre class="report-text">@report.Summary</pre>
+                <div class="list-shell">
+                    @foreach (var f in report.KeyFindings)
+                    {
+                        <div class="list-item">@f</div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string environment = "equity-market-sim";
+    private int episodes = 300;
+    private decimal learningRate = 0.01m;
+    private decimal discountFactor = 0.95m;
+
+    private string activeTab = "training";
+    private bool isLoading;
+    private string errorMessage = string.Empty;
+
+    private TrainResult? qLearning;
+    private TrainResult? policyGradient;
+    private TrainResult? actorCritic;
+    private BanditResult? bandit;
+    private ContextualResult? contextual;
+    private AdaptationResult? adaptation;
+    private EvaluationResult? evaluation;
+    private ReportResult? report;
+
+    private string bestAlgorithm = "-";
+    private decimal bestSharpe;
+
+    private async Task RunSuite()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var qTask = Http.PostAsJsonAsync<TrainResult>("/api/ReinforcementLearning/train-q-learning", new { environment, episodes, learningRate, discountFactor });
+            var pgTask = Http.PostAsJsonAsync<TrainResult>("/api/ReinforcementLearning/train-policy-gradient", new { environment, episodes, learningRate, discountFactor });
+            var acTask = Http.PostAsJsonAsync<TrainResult>("/api/ReinforcementLearning/train-actor-critic", new { environment, episodes, actorLearningRate = learningRate, criticLearningRate = learningRate * 2, discountFactor });
+            var banditTask = Http.PostAsJsonAsync<BanditResult>("/api/ReinforcementLearning/bandit-optimization", new { candidatePolicies = new[] { "mean_reversion", "trend_following", "vol_breakout" } });
+            var contextualTask = Http.PostAsJsonAsync<ContextualResult>("/api/ReinforcementLearning/contextual-bandit", new { contexts = new[] { "risk_on", "risk_off", "high_vol", "low_vol" }, actions = new[] { "long", "short", "flat" } });
+            var adaptTask = Http.PostAsJsonAsync<AdaptationResult>("/api/ReinforcementLearning/adapt-strategy", new { strategyName = "regime-adaptive-momentum", marketRegime = "high-volatility" });
+            var evalTask = Http.PostAsJsonAsync<EvaluationResult>("/api/ReinforcementLearning/evaluate-rl-agent", new { algorithm = "Actor-Critic", episodes = Math.Max(150, episodes / 2) });
+            var reportTask = Http.PostAsJsonAsync<ReportResult>("/api/ReinforcementLearning/rl-strategy-report", new { strategyName = "regime-adaptive-momentum" });
+
+            await Task.WhenAll(qTask, pgTask, acTask, banditTask, contextualTask, adaptTask, evalTask, reportTask);
+
+            qLearning = await qTask;
+            policyGradient = await pgTask;
+            actorCritic = await acTask;
+            bandit = await banditTask;
+            contextual = await contextualTask;
+            adaptation = await adaptTask;
+            evaluation = await evalTask;
+            report = await reportTask;
+
+            var scores = new Dictionary<string, decimal>
+            {
+                ["Q-Learning"] = qLearning?.SharpeRatio ?? 0,
+                ["Policy Gradient"] = policyGradient?.SharpeRatio ?? 0,
+                ["Actor-Critic"] = actorCritic?.SharpeRatio ?? 0
+            };
+            var best = scores.OrderByDescending(s => s.Value).First();
+            bestAlgorithm = best.Key;
+            bestSharpe = best.Value;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to run RL suite");
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private RenderFragment RenderTrainingCard(string title, TrainResult? result) => builder =>
+    {
+        var seq = 0;
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "card-box");
+        builder.OpenElement(seq++, "h4");
+        builder.AddContent(seq++, title);
+        builder.CloseElement();
+
+        if (result is not null)
+        {
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", "card-row");
+            builder.AddContent(seq++, "Final Reward");
+            builder.OpenElement(seq++, "strong");
+            builder.AddContent(seq++, result.FinalReward.ToString("F3"));
+            builder.CloseElement();
+            builder.CloseElement();
+
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", "card-row");
+            builder.AddContent(seq++, "Sharpe");
+            builder.OpenElement(seq++, "strong");
+            builder.AddContent(seq++, result.SharpeRatio.ToString("F2"));
+            builder.CloseElement();
+            builder.CloseElement();
+
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", "card-row");
+            builder.AddContent(seq++, "Convergence Episode");
+            builder.OpenElement(seq++, "strong");
+            builder.AddContent(seq++, result.ConvergenceEpisode);
+            builder.CloseElement();
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+    };
+
+    private class TrainResult
+    {
+        public string Algorithm { get; set; } = string.Empty;
+        public decimal FinalReward { get; set; }
+        public decimal SharpeRatio { get; set; }
+        public int ConvergenceEpisode { get; set; }
+    }
+
+    private class PolicyScore
+    {
+        public string Policy { get; set; } = string.Empty;
+        public decimal UcbScore { get; set; }
+    }
+
+    private class BanditResult
+    {
+        public string Algorithm { get; set; } = string.Empty;
+        public string BestPolicy { get; set; } = string.Empty;
+        public List<PolicyScore> Policies { get; set; } = new();
+    }
+
+    private class ContextualResult
+    {
+        public int TotalSteps { get; set; }
+        public decimal AverageReward { get; set; }
+    }
+
+    private class AdaptationResult
+    {
+        public string StrategyName { get; set; } = string.Empty;
+        public string MarketRegime { get; set; } = string.Empty;
+        public string[] SuggestedActions { get; set; } = Array.Empty<string>();
+        public decimal Confidence { get; set; }
+        public decimal ExpectedSharpeDelta { get; set; }
+    }
+
+    private class EvaluationResult
+    {
+        public decimal MeanEpisodeReward { get; set; }
+        public decimal RewardStdDev { get; set; }
+        public decimal WinRate { get; set; }
+        public decimal SharpeRatio { get; set; }
+        public decimal SortinoRatio { get; set; }
+        public decimal MaxDrawdown { get; set; }
+    }
+
+    private class ReportResult
+    {
+        public string Summary { get; set; } = string.Empty;
+        public string[] KeyFindings { get; set; } = Array.Empty<string>();
+    }
+}
+
+<style>
+.rl-container { padding: 24px; color: #e7ecf3; background: #0a0e16; min-height: 100vh; }
+.page-header h1 { margin: 0; color: #00d4ff; }
+.page-header p { margin: 8px 0 20px 0; color: #9bb0cc; }
+.input-shell { background: rgba(5, 10, 22, 0.72); border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 10px; padding: 16px; }
+.input-grid { display: grid; grid-template-columns: repeat(4, minmax(180px, 1fr)); gap: 12px; }
+.field-label { display: block; font-size: 0.82rem; margin-bottom: 6px; color: #7fdfff; }
+.field-input { width: 100%; padding: 10px; background: rgba(0, 212, 255, 0.06); border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 6px; color: #e7ecf3; }
+.run-btn { margin-top: 14px; padding: 10px 14px; background: linear-gradient(135deg, #00d4ff, #1a8cff); color: #041220; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; }
+.run-btn:disabled { opacity: 0.65; cursor: wait; }
+.error-box { margin-top: 12px; background: rgba(255, 100, 100, 0.1); border-left: 4px solid #ff6464; padding: 10px 12px; }
+.summary-row { margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap: 12px; }
+.summary-card { background: rgba(0, 212, 255, 0.06); border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+.summary-card .label { color: #9bb0cc; font-size: 0.78rem; }
+.summary-card .value { font-size: 1.1rem; font-weight: 700; }
+.summary-card .value.accent { color: #00ffb7; }
+.tabs { margin-top: 16px; display: flex; gap: 8px; border-bottom: 1px solid rgba(0, 212, 255, 0.2); padding-bottom: 8px; overflow-x: auto; }
+.tab { background: transparent; color: #9bb0cc; border: none; border-bottom: 2px solid transparent; padding: 8px 10px; cursor: pointer; white-space: nowrap; }
+.tab.active { color: #00d4ff; border-bottom-color: #00d4ff; }
+.tab-content { margin-top: 14px; background: rgba(5, 10, 22, 0.72); border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 10px; padding: 14px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 10px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 10px; }
+.card-box { background: rgba(0, 212, 255, 0.05); border: 1px solid rgba(0, 212, 255, 0.12); border-radius: 8px; padding: 10px; }
+.card-box h4 { margin: 0 0 8px 0; color: #00d4ff; }
+.card-row { display: flex; justify-content: space-between; padding: 10px; background: rgba(0, 212, 255, 0.05); border: 1px solid rgba(0, 212, 255, 0.12); border-radius: 8px; }
+.list-shell { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.list-item { background: rgba(0, 212, 255, 0.04); border: 1px solid rgba(0, 212, 255, 0.10); border-radius: 8px; padding: 9px; }
+.report-text { background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 8px; padding: 10px; white-space: pre-wrap; color: #dce7f6; }
+@media (max-width: 900px) { .input-grid, .summary-row, .grid2, .grid3 { grid-template-columns: 1fr; } }
+</style>

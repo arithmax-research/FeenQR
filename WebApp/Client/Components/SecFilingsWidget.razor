@@ -1,0 +1,471 @@
+@using System.Text.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ILogger<SecFilingsWidget> Logger
+
+<div class="widget-container">
+    <div class="widget-header">
+        <h3>📄 SEC Filings & Earnings</h3>
+        <button class="btn-open" @onclick="OpenSecFilings">View Full Analysis →</button>
+    </div>
+
+    <div class="search-box">
+        <input 
+            type="text" 
+            placeholder="Enter symbol..." 
+            @bind="symbolInput"
+            @onkeyup="@(e => e.Key == "Enter" && SearchSymbol())"
+            class="symbol-quick-search" />
+        <button class="btn-search-small" @onclick="SearchSymbol">Search</button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-state">
+            <p>⏳ Loading data...</p>
+        </div>
+    }
+    else if (currentSymbol != null && latestEarnings != null)
+    {
+        <div class="widget-content">
+            <!-- Quick Earnings Summary -->
+            <div class="earnings-summary">
+                <div class="summary-header">Latest Earnings - @currentSymbol</div>
+                
+                <div class="earnings-quick-grid">
+                    <div class="quick-metric">
+                        <span class="metric-label">EPS</span>
+                        <span class="metric-value @(latestEarnings.EpsBeats ? "beat" : "miss")">
+                            @latestEarnings.Eps.ToString("F2")
+                        </span>
+                        <span class="metric-status">@(latestEarnings.EpsBeats ? "✓ BEAT" : "✗ MISS")</span>
+                    </div>
+
+                    <div class="quick-metric">
+                        <span class="metric-label">Revenue</span>
+                        <span class="metric-value @(latestEarnings.RevenueBeats ? "beat" : "miss")">
+                            $@(latestEarnings.Revenue / 1000000000m).ToString("F1")B
+                        </span>
+                        <span class="metric-status">@(latestEarnings.RevenueBeats ? "✓ BEAT" : "✗ MISS")</span>
+                    </div>
+
+                    <div class="quick-metric">
+                        <span class="metric-label">Sentiment</span>
+                        <span class="metric-value">@(latestEarnings.SentimentScore * 100).ToString("F0")%</span>
+                        <span class="metric-indicator">@GetSentimentEmoji(latestEarnings.SentimentScore)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Snapshot -->
+            @if (riskSummary != null && riskSummary.IdentifiedRisks != null && riskSummary.IdentifiedRisks.Length > 0)
+            {
+                <div class="risks-snapshot">
+                    <div class="snapshot-header">🚨 Key Risks</div>
+                    <div class="risks-compact">
+                        @foreach (var risk in riskSummary.IdentifiedRisks.Take(3))
+                        {
+                            <div class="risk-badge @("risk-" + risk.Severity.ToLower())">
+                                @risk.Category: @risk.Severity
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Recent Filings -->
+            @if (filingHistory != null && filingHistory.Count > 0)
+            {
+                <div class="filings-snapshot">
+                    <div class="snapshot-header">📋 Recent Filings</div>
+                    <div class="filings-list">
+                        @foreach (var filing in filingHistory.Take(3))
+                        {
+                            <div class="filing-line">
+                                <span class="filing-type">@filing.FilingType</span>
+                                <span class="filing-date">@filing.FilingDate.ToString("MMM dd, yyyy")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="widget-footer">
+                <small>Last updated: @DateTime.Now.ToString("HH:mm:ss")</small>
+            </div>
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="error-state">
+            <p>⚠️ @errorMessage</p>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(symbolInput))
+    {
+        <div class="empty-state">
+            <p>Enter a symbol and press Enter to search</p>
+        </div>
+    }
+</div>
+
+<style>
+.widget-container {
+    background: rgba(5, 10, 22, 0.72);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 8px;
+    padding: 16px;
+    color: #e0e6ed;
+}
+
+.widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.widget-header h3 {
+    margin: 0;
+    color: #00d4ff;
+    font-size: 1em;
+}
+
+.btn-open {
+    padding: 6px 12px;
+    background: rgba(0, 212, 255, 0.2);
+    border: 1px solid #00d4ff;
+    border-radius: 4px;
+    color: #00d4ff;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: all 0.2s ease;
+}
+
+.btn-open:hover {
+    background: rgba(0, 212, 255, 0.3);
+}
+
+.search-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.symbol-quick-search {
+    flex: 1;
+    padding: 8px 12px;
+    background: rgba(20, 25, 35, 0.9);
+    border: 1px solid #00d4ff;
+    border-radius: 4px;
+    color: #00d4ff;
+    font-size: 0.9em;
+    outline: none;
+}
+
+.symbol-quick-search::placeholder {
+    color: #666;
+}
+
+.btn-search-small {
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #00d4ff, #0099cc);
+    border: none;
+    border-radius: 4px;
+    color: #000;
+    font-weight: bold;
+    font-size: 0.9em;
+    cursor: pointer;
+}
+
+.btn-search-small:hover {
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.loading-state, .empty-state, .error-state {
+    text-align: center;
+    padding: 20px 10px;
+    color: #888;
+    font-size: 0.9em;
+}
+
+.widget-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.earnings-summary, .risks-snapshot, .filings-snapshot {
+    background: rgba(0, 212, 255, 0.05);
+    border: 1px solid rgba(0, 212, 255, 0.1);
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.summary-header, .snapshot-header {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #00d4ff;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+    padding-bottom: 8px;
+}
+
+.earnings-quick-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.quick-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    background: rgba(0, 212, 255, 0.03);
+    border-radius: 4px;
+}
+
+.metric-label {
+    font-size: 0.75em;
+    color: #999;
+    margin-bottom: 4px;
+}
+
+.metric-value {
+    font-size: 1em;
+    font-weight: bold;
+    color: #00d4ff;
+}
+
+.metric-value.beat {
+    color: #00ff00;
+}
+
+.metric-value.miss {
+    color: #ff6464;
+}
+
+.metric-status, .metric-indicator {
+    font-size: 0.75em;
+    color: #888;
+    margin-top: 2px;
+}
+
+.risks-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.risk-badge {
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    background: rgba(255, 100, 100, 0.1);
+    color: #ff8888;
+    border: 1px solid #ff6464;
+}
+
+.risk-badge.risk-high {
+    background: rgba(255, 68, 68, 0.12);
+    border-color: #ff4444;
+    color: #ff7777;
+}
+
+.risk-badge.risk-medium {
+    background: rgba(255, 153, 0, 0.1);
+    border-color: #ff9900;
+    color: #ffaa00;
+}
+
+.risk-badge.risk-low {
+    background: rgba(0, 212, 255, 0.1);
+    border-color: #00d4ff;
+    color: #00d4ff;
+}
+
+.filings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filing-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.05);
+    font-size: 0.85em;
+}
+
+.filing-type {
+    color: #00d4ff;
+    font-weight: bold;
+}
+
+.filing-date {
+    color: #888;
+}
+
+.widget-footer {
+    text-align: center;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0, 212, 255, 0.1);
+    color: #666;
+    font-size: 0.8em;
+}
+</style>
+
+@code {
+    private string symbolInput = "";
+    private string currentSymbol = "";
+    private bool isLoading = false;
+    private string errorMessage = "";
+
+    private EarningsAnalysis latestEarnings = null;
+    private RiskFactorsAnalysis riskSummary = null;
+    private List<SecFilingHistory> filingHistory = null;
+
+    private void OpenSecFilings()
+    {
+        Navigation.NavigateTo("/sec");
+    }
+
+    private async Task SearchSymbol()
+    {
+        if (string.IsNullOrWhiteSpace(symbolInput))
+        {
+            errorMessage = "Please enter a symbol";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        currentSymbol = symbolInput.ToUpper();
+
+        try
+        {
+            await Task.WhenAll(
+                FetchEarnings(),
+                FetchRisks(),
+                FetchFilings()
+            );
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading data");
+            errorMessage = "Failed to load data";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task FetchEarnings()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/secfilings/earnings-analysis", new { symbol = currentSymbol });
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadAsJsonAsync<ApiResponse<EarningsAnalysis>>();
+                latestEarnings = result?.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error fetching earnings");
+        }
+    }
+
+    private async Task FetchRisks()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/secfilings/risk-factors", new { symbol = currentSymbol });
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadAsJsonAsync<ApiResponse<RiskFactorsAnalysis>>();
+                riskSummary = result?.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error fetching risks");
+        }
+    }
+
+    private async Task FetchFilings()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"/api/secfilings/history/{currentSymbol}?limit=3");
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadAsJsonAsync<ApiResponse<List<SecFilingHistory>>>();
+                filingHistory = result?.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error fetching filings");
+        }
+    }
+
+    private string GetSentimentEmoji(double score)
+    {
+        return score switch
+        {
+            >= 0.7 => "😊",
+            >= 0.5 => "😐",
+            _ => "😞"
+        };
+    }
+
+    public class ApiResponse<T>
+    {
+        public bool Success { get; set; }
+        public T Data { get; set; }
+    }
+
+    public class EarningsAnalysis
+    {
+        public string Symbol { get; set; }
+        public DateTime LatestEarningsDate { get; set; }
+        public decimal Eps { get; set; }
+        public decimal EpsEstimate { get; set; }
+        public bool EpsBeats { get; set; }
+        public decimal Revenue { get; set; }
+        public decimal RevenueEstimate { get; set; }
+        public bool RevenueBeats { get; set; }
+        public string GuidanceFromManagement { get; set; }
+        public string[] KeyTakeaways { get; set; }
+        public double SentimentScore { get; set; }
+    }
+
+    public class RiskFactorsAnalysis
+    {
+        public string Symbol { get; set; }
+        public RiskFactor[] IdentifiedRisks { get; set; }
+        public string RiskSummary { get; set; }
+        public string[] MitigationStrategies { get; set; }
+    }
+
+    public class RiskFactor
+    {
+        public string Category { get; set; }
+        public string Description { get; set; }
+        public string Severity { get; set; }
+    }
+
+    public class SecFilingHistory
+    {
+        public string FilingType { get; set; }
+        public DateTime FilingDate { get; set; }
+        public int FiscalYear { get; set; }
+        public string FilingUrl { get; set; }
+    }
+}

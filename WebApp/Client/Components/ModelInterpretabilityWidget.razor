@@ -1,0 +1,405 @@
+@using System.Net.Http.Json
+@using FeenQR.Controllers
+@using FeenQR.Services
+@inject HttpClient HttpClient
+@inject NavigationManager Navigation
+@inject ILogger<ModelInterpretabilityWidget> Logger
+
+<div class="interpretability-widget">
+    <div class="widget-header">
+        <h3>🔍 Model Interpretability</h3>
+        <div class="widget-controls">
+            <input type="text" placeholder="Model name" @bind="modelName" class="widget-input" style="width: 140px;" />
+            <button class="widget-iconbutton" @onclick="RefreshAnalysis" disabled="@isLoading" title="Analyze">
+                @if (isLoading)
+                {
+                    <span>⏳</span>
+                }
+                else
+                {
+                    <span>🔄</span>
+                }
+            </button>
+        </div>
+    </div>
+
+    @if (shapAnalysis != null)
+    {
+        <div class="widget-content">
+            <!-- Top Features Section -->
+            <div class="feature-section">
+                <div class="section-title">Top Features (SHAP)</div>
+                <div class="features-compact">
+                    @foreach (var feature in shapAnalysis.FeatureContributions.OrderByDescending(x => Math.Abs(x.Value.ShapValue)).Take(3))
+                    {
+                        <div class="feature-compact">
+                            <span class="feature-badge">@feature.Key</span>
+                            <span class="feature-value @(feature.Value.ShapValue > 0 ? "positive" : "negative")">
+                                @(feature.Value.ShapValue > 0 ? "+" : "")@feature.Value.ShapValue.ToString("F2")
+                            </span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Fairness Score -->
+            @if (fairnessAnalysis != null)
+            {
+                <div class="metric-widget-row">
+                    <div class="metric-small">
+                        <div class="label">Fairness Score</div>
+                        <div class="value @(fairnessAnalysis.IsFair ? "fair" : "unfair")">
+                            @fairnessAnalysis.FairnessScore.ToString("F0")%
+                        </div>
+                    </div>
+                    <div class="metric-small">
+                        <div class="label">Fair?</div>
+                        <div class="value @(fairnessAnalysis.IsFair ? "fair" : "unfair")">
+                            @(fairnessAnalysis.IsFair ? "✓" : "✗")
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Quick Stats -->
+            @if (permutationAnalysis != null)
+            {
+                <div class="metric-widget-row">
+                    <div class="metric-small">
+                        <div class="label">Model Accuracy</div>
+                        <div class="value">@permutationAnalysis.BaselineAccuracy.ToString("P0")</div>
+                    </div>
+                    <div class="metric-small">
+                        <div class="label">Features</div>
+                        <div class="value">@permutationAnalysis.TotalFeatureCount</div>
+                    </div>
+                </div>
+            }
+
+            <!-- Interactions Found -->
+            @if (interactionAnalysis != null)
+            {
+                <div class="metric-widget-row">
+                    <div class="metric-small">
+                        <div class="label">Interactions Found</div>
+                        <div class="value">@interactionAnalysis.FeatureInteractions.Count</div>
+                    </div>
+                    <div class="metric-small">
+                        <div class="label">Avg Strength</div>
+                        <div class="value">@interactionAnalysis.AverageInteractionStrength.ToString("F3")</div>
+                    </div>
+                </div>
+            }
+
+            <button class="widget-viewall" @onclick="ViewFullAnalysis">
+                View Full Analysis →
+            </button>
+        </div>
+    }
+    else if (isLoading)
+    {
+        <div class="widget-loading">
+            <span>⏳ Loading interpretability analysis...</span>
+        </div>
+    }
+    else
+    {
+        <div class="widget-empty">
+            <p>Enter a model name and analyze to see interpretability metrics</p>
+        </div>
+    }
+</div>
+
+@code {
+    private string modelName = "RandomForest";
+    private bool isLoading = false;
+
+    private ShapAnalysisResult shapAnalysis;
+    private ModelFairnessResult fairnessAnalysis;
+    private PermutationImportanceResult permutationAnalysis;
+    private FeatureInteractionResult interactionAnalysis;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAnalysis();
+    }
+
+    private async Task RefreshAnalysis()
+    {
+        if (string.IsNullOrWhiteSpace(modelName))
+            return;
+
+        isLoading = true;
+
+        try
+        {
+            var tasks = new List<Task>
+            {
+                FetchShapAnalysis(),
+                FetchFairnessAnalysis(),
+                FetchPermutationAnalysis(),
+                FetchInteractionAnalysis()
+            };
+
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Widget analysis failed");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task FetchShapAnalysis()
+    {
+        try
+        {
+            var request = new ShapAnalysisRequest { ModelName = modelName, DatasetSymbol = "AAPL", TopFeatures = 10 };
+            shapAnalysis = await HttpClient.PostAsJsonAsync<ShapAnalysisResult>(
+                "api/modelinterpretability/shap-analysis", request);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to fetch SHAP");
+        }
+    }
+
+    private async Task FetchFairnessAnalysis()
+    {
+        try
+        {
+            var request = new ModelFairnessRequest { ModelName = modelName, DatasetSymbol = "AAPL", SensitiveAttribute = "demographic" };
+            fairnessAnalysis = await HttpClient.PostAsJsonAsync<ModelFairnessResult>(
+                "api/modelinterpretability/model-fairness", request);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to fetch fairness");
+        }
+    }
+
+    private async Task FetchPermutationAnalysis()
+    {
+        try
+        {
+            var request = new PermutationImportanceRequest { ModelName = modelName, DatasetSymbol = "AAPL", NumberOfRepeats = 10 };
+            permutationAnalysis = await HttpClient.PostAsJsonAsync<PermutationImportanceResult>(
+                "api/modelinterpretability/permutation-importance", request);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to fetch permutation");
+        }
+    }
+
+    private async Task FetchInteractionAnalysis()
+    {
+        try
+        {
+            var request = new FeatureInteractionRequest { ModelName = modelName, DatasetSymbol = "AAPL", TopFeaturePairs = 5 };
+            interactionAnalysis = await HttpClient.PostAsJsonAsync<FeatureInteractionResult>(
+                "api/modelinterpretability/feature-interactions", request);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to fetch interactions");
+        }
+    }
+
+    private void ViewFullAnalysis()
+    {
+        Navigation.NavigateTo("/model-interpretability");
+    }
+}
+
+<style>
+    .interpretability-widget {
+        background: rgba(5, 10, 22, 0.72);
+        border: 1px solid rgba(0, 212, 255, 0.15);
+        border-radius: 8px;
+        padding: 20px;
+        color: #e0e0e0;
+        backdrop-filter: blur(10px);
+    }
+
+    .widget-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+    }
+
+    .widget-header h3 {
+        margin: 0;
+        color: #00d4ff;
+        font-size: 1.1rem;
+    }
+
+    .widget-controls {
+        display: flex;
+        gap: 8px;
+    }
+
+    .widget-input {
+        padding: 6px 10px;
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        color: #e0e0e0;
+        border-radius: 4px;
+        font-size: 0.85rem;
+    }
+
+    .widget-input:focus {
+        outline: none;
+        border-color: #00d4ff;
+        background: rgba(0, 212, 255, 0.1);
+    }
+
+    .widget-iconbutton {
+        padding: 6px 12px;
+        background: rgba(0, 212, 255, 0.1);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        color: #00d4ff;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+
+    .widget-iconbutton:hover:not(:disabled) {
+        background: rgba(0, 212, 255, 0.2);
+    }
+
+    .widget-iconbutton:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .widget-content {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .feature-section {
+        border-top: 1px solid rgba(0, 212, 255, 0.1);
+        padding-top: 15px;
+    }
+
+    .section-title {
+        font-size: 0.85rem;
+        color: #00d4ff;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .features-compact {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .feature-compact {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px;
+        background: rgba(0, 212, 255, 0.02);
+        border-radius: 4px;
+    }
+
+    .feature-badge {
+        background: rgba(0, 212, 255, 0.1);
+        color: #00d4ff;
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .feature-value {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .feature-value.positive {
+        color: #00ff00;
+    }
+
+    .feature-value.negative {
+        color: #ff6464;
+    }
+
+    .metric-widget-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .metric-small {
+        padding: 12px;
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.15);
+        border-radius: 4px;
+        text-align: center;
+    }
+
+    .metric-small .label {
+        font-size: 0.75rem;
+        color: #a0a0a0;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .metric-small .value {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #00d4ff;
+    }
+
+    .metric-small .value.fair {
+        color: #00ff00;
+    }
+
+    .metric-small .value.unfair {
+        color: #ff9999;
+    }
+
+    .widget-loading {
+        text-align: center;
+        padding: 20px;
+        color: #a0a0a0;
+    }
+
+    .widget-empty {
+        text-align: center;
+        padding: 20px;
+        color: #707070;
+        font-size: 0.9rem;
+    }
+
+    .widget-viewall {
+        padding: 10px 16px;
+        background: rgba(0, 212, 255, 0.1);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        color: #00d4ff;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        margin-top: 10px;
+    }
+
+    .widget-viewall:hover {
+        background: rgba(0, 212, 255, 0.2);
+        transform: translateX(2px);
+    }
+</style>

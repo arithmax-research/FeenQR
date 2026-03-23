@@ -1,0 +1,869 @@
+@page "/cointegration"
+@using System.Text.Json
+@inject HttpClient Http
+@inject ILogger<Cointegration> Logger
+
+<div class="page-container">
+    <h1>Cointegration & Causality Analysis</h1>
+    <p class="subtitle">Analyze relationships between asset pairs using statistical tests</p>
+
+    <!-- Symbol Pair Input -->
+    <div class="input-section">
+        <div class="input-group">
+            <input 
+                type="text" 
+                placeholder="Symbol 1 (e.g., AAPL)" 
+                @bind="symbol1"
+                class="symbol-input" />
+            <input 
+                type="text" 
+                placeholder="Symbol 2 (e.g., MSFT)" 
+                @bind="symbol2"
+                @onkeyup="@(e => e.Key == "Enter" && AnalyzePair())"
+                class="symbol-input" />
+            <button class="btn-search" @onclick="AnalyzePair">
+                @if (isLoading)
+                {
+                    <span>⏳ Analyzing...</span>
+                }
+                else
+                {
+                    <span>🔬 Analyze</span>
+                }
+            </button>
+        </div>
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="error-box">⚠️ @errorMessage</div>
+        }
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-state">
+            <p>🔄 Performing statistical tests...</p>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(symbol1) && !string.IsNullOrEmpty(symbol2) && comprehensive != null)
+    {
+        <!-- Tabs -->
+        <div class="tabs-container">
+            <div class="tabs">
+                <button class="tab @(activeTab == "overview" ? "active" : "")" 
+                        @onclick="@(() => activeTab = "overview")">
+                    🎯 Overview
+                </button>
+                <button class="tab @(activeTab == "engle-granger" ? "active" : "")" 
+                        @onclick="@(() => activeTab = "engle-granger")">
+                    📊 Engle-Granger
+                </button>
+                <button class="tab @(activeTab == "granger" ? "active" : "")" 
+                        @onclick="@(() => activeTab = "granger")">
+                    ➡️ Granger Causality
+                </button>
+                <button class="tab @(activeTab == "lead-lag" ? "active" : "")" 
+                        @onclick="@(() => activeTab = "lead-lag")">
+                    ⚡ Lead-Lag
+                </button>
+            </div>
+
+            <!-- Overview Tab -->
+            @if (activeTab == "overview")
+            {
+                <div class="tab-content">
+                    <div class="agent-widget">
+                        <div class="widget-header">Cointegration Summary: @symbol1 vs @symbol2</div>
+                        
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-label">Correlation</div>
+                                <div class="metric-value">@comprehensive.CorrelationCoefficient.ToString("F3")</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Cointegrated</div>
+                                <div class="metric-value">@(comprehensive.EngleGrangerResult.IsCointegrated ? "✓ YES" : "✗ NO")</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Half-Life (days)</div>
+                                <div class="metric-value">@comprehensive.HalfLife.ToString("F1")</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Spread Z-Score</div>
+                                <div class="metric-value">@comprehensive.SpreadZScore.ToString("F2")</div>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <h3>Trading Signal</h3>
+                            <div class="signal-box">
+                                <p>@comprehensive.TradingSignal</p>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <h3>Spread Statistics</h3>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <span class="stat-label">Mean Spread</span>
+                                    <span class="stat-value">@comprehensive.SpreadMean.ToString("F4")</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Std Dev</span>
+                                    <span class="stat-value">@comprehensive.SpreadStdDev.ToString("F4")</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Current Spread</span>
+                                    <span class="stat-value">@comprehensive.CurrentSpread.ToString("F4")</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Stationary</span>
+                                    <span class="stat-value">@(comprehensive.IsStationarySpread ? "✓ YES" : "✗ NO")</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <h3>Risk Metrics</h3>
+                            <div class="risk-grid">
+                                <div class="risk-item">
+                                    <span>Max Drawdown</span>
+                                    <span class="risk-value">@comprehensive.RiskMetrics.MaxDrawdown.ToString("P1")</span>
+                                </div>
+                                <div class="risk-item">
+                                    <span>Volatility</span>
+                                    <span class="risk-value">@comprehensive.RiskMetrics.Volatility.ToString("P1")</span>
+                                </div>
+                                <div class="risk-item">
+                                    <span>Sharpe Ratio</span>
+                                    <span class="risk-value">@comprehensive.RiskMetrics.SharpeRatio.ToString("F2")</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Engle-Granger Tab -->
+            @if (activeTab == "engle-granger" && comprehensive?.EngleGrangerResult != null)
+            {
+                <div class="tab-content">
+                    <div class="agent-widget">
+                        <div class="widget-header">Engle-Granger Cointegration Test</div>
+                        
+                        <div class="test-result">
+                            <div class="result-status @(comprehensive.EngleGrangerResult.IsCointegrated ? "pass" : "fail")">
+                                @(comprehensive.EngleGrangerResult.IsCointegrated ? "✓ COINTEGRATED" : "✗ NOT COINTEGRATED")
+                            </div>
+                            <p>@comprehensive.EngleGrangerResult.Interpretation</p>
+                        </div>
+
+                        <div class="section">
+                            <h3>Test Statistics</h3>
+                            <div class="stats-table">
+                                <div class="stat-row">
+                                    <span>P-Value</span>
+                                    <span class="stat-value">@comprehensive.EngleGrangerResult.PValue.ToString("F6")</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span>Critical Value (5%)</span>
+                                    <span class="stat-value">@comprehensive.EngleGrangerResult.CriticalValue5Pct.ToString("F4")</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span>Critical Value (1%)</span>
+                                    <span class="stat-value">@comprehensive.EngleGrangerResult.CriticalValue1Pct.ToString("F4")</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span>Beta Coefficient</span>
+                                    <span class="stat-value">@comprehensive.EngleGrangerResult.BetaCoefficient.ToString("F3")</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <h3>Trading Recommendation</h3>
+                            <p class="recommendation">@comprehensive.EngleGrangerResult.Recommendation</p>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Granger Causality Tab -->
+            @if (activeTab == "granger" && grangerResult != null)
+            {
+                <div class="tab-content">
+                    <div class="agent-widget">
+                        <div class="widget-header">Granger Causality Test</div>
+                        
+                        <div class="causality-result">
+                            <div class="causality-direction">
+                                <div class="direction-box @(grangerResult.GrangerCauses ? "causes" : "no-cause")">
+                                    <div class="direction-label">@grangerResult.CauseSymbol → @grangerResult.EffectSymbol</div>
+                                    <div class="direction-status">@(grangerResult.GrangerCauses ? "✓ Granger Causes" : "✗ Does Not Cause")</div>
+                                    <div class="direction-pvalue">P-Value: @grangerResult.PValue.ToString("F6")</div>
+                                </div>
+                            </div>
+
+                            <div class="causality-reverse">
+                                <div class="reverse-box @(grangerResult.ReverseGrangerCauses ? "causes" : "no-cause")">
+                                    <div class="direction-label">@grangerResult.EffectSymbol → @grangerResult.CauseSymbol</div>
+                                    <div class="direction-status">@(grangerResult.ReverseGrangerCauses ? "✓ Reverse Causes" : "✗ No Reverse Cause")</div>
+                                    <div class="direction-pvalue">P-Value: @grangerResult.ReverseGrangerPValue.ToString("F6")</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <h3>Test Details</h3>
+                            <div class="stats-table">
+                                <div class="stat-row">
+                                    <span>Optimal Lags</span>
+                                    <span class="stat-value">@grangerResult.OptimalLags</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span>F-Statistic</span>
+                                    <span class="stat-value">@grangerResult.GrangerFStatistic.ToString("F4")</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span>Critical Value (5%)</span>
+                                    <span class="stat-value">@grangerResult.CriticalValue5Pct.ToString("F4")</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span>Lead Time (Days)</span>
+                                    <span class="stat-value">@grangerResult.LeadTime</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <h3>Interpretation</h3>
+                            <p class="interpretation">@grangerResult.Interpretation</p>
+                            <p class="recommendation">@grangerResult.Recommendation</p>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Lead-Lag Tab -->
+            @if (activeTab == "lead-lag" && leadLagResult != null)
+            {
+                <div class="tab-content">
+                    <div class="agent-widget">
+                        <div class="widget-header">Lead-Lag Analysis</div>
+                        
+                        <div class="lead-lag-summary">
+                            <div class="lead-lag-card">
+                                <div class="lead-symbol">Leading: @leadLagResult.LeadingSymbol</div>
+                                <div class="lead-time">Lead Time: @leadLagResult.LeadTimeInDays days</div>
+                                <div class="max-correlation">Max Correlation: @leadLagResult.MaxCorrelation.ToString("F3")</div>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <h3>Lagged Correlations</h3>
+                            <div class="correlation-chart">
+                                @foreach (var lag in leadLagResult.LaggedCorrelations.OrderBy(x => x.Key))
+                                {
+                                    <div class="correlation-bar">
+                                        <div class="lag-label">@(lag.Key > 0 ? "+" + lag.Key : lag.Key) days</div>
+                                        <div class="bar-container">
+                                            <div class="bar" style="width: @(Math.Abs(lag.Value) * 100)%; background: @(lag.Value > 0 ? "#00d4ff" : "#ff6464");"></div>
+                                        </div>
+                                        <div class="correlation-value">@lag.Value.ToString("F3")</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <h3>Interpretation</h3>
+                            <p class="interpretation">@leadLagResult.Interpretation</p>
+                            <p class="predictive-value">Predictive Value: @leadLagResult.PredictiveValue</p>
+                            <p class="recommendation">Strategy: @leadLagResult.RecommendedTradingStrategy</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+.page-container {
+    padding: 20px;
+    background: linear-gradient(135deg, #0a0e16 0%, #0f1419 100%);
+    color: #e0e6ed;
+    min-height: 100vh;
+}
+
+h1 {
+    color: #00d4ff;
+    font-size: 2em;
+    margin: 0 0 5px 0;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.subtitle {
+    color: #888;
+    font-size: 0.95em;
+    margin-bottom: 25px;
+}
+
+.input-section {
+    margin-bottom: 25px;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+}
+
+.symbol-input {
+    flex: 1;
+    padding: 12px 15px;
+    background: rgba(20, 25, 35, 0.9);
+    border: 2px solid #00d4ff;
+    border-radius: 6px;
+    color: #00d4ff;
+    font-size: 1em;
+    outline: none;
+}
+
+.symbol-input::placeholder {
+    color: #666;
+}
+
+.symbol-input:focus {
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+.btn-search {
+    padding: 12px 25px;
+    background: linear-gradient(135deg, #00d4ff, #0099cc);
+    border: none;
+    border-radius: 6px;
+    color: #000;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-search:hover {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+    transform: translateY(-2px);
+}
+
+.error-box {
+    padding: 12px;
+    background: rgba(255, 100, 100, 0.1);
+    border-left: 4px solid #ff6464;
+    color: #ff8888;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.loading-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: #00d4ff;
+    font-size: 1.2em;
+}
+
+.tabs-container {
+    background: rgba(5, 10, 22, 0.7);
+    border-radius: 8px;
+    border: 1px solid #1a2332;
+    overflow: hidden;
+}
+
+.tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    border-bottom: 2px solid #1a2332;
+    background: rgba(10, 15, 25, 0.9);
+    padding: 0;
+}
+
+.tab {
+    flex: 1;
+    min-width: 120px;
+    padding: 15px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #888;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.tab:hover {
+    color: #00d4ff;
+    background: rgba(0, 212, 255, 0.05);
+}
+
+.tab.active {
+    color: #00d4ff;
+    border-bottom-color: #00d4ff;
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.tab-content {
+    padding: 20px;
+}
+
+.agent-widget {
+    background: rgba(5, 10, 22, 0.72);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.widget-header {
+    padding-bottom: 15px;
+    border-bottom: 2px solid rgba(0, 212, 255, 0.2);
+    color: #00d4ff;
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.metric-card {
+    background: rgba(0, 212, 255, 0.05);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 6px;
+    padding: 15px;
+    text-align: center;
+}
+
+.metric-label {
+    color: #999;
+    font-size: 0.9em;
+    margin-bottom: 8px;
+}
+
+.metric-value {
+    color: #00d4ff;
+    font-size: 1.3em;
+    font-weight: bold;
+}
+
+.section {
+    margin-bottom: 20px;
+}
+
+.section h3 {
+    color: #00d4ff;
+    font-size: 1.1em;
+    margin-bottom: 12px;
+}
+
+.signal-box {
+    background: rgba(0, 212, 255, 0.05);
+    border-left: 4px solid #00d4ff;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.signal-box p {
+    color: #ccc;
+    margin: 0;
+}
+
+.stats-grid, .risk-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.stat-item, .risk-item {
+    display: flex;
+    justify-content: space-between;
+    background: rgba(0, 212, 255, 0.05);
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.stat-label {
+    color: #999;
+}
+
+.stat-value, .risk-value {
+    color: #00d4ff;
+    font-weight: bold;
+}
+
+.test-result {
+    background: rgba(0, 212, 255, 0.05);
+    border: 2px solid rgba(0, 212, 255, 0.2);
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.result-status {
+    font-size: 1.3em;
+    font-weight: bold;
+    padding: 10px;
+    border-radius: 4px;
+    text-align: center;
+    margin-bottom: 10px;
+    background: rgba(255, 100, 100, 0.1);
+    color: #ff8888;
+}
+
+.result-status.pass {
+    background: rgba(0, 255, 0, 0.1);
+    color: #00ff00;
+}
+
+.stats-table {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    background: rgba(0, 212, 255, 0.05);
+    padding: 10px;
+    border-radius: 4px;
+    border-left: 3px solid #00d4ff;
+}
+
+.stat-row span:first-child {
+    color: #999;
+}
+
+.stat-value {
+    color: #00d4ff;
+    font-weight: bold;
+}
+
+.recommendation {
+    color: #ccc;
+    background: rgba(0, 212, 255, 0.05);
+    padding: 12px;
+    border-radius: 4px;
+}
+
+.causality-result {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.causality-direction, .causality-reverse {
+    display: flex;
+    justify-content: center;
+}
+
+.direction-box, .reverse-box {
+    background: rgba(0, 212, 255, 0.05);
+    border: 2px solid rgba(0, 212, 255, 0.2);
+    border-radius: 6px;
+    padding: 15px;
+    text-align: center;
+    width: 100%;
+}
+
+.direction-box.causes, .reverse-box.causes {
+    border-color: #00ff00;
+    background: rgba(0, 255, 0, 0.08);
+}
+
+.direction-box.no-cause, .reverse-box.no-cause {
+    border-color: #ff6464;
+    background: rgba(255, 100, 100, 0.08);
+}
+
+.direction-label {
+    color: #00d4ff;
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-bottom: 8px;
+}
+
+.direction-status {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #00ff00;
+}
+
+.direction-box.no-cause .direction-status, .reverse-box.no-cause .direction-status {
+    color: #ff6464;
+}
+
+.direction-pvalue {
+    font-size: 0.9em;
+    color: #999;
+}
+
+.lead-lag-summary {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.lead-lag-card {
+    background: rgba(0, 212, 255, 0.05);
+    border: 2px solid rgba(0, 212, 255, 0.2);
+    border-radius: 6px;
+    padding: 20px;
+    text-align: center;
+}
+
+.lead-symbol {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #00d4ff;
+    margin-bottom: 10px;
+}
+
+.lead-time {
+    font-size: 1.1em;
+    color: #ff9900;
+    margin-bottom: 8px;
+}
+
+.max-correlation {
+    font-size: 0.95em;
+    color: #ccc;
+}
+
+.correlation-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.correlation-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.lag-label {
+    width: 60px;
+    text-align: right;
+    color: #999;
+    font-size: 0.9em;
+}
+
+.bar-container {
+    flex: 1;
+    height: 25px;
+    background: rgba(0, 212, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.bar {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.correlation-value {
+    width: 50px;
+    text-align: right;
+    color: #00d4ff;
+    font-weight: bold;
+}
+
+.interpretation {
+    color: #ccc;
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.predictive-value {
+    color: #ff9900;
+    font-style: italic;
+}
+</style>
+
+@code {
+    private string symbol1 = "";
+    private string symbol2 = "";
+    private string activeTab = "overview";
+    private bool isLoading = false;
+    private string errorMessage = "";
+
+    private ComprehensiveCointegrationAnalysis comprehensive = null;
+    private GrangerCausalityTestResult grangerResult = null;
+    private LeadLagAnalysisResult leadLagResult = null;
+
+    private async Task AnalyzePair()
+    {
+        if (string.IsNullOrWhiteSpace(symbol1) || string.IsNullOrWhiteSpace(symbol2))
+        {
+            errorMessage = "Please enter both symbols";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = "";
+
+        try
+        {
+            await Task.WhenAll(
+                FetchComprehensiveAnalysis(),
+                FetchGrangerCausality(),
+                FetchLeadLag()
+            );
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error analyzing pair");
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task FetchComprehensiveAnalysis()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/cointegration/comprehensive-analysis", 
+                new { symbol1, symbol2, lookbackDays = 252 });
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadAsJsonAsync<ApiResponse<ComprehensiveCointegrationAnalysis>>();
+                comprehensive = result?.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error fetching comprehensive analysis");
+        }
+    }
+
+    private async Task FetchGrangerCausality()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/cointegration/granger-causality", 
+                new { symbol1, symbol2, lookbackDays = 252, maxLags = 5 });
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadAsJsonAsync<ApiResponse<GrangerCausalityTestResult>>();
+                grangerResult = result?.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error fetching Granger causality");
+        }
+    }
+
+    private async Task FetchLeadLag()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/cointegration/lead-lag-analysis", 
+                new { symbol1, symbol2, lookbackDays = 252 });
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadAsJsonAsync<ApiResponse<LeadLagAnalysisResult>>();
+                leadLagResult = result?.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error fetching lead-lag analysis");
+        }
+    }
+
+    public class ApiResponse<T>
+    {
+        public bool Success { get; set; }
+        public T Data { get; set; }
+    }
+
+    public class ComprehensiveCointegrationAnalysis
+    {
+        public string Symbol1 { get; set; }
+        public string Symbol2 { get; set; }
+        public DateTime AnalysisDate { get; set; }
+        public EngleGrangerTestResult EngleGrangerResult { get; set; }
+        public decimal CorrelationCoefficient { get; set; }
+        public decimal HalfLife { get; set; }
+        public decimal SpreadMean { get; set; }
+        public decimal SpreadStdDev { get; set; }
+        public decimal CurrentSpread { get; set; }
+        public decimal SpreadZScore { get; set; }
+        public bool IsStationarySpread { get; set; }
+        public string TradingSignal { get; set; }
+        public RiskMetricsForPair RiskMetrics { get; set; }
+    }
+
+    public class EngleGrangerTestResult
+    {
+        public string Symbol1 { get; set; }
+        public string Symbol2 { get; set; }
+        public DateTime TestDate { get; set; }
+        public decimal PValue { get; set; }
+        public bool IsCointegrated { get; set; }
+        public decimal CriticalValue5Pct { get; set; }
+        public decimal CriticalValue1Pct { get; set; }
+        public decimal BetaCoefficient { get; set; }
+        public string Interpretation { get; set; }
+        public string Recommendation { get; set; }
+    }
+
+    public class GrangerCausalityTestResult
+    {
+        public string CauseSymbol { get; set; }
+        public string EffectSymbol { get; set; }
+        public DateTime TestDate { get; set; }
+        public int OptimalLags { get; set; }
+        public decimal GrangerFStatistic { get; set; }
+        public decimal PValue { get; set; }
+        public decimal CriticalValue5Pct { get; set; }
+        public decimal CriticalValue1Pct { get; set; }
+        public bool GrangerCauses { get; set; }
+        public decimal ReverseGrangerPValue { get; set; }
+        public bool ReverseGrangerCauses { get; set; }
+        public string Interpretation { get; set; }
+        public int LeadTime { get; set; }
+        public string Recommendation { get; set; }
+    }
+
+    public class LeadLagAnalysisResult
+    {
+        public string Symbol1 { get; set; }
+        public string Symbol2 { get; set; }
+        public DateTime AnalysisDate { get; set; }
+        public int MaxCorrelationLag { get; set; }
+        public decimal MaxCorrelation { get; set; }
+        public Dictionary<int, decimal> LaggedCorrelations { get; set; }
+        public string LeadingSymbol { get; set; }
+        public int LeadTimeInDays { get; set; }
+        public string Interpretation { get; set; }
+        public string PredictiveValue { get; set; }
+        public string RecommendedTradingStrategy { get; set; }
+    }
+
+    public class RiskMetricsForPair
+    {
+        public decimal MaxDrawdown { get; set; }
+        public decimal Volatility { get; set; }
+        public decimal SharpeRatio { get; set; }
+    }
+}

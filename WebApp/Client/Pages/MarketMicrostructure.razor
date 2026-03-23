@@ -1,0 +1,3 @@
+@page "/market-microstructure"
+<FeatureCategoryPanel Title="21. Market Microstructure" ApiBase="/api/MarketMicrostructure" Features="_features" DefaultContext="AAPL" />
+@code { private readonly List<string> _features = new() { "order-book-analysis", "market-depth", "liquidity-analysis", "spread-analysis", "orderbook-reconstruction", "hft-analysis", "manipulation-detection" }; }

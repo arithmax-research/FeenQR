@@ -1,0 +1,3 @@
+@page "/fix-protocol"
+<FeatureCategoryPanel Title="29. FIX Protocol" ApiBase="/api/FixProtocol" Features="_features" DefaultContext="AAPL" />
+@code { private readonly List<string> _features = new() { "fix-connect", "fix-disconnect", "fix-order", "fix-cancel", "fix-market-data", "fix-heartbeat", "fix-status", "fix-info" }; }

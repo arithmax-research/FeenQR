@@ -1,0 +1,297 @@
+@page "/factor-models"
+@using Client.Extensions
+@inject HttpClient Http
+@inject ILogger<FactorModels> Logger
+
+<div class="factor-container">
+    <div class="page-header">
+        <h1>Factor Models</h1>
+        <p>Fama-French, Carhart, custom factors, attribution, efficacy testing, and dynamic factor analysis.</p>
+    </div>
+
+    <div class="input-shell">
+        <div class="input-grid">
+            <div>
+                <label class="field-label">Asset Symbol</label>
+                <input class="field-input" @bind="assetSymbol" placeholder="AAPL" />
+            </div>
+            <div>
+                <label class="field-label">Symbols (research/efficacy)</label>
+                <input class="field-input" @bind="symbolsCsv" placeholder="AAPL,MSFT,NVDA,AMZN,GOOGL" />
+            </div>
+            <div>
+                <label class="field-label">Lookback Days</label>
+                <input class="field-input" type="number" min="63" max="2000" @bind="lookbackDays" />
+            </div>
+            <div>
+                <label class="field-label">Portfolios</label>
+                <input class="field-input" type="number" min="3" max="10" @bind="portfolioCount" />
+            </div>
+        </div>
+        <button class="run-btn" @onclick="RunSuite" disabled="@isLoading">@(isLoading ? "Running..." : "Run Factor Suite")</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="error-box">@errorMessage</div>
+    }
+
+    @if (comparison is not null)
+    {
+        <div class="summary-row">
+            <div class="summary-card">
+                <span class="label">Best Model</span>
+                <span class="value accent">@comparison.BestModel</span>
+            </div>
+            <div class="summary-card">
+                <span class="label">Best R²</span>
+                <span class="value">@comparison.Scores.GetValueOrDefault(comparison.BestModel, 0).ToString("F3")</span>
+            </div>
+            <div class="summary-card">
+                <span class="label">Asset</span>
+                <span class="value">@assetSymbol</span>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab @(activeTab == "compare" ? "active" : "")" @onclick="() => activeTab = "compare"">Compare</button>
+            <button class="tab @(activeTab == "attribution" ? "active" : "")" @onclick="() => activeTab = "attribution"">Attribution</button>
+            <button class="tab @(activeTab == "research" ? "active" : "")" @onclick="() => activeTab = "research"">Research</button>
+            <button class="tab @(activeTab == "efficacy" ? "active" : "")" @onclick="() => activeTab = "efficacy"">Efficacy</button>
+            <button class="tab @(activeTab == "dynamic" ? "active" : "")" @onclick="() => activeTab = "dynamic"">Dynamic</button>
+        </div>
+
+        <div class="tab-content">
+            @if (activeTab == "compare")
+            {
+                <h3>Model Comparison</h3>
+                <div class="grid2">
+                    @foreach (var s in comparison.Scores.OrderByDescending(s => s.Value))
+                    {
+                        <div class="card-row"><span>@s.Key</span><strong>@s.Value.ToString("F3")</strong></div>
+                    }
+                </div>
+            }
+
+            @if (activeTab == "attribution" && attribution is not null)
+            {
+                <h3>Factor Attribution</h3>
+                <div class="grid2">
+                    @foreach (var c in attribution.FactorContributions)
+                    {
+                        <div class="card-row"><span>@c.Key</span><strong>@c.Value.ToString("F4")</strong></div>
+                    }
+                    <div class="card-row"><span>Total Attribution</span><strong>@attribution.TotalAttribution.ToString("F4")</strong></div>
+                    <div class="card-row"><span>Residual (Alpha)</span><strong>@attribution.ResidualReturn.ToString("F4")</strong></div>
+                </div>
+            }
+
+            @if (activeTab == "research" && research is not null)
+            {
+                <h3>Factor Research</h3>
+                <div class="grid2">
+                    <div class="card-row"><span>Name</span><strong>@research.Name</strong></div>
+                    <div class="card-row"><span>Type</span><strong>@research.Type</strong></div>
+                    <div class="card-row"><span>Data Points</span><strong>@research.Statistics.Count</strong></div>
+                    <div class="card-row"><span>Mean</span><strong>@research.Statistics.Mean.ToString("F4")</strong></div>
+                    <div class="card-row"><span>Std Dev</span><strong>@research.Statistics.StandardDeviation.ToString("F4")</strong></div>
+                    <div class="card-row"><span>Skewness</span><strong>@research.Statistics.Skewness.ToString("F4")</strong></div>
+                </div>
+            }
+
+            @if (activeTab == "efficacy" && efficacy is not null)
+            {
+                <h3>Factor Efficacy</h3>
+                <div class="grid2">
+                    <div class="card-row"><span>Sharpe Ratio</span><strong>@efficacy.SharpeRatio.ToString("F3")</strong></div>
+                    <div class="card-row"><span>Win Rate</span><strong>@efficacy.WinRate.ToString("P1")</strong></div>
+                    <div class="card-row"><span>Max Drawdown</span><strong>@efficacy.MaxDrawdown.ToString("F3")</strong></div>
+                    <div class="card-row"><span>Portfolios</span><strong>@efficacy.PortfolioCount</strong></div>
+                </div>
+            }
+
+            @if (activeTab == "dynamic" && dynamicFactors is not null)
+            {
+                <h3>Dynamic Factors</h3>
+                <div class="grid2">
+                    @foreach (var f in dynamicFactors.Factors)
+                    {
+                        <div class="card-row"><span>@f.Name (@f.Type)</span><strong>Sharpe @f.SharpeRatio.ToString("F2")</strong></div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string assetSymbol = "AAPL";
+    private string symbolsCsv = "AAPL,MSFT,NVDA,AMZN,GOOGL";
+    private int lookbackDays = 504;
+    private int portfolioCount = 5;
+    private bool isLoading;
+    private string errorMessage = string.Empty;
+    private string activeTab = "compare";
+
+    private ComparisonResponse? comparison;
+    private AttributionResponse? attribution;
+    private ResearchResponse? research;
+    private EfficacyResponse? efficacy;
+    private DynamicResponse? dynamicFactors;
+
+    private async Task RunSuite()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var symbols = symbolsCsv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => s.ToUpperInvariant())
+                .Distinct()
+                .ToList();
+
+            var startDate = DateTime.UtcNow.AddDays(-lookbackDays);
+            var endDate = DateTime.UtcNow;
+
+            var compareTask = Http.PostAsJsonAsync<ComparisonResponse>("/api/FactorModels/compare-factor-models", new { assetSymbol, startDate, endDate });
+            var attributionTask = Http.PostAsJsonAsync<AttributionResponse>("/api/FactorModels/factor-attribution", new { assetSymbol, startDate, endDate });
+            var researchTask = Http.PostAsJsonAsync<ResearchResponse>("/api/FactorModels/factor-research", new { factorName = "Momentum_21D", symbols, startDate, endDate, lookbackPeriod = 21 });
+            var efficacyTask = Http.PostAsJsonAsync<EfficacyResponse>("/api/FactorModels/factor-efficacy", new { factorName = "Momentum_21D", symbols, startDate, endDate, portfolioCount, lookbackPeriod = 21 });
+            var dynamicTask = Http.PostAsJsonAsync<DynamicResponse>("/api/FactorModels/dynamic-factors", new { symbols, lookbackDays });
+
+            await Task.WhenAll(compareTask, attributionTask, researchTask, efficacyTask, dynamicTask);
+
+            comparison = await compareTask;
+            attribution = await attributionTask;
+            research = await researchTask;
+            efficacy = await efficacyTask;
+            dynamicFactors = await dynamicTask;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to run factor model suite");
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private class ComparisonResponse
+    {
+        public string BestModel { get; set; } = string.Empty;
+        public Dictionary<string, double> Scores { get; set; } = new();
+    }
+
+    private class AttributionResponse
+    {
+        public string Asset { get; set; } = string.Empty;
+        public Dictionary<string, double> FactorContributions { get; set; } = new();
+        public double TotalAttribution { get; set; }
+        public double ResidualReturn { get; set; }
+    }
+
+    private class ResearchResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public ResearchStats Statistics { get; set; } = new();
+    }
+
+    private class ResearchStats
+    {
+        public int Count { get; set; }
+        public double Mean { get; set; }
+        public double StandardDeviation { get; set; }
+        public double Skewness { get; set; }
+    }
+
+    private class EfficacyResponse
+    {
+        public string FactorName { get; set; } = string.Empty;
+        public int PortfolioCount { get; set; }
+        public double SharpeRatio { get; set; }
+        public double MaxDrawdown { get; set; }
+        public double WinRate { get; set; }
+    }
+
+    private class DynamicResponse
+    {
+        public List<DynamicFactorItem> Factors { get; set; } = new();
+    }
+
+    private class DynamicFactorItem
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public double SharpeRatio { get; set; }
+    }
+}
+
+<style>
+.factor-container {
+    padding: 24px;
+    color: #e7ecf3;
+    background: #0a0e16;
+    min-height: 100vh;
+}
+.page-header h1 {
+    margin: 0;
+    color: #00d4ff;
+}
+.page-header p {
+    margin: 8px 0 20px 0;
+    color: #9bb0cc;
+}
+.input-shell {
+    background: rgba(5, 10, 22, 0.72);
+    border: 1px solid rgba(0, 212, 255, 0.15);
+    border-radius: 10px;
+    padding: 16px;
+}
+.input-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(180px, 1fr));
+    gap: 12px;
+}
+.field-label {
+    display: block;
+    font-size: 0.82rem;
+    margin-bottom: 6px;
+    color: #7fdfff;
+}
+.field-input {
+    width: 100%;
+    padding: 10px;
+    background: rgba(0, 212, 255, 0.06);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 6px;
+    color: #e7ecf3;
+}
+.run-btn {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #00d4ff, #1a8cff);
+    color: #041220;
+    border: none;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.run-btn:disabled { opacity: 0.65; cursor: wait; }
+.error-box { margin-top: 12px; background: rgba(255, 100, 100, 0.1); border-left: 4px solid #ff6464; padding: 10px 12px; }
+.summary-row { margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap: 12px; }
+.summary-card { background: rgba(0, 212, 255, 0.06); border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+.summary-card .label { color: #9bb0cc; font-size: 0.78rem; }
+.summary-card .value { font-size: 1.1rem; font-weight: 700; }
+.summary-card .value.accent { color: #00ffb7; }
+.tabs { margin-top: 16px; display: flex; gap: 8px; border-bottom: 1px solid rgba(0, 212, 255, 0.2); padding-bottom: 8px; overflow-x: auto; }
+.tab { background: transparent; color: #9bb0cc; border: none; border-bottom: 2px solid transparent; padding: 8px 10px; cursor: pointer; white-space: nowrap; }
+.tab.active { color: #00d4ff; border-bottom-color: #00d4ff; }
+.tab-content { margin-top: 14px; background: rgba(5, 10, 22, 0.72); border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 10px; padding: 14px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 10px; }
+.card-row { display: flex; justify-content: space-between; padding: 10px; background: rgba(0, 212, 255, 0.05); border: 1px solid rgba(0, 212, 255, 0.12); border-radius: 8px; }
+@media (max-width: 900px) { .input-grid, .summary-row, .grid2 { grid-template-columns: 1fr; } }
+</style>

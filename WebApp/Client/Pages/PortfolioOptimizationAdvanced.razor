@@ -1,0 +1,477 @@
+@page "/portfolio-optimization-advanced"
+@using Client.Extensions
+@using System.Globalization
+@inject HttpClient Http
+@inject ILogger<PortfolioOptimizationAdvanced> Logger
+
+<div class="opt-container">
+    <div class="opt-header">
+        <h1>Advanced Portfolio Optimization</h1>
+        <p>Black-Litterman, Risk Parity, Hierarchical Risk Parity, Minimum Variance, and side-by-side comparison.</p>
+    </div>
+
+    <div class="input-shell">
+        <div class="input-grid">
+            <div>
+                <label class="field-label">Assets (comma-separated)</label>
+                <input class="field-input" @bind="assetsInput" placeholder="AAPL, MSFT, NVDA, SPY" />
+            </div>
+            <div>
+                <label class="field-label">Max Weight</label>
+                <input class="field-input" type="number" step="0.01" min="0.05" max="1" @bind="maxWeight" />
+            </div>
+            <div>
+                <label class="field-label">Max Risk</label>
+                <input class="field-input" type="number" step="0.01" min="0.05" max="1" @bind="maxRisk" />
+            </div>
+            <div>
+                <label class="field-label">Allow Short Selling</label>
+                <select class="field-input" @bind="allowShortSelling">
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                </select>
+            </div>
+        </div>
+        <button class="run-btn" @onclick="RunAllOptimizations" disabled="@isLoading">
+            @(isLoading ? "Running..." : "Run Optimization Suite")
+        </button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="error-box">@errorMessage</div>
+    }
+
+    @if (comparisonResult is not null)
+    {
+        <div class="summary-row">
+            <div class="summary-card">
+                <span class="label">Recommended Method</span>
+                <span class="value accent">@comparisonResult.Summary.RecommendedMethod</span>
+            </div>
+            <div class="summary-card">
+                <span class="label">Best Score</span>
+                <span class="value">@comparisonResult.Summary.BestScore.ToString("F3")</span>
+            </div>
+            <div class="summary-card">
+                <span class="label">Assets</span>
+                <span class="value">@comparisonResult.Assets.Count</span>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab @(activeTab == "compare" ? "active" : "")" @onclick="() => activeTab = "compare"">Compare</button>
+            <button class="tab @(activeTab == "black-litterman" ? "active" : "")" @onclick="() => activeTab = "black-litterman"">Black-Litterman</button>
+            <button class="tab @(activeTab == "risk-parity" ? "active" : "")" @onclick="() => activeTab = "risk-parity"">Risk Parity</button>
+            <button class="tab @(activeTab == "hrp" ? "active" : "")" @onclick="() => activeTab = "hrp"">Hierarchical RP</button>
+            <button class="tab @(activeTab == "min-variance" ? "active" : "")" @onclick="() => activeTab = "min-variance"">Minimum Variance</button>
+        </div>
+
+        <div class="tab-content">
+            @if (activeTab == "compare")
+            {
+                <h3>Method Scores</h3>
+                <div class="scores-grid">
+                    @foreach (var score in comparisonResult.Scores.OrderByDescending(s => s.Value))
+                    {
+                        <div class="score-item">
+                            <span>@score.Key</span>
+                            <strong>@score.Value.ToString("F3")</strong>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (activeTab == "black-litterman" && comparisonResult.Results.BlackLitterman is not null)
+            {
+                <h3>Black-Litterman</h3>
+                <div class="metrics-grid">
+                    <div class="metric"><span>Expected Return</span><strong>@ToPercent(comparisonResult.Results.BlackLitterman.ExpectedReturn)</strong></div>
+                    <div class="metric"><span>Volatility</span><strong>@ToPercent(comparisonResult.Results.BlackLitterman.ExpectedVolatility)</strong></div>
+                    <div class="metric"><span>Sharpe</span><strong>@comparisonResult.Results.BlackLitterman.SharpeRatio.ToString("F3")</strong></div>
+                </div>
+                @RenderWeights(comparisonResult.Results.BlackLitterman.OptimalWeights)
+            }
+
+            @if (activeTab == "risk-parity" && comparisonResult.Results.RiskParity is not null)
+            {
+                <h3>Risk Parity</h3>
+                <div class="metrics-grid">
+                    <div class="metric"><span>Expected Return</span><strong>@ToPercent(comparisonResult.Results.RiskParity.ExpectedReturn)</strong></div>
+                    <div class="metric"><span>Total Risk</span><strong>@ToPercent(comparisonResult.Results.RiskParity.TotalRisk)</strong></div>
+                    <div class="metric"><span>Converged</span><strong>@(comparisonResult.Results.RiskParity.Converged ? "Yes" : "No")</strong></div>
+                </div>
+                @RenderWeights(comparisonResult.Results.RiskParity.AssetWeights)
+            }
+
+            @if (activeTab == "hrp" && comparisonResult.Results.HierarchicalRiskParity is not null)
+            {
+                <h3>Hierarchical Risk Parity</h3>
+                <div class="metrics-grid">
+                    <div class="metric"><span>Expected Return</span><strong>@ToPercent(comparisonResult.Results.HierarchicalRiskParity.ExpectedReturn)</strong></div>
+                    <div class="metric"><span>Total Risk</span><strong>@ToPercent(comparisonResult.Results.HierarchicalRiskParity.TotalRisk)</strong></div>
+                    <div class="metric"><span>Clusters</span><strong>@comparisonResult.Results.HierarchicalRiskParity.Clusters.Count</strong></div>
+                </div>
+                @RenderWeights(comparisonResult.Results.HierarchicalRiskParity.Weights)
+            }
+
+            @if (activeTab == "min-variance" && comparisonResult.Results.MinimumVariance is not null)
+            {
+                <h3>Minimum Variance</h3>
+                <div class="metrics-grid">
+                    <div class="metric"><span>Expected Return</span><strong>@ToPercent(comparisonResult.Results.MinimumVariance.ExpectedReturn)</strong></div>
+                    <div class="metric"><span>Volatility</span><strong>@ToPercent(comparisonResult.Results.MinimumVariance.PortfolioVolatility)</strong></div>
+                    <div class="metric"><span>Success</span><strong>@(comparisonResult.Results.MinimumVariance.Success ? "Yes" : "No")</strong></div>
+                </div>
+                @RenderWeights(comparisonResult.Results.MinimumVariance.Weights)
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string assetsInput = "AAPL,MSFT,NVDA,SPY";
+    private double maxWeight = 0.35;
+    private double maxRisk = 0.35;
+    private bool allowShortSelling;
+    private bool isLoading;
+    private string activeTab = "compare";
+    private string errorMessage = string.Empty;
+
+    private OptimizationComparisonResponse? comparisonResult;
+
+    private async Task RunAllOptimizations()
+    {
+        errorMessage = string.Empty;
+        isLoading = true;
+
+        try
+        {
+            var assets = ParseAssets(assetsInput);
+            if (assets.Count < 2)
+            {
+                errorMessage = "Please provide at least two assets.";
+                return;
+            }
+
+            var request = new
+            {
+                assets,
+                allowShortSelling,
+                minWeight = 0.0,
+                maxWeight,
+                maxRisk,
+                turnoverLimit = 0.5,
+                absoluteViews = new Dictionary<string, double>
+                {
+                    [assets[0]] = 0.12,
+                    [assets[Math.Min(1, assets.Count - 1)]] = 0.09
+                },
+                viewConfidences = new Dictionary<string, double>
+                {
+                    [assets[0]] = 0.7,
+                    [assets[Math.Min(1, assets.Count - 1)]] = 0.6
+                }
+            };
+
+            comparisonResult = await Http.PostAsJsonAsync<OptimizationComparisonResponse>(
+                "/api/AdvancedPortfolioOptimization/compare-optimization",
+                request);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed running advanced optimization suite");
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static List<string> ParseAssets(string input)
+    {
+        return input.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.ToUpperInvariant())
+            .Distinct()
+            .ToList();
+    }
+
+    private static string ToPercent(double value)
+    {
+        return value.ToString("P2", CultureInfo.InvariantCulture);
+    }
+
+    private RenderFragment RenderWeights(Dictionary<string, double> weights) => builder =>
+    {
+        var seq = 0;
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "weights-grid");
+
+        foreach (var item in weights.OrderByDescending(w => w.Value))
+        {
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", "weight-item");
+            builder.OpenElement(seq++, "span");
+            builder.AddContent(seq++, item.Key);
+            builder.CloseElement();
+            builder.OpenElement(seq++, "strong");
+            builder.AddContent(seq++, item.Value.ToString("P2", CultureInfo.InvariantCulture));
+            builder.CloseElement();
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+    };
+
+    private class OptimizationComparisonResponse
+    {
+        public List<string> Assets { get; set; } = new();
+        public OptimizationSummary Summary { get; set; } = new();
+        public Dictionary<string, double> Scores { get; set; } = new();
+        public OptimizationResults Results { get; set; } = new();
+    }
+
+    private class OptimizationSummary
+    {
+        public string RecommendedMethod { get; set; } = string.Empty;
+        public double BestScore { get; set; }
+    }
+
+    private class OptimizationResults
+    {
+        public BlackLittermanResult? BlackLitterman { get; set; }
+        public RiskParityResult? RiskParity { get; set; }
+        public HrpResult? HierarchicalRiskParity { get; set; }
+        public MinimumVarianceResult? MinimumVariance { get; set; }
+    }
+
+    private class BlackLittermanResult
+    {
+        public Dictionary<string, double> OptimalWeights { get; set; } = new();
+        public double ExpectedReturn { get; set; }
+        public double ExpectedVolatility { get; set; }
+        public double SharpeRatio { get; set; }
+    }
+
+    private class RiskParityResult
+    {
+        public Dictionary<string, double> AssetWeights { get; set; } = new();
+        public double TotalRisk { get; set; }
+        public double ExpectedReturn { get; set; }
+        public bool Converged { get; set; }
+    }
+
+    private class HrpResult
+    {
+        public Dictionary<string, double> Weights { get; set; } = new();
+        public List<object> Clusters { get; set; } = new();
+        public double TotalRisk { get; set; }
+        public double ExpectedReturn { get; set; }
+    }
+
+    private class MinimumVarianceResult
+    {
+        public Dictionary<string, double> Weights { get; set; } = new();
+        public double PortfolioVolatility { get; set; }
+        public double ExpectedReturn { get; set; }
+        public bool Success { get; set; }
+    }
+}
+
+<style>
+.opt-container {
+    padding: 24px;
+    color: #e7ecf3;
+    background: #0a0e16;
+    min-height: 100vh;
+}
+
+.opt-header h1 {
+    margin: 0;
+    color: #00d4ff;
+}
+
+.opt-header p {
+    margin: 8px 0 20px 0;
+    color: #9bb0cc;
+}
+
+.input-shell {
+    background: rgba(5, 10, 22, 0.72);
+    border: 1px solid rgba(0, 212, 255, 0.15);
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.input-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.field-label {
+    display: block;
+    font-size: 0.82rem;
+    margin-bottom: 6px;
+    color: #7fdfff;
+}
+
+.field-input {
+    width: 100%;
+    padding: 10px;
+    background: rgba(0, 212, 255, 0.06);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 6px;
+    color: #e7ecf3;
+}
+
+.run-btn {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #00d4ff, #1a8cff);
+    color: #041220;
+    border: none;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.run-btn:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.error-box {
+    margin-top: 12px;
+    background: rgba(255, 100, 100, 0.1);
+    border-left: 4px solid #ff6464;
+    padding: 10px 12px;
+}
+
+.summary-row {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.summary-card {
+    background: rgba(0, 212, 255, 0.06);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.summary-card .label {
+    color: #9bb0cc;
+    font-size: 0.78rem;
+}
+
+.summary-card .value {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.summary-card .value.accent {
+    color: #00ffb7;
+}
+
+.tabs {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+    padding-bottom: 8px;
+    overflow-x: auto;
+}
+
+.tab {
+    background: transparent;
+    color: #9bb0cc;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 8px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.tab.active {
+    color: #00d4ff;
+    border-bottom-color: #00d4ff;
+}
+
+.tab-content {
+    margin-top: 14px;
+    background: rgba(5, 10, 22, 0.72);
+    border: 1px solid rgba(0, 212, 255, 0.15);
+    border-radius: 10px;
+    padding: 14px;
+}
+
+.scores-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    gap: 10px;
+}
+
+.score-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background: rgba(0, 212, 255, 0.05);
+    border: 1px solid rgba(0, 212, 255, 0.12);
+    border-radius: 8px;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.metric {
+    background: rgba(0, 212, 255, 0.05);
+    border: 1px solid rgba(0, 212, 255, 0.12);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.metric span {
+    color: #9bb0cc;
+    font-size: 0.78rem;
+}
+
+.weights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+.weight-item {
+    display: flex;
+    justify-content: space-between;
+    background: rgba(0, 212, 255, 0.04);
+    border: 1px solid rgba(0, 212, 255, 0.1);
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+
+@media (max-width: 900px) {
+    .input-grid,
+    .summary-row,
+    .metrics-grid,
+    .weights-grid,
+    .scores-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>

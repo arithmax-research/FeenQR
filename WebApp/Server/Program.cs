@@ -8,6 +8,7 @@ using Microsoft.SemanticKernel.Connectors.Qdrant;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Qdrant.Client;
 using Microsoft.AspNetCore.StaticFiles;
+using Server.Services;
 
 #pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates
 #pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates
@@ -240,8 +241,28 @@ builder.Services.AddSingleton<PortContainerAnalysisService>();
 // Register Portfolio Management services
 builder.Services.AddSingleton<PortfolioService>();
 builder.Services.AddSingleton<PortfolioOptimizationService>();
+builder.Services.AddSingleton<AdvancedOptimizationService>();
 builder.Services.AddSingleton<RiskManagementService>();
 builder.Services.AddSingleton<MonteCarloService>();
+
+// Register SEC Filings & Earnings services
+builder.Services.AddSingleton<SecFilingsService>();
+builder.Services.AddSingleton<EarningsService>();
+
+// Register Cointegration & Causality services
+builder.Services.AddSingleton<CointegrationService>();
+builder.Services.AddSingleton<CausalityService>();
+
+// Register Model Interpretability service
+builder.Services.AddSingleton<ModelInterpretabilityService>();
+
+// Register Factor Model services
+builder.Services.AddSingleton<FactorModelService>();
+builder.Services.AddSingleton<FactorResearchService>();
+builder.Services.AddSingleton<DynamicFactorService>();
+
+// Register Reinforcement Learning web service
+builder.Services.AddSingleton<ReinforcementLearningWebService>();
 
 // Register Machine Learning service
 builder.Services.AddSingleton<MachineLearningService>();

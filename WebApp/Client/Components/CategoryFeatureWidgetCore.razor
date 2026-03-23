@@ -1,0 +1,98 @@
+@using Client.Extensions
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ILogger<CategoryFeatureWidgetCore> Logger
+
+<div class="cwf-widget">
+    <div class="cwf-header">
+        <h4>@Title</h4>
+        <button class="cwf-refresh" @onclick="Run" disabled="@isLoading">@(isLoading ? "..." : "refresh")</button>
+    </div>
+
+    <select class="cwf-input" @bind="selectedFeature">
+        @foreach (var f in Features)
+        {
+            <option value="@f">@f</option>
+        }
+    </select>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="cwf-error">@error</div>
+    }
+
+    @if (result is not null)
+    {
+        <div class="cwf-row"><span>Feature</span><strong>@result.Feature</strong></div>
+        <div class="cwf-row"><span>Status</span><strong>@result.IntegrationStatus</strong></div>
+        <button class="cwf-open" @onclick="OpenFull">Open Page</button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string ApiBase { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string PageRoute { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<string> Features { get; set; } = Array.Empty<string>();
+
+    private string selectedFeature = string.Empty;
+    private bool isLoading;
+    private string error = string.Empty;
+    private ResultDto? result;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Features.Contains(selectedFeature) && Features.Count > 0)
+        {
+            selectedFeature = Features[0];
+        }
+
+        if (result is null && Features.Count > 0)
+        {
+            await Run();
+        }
+    }
+
+    private async Task Run()
+    {
+        if (string.IsNullOrWhiteSpace(selectedFeature))
+        {
+            return;
+        }
+
+        isLoading = true;
+        error = string.Empty;
+        try
+        {
+            result = await Http.PostAsJsonAsync<ResultDto>($"{ApiBase}/run/{selectedFeature}", new { context = "AAPL" });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Widget run failed for {Feature}", selectedFeature);
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OpenFull() => Navigation.NavigateTo(PageRoute);
+
+    private class ResultDto
+    {
+        public string Feature { get; set; } = string.Empty;
+        public string IntegrationStatus { get; set; } = string.Empty;
+    }
+}
+
+<style>
+.cwf-widget { background: rgba(5,10,22,0.72); border:1px solid rgba(0,212,255,0.15); border-radius:10px; padding:14px; color:#e7ecf3; }
+.cwf-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.cwf-header h4 { margin:0; color:#00d4ff; }
+.cwf-refresh { background: rgba(0,212,255,0.12); border:1px solid rgba(0,212,255,0.25); color:#00d4ff; border-radius:6px; padding:4px 10px; cursor:pointer; }
+.cwf-input { width:100%; background: rgba(0,212,255,0.06); border:1px solid rgba(0,212,255,0.2); border-radius:6px; color:#e7ecf3; padding:8px; }
+.cwf-error { margin-top:10px; color:#ff9a9a; font-size:0.85rem; }
+.cwf-row { margin-top:8px; background: rgba(0,212,255,0.05); border:1px solid rgba(0,212,255,0.12); border-radius:6px; padding:8px; display:flex; justify-content:space-between; }
+.cwf-open { width:100%; margin-top:10px; background: linear-gradient(135deg,#00d4ff,#1a8cff); border:none; color:#041220; padding:9px; border-radius:6px; font-weight:700; cursor:pointer; }
+</style>

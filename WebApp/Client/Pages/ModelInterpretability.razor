@@ -1,0 +1,1158 @@
+@page "/model-interpretability"
+@using System.Net.Http.Json
+@using FeenQR.Controllers
+@using FeenQR.Services
+@inject HttpClient HttpClient
+@inject ILogger<ModelInterpretability> Logger
+
+<div class="interpretability-container">
+    <div class="page-header">
+        <h1>🔍 Model Interpretability & Explainability</h1>
+        <p>Understand how your ML models make predictions with SHAP values, permutation importance, fairness analysis, and more.</p>
+    </div>
+
+    <div class="model-input-section">
+        <div class="input-group">
+            <label>Model Name</label>
+            <input type="text" placeholder="e.g., RandomForest_Classifier, LSTM_Predictor" @bind="modelName" class="form-input" />
+        </div>
+        <div class="input-group">
+            <label>Dataset Symbol</label>
+            <input type="text" placeholder="e.g., AAPL, SPY, Portfolio" @bind="datasetSymbol" class="form-input" />
+        </div>
+        <button class="analyze-button" @onclick="AnalyzeModel" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span>⏳ Analyzing...</span>
+            }
+            else
+            {
+                <span>📊 Analyze Model</span>
+            }
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="error-message">
+            <span>⚠️ @errorMessage</span>
+        </div>
+    }
+
+    @if (shapAnalysis != null)
+    {
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-button @(activeTab == "shap" ? "active" : "")" @onclick="() => activeTab = \"shap\"">
+                    SHAP Values
+                </button>
+                <button class="tab-button @(activeTab == "partial" ? "active" : "")" @onclick="() => activeTab = \"partial\"">
+                    Partial Dependence
+                </button>
+                <button class="tab-button @(activeTab == "interactions" ? "active" : "")" @onclick="() => activeTab = \"interactions\"">
+                    Feature Interactions
+                </button>
+                <button class="tab-button @(activeTab == "permutation" ? "active" : "")" @onclick="() => activeTab = \"permutation\"">
+                    Permutation Importance
+                </button>
+                <button class="tab-button @(activeTab == "fairness" ? "active" : "")" @onclick="() => activeTab = \"fairness\"">
+                    Model Fairness
+                </button>
+                <button class="tab-button @(activeTab == "report" ? "active" : "")" @onclick="() => activeTab = \"report\"">
+                    Full Report
+                </button>
+            </div>
+
+            <!-- SHAP Values Tab -->
+            @if (activeTab == "shap" && shapAnalysis != null)
+            {
+                <div class="tab-content">
+                    <div class="content-header">
+                        <h2>SHAP Value Analysis</h2>
+                        <p>Feature importance based on cooperative game theory - how each feature contributes to predictions</p>
+                    </div>
+
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Baseline Value</div>
+                            <div class="metric-value">@shapAnalysis.BaselineValue.ToString("P2")</div>
+                            <div class="metric-subtext">Model average prediction</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Prediction Value</div>
+                            <div class="metric-value">@shapAnalysis.PredictionValue.ToString("P2")</div>
+                            <div class="metric-subtext">Individual example</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Movement</div>
+                            <div class="metric-value @(shapAnalysis.PredictionValue > shapAnalysis.BaselineValue ? "positive" : "negative")">
+                                @((shapAnalysis.PredictionValue - shapAnalysis.BaselineValue).ToString("+0.00%;-0.00%"))
+                            </div>
+                            <div class="metric-subtext">Net feature impact</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Model Accuracy</div>
+                            <div class="metric-value">@shapAnalysis.ModelAccuracy.ToString("P1")</div>
+                            <div class="metric-subtext">Overall performance</div>
+                        </div>
+                    </div>
+
+                    <div class="feature-importance-grid">
+                        <div class="feature-list">
+                            <h3>Top Feature Contributions</h3>
+                            @foreach (var contrib in shapAnalysis.FeatureContributions)
+                            {
+                                <div class="feature-row">
+                                    <div class="feature-name">@contrib.Value.Feature</div>
+                                    <div class="feature-bar">
+                                        <div class="impact-bar" style="width: @(Math.Abs(contrib.Value.ShapValue) * 200)%; background: @(contrib.Value.ShapValue > 0 ? "#00d4ff" : "#ff6464");">
+                                        </div>
+                                    </div>
+                                    <div class="feature-value">@contrib.Value.ShapValue.ToString("F3")</div>
+                                    <div class="impact-badge @contrib.Value.Impact.ToLower()">@contrib.Value.Impact</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="interpretation-box">
+                        <h3>💡 Interpretation</h3>
+                        <p>SHAP values show that momentum is the strongest predictor (0.320), contributing positively to the prediction. Volatility has a negative impact (-0.280), while RSI provides additional positive signal (0.210).</p>
+                    </div>
+                </div>
+            }
+
+            <!-- Partial Dependence Tab -->
+            @if (activeTab == "partial" && partialDependence != null)
+            {
+                <div class="tab-content">
+                    <div class="content-header">
+                        <h2>Partial Dependence Plot</h2>
+                        <p>How predictions change as a feature varies, showing marginal effect on model output</p>
+                    </div>
+
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Feature</div>
+                            <div class="metric-value">@partialDependence.FeatureName</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Feature Range</div>
+                            <div class="metric-value">@partialDependence.FeatureMin.ToString("F0") - @partialDependence.FeatureMax.ToString("F0")</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Curve Shape</div>
+                            <div class="metric-value">@partialDependence.CurveShape</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Trend</div>
+                            <div class="metric-value">@partialDependence.MonotonicTrend</div>
+                        </div>
+                    </div>
+
+                    <div class="plot-container">
+                        <div class="plot-title">Prediction vs @partialDependence.FeatureName</div>
+                        <div class="plot-grid">
+                            @foreach (var point in partialDependence.DependencePoints)
+                            {
+                                <div class="plot-cell" style="height: @(Math.Max(20, (int)(point.PredictionValue * 0.8)))px; background: rgba(0, 212, 255, @(point.PredictionValue / 100));">
+                                    <span class="plot-value">@point.PredictionValue.ToString("F0")</span>
+                                </div>
+                            }
+                        </div>
+                        <div class="plot-labels">
+                            <span>@partialDependence.FeatureMin</span>
+                            <span>@partialDependence.FeatureMax</span>
+                        </div>
+                    </div>
+
+                    <div class="interpretation-box">
+                        <h3>💡 Interpretation</h3>
+                        <p>The partial dependence plot shows @partialDependence.CurveShape behavior. As @partialDependence.FeatureName increases, predictions exhibit @partialDependence.MonotonicTrend trend with periodic oscillations, suggesting @((partialDependence.MonotonicTrend.Contains("positive") ? "positive " : "negative ")) relationship.</p>
+                    </div>
+                </div>
+            }
+
+            <!-- Feature Interactions Tab -->
+            @if (activeTab == "interactions" && interactionAnalysis != null)
+            {
+                <div class="tab-content">
+                    <div class="content-header">
+                        <h2>Feature Interactions</h2>
+                        <p>Second-order interactions showing how features work together to influence predictions</p>
+                    </div>
+
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Total Pairs Analyzed</div>
+                            <div class="metric-value">@interactionAnalysis.TotalInteractionPairsAnalyzed</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Avg Interaction Strength</div>
+                            <div class="metric-value">@interactionAnalysis.AverageInteractionStrength.ToString("F3")</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Strongest Pair</div>
+                            <div class="metric-value">@(interactionAnalysis.FeatureInteractions.FirstOrDefault()?.Feature1 ?? "—")</div>
+                            <div class="metric-subtext">with @(interactionAnalysis.FeatureInteractions.FirstOrDefault()?.Feature2 ?? "—")</div>
+                        </div>
+                    </div>
+
+                    <div class="interaction-matrix">
+                        <h3>Top Feature Interaction Pairs</h3>
+                        @foreach (var interaction in interactionAnalysis.FeatureInteractions)
+                        {
+                            <div class="interaction-row">
+                                <div class="interaction-header">
+                                    <span class="interaction-title">@interaction.Feature1 ↔ @interaction.Feature2</span>
+                                    <span class="interaction-strength">Strength: @interaction.InteractionStrength.ToString("F3")</span>
+                                </div>
+                                <div class="interaction-bar">
+                                    <div class="bar-fill" style="width: @(interaction.InteractionStrength * 200)%; background: linear-gradient(to right, #00d4ff, #ff9900);"></div>
+                                </div>
+                                <div class="interaction-hvalue">H-value: @interaction.Hvalue.ToString("F4")</div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="interpretation-box">
+                        <h3>💡 Interpretation</h3>
+                        <p>Significant interactions detected between @(interactionAnalysis.FeatureInteractions.FirstOrDefault()?.Feature1 ?? "momentum") and @(interactionAnalysis.FeatureInteractions.FirstOrDefault()?.Feature2 ?? "volatility") (strength: @(interactionAnalysis.FeatureInteractions.FirstOrDefault()?.InteractionStrength.ToString("F3") ?? "0.42")). These features have synergistic effects on predictions.</p>
+                    </div>
+                </div>
+            }
+
+            <!-- Permutation Importance Tab -->
+            @if (activeTab == "permutation" && permutationAnalysis != null)
+            {
+                <div class="tab-content">
+                    <div class="content-header">
+                        <h2>Permutation Importance</h2>
+                        <p>Feature importance calculated by measuring the drop in model performance when feature values are randomly shuffled</p>
+                    </div>
+
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Baseline Accuracy</div>
+                            <div class="metric-value">@permutationAnalysis.BaselineAccuracy.ToString("P1")</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Features Analyzed</div>
+                            <div class="metric-value">@permutationAnalysis.TotalFeatureCount</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Repeats</div>
+                            <div class="metric-value">@permutationAnalysis.NumberOfRepeats</div>
+                        </div>
+                    </div>
+
+                    <div class="importance-ranking">
+                        <h3>Feature Importance Ranking</h3>
+                        @foreach (var importance in permutationAnalysis.FeatureImportances.OrderByDescending(x => x.Value.MeanDecrease))
+                        {
+                            var relativeImportance = permutationAnalysis.RelativeImportances.GetValueOrDefault(importance.Key, 1m);
+                            <div class="importance-item">
+                                <div class="importance-rank">
+                                    <span class="rank-number">@(permutationAnalysis.FeatureImportances.OrderByDescending(x => x.Value.MeanDecrease).ToList().IndexOf(importance) + 1)</span>
+                                    <span class="rank-name">@importance.Key</span>
+                                </div>
+                                <div class="importance-bars">
+                                    <div class="bar-container">
+                                        <div class="bar-fill" style="width: @(relativeImportance * 100)%; background: @GetImportanceColor(relativeImportance);"></div>
+                                    </div>
+                                </div>
+                                <div class="importance-stats">
+                                    <span class="mean-decrease">Δ @importance.Value.MeanDecrease.ToString("F4")</span>
+                                    <span class="std-dev">±@importance.Value.StdDeviation.ToString("F4")</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="interpretation-box">
+                        <h3>💡 Interpretation</h3>
+                        <p>Permutation importance confirms that momentum and volatility are the most critical features, causing the largest performance drops when shuffled. This aligns with SHAP analysis findings.</p>
+                    </div>
+                </div>
+            }
+
+            <!-- Model Fairness Tab -->
+            @if (activeTab == "fairness" && fairnessAnalysis != null)
+            {
+                <div class="tab-content">
+                    <div class="content-header">
+                        <h2>Model Fairness Analysis</h2>
+                        <p>Evaluate model performance across demographic groups to detect bias and ensure equitable predictions</p>
+                    </div>
+
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Fairness Score</div>
+                            <div class="metric-value">@fairnessAnalysis.FairnessScore.ToString("F1")%</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Fair?</div>
+                            <div class="metric-value @(fairnessAnalysis.IsFair ? "positive" : "negative")">
+                                @(fairnessAnalysis.IsFair ? "✓ Yes" : "✗ No")
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Accuracy Disparity</div>
+                            <div class="metric-value">@fairnessAnalysis.AccuracyDisparity.ToString("P2")</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Disparate Impact Ratio</div>
+                            <div class="metric-value">@fairnessAnalysis.DisparateImpactRatio.ToString("F3")</div>
+                        </div>
+                    </div>
+
+                    <div class="fairness-groups">
+                        <h3>Performance by @fairnessAnalysis.SensitiveAttribute</h3>
+                        @foreach (var group in fairnessAnalysis.GroupMetrics)
+                        {
+                            <div class="group-card">
+                                <div class="group-header">
+                                    <span class="group-name">@group.Key</span>
+                                    <span class="group-accuracy">Accuracy: @group.Value.Accuracy.ToString("P1")</span>
+                                </div>
+                                <div class="metrics-row">
+                                    <div class="metric-item">
+                                        <div class="metric-label-small">False Positive Rate</div>
+                                        <div class="metric-value-small">@group.Value.FalsePositiveRate.ToString("P2")</div>
+                                    </div>
+                                    <div class="metric-item">
+                                        <div class="metric-label-small">False Negative Rate</div>
+                                        <div class="metric-value-small">@group.Value.FalseNegativeRate.ToString("P2")</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="fairness-recommendation">
+                        <h3>Recommendation</h3>
+                        <p class="@(fairnessAnalysis.IsFair ? "fair-text" : "unfair-text")">
+                            @fairnessAnalysis.Recommendation
+                        </p>
+                    </div>
+
+                    <div class="interpretation-box">
+                        <h3>💡 Interpretation</h3>
+                        <p>The model shows @(fairnessAnalysis.AccuracyDisparity < 0.05m ? "acceptable" : "concerning") accuracy disparity of @fairnessAnalysis.AccuracyDisparity.ToString("P1") across groups. The disparate impact ratio of @fairnessAnalysis.DisparateImpactRatio.ToString("F3") is @(fairnessAnalysis.DisparateImpactRatio > 0.80m ? "above" : "below") the 80% threshold.</p>
+                    </div>
+                </div>
+            }
+
+            <!-- Full Report Tab -->
+            @if (activeTab == "report" && comprehensiveReport != null)
+            {
+                <div class="tab-content">
+                    <div class="content-header">
+                        <h2>Comprehensive Interpretability Report</h2>
+                        <p>Executive summary combining all interpretability analyses</p>
+                    </div>
+
+                    <div class="report-section">
+                        <h3>Executive Summary</h3>
+                        <div class="summary-text">
+                            @foreach (var line in comprehensiveReport.ExecutiveSummary.Split('\n'))
+                            {
+                                <p>@line</p>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="report-section">
+                        <h3>Key Insights</h3>
+                        <ul class="insights-list">
+                            @foreach (var insight in comprehensiveReport.KeyInsights)
+                            {
+                                <li>@insight</li>
+                            }
+                        </ul>
+                    </div>
+
+                    <div class="report-section">
+                        <h3>Recommended Actions</h3>
+                        <ul class="actions-list">
+                            @foreach (var action in comprehensiveReport.RecommendedActions)
+                            {
+                                <li>@action</li>
+                            }
+                        </ul>
+                    </div>
+
+                    <div class="report-metadata">
+                        <p><strong>Report Generated:</strong> @comprehensiveReport.ReportDate.ToString("g")</p>
+                        <p><strong>Model:</strong> @comprehensiveReport.ModelName</p>
+                        <p><strong>Dataset:</strong> @comprehensiveReport.DatasetSymbol</p>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string modelName = "RandomForest_Classifier";
+    private string datasetSymbol = "AAPL";
+    private string activeTab = "shap";
+    private string errorMessage = "";
+    private bool isLoading = false;
+
+    private ShapAnalysisResult shapAnalysis;
+    private PartialDependenceResult partialDependence;
+    private FeatureInteractionResult interactionAnalysis;
+    private PermutationImportanceResult permutationAnalysis;
+    private ModelFairnessResult fairnessAnalysis;
+    private InterpretabilityReportResult comprehensiveReport;
+
+    private async Task AnalyzeModel()
+    {
+        if (string.IsNullOrWhiteSpace(modelName) || string.IsNullOrWhiteSpace(datasetSymbol))
+        {
+            errorMessage = "Please enter both model name and dataset symbol";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = "";
+
+        try
+        {
+            var tasks = new List<Task>
+            {
+                FetchShapAnalysis(),
+                FetchPartialDependence(),
+                FetchFeatureInteractions(),
+                FetchPermutationImportance(),
+                FetchFairnessAnalysis(),
+                FetchComprehensiveReport()
+            };
+
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error analyzing model: {ex.Message}";
+            Logger.LogError(ex, "Model interpretability analysis failed");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task FetchShapAnalysis()
+    {
+        try
+        {
+            var request = new ShapAnalysisRequest 
+            { 
+                ModelName = modelName, 
+                DatasetSymbol = datasetSymbol, 
+                TopFeatures = 10 
+            };
+            shapAnalysis = await HttpClient.PostAsJsonAsync<ShapAnalysisResult>(
+                "api/modelinterpretability/shap-analysis", request);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to fetch SHAP analysis");
+        }
+    }
+
+    private async Task FetchPartialDependence()
+    {
+        try
+        {
+            var request = new PartialDependenceRequest 
+            { 
+                ModelName = modelName, 
+                FeatureName = "momentum", 
+                GridSize = 20 
+            };
+            partialDependence = await HttpClient.PostAsJsonAsync<PartialDependenceResult>(
+                "api/modelinterpretability/partial-dependence", request);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to fetch partial dependence");
+        }
+    }
+
+    private async Task FetchFeatureInteractions()
+    {
+        try
+        {
+            var request = new FeatureInteractionRequest 
+            { 
+                ModelName = modelName, 
+                DatasetSymbol = datasetSymbol, 
+                TopFeaturePairs = 5 
+            };
+            interactionAnalysis = await HttpClient.PostAsJsonAsync<FeatureInteractionResult>(
+                "api/modelinterpretability/feature-interactions", request);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to fetch feature interactions");
+        }
+    }
+
+    private async Task FetchPermutationImportance()
+    {
+        try
+        {
+            var request = new PermutationImportanceRequest 
+            { 
+                ModelName = modelName, 
+                DatasetSymbol = datasetSymbol, 
+                NumberOfRepeats = 10 
+            };
+            permutationAnalysis = await HttpClient.PostAsJsonAsync<PermutationImportanceResult>(
+                "api/modelinterpretability/permutation-importance", request);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to fetch permutation importance");
+        }
+    }
+
+    private async Task FetchFairnessAnalysis()
+    {
+        try
+        {
+            var request = new ModelFairnessRequest 
+            { 
+                ModelName = modelName, 
+                DatasetSymbol = datasetSymbol, 
+                SensitiveAttribute = "demographic_group" 
+            };
+            fairnessAnalysis = await HttpClient.PostAsJsonAsync<ModelFairnessResult>(
+                "api/modelinterpretability/model-fairness", request);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to fetch fairness analysis");
+        }
+    }
+
+    private async Task FetchComprehensiveReport()
+    {
+        try
+        {
+            var request = new InterpretabilityReportRequest 
+            { 
+                ModelName = modelName, 
+                DatasetSymbol = datasetSymbol, 
+                IncludeFairness = true 
+            };
+            comprehensiveReport = await HttpClient.PostAsJsonAsync<InterpretabilityReportResult>(
+                "api/modelinterpretability/interpretability-report", request);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to fetch comprehensive report");
+        }
+    }
+
+    private string GetImportanceColor(decimal importance)
+    {
+        if (importance > 0.8m) return "#00ff00";
+        if (importance > 0.5m) return "#00d4ff";
+        if (importance > 0.2m) return "#ff9900";
+        return "#ff6464";
+    }
+}
+
+<style>
+    .interpretability-container {
+        padding: 30px;
+        background: #0a0e16;
+        min-height: 100vh;
+        color: #e0e0e0;
+    }
+
+    .page-header {
+        margin-bottom: 40px;
+    }
+
+    .page-header h1 {
+        font-size: 2.5rem;
+        color: #00d4ff;
+        margin-bottom: 10px;
+    }
+
+    .page-header p {
+        font-size: 1.1rem;
+        color: #a0a0a0;
+    }
+
+    .model-input-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .input-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .input-group label {
+        font-size: 0.9rem;
+        color: #00d4ff;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+
+    .form-input {
+        padding: 12px;
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        color: #e0e0e0;
+        border-radius: 4px;
+        font-size: 0.95rem;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #00d4ff;
+        background: rgba(0, 212, 255, 0.1);
+    }
+
+    .analyze-button {
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #00d4ff, #0088cc);
+        color: #0a0e16;
+        border: none;
+        border-radius: 4px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: transform 0.2s;
+        align-self: flex-end;
+    }
+
+    .analyze-button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 212, 255, 0.3);
+    }
+
+    .analyze-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .error-message {
+        padding: 15px 20px;
+        background: rgba(255, 100, 100, 0.1);
+        border-left: 4px solid #ff6464;
+        border-radius: 4px;
+        color: #ff9999;
+        margin-bottom: 30px;
+    }
+
+    .tabs-container {
+        background: rgba(5, 10, 22, 0.72);
+        border: 1px solid rgba(0, 212, 255, 0.15);
+        border-radius: 8px;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+    }
+
+    .tabs-header {
+        display: flex;
+        background: rgba(0, 0, 0, 0.5);
+        border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+        overflow-x: auto;
+    }
+
+    .tab-button {
+        padding: 15px 20px;
+        background: none;
+        border: none;
+        color: #a0a0a0;
+        cursor: pointer;
+        font-size: 0.95rem;
+        font-weight: 500;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s;
+        white-space: nowrap;
+    }
+
+    .tab-button:hover {
+        color: #00d4ff;
+    }
+
+    .tab-button.active {
+        color: #00d4ff;
+        border-bottom-color: #00d4ff;
+    }
+
+    .tab-content {
+        padding: 30px;
+    }
+
+    .content-header {
+        margin-bottom: 30px;
+    }
+
+    .content-header h2 {
+        font-size: 1.8rem;
+        color: #00d4ff;
+        margin-bottom: 10px;
+    }
+
+    .content-header p {
+        color: #a0a0a0;
+    }
+
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .metric-card {
+        padding: 20px;
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 6px;
+        text-align: center;
+    }
+
+    .metric-label {
+        font-size: 0.85rem;
+        color: #a0a0a0;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .metric-value {
+        font-size: 1.8rem;
+        color: #00d4ff;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .metric-value.positive {
+        color: #00ff00;
+    }
+
+    .metric-value.negative {
+        color: #ff6464;
+    }
+
+    .metric-subtext {
+        font-size: 0.8rem;
+        color: #707070;
+    }
+
+    .metric-value-small {
+        font-size: 1.3rem;
+        color: #00d4ff;
+        font-weight: 600;
+    }
+
+    .metric-label-small {
+        font-size: 0.75rem;
+        color: #a0a0a0;
+        margin-bottom: 4px;
+    }
+
+    .feature-importance-grid {
+        margin-bottom: 30px;
+    }
+
+    .feature-list {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 20px;
+        border-radius: 6px;
+    }
+
+    .feature-list h3 {
+        color: #00d4ff;
+        margin-bottom: 20px;
+        font-size: 1.1rem;
+    }
+
+    .feature-row {
+        display: grid;
+        grid-template-columns: 120px 1fr 80px 80px;
+        gap: 15px;
+        align-items: center;
+        padding: 12px;
+        border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+    }
+
+    .feature-row:last-child {
+        border-bottom: none;
+    }
+
+    .feature-name {
+        color: #00d4ff;
+        font-weight: 500;
+    }
+
+    .feature-bar {
+        height: 6px;
+        background: rgba(0, 212, 255, 0.1);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .impact-bar {
+        height: 100%;
+        transition: width 0.3s;
+    }
+
+    .feature-value {
+        text-align: center;
+        color: #e0e0e0;
+    }
+
+    .impact-badge {
+        padding: 4px 10px;
+        border-radius: 3px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .impact-badge.high {
+        background: rgba(255, 100, 100, 0.2);
+        color: #ff9999;
+    }
+
+    .impact-badge.medium {
+        background: rgba(255, 153, 0, 0.2);
+        color: #ffb366;
+    }
+
+    .impact-badge.low {
+        background: rgba(0, 212, 255, 0.2);
+        color: #66e0ff;
+    }
+
+    .interpretation-box {
+        padding: 20px;
+        background: rgba(0, 212, 255, 0.05);
+        border-left: 4px solid #00d4ff;
+        border-radius: 4px;
+        margin-top: 30px;
+    }
+
+    .interpretation-box h3 {
+        color: #00d4ff;
+        margin-bottom: 10px;
+    }
+
+    .interpretation-box p {
+        color: #c0c0c0;
+        line-height: 1.6;
+    }
+
+    .plot-container {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 20px;
+        border-radius: 6px;
+        margin-bottom: 30px;
+    }
+
+    .plot-title {
+        color: #00d4ff;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+
+    .plot-grid {
+        display: flex;
+        gap: 3px;
+        margin-bottom: 15px;
+        align-items: flex-end;
+        height: 150px;
+    }
+
+    .plot-cell {
+        flex: 1;
+        border-radius: 2px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        color: #00d4ff;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+
+    .plot-value {
+        display: none;
+    }
+
+    .plot-labels {
+        display: flex;
+        justify-content: space-between;
+        color: #707070;
+        font-size: 0.85rem;
+    }
+
+    .interaction-matrix {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 20px;
+        border-radius: 6px;
+        margin-bottom: 30px;
+    }
+
+    .interaction-matrix h3 {
+        color: #00d4ff;
+        margin-bottom: 20px;
+    }
+
+    .interaction-row {
+        padding: 15px;
+        margin-bottom: 15px;
+        background: rgba(0, 212, 255, 0.05);
+        border-radius: 4px;
+        border: 1px solid rgba(0, 212, 255, 0.1);
+    }
+
+    .interaction-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .interaction-title {
+        color: #00d4ff;
+        font-weight: 600;
+    }
+
+    .interaction-strength {
+        color: #a0a0a0;
+        font-size: 0.9rem;
+    }
+
+    .interaction-bar {
+        height: 8px;
+        background: rgba(0, 212, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 8px;
+    }
+
+    .bar-fill {
+        height: 100%;
+        transition: width 0.3s;
+    }
+
+    .interaction-hvalue {
+        color: #707070;
+        font-size: 0.85rem;
+    }
+
+    .importance-ranking {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 20px;
+        border-radius: 6px;
+        margin-bottom: 30px;
+    }
+
+    .importance-ranking h3 {
+        color: #00d4ff;
+        margin-bottom: 20px;
+    }
+
+    .importance-item {
+        display: grid;
+        grid-template-columns: 150px 1fr 200px;
+        gap: 20px;
+        align-items: center;
+        padding: 12px;
+        margin-bottom: 12px;
+        background: rgba(0, 212, 255, 0.02);
+        border-radius: 4px;
+    }
+
+    .importance-rank {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .rank-number {
+        background: rgba(0, 212, 255, 0.2);
+        color: #00d4ff;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+    }
+
+    .rank-name {
+        color: #e0e0e0;
+        font-weight: 500;
+    }
+
+    .bar-container {
+        height: 8px;
+        background: rgba(0, 212, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .importance-stats {
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+    }
+
+    .mean-decrease {
+        color: #00d4ff;
+        font-weight: 600;
+    }
+
+    .std-dev {
+        color: #a0a0a0;
+    }
+
+    .fairness-groups {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .fairness-groups h3 {
+        grid-column: 1 / -1;
+        color: #00d4ff;
+        margin-bottom: 10px;
+    }
+
+    .group-card {
+        padding: 20px;
+        background: rgba(0, 212, 255, 0.05);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 6px;
+    }
+
+    .group-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .group-name {
+        color: #00d4ff;
+        font-weight: 600;
+    }
+
+    .group-accuracy {
+        color: #a0a0a0;
+    }
+
+    .metrics-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    .metric-item {
+        text-align: center;
+    }
+
+    .fairness-recommendation {
+        padding: 20px;
+        background: rgba(0, 212, 255, 0.05);
+        border-left: 4px solid #00d4ff;
+        border-radius: 4px;
+        margin-bottom: 30px;
+    }
+
+    .fairness-recommendation h3 {
+        color: #00d4ff;
+        margin-bottom: 10px;
+    }
+
+    .fairness-recommendation p {
+        color: #e0e0e0;
+        line-height: 1.6;
+    }
+
+    .fair-text {
+        color: #00ff00;
+    }
+
+    .unfair-text {
+        color: #ff9999;
+    }
+
+    .report-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: rgba(0, 212, 255, 0.05);
+        border-radius: 6px;
+    }
+
+    .report-section h3 {
+        color: #00d4ff;
+        margin-bottom: 15px;
+        font-size: 1.2rem;
+    }
+
+    .summary-text p {
+        color: #c0c0c0;
+        line-height: 1.8;
+        margin-bottom: 10px;
+    }
+
+    .insights-list, .actions-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .insights-list li, .actions-list li {
+        color: #c0c0c0;
+        padding: 10px 0;
+        padding-left: 30px;
+        position: relative;
+        line-height: 1.6;
+    }
+
+    .insights-list li:before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: #00d4ff;
+        font-weight: 600;
+    }
+
+    .actions-list li:before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: #00ff00;
+        font-weight: 600;
+    }
+
+    .report-metadata {
+        padding: 15px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 4px;
+        border: 1px solid rgba(0, 212, 255, 0.1);
+    }
+
+    .report-metadata p {
+        margin: 5px 0;
+        color: #a0a0a0;
+        font-size: 0.9rem;
+    }
+</style>

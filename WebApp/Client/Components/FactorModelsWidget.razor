@@ -1,0 +1,102 @@
+@using Client.Extensions
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ILogger<FactorModelsWidget> Logger
+
+<div class="factor-widget">
+    <div class="widget-header">
+        <h4>Factor Models</h4>
+        <button class="refresh-btn" @onclick="Refresh" disabled="@isLoading">@(isLoading ? "..." : "↻")</button>
+    </div>
+
+    <input class="widget-input" @bind="assetSymbol" placeholder="AAPL" />
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="widget-error">@errorMessage</div>
+    }
+
+    @if (comparison is not null)
+    {
+        <div class="metric-box">
+            <span>Best Model</span>
+            <strong>@comparison.BestModel</strong>
+        </div>
+
+        <div class="scores-list">
+            @foreach (var s in comparison.Scores.OrderByDescending(s => s.Value).Take(3))
+            {
+                <div class="score-row"><span>@s.Key</span><strong>@s.Value.ToString("F3")</strong></div>
+            }
+        </div>
+
+        <button class="view-btn" @onclick="OpenFull">View Full Factor Analysis</button>
+    }
+</div>
+
+@code {
+    private string assetSymbol = "AAPL";
+    private bool isLoading;
+    private string errorMessage = string.Empty;
+    private CompareResponse? comparison;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var startDate = DateTime.UtcNow.AddYears(-3);
+            var endDate = DateTime.UtcNow;
+
+            comparison = await Http.PostAsJsonAsync<CompareResponse>(
+                "/api/FactorModels/compare-factor-models",
+                new { assetSymbol, startDate, endDate });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load factor widget");
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OpenFull()
+    {
+        Navigation.NavigateTo("/factor-models");
+    }
+
+    private class CompareResponse
+    {
+        public string BestModel { get; set; } = string.Empty;
+        public Dictionary<string, double> Scores { get; set; } = new();
+    }
+}
+
+<style>
+.factor-widget {
+    background: rgba(5, 10, 22, 0.72);
+    border: 1px solid rgba(0, 212, 255, 0.15);
+    border-radius: 10px;
+    padding: 14px;
+    color: #e7ecf3;
+}
+.widget-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.widget-header h4 { margin: 0; color: #00d4ff; }
+.refresh-btn { background: rgba(0, 212, 255, 0.12); border: 1px solid rgba(0, 212, 255, 0.25); color: #00d4ff; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.widget-input { width: 100%; background: rgba(0, 212, 255, 0.06); border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 6px; color: #e7ecf3; padding: 8px; }
+.widget-error { margin-top: 10px; color: #ff9a9a; font-size: 0.85rem; }
+.metric-box { margin-top: 10px; background: rgba(0, 212, 255, 0.05); border: 1px solid rgba(0, 212, 255, 0.12); border-radius: 6px; padding: 8px; display: flex; justify-content: space-between; }
+.scores-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.score-row { display: flex; justify-content: space-between; background: rgba(0, 212, 255, 0.04); border: 1px solid rgba(0, 212, 255, 0.1); border-radius: 6px; padding: 7px 8px; }
+.view-btn { width: 100%; margin-top: 10px; background: linear-gradient(135deg, #00d4ff, #1a8cff); border: none; color: #041220; padding: 9px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+</style>
