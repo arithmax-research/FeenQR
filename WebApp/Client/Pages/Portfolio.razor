@@ -756,7 +756,7 @@
                         var payload = payloadElement.Deserialize<StrategyRunResponse>(StreamJsonOptions);
                         if (payload is not null)
                         {
-                            ApplyRunPayload(payload);
+                            ApplyRunPayload(payload, payloadElement);
                             await InvokeAsync(StateHasChanged);
                         }
                     }
@@ -806,9 +806,13 @@
         }
     }
 
-    private void ApplyRunPayload(StrategyRunResponse payload)
+    private void ApplyRunPayload(StrategyRunResponse payload, JsonElement? rawPayload = null)
     {
         var keyStats = ExtractKeyStats(payload.Lean);
+        if (keyStats.Count == 0 && rawPayload.HasValue)
+        {
+            keyStats = ExtractKeyStatsFromRawPayload(rawPayload.Value);
+        }
 
         strategyRunResult = new StrategyRunViewModel
         {
@@ -844,6 +848,44 @@
             : "Backtest completed with errors";
 
         AddAgentLog("Backtest Runner", strategyStatus);
+    }
+
+    private static List<StatEntry> ExtractKeyStatsFromRawPayload(JsonElement payload)
+    {
+        var result = new List<StatEntry>();
+        if (!payload.TryGetProperty("lean", out var leanElement) || leanElement.ValueKind != JsonValueKind.Object)
+        {
+            return result;
+        }
+
+        if (!leanElement.TryGetProperty("statistics", out var statsElement) || statsElement.ValueKind != JsonValueKind.Object)
+        {
+            return result;
+        }
+
+        var keys = new[]
+        {
+            "Net Profit",
+            "Sharpe Ratio",
+            "Drawdown",
+            "Win Rate",
+            "Total Orders",
+            "End Equity"
+        };
+
+        foreach (var key in keys)
+        {
+            if (statsElement.TryGetProperty(key, out var valueElement))
+            {
+                var value = valueElement.ToString();
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    result.Add(new StatEntry { Name = key, Value = value });
+                }
+            }
+        }
+
+        return result;
     }
 
     private static List<StatEntry> ExtractKeyStats(StrategyRunLeanPayload? lean)
