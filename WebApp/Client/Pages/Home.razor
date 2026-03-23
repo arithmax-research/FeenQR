@@ -97,12 +97,33 @@
 
     .widget-container.full-width {
         grid-column: 1 / -1;
-        min-height: 150px;
+        margin-bottom: 0;
+    }
+
+    .widget-container.market-summary {
+        grid-column: 1 / -1;
+        min-height: 180px;
         margin-bottom: 24px;
     }
 
-    .widget-container.full-width:first-of-type {
+    .widget-container.market-summary:first-of-type {
         margin-bottom: 24px;
+    }
+
+    .screener-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    .widget-container.screener-widget {
+        min-height: 700px;
+    }
+
+    .widget-container.market-overview-expanded {
+        grid-row: span 2;
+        min-height: 1224px;
     }
 
     .widget-title {
@@ -117,7 +138,7 @@
     .tradingview-widget-container {
         flex: 1;
         position: relative;
-        min-height: 0;
+        min-height: 420px;
         background: #0f0f0f;
     }
 
@@ -135,8 +156,29 @@
         background: #0f0f0f;
     }
 
+    #forexScreener,
+    #cryptoMarkets {
+        min-height: 640px;
+    }
+
+    #forexScreenerWidget,
+    #cryptoMarketsWidget {
+        width: 100%;
+        height: 100%;
+        min-height: 640px;
+    }
+
     @@media (max-width: 1200px) {
         .widgets-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .widget-container.market-overview-expanded {
+            grid-row: auto;
+            min-height: 620px;
+        }
+
+        .screener-grid {
             grid-template-columns: 1fr;
         }
     }
@@ -161,6 +203,17 @@
             padding: 16px;
             min-height: 500px;
         }
+
+        .widget-container.screener-widget {
+            min-height: 560px;
+        }
+
+        #forexScreener,
+        #cryptoMarkets,
+        #forexScreenerWidget,
+        #cryptoMarketsWidget {
+            min-height: 500px;
+        }
     }
 </style>
 
@@ -173,7 +226,7 @@
     </div>
 
     <!-- Chart 1: Market Summary with Exchange Selector -->
-    <div class="widget-container full-width">
+    <div class="widget-container market-summary">
         <div class="widget-title" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
             <span>Market Summary - @selectedExchange</span>
             <div class="exchange-selector">
@@ -209,20 +262,14 @@
 
     <div class="widgets-grid">
         <!-- Chart 2: Market Overview -->
-        <div class="widget-container">
+        <div class="widget-container market-overview-expanded">
             <div class="widget-title">Market Overview</div>
             <div class="tradingview-widget-container" id="marketOverview">
                 <div class="tradingview-widget-container__widget" id="marketOverviewWidget"></div>
             </div>
         </div>
 
-        <!-- Chart 3: Economic Map -->
-        <div class="widget-container">
-            <div class="widget-title">Economic Map</div>
-            <div id="economicMapWidget"></div>
-        </div>
-
-        <!-- Chart 4: Economic Calendar -->
+        <!-- Chart 3: Economic Calendar -->
         <div class="widget-container">
             <div class="widget-title">Economic Calendar</div>
             <div class="tradingview-widget-container" id="economicCalendar" style="height: 550px;">
@@ -230,7 +277,7 @@
             </div>
         </div>
 
-        <!-- Chart 5: News Timeline -->
+        <!-- Chart 4: News Timeline -->
         <div class="widget-container">
             <div class="widget-title">Latest News</div>
             <div class="tradingview-widget-container" id="newsTimeline">
@@ -238,28 +285,36 @@
             </div>
         </div>
 
-        <!-- Chart 6: Economic Events -->
+        <!-- Chart 5: Economic Events -->
         <div class="widget-container">
             <div class="widget-title">Economic Events</div>
             <div class="tradingview-widget-container" id="economicEvents">
                 <div class="tradingview-widget-container__widget" id="economicEventsWidget"></div>
             </div>
         </div>
-    </div>
 
-    <!-- Chart 7: Forex Screener (Full Width) -->
-    <div class="widget-container full-width">
-        <div class="widget-title">Forex Screener</div>
-        <div class="tradingview-widget-container" id="forexScreener">
-            <div class="tradingview-widget-container__widget" id="forexScreenerWidget"></div>
+        <!-- Chart 6: Economic Map -->
+        <div class="widget-container">
+            <div class="widget-title">Economic Map</div>
+            <div id="economicMapWidget"></div>
         </div>
     </div>
 
-    <!-- Chart 8: Crypto Markets (Full Width) -->
-    <div class="widget-container full-width">
-        <div class="widget-title">Crypto Markets</div>
-        <div class="tradingview-widget-container" id="cryptoMarkets">
-            <div class="tradingview-widget-container__widget" id="cryptoMarketsWidget"></div>
+    <div class="screener-grid">
+        <!-- Chart 7: Forex Screener -->
+        <div class="widget-container screener-widget">
+            <div class="widget-title">Forex Screener</div>
+            <div class="tradingview-widget-container" id="forexScreener">
+                <div class="tradingview-widget-container__widget" id="forexScreenerWidget"></div>
+            </div>
+        </div>
+
+        <!-- Chart 8: Crypto Markets -->
+        <div class="widget-container screener-widget">
+            <div class="widget-title">Crypto Markets</div>
+            <div class="tradingview-widget-container" id="cryptoMarkets">
+                <div class="tradingview-widget-container__widget" id="cryptoMarketsWidget"></div>
+            </div>
         </div>
     </div>
 </div>

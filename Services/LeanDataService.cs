@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using QuantResearchAgent.Core;
 using System.Globalization;
 using System.IO.Compression;
+using System.Text.RegularExpressions;
 using System.Text.Json;
 
 namespace QuantResearchAgent.Services;
@@ -10,15 +11,23 @@ public class LeanDataService
 {
     private readonly ILogger<LeanDataService> _logger;
     private readonly string _dataPath;
+    private readonly string _pipelinePath;
 
     public LeanDataService(ILogger<LeanDataService> logger)
     {
         _logger = logger;
-        _dataPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
+        var repoRoot = ResolveRepoRoot();
+        _dataPath = Path.Combine(repoRoot, "data");
+        _pipelinePath = ResolvePipelinePath(repoRoot);
         
         if (!Directory.Exists(_dataPath))
         {
             _logger.LogWarning("Data directory not found at {DataPath}. Consider running the Python data pipeline first.", _dataPath);
+        }
+
+        if (!Directory.Exists(_pipelinePath))
+        {
+            _logger.LogWarning("Data pipeline directory not found at {PipelinePath}.", _pipelinePath);
         }
     }
 
@@ -181,6 +190,135 @@ public class LeanDataService
         });
     }
 
+    public async Task<LeanDataCoverageStatus> CheckDataCoverageAsync(
+        string symbol,
+        bool isCrypto,
+        string resolution,
+        DateTime requestedStartDate,
+        DateTime requestedEndDate,
+        List<string> requiredDataTypes = null)
+    {
+        requiredDataTypes ??= new List<string> { isCrypto ? "crypto" : "equity" };
+
+        return await Task.Run(() =>
+        {
+            var status = new LeanDataCoverageStatus
+            {
+                Symbol = symbol,
+                Resolution = resolution,
+                RequestedStartDate = requestedStartDate.Date,
+                RequestedEndDate = requestedEndDate.Date,
+                CoverageEstimated = true
+            };
+
+            var normalizedResolution = string.IsNullOrWhiteSpace(resolution) ? "daily" : resolution.Trim().ToLowerInvariant();
+            var basePath = isCrypto
+                ? Path.Combine(_dataPath, "crypto", "binance", normalizedResolution)
+                : Path.Combine(_dataPath, "equity", "usa", normalizedResolution);
+            var symbolPath = Path.Combine(basePath, symbol.ToLowerInvariant());
+
+            if (!Directory.Exists(symbolPath))
+            {
+                status.Message = "No local folder found for symbol/resolution.";
+                CheckAuxiliaryData(status, requiredDataTypes);
+                return status;
+            }
+
+            var files = Directory.GetFiles(symbolPath, "*.zip", SearchOption.TopDirectoryOnly);
+            status.LocalFileCount = files.Length;
+            status.HasAnyLocalData = files.Length > 0;
+
+            if (!status.HasAnyLocalData)
+            {
+                status.Message = "Local folder exists but contains no Lean zip files.";
+                CheckAuxiliaryData(status, requiredDataTypes);
+                return status;
+            }
+
+            DateTime? earliest = null;
+            DateTime? latest = null;
+
+            foreach (var file in files)
+            {
+                if (TryExtractDateFromFileName(file, out var fileDate))
+                {
+                    earliest = !earliest.HasValue || fileDate < earliest.Value ? fileDate : earliest;
+                    latest = !latest.HasValue || fileDate > latest.Value ? fileDate : latest;
+                }
+            }
+
+            if (earliest.HasValue && latest.HasValue)
+            {
+                status.EarliestAvailableDate = earliest.Value;
+                status.LatestAvailableDate = latest.Value;
+                status.HasRequestedRangeCoverage =
+                    status.EarliestAvailableDate.Value <= status.RequestedStartDate &&
+                    status.LatestAvailableDate.Value >= status.RequestedEndDate;
+                status.Message = status.HasRequestedRangeCoverage
+                    ? "Coverage appears available based on local file dates."
+                    : "Requested range is not covered by observed local file dates.";
+                CheckAuxiliaryData(status, requiredDataTypes);
+                return status;
+            }
+
+            status.Message = "Could not infer date coverage from file names; only presence check is available.";
+            status.HasRequestedRangeCoverage = false;
+
+            // Check auxiliary data
+            CheckAuxiliaryData(status, requiredDataTypes);
+
+            return status;
+        });
+    }
+
+    private void CheckAuxiliaryData(LeanDataCoverageStatus status, List<string> requiredDataTypes)
+    {
+        foreach (var dataType in requiredDataTypes.Where(dt => dt != "equity" && dt != "crypto"))
+        {
+            if (dataType == "interest-rate")
+            {
+                var interestRatePath = Path.Combine(_dataPath, "alternative", "interest-rate", "usa", "interest-rate.csv");
+                status.AuxiliaryDataAvailable[dataType] = File.Exists(interestRatePath);
+            }
+            else
+            {
+                // For other types, assume available or add specific checks
+                status.AuxiliaryDataAvailable[dataType] = true;
+            }
+        }
+
+        // If any auxiliary data is missing, mark coverage as incomplete
+        if (status.AuxiliaryDataAvailable.Any(kvp => !kvp.Value))
+        {
+            status.HasRequestedRangeCoverage = false;
+            status.Message += " Missing auxiliary data: " + string.Join(", ", status.AuxiliaryDataAvailable.Where(kvp => !kvp.Value).Select(kvp => kvp.Key));
+        }
+    }
+
+    private static bool TryExtractDateFromFileName(string filePath, out DateTime date)
+    {
+        date = default;
+
+        var fileName = Path.GetFileNameWithoutExtension(filePath);
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return false;
+        }
+
+        var match = Regex.Match(fileName, @"(\d{8})");
+        if (!match.Success)
+        {
+            return false;
+        }
+
+        return DateTime.TryParseExact(
+            match.Groups[1].Value,
+            "yyyyMMdd",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out date);
+    }
+
     public async Task<List<string>> GetAvailableSymbolsAsync(bool isCrypto = false)
     {
         try
@@ -215,8 +353,7 @@ public class LeanDataService
         {
             _logger.LogInformation("Triggering Python data download for {Symbol} ({AssetType})", symbol, isCrypto ? "crypto" : "equity");
             
-            var pipelinePath = Path.Combine(Directory.GetCurrentDirectory(), "data_pipeline");
-            var pythonScript = Path.Combine(pipelinePath, "main.py");
+            var pythonScript = Path.Combine(_pipelinePath, "main.py");
             
             if (!File.Exists(pythonScript))
             {
@@ -249,7 +386,7 @@ public class LeanDataService
             {
                 FileName = "python3",
                 Arguments = string.Join(" ", args),
-                WorkingDirectory = pipelinePath,
+                WorkingDirectory = _pipelinePath,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false
@@ -284,6 +421,126 @@ public class LeanDataService
             return false;
         }
     }
+
+    public async Task<bool> TriggerDataDownloadAsync(
+        string symbol,
+        string source,
+        string resolution,
+        DateTime startDate,
+        DateTime endDate)
+    {
+        try
+        {
+            _logger.LogInformation(
+                "Triggering Python data download for {Symbol} from {Source} at {Resolution} ({Start} -> {End})",
+                symbol,
+                source,
+                resolution,
+                startDate.ToString("yyyy-MM-dd"),
+                endDate.ToString("yyyy-MM-dd"));
+
+            var pythonScript = Path.Combine(_pipelinePath, "main.py");
+
+            if (!File.Exists(pythonScript))
+            {
+                _logger.LogError("Python data pipeline not found at {Path}", pythonScript);
+                return false;
+            }
+
+            var normalizedSource = source.ToLowerInvariant();
+            if (normalizedSource is not ("alpaca" or "binance" or "futures" or "databento"))
+            {
+                _logger.LogWarning("Unknown source {Source}; defaulting to alpaca", source);
+                normalizedSource = "alpaca";
+            }
+
+            var args = new List<string>
+            {
+                pythonScript,
+                "--source", normalizedSource,
+                "--start-date", startDate.ToString("yyyy-MM-dd"),
+                "--end-date", endDate.ToString("yyyy-MM-dd"),
+                "--resolution", resolution
+            };
+
+            switch (normalizedSource)
+            {
+                case "binance":
+                    args.AddRange(new[] { "--crypto-symbols", symbol.ToUpperInvariant() });
+                    break;
+                case "futures":
+                    args.AddRange(new[] { "--futures-symbols", symbol.ToUpperInvariant() });
+                    break;
+                case "databento":
+                    args.AddRange(new[] { "--databento-symbols", symbol.ToUpperInvariant() });
+                    break;
+                default:
+                    args.AddRange(new[] { "--equity-symbols", symbol.ToUpperInvariant() });
+                    break;
+            }
+
+            var processInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "python3",
+                Arguments = string.Join(" ", args),
+                WorkingDirectory = _pipelinePath,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            };
+
+            _logger.LogInformation("Executing: python3 {Args}", string.Join(" ", args));
+
+            using var process = System.Diagnostics.Process.Start(processInfo);
+            if (process == null)
+            {
+                _logger.LogError("Failed to start Python data download process");
+                return false;
+            }
+
+            await process.WaitForExitAsync();
+
+            if (process.ExitCode == 0)
+            {
+                _logger.LogInformation("Successfully downloaded data for {Symbol}", symbol);
+                return true;
+            }
+
+            var error = await process.StandardError.ReadToEndAsync();
+            _logger.LogError("Python data download failed with exit code {ExitCode}: {Error}", process.ExitCode, error);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error triggering data download for {Symbol}", symbol);
+            return false;
+        }
+    }
+
+    private static string ResolveRepoRoot()
+    {
+        var currentDir = Directory.GetCurrentDirectory();
+        var isServerWorkingDir = currentDir.Contains("WebApp/Server") || currentDir.Contains("WebApp\\Server");
+        var repoRoot = isServerWorkingDir
+            ? Path.Combine(currentDir, "..", "..")
+            : currentDir;
+
+        return Path.GetFullPath(repoRoot);
+    }
+
+    private static string ResolvePipelinePath(string repoRoot)
+    {
+        var currentDir = Directory.GetCurrentDirectory();
+
+        var candidates = new[]
+        {
+            Path.Combine(currentDir, "data_pipeline"),
+            Path.Combine(repoRoot, "WebApp", "Server", "data_pipeline")
+        };
+
+        var existing = candidates.FirstOrDefault(Directory.Exists);
+        return existing ?? candidates[0];
+    }
 }
 
 public class LeanBar
@@ -295,4 +552,20 @@ public class LeanBar
     public decimal Low { get; set; }
     public decimal Close { get; set; }
     public long Volume { get; set; }
+}
+
+public class LeanDataCoverageStatus
+{
+    public string Symbol { get; set; } = string.Empty;
+    public string Resolution { get; set; } = "daily";
+    public DateTime RequestedStartDate { get; set; }
+    public DateTime RequestedEndDate { get; set; }
+    public bool HasAnyLocalData { get; set; }
+    public bool HasRequestedRangeCoverage { get; set; }
+    public bool CoverageEstimated { get; set; }
+    public DateTime? EarliestAvailableDate { get; set; }
+    public DateTime? LatestAvailableDate { get; set; }
+    public int LocalFileCount { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public Dictionary<string, bool> AuxiliaryDataAvailable { get; set; } = new();
 }

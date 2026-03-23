@@ -138,8 +138,8 @@ def get_alpaca_data(ticker):
         import os
         
         # These should match the appsettings.json configuration
-        api_key = "PK89MS3NBHE4VI1LU4C5"
-        secret_key = "ehTvuMIqirTLJinOc4i6cjf68kcY1hQcResf5Jbh"
+        api_key = os.getenv('ALPACA_API_KEY', '')
+        secret_key = os.getenv('ALPACA_SECRET_KEY', '')
         base_url = "https://paper-api.alpaca.markets"
         
         headers = {

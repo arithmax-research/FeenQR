@@ -13,6 +13,9 @@ using Microsoft.AspNetCore.StaticFiles;
 #pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates
 #pragma warning disable SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates
 
+// Web startup only.
+// Add/modify web API and web host service registrations in this file.
+// Do not add web registrations to root Program.cs (CLI startup).
 var builder = WebApplication.CreateBuilder(args);
 
 // Add configuration from main FeenQR project (root level)
@@ -145,6 +148,9 @@ builder.Services.AddHttpClient().ConfigureHttpClientDefaults(http =>
     http.ConfigureHttpClient(client => client.Timeout = TimeSpan.FromMinutes(10));
 });
 builder.Services.AddSingleton<LeanDataService>();
+builder.Services.AddSingleton<LeanStrategyPipelineService>();
+builder.Services.AddSingleton<StrategyTextParser>();
+builder.Services.AddSingleton<DataRequirementAdvisor>();
 builder.Services.AddSingleton<AlpacaService>();
 builder.Services.AddSingleton<AlphaVantageService>();
 builder.Services.AddSingleton<FinancialModelingPrepService>();

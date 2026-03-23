@@ -18,6 +18,8 @@ namespace QuantResearchAgent
 {
     class Program
     {
+        // CLI startup only.
+        // Do not register WebApp/Server services here.
         static async Task Main(string[] args)
         {
             await RunCliAsync(args);

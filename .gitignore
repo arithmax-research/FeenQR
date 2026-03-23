@@ -15,10 +15,14 @@ bin/
 **/bin/
 **/obj/
 **/publish/
+**/strategies/generated/
+**/data/
+**/logs/
 
 /General_Transitions/
 /Pitchdeck/
 /Employments/
+
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml

@@ -10,6 +10,7 @@ public class AlpacaService
 {
     private readonly ILogger<AlpacaService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly bool _alpacaApiEnabled;
     private readonly IAlpacaTradingClient? _tradingClient;
     private readonly IAlpacaDataClient? _dataClient;
     private readonly LeanDataService _leanDataService;
@@ -20,6 +21,13 @@ public class AlpacaService
         _logger = logger;
         _configuration = configuration;
         _leanDataService = leanDataService;
+        _alpacaApiEnabled = configuration.GetValue<bool>("Alpaca:Enabled", false);
+
+        if (!_alpacaApiEnabled)
+        {
+            _logger.LogInformation("Alpaca API integration is disabled by configuration (Alpaca:Enabled=false)");
+            return;
+        }
 
         var apiKey = configuration["Alpaca:ApiKey"];
         var secretKey = configuration["Alpaca:SecretKey"];
@@ -61,11 +69,12 @@ public class AlpacaService
             var apiKey = _configuration["Alpaca:ApiKey"];
             var secretKey = _configuration["Alpaca:SecretKey"];
             var isPaperTrading = _configuration.GetValue<bool>("Alpaca:IsPaperTrading", true);
+            var isEnabled = _configuration.GetValue<bool>("Alpaca:Enabled", false);
 
             var keysConfigured = !string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(secretKey) && apiKey != "YOUR_ALPACA_API_KEY" && secretKey != "YOUR_ALPACA_SECRET_KEY";
             var clientInitialized = _dataClient != null;
 
-            return $"Alpaca Diagnostics: KeysConfigured={keysConfigured}, DataClientInitialized={clientInitialized}, IsPaperTrading={isPaperTrading}";
+            return $"Alpaca Diagnostics: Enabled={isEnabled}, KeysConfigured={keysConfigured}, DataClientInitialized={clientInitialized}, IsPaperTrading={isPaperTrading}";
         }
         catch (Exception ex)
         {
@@ -79,6 +88,11 @@ public class AlpacaService
         try
         {
             var cleanSymbol = symbol.Trim().ToUpper();
+            if (!_alpacaApiEnabled)
+            {
+                return await GetLeanMarketDataFallback(cleanSymbol);
+            }
+
             if (_dataClient == null)
             {
                 _logger.LogWarning("Alpaca client not initialized. Cannot fetch market data for {Symbol}", cleanSymbol);
@@ -174,6 +188,12 @@ public class AlpacaService
         try
         {
             var cleanSymbol = symbol.Trim().ToUpper();
+            if (!_alpacaApiEnabled)
+            {
+                _logger.LogDebug("Skipping Alpaca quote request for {Symbol} because Alpaca integration is disabled", cleanSymbol);
+                return null;
+            }
+
             if (_dataClient == null)
             {
                 _logger.LogWarning("Alpaca client not initialized. Cannot fetch quote for {Symbol}", cleanSymbol);
@@ -207,8 +227,8 @@ public class AlpacaService
                 symbol = symbols[0];
             }
             
-            // First try to get data from Alpaca API if client is initialized
-            if (_dataClient != null)
+            // First try to get data from Alpaca API if enabled and client is initialized
+            if (_alpacaApiEnabled && _dataClient != null)
             {
                 _logger.LogInformation("Attempting to fetch data from Alpaca API for {Symbol}", symbol);
                 var alpacaBars = await GetAlpacaHistoricalBarsAsync(symbol, days, timeFrame);
@@ -223,7 +243,7 @@ public class AlpacaService
             }
             else
             {
-                _logger.LogInformation("Alpaca client not initialized, using Lean data for {Symbol}", symbol);
+                _logger.LogInformation("Alpaca API disabled or client not initialized, using Lean data for {Symbol}", symbol);
             }
 
             // Fallback to Lean data

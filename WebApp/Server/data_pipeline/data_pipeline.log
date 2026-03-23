@@ -1,0 +1,81 @@
+2026-03-23 09:17:50,603 - utils - INFO - Starting data download from 2020-01-01 to 2023-12-31
+2026-03-23 09:17:50,603 - utils - INFO - Resolution: daily
+2026-03-23 09:17:50,603 - utils - INFO - Starting Alpaca data download...
+2026-03-23 09:17:50,603 - utils - INFO - Starting download for 1 symbols
+2026-03-23 09:17:50,606 - utils - INFO - Downloading TQQQ data for daily resolution
+2026-03-23 09:17:52,279 - utils - INFO - Saved 1006 bars for TQQQ daily
+2026-03-23 09:17:52,280 - utils - INFO - Download completed
+2026-03-23 09:17:52,280 - utils - INFO - Alpaca download completed
+2026-03-23 09:17:52,280 - utils - INFO - Data pipeline completed successfully!
+2026-03-23 09:29:45,683 - utils - INFO - Starting data download from 2020-01-01 to 2025-12-31
+2026-03-23 09:29:45,683 - utils - INFO - Resolution: daily
+2026-03-23 09:29:45,683 - utils - INFO - Starting Alpaca data download...
+2026-03-23 09:29:45,683 - utils - INFO - Starting download for 1 symbols
+2026-03-23 09:29:45,686 - utils - INFO - Downloading TQQQ data for daily resolution
+2026-03-23 09:29:47,379 - utils - INFO - Saved 1508 bars for TQQQ daily
+2026-03-23 09:29:47,379 - utils - INFO - Download completed
+2026-03-23 09:29:47,379 - utils - INFO - Alpaca download completed
+2026-03-23 09:29:47,379 - utils - INFO - Data pipeline completed successfully!
+2026-03-23 09:34:22,609 - utils - INFO - Starting data download from 2020-01-01 to 2025-12-31
+2026-03-23 09:34:22,609 - utils - INFO - Resolution: daily
+2026-03-23 09:34:22,609 - utils - INFO - Starting Alpaca data download...
+2026-03-23 09:34:22,609 - utils - INFO - Starting download for 1 symbols
+2026-03-23 09:34:22,612 - utils - INFO - Downloading TQQQ data for daily resolution
+2026-03-23 09:34:24,335 - utils - INFO - Saved 1508 bars for TQQQ daily
+2026-03-23 09:34:24,336 - utils - INFO - Download completed
+2026-03-23 09:34:24,336 - utils - INFO - Alpaca download completed
+2026-03-23 09:34:24,336 - utils - INFO - Data pipeline completed successfully!
+2026-03-23 09:37:48,430 - utils - INFO - Starting data download from 2020-01-01 to 2023-12-31
+2026-03-23 09:37:48,430 - utils - INFO - Resolution: daily
+2026-03-23 09:37:48,430 - utils - INFO - Starting Alpaca data download...
+2026-03-23 09:37:48,430 - utils - INFO - Starting download for 1 symbols
+2026-03-23 09:37:48,432 - utils - INFO - Downloading TQQQ data for daily resolution
+2026-03-23 09:37:50,144 - utils - INFO - Saved 1006 bars for TQQQ daily
+2026-03-23 09:37:50,145 - utils - INFO - Download completed
+2026-03-23 09:37:50,145 - utils - INFO - Alpaca download completed
+2026-03-23 09:37:50,145 - utils - INFO - Data pipeline completed successfully!
+2026-03-23 09:39:29,297 - utils - INFO - Starting data download from 2020-01-01 to 2023-12-31
+2026-03-23 09:39:29,297 - utils - INFO - Resolution: daily
+2026-03-23 09:39:29,297 - utils - INFO - Starting Alpaca data download...
+2026-03-23 09:39:29,297 - utils - INFO - Starting download for 1 symbols
+2026-03-23 09:39:29,299 - utils - INFO - Downloading TQQQ data for daily resolution
+2026-03-23 09:39:30,970 - utils - INFO - Saved 1006 bars for TQQQ daily
+2026-03-23 09:39:30,970 - utils - INFO - Download completed
+2026-03-23 09:39:30,970 - utils - INFO - Alpaca download completed
+2026-03-23 09:39:30,970 - utils - INFO - Data pipeline completed successfully!
+2026-03-23 09:44:23,975 - utils - INFO - Starting data download from 2020-01-01 to 2023-12-31
+2026-03-23 09:44:23,975 - utils - INFO - Resolution: daily
+2026-03-23 09:44:23,975 - utils - INFO - Starting Alpaca data download...
+2026-03-23 09:44:23,975 - utils - INFO - Starting download for 1 symbols
+2026-03-23 09:44:23,977 - utils - INFO - Downloading SPY data for daily resolution
+2026-03-23 09:44:25,650 - utils - INFO - Saved 1006 bars for SPY daily
+2026-03-23 09:44:25,650 - utils - INFO - Download completed
+2026-03-23 09:44:25,650 - utils - INFO - Alpaca download completed
+2026-03-23 09:44:25,650 - utils - INFO - Data pipeline completed successfully!
+2026-03-23 09:46:46,567 - utils - INFO - Starting data download from 2020-01-01 to 2023-12-31
+2026-03-23 09:46:46,567 - utils - INFO - Resolution: daily
+2026-03-23 09:46:46,567 - utils - INFO - Starting Alpaca data download...
+2026-03-23 09:46:46,567 - utils - INFO - Starting download for 1 symbols
+2026-03-23 09:46:46,570 - utils - INFO - Downloading SPY data for daily resolution
+2026-03-23 09:46:48,251 - utils - INFO - Saved 1006 bars for SPY daily
+2026-03-23 09:46:48,252 - utils - INFO - Download completed
+2026-03-23 09:46:48,252 - utils - INFO - Alpaca download completed
+2026-03-23 09:46:48,252 - utils - INFO - Data pipeline completed successfully!
+2026-03-23 09:57:52,596 - utils - INFO - Starting data download from 2020-01-01 to 2023-12-31
+2026-03-23 09:57:52,597 - utils - INFO - Resolution: daily
+2026-03-23 09:57:52,597 - utils - INFO - Starting Alpaca data download...
+2026-03-23 09:57:52,597 - utils - INFO - Starting download for 1 symbols
+2026-03-23 09:57:52,599 - utils - INFO - Downloading TQQQ data for daily resolution
+2026-03-23 09:57:54,310 - utils - INFO - Saved 1006 bars for TQQQ daily
+2026-03-23 09:57:54,310 - utils - INFO - Download completed
+2026-03-23 09:57:54,310 - utils - INFO - Alpaca download completed
+2026-03-23 09:57:54,310 - utils - INFO - Data pipeline completed successfully!
+2026-03-23 10:10:21,800 - utils - INFO - Starting data download from 2020-01-01 to 2023-12-31
+2026-03-23 10:10:21,800 - utils - INFO - Resolution: daily
+2026-03-23 10:10:21,800 - utils - INFO - Starting Alpaca data download...
+2026-03-23 10:10:21,800 - utils - INFO - Starting download for 1 symbols
+2026-03-23 10:10:21,802 - utils - INFO - Downloading TQQQ data for daily resolution
+2026-03-23 10:10:23,554 - utils - INFO - Saved 1006 bars for TQQQ daily
+2026-03-23 10:10:23,555 - utils - INFO - Download completed
+2026-03-23 10:10:23,555 - utils - INFO - Alpaca download completed
+2026-03-23 10:10:23,555 - utils - INFO - Data pipeline completed successfully!

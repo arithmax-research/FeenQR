@@ -1,0 +1,40 @@
+EMA Crossover Momentum Strategy
+
+Trading Strategy Description:
+This is a momentum strategy that trades QQQ (Nasdaq-100 ETF) using exponential moving average (EMA) crossovers.
+
+Entry Rules:
+- Buy TQQQ when the fast EMA (20-period) crosses above the slow EMA (50-period)
+- This indicates bullish momentum
+- Only enter if we don't already have a position
+
+Exit Rules:
+- Sell TQQQ when the fast EMA (20-period) crosses below the slow EMA (50-period)
+- This indicates bearish momentum or trend reversal
+- Close position completely
+
+Risk Management:
+- Use 90% of available cash for each trade
+- Only hold one position at a time
+- No leverage
+- No stop loss (rely on EMA crossover signals for exits)
+
+Backtest Parameters:
+- Symbol: TQQQ
+- Start Date: January 1, 2019
+- End Date: December 31, 2023
+- Initial Capital: $100,000
+- Resolution: Daily bars
+- Data Type: US Equity
+
+Technical Indicators:
+- Fast EMA: 20-period exponential moving average
+- Slow EMA: 50-period exponential moving average
+- Use closing prices for EMA calculations
+
+Additional Notes:
+- Log all crossover events (both bullish and bearish)
+- Track entry and exit prices
+- Display portfolio value at each trade
+- Classic trend-following strategy
+- Suitable for testing momentum-based Python strategies

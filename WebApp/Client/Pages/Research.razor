@@ -633,8 +633,8 @@
                             
                             @if (!string.IsNullOrEmpty(ragCollectionName))
                             {
-                                <button class="action-btn danger" @onclick="ClearPapers" style="padding: 0.75rem 1rem; font-size: 0.9rem;">
-                                    Clear All
+                                <button class="action-btn danger" @onclick="ClearPapers" disabled="@isClearingPapers" style="padding: 0.75rem 1rem; font-size: 0.9rem;">
+                                    @(isClearingPapers ? "Clearing..." : "Clear All")
                                 </button>
                             }
                         </div>

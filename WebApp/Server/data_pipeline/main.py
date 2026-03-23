@@ -7,6 +7,12 @@ import sys
 from datetime import datetime, timedelta
 from typing import List
 
+import sys
+import os
+
+# Ensure data_pipeline directory is in path for imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from config import (
     DEFAULT_EQUITY_SYMBOLS, DEFAULT_CRYPTO_SYMBOLS, DEFAULT_OPTION_SYMBOLS, DEFAULT_FUTURES_SYMBOLS,
     DEFAULT_DATABENTO_FUTURES_SYMBOLS, DEFAULT_START_DATE, DEFAULT_END_DATE,

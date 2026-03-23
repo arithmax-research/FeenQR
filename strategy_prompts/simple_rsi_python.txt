@@ -1,0 +1,34 @@
+RSI Mean Reversion Strategy
+
+Trading Strategy Description:
+This is a mean reversion strategy that trades SPY (S&P 500 ETF) based on RSI (Relative Strength Index) signals.
+
+Entry Rules:
+- Buy SPY when RSI(14) drops below 30 (oversold condition)
+- Only enter if we don't already have a position
+
+Exit Rules:
+- Sell SPY when RSI(14) rises above 70 (overbought condition)
+- Close position completely
+
+Risk Management:
+- Use 95% of available cash for each trade
+- Only hold one position at a time
+- No stop loss (rely on RSI signals for exits)
+
+Backtest Parameters:
+- Symbol: SPY
+- Start Date: January 1, 2020
+- End Date: December 31, 2023
+- Initial Capital: $100,000
+- Resolution: Daily bars
+- Data Type: US Equity
+
+Technical Indicators:
+- RSI with 14-period lookback
+- Use closing prices for RSI calculation
+
+Additional Notes:
+- Log all entry and exit signals
+- Track portfolio value at key events
+- Simple strategy suitable for testing the Python generator

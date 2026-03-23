@@ -1,24 +1,40 @@
 @page "/portfolio"
 @inject HttpClient Http
+@using System.Net.Http.Json
+@using System.Text.Json
 
 <PageTitle>Portfolio Simulator - FeenQR</PageTitle>
 
 <style>
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+
     .portfolio-container {
-        padding: 1rem;
-        max-width: 1400px;
-        margin: 0 auto;
+        position: fixed;
+        left: 280px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        padding: 1rem 1.25rem 1.5rem;
+        max-width: none;
+        width: auto;
+        margin: 0;
+        min-height: 100vh;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
     .portfolio-header {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        justify-content: flex-start;
+        align-items: baseline;
+        gap: 0.75rem;
         margin-bottom: 1rem;
     }
 
     .portfolio-title {
-        font-size: 1.5rem;
+        font-size: 1.65rem;
         font-weight: 700;
         color: #fff;
     }
@@ -47,7 +63,7 @@
     }
 
     .tab-button {
-        padding: 0.5rem 1rem;
+        padding: 0.6rem 1rem;
         background: transparent;
         border: none;
         color: rgba(255, 255, 255, 0.5);
@@ -68,75 +84,6 @@
         border-bottom-color: #3b82f6;
     }
 
-    .summary-cards {
-        display: grid;180px, 1fr));
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .summary-card {
-        background: rgba(10, 15, 30, 0.7);
-        backdrop-filter: blur(30px);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 12px;
-        padding: 1s: 16px;
-        padding: 1.5rem;
-        transform-style: preserve-3d;
-        transition: all 0.4s ease;
-    }
-
-    .summary-card:hover {
-        transform: translateY(-8px) translateZ(20px);
-        border-color: rgba(59, 130, 246, 0.3);
-    }
-
-    .summary-label {
-        font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.5);
-        margin-bottom: 0.3rem;
-    }
-
-    .summary-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #fff;
-        font-family: 'JetBrains Mono', monospace;
-    }
-
-    .positions-table {
-        background: rgba(10, 15, 30, 0.7);
-        backdrop-filter: blur(30px);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 12px;
-        padding: 1rem;
-        overflow-x: auto;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    th {
-        text-align: left;
-        padding: 0.75rem;
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 0.8rem;
-        font-weight: 600;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    td {
-        padding: 0.75rem;
-        color: #fff;
-        font-size: 0.9rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    tr:hover {
-        background: rgba(255, 255, 255, 0.02);
-    }
-
     .add-position-btn {
         padding: 0.5rem 1rem;
         border-radius: 8px;
@@ -154,6 +101,12 @@
         transform: translateZ(10px);
     }
 
+    .add-position-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+        transform: none;
+    }
+
     .tab-content {
         padding: 1.5rem;
         background: rgba(10, 15, 30, 0.7);
@@ -161,29 +114,189 @@
         border: 1px solid rgba(255, 255, 255, 0.06);
         border-radius: 12px;
     }
+
+    .strategy-shell {
+        padding: 1.25rem;
+        background: rgba(10, 15, 30, 0.72);
+        backdrop-filter: blur(28px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        min-height: calc(100vh - 230px);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .strategy-intro {
+        color: rgba(255, 255, 255, 0.78);
+        margin: 0;
+    }
+
+    .strategy-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(280px, 1fr));
+        gap: 1rem;
+        min-width: 0;
+    }
+
+    .agent-widget {
+        background: rgba(5, 10, 22, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .agent-widget > div,
+    .agent-widget > p,
+    .agent-widget > label {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .agent-widget h4 {
+        color: #fff;
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    .agent-subtitle {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 0.88rem;
+    }
+
+    .widget-status {
+        margin-top: auto;
+        font-size: 0.82rem;
+        color: #93c5fd;
+        background: rgba(59, 130, 246, 0.12);
+        border: 1px solid rgba(59, 130, 246, 0.28);
+        padding: 0.42rem 0.6rem;
+        border-radius: 8px;
+    }
+
+    .field-label {
+        color: #fff;
+        font-size: 0.86rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+        display: block;
+    }
+
+    .strategy-input,
+    .strategy-select,
+    .strategy-number,
+    .strategy-date {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.24);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 8px;
+        padding: 0.58rem;
+    }
+
+    .strategy-input {
+        min-height: 210px;
+        resize: vertical;
+    }
+
+    .config-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
+        gap: 0.6rem;
+    }
+
+    .agent-log {
+        background: rgba(5, 10, 22, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 0.9rem;
+        max-height: 300px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .agent-log h4 {
+        color: #fff;
+        margin: 0 0 0.8rem;
+        font-size: 1rem;
+    }
+
+    .log-line {
+        border-left: 2px solid rgba(59, 130, 246, 0.35);
+        padding-left: 0.7rem;
+        margin-bottom: 0.68rem;
+    }
+
+    .log-line .meta {
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 0.76rem;
+    }
+
+    .log-line .message {
+        color: rgba(255, 255, 255, 0.88);
+        font-size: 0.9rem;
+        margin-top: 0.22rem;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .error-box {
+        padding: 0.72rem;
+        border-radius: 8px;
+        background: rgba(239, 68, 68, 0.14);
+        border: 1px solid rgba(239, 68, 68, 0.33);
+        color: #fecaca;
+    }
+
+    .strategy-shell,
+    .widget-status,
+    .error-box {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    @@media (max-width: 1100px) {
+        .portfolio-container {
+            left: 0;
+        }
+    }
+
+    @@media (max-width: 980px) {
+        .strategy-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
 <div class="portfolio-container">
     <div class="portfolio-header">
-        <div>
-            <span class="portfolio-title">Portfolio Management</span>
-            <span class="simulation-badge">Simulation Mode</span>
-        </div>
-        <button class="add-position-btn" @onclick="ShowAddPosition">+ Add Position</button>
+        <span class="portfolio-title">Portfolio Management</span>
+        <span class="simulation-badge">Simulation Mode</span>
     </div>
 
     <div class="tabs-container">
-        <button class="tab-button @(activeTab == "summary" ? "active" : "")" @onclick='() => activeTab = "summary"'>
-            Summary
+        <button class="tab-button @(activeTab == "strategy" ? "active" : "")" @onclick='() => activeTab = "strategy"'>
+            Strategy Builder
         </button>
         <button class="tab-button @(activeTab == "risk" ? "active" : "")" @onclick='() => activeTab = "risk"'>
             Risk Assessment
         </button>
         <button class="tab-button @(activeTab == "analytics" ? "active" : "")" @onclick='() => activeTab = "analytics"'>
             Analytics
-        </button>
-        <button class="tab-button @(activeTab == "strategy" ? "active" : "")" @onclick='() => activeTab = "strategy"'>
-            Strategy Builder
         </button>
         <button class="tab-button @(activeTab == "monte-carlo" ? "active" : "")" @onclick='() => activeTab = "monte-carlo"'>
             Monte Carlo
@@ -193,76 +306,140 @@
         </button>
     </div>
 
-    @if (activeTab == "summary")
+    @if (activeTab == "strategy")
     {
-        <div class="summary-cards">
-            <div class="summary-card">
-                <div class="summary-label">Total Value</div>
-                <div class="summary-value">$@totalValue.ToString("N2")</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">Today's P&L</div>
-                <div class="summary-value" style="color: @(todayPnL >= 0 ? "#10b981" : "#ef4444")">
-                    @(todayPnL >= 0 ? "+" : "")$@todayPnL.ToString("N2")
-                </div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">Total P&L</div>
-                <div class="summary-value" style="color: @(totalPnL >= 0 ? "#10b981" : "#ef4444")">
-                    @(totalPnL >= 0 ? "+" : "")@totalPnLPercent.ToString("F2")%
-                </div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">Positions</div>
-                <div class="summary-value">@positions.Count</div>
-            </div>
-        </div>
+        <div class="strategy-shell">
+            <p class="strategy-intro">
+                Describe your strategy in plain language. The agents will propose a plan, estimate local data coverage, and run Lean only after you confirm.
+            </p>
 
-        <div class="positions-table">
-            <div style="font-size: 1.2rem; font-weight: 600; color: #fff; margin-bottom: 1.5rem;">
-                Current Positions
-            </div>
-            
-            @if (positions.Count == 0)
-            {
-                <div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.5);">
-                    No positions yet. Click "+ Add Position" to get started with your simulation portfolio.
-                </div>
-            }
-            else
-            {
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Symbol</th>
-                            <th>Shares</th>
-                            <th>Avg Cost</th>
-                            <th>Current Price</th>
-                            <th>Market Value</th>
-                            <th>P&L</th>
-                            <th>P&L %</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var position in positions)
+            <div class="strategy-grid">
+                <section class="agent-widget">
+                    <h4>DeepSeek Strategist</h4>
+                    <p class="agent-subtitle">Ask for your strategy and normalize it into machine-ready instructions.</p>
+                    <label class="field-label">Strategy Description</label>
+                    <textarea @bind="strategyInput" class="strategy-input" placeholder="Describe your strategy, symbol, entry/exit logic, date range, and risk constraints."></textarea>
+                    <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+                        <button class="add-position-btn" @onclick="DelegateStrategyPlanning" disabled="@strategyBusy">Delegate Plan</button>
+                    </div>
+                    <div class="widget-status">@strategyPlannerStatus</div>
+                </section>
+
+                <section class="agent-widget">
+                    <h4>Data Scout</h4>
+                    <p class="agent-subtitle">Estimates local data coverage for the requested range (best-effort, not guaranteed complete).</p>
+                    @if (strategyPlanResult is null)
+                    {
+                        <div style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">No data check yet. Delegate planning first.</div>
+                    }
+                    else
+                    {
+                        <div style="color: #dbeafe; font-size: 0.9rem;">Symbol: @strategyPlanResult.Symbol</div>
+                        <div style="color: #dbeafe; font-size: 0.9rem;">Source: @strategyPlanResult.PreferredSource</div>
+                        <div style="color: #dbeafe; font-size: 0.9rem;">Resolution: @strategyPlanResult.Resolution</div>
+                        <div style="color: #dbeafe; font-size: 0.9rem;">Local files present: @(strategyPlanResult.HasLocalLeanData ? "Yes" : "No")</div>
+                        <div style="color: #dbeafe; font-size: 0.9rem;">Requested range coverage: @(strategyPlanResult.HasRequestedRangeCoverage ? "Likely covered" : "Not covered / uncertain")</div>
+                        @if (!string.IsNullOrWhiteSpace(strategyPlanResult.CoverageWindow))
                         {
-                            <tr>
-                                <td style="font-weight: 600; font-family: 'JetBrains Mono', monospace;">@position.Symbol</td>
-                                <td>@position.Shares</td>
-                                <td>$@position.AvgCost.ToString("F2")</td>
-                                <td>$@position.CurrentPrice.ToString("F2")</td>
-                                <td>$@position.MarketValue.ToString("N2")</td>
-                                <td style="color: @(position.PnL >= 0 ? "#10b981" : "#ef4444")">
-                                    @(position.PnL >= 0 ? "+" : "")$@position.PnL.ToString("N2")
-                                </td>
-                                <td style="color: @(position.PnLPercent >= 0 ? "#10b981" : "#ef4444")">
-                                    @(position.PnLPercent >= 0 ? "+" : "")@position.PnLPercent.ToString("F2")%
-                                </td>
-                            </tr>
+                            <div style="color: #dbeafe; font-size: 0.9rem;">Observed local window: @strategyPlanResult.CoverageWindow</div>
                         }
-                    </tbody>
-                </table>
+                        <div style="color: #dbeafe; font-size: 0.9rem;">Coverage confidence: @(strategyPlanResult.CoverageEstimated ? "Estimated" : "Higher")</div>
+                        <div style="color: #dbeafe; font-size: 0.9rem;">Needs download: @(strategyPlanResult.RequiresDownload ? "Yes" : "No")</div>
+                    }
+                    <label style="display: inline-flex; align-items: center; gap: 0.45rem; color: #fff; font-size: 0.9rem; margin-top: 0.25rem;">
+                        <input type="checkbox" @bind="confirmDataDownload" />
+                        Confirm auto-download if missing
+                    </label>
+                    <div class="widget-status">@dataScoutStatus</div>
+                </section>
+
+                <section class="agent-widget">
+                    <h4>Lean Builder</h4>
+                    <p class="agent-subtitle">Builds Lean-ready configuration from delegated strategy and constraints.</p>
+                    <div class="config-grid">
+                        <div>
+                            <label class="field-label">Start Date</label>
+                            <input type="date" @bind="strategyStartDate" class="strategy-date" />
+                        </div>
+                        <div>
+                            <label class="field-label">End Date</label>
+                            <input type="date" @bind="strategyEndDate" class="strategy-date" />
+                        </div>
+                        <div>
+                            <label class="field-label">Capital</label>
+                            <input type="number" @bind="strategyCapital" min="1000" step="1000" class="strategy-number" />
+                        </div>
+                        <div>
+                            <label class="field-label">Resolution</label>
+                            <select @bind="strategyResolution" class="strategy-select">
+                                <option value="daily">Daily</option>
+                                <option value="hour">Hour</option>
+                                <option value="minute">Minute</option>
+                            </select>
+                        </div>
+                    </div>
+                    @if (strategyPlanResult is not null)
+                    {
+                        <div style="color: #d1fae5; font-size: 0.9rem;">
+                            Planned range: @strategyPlanResult.StartDate.ToString("yyyy-MM-dd") to @strategyPlanResult.EndDate.ToString("yyyy-MM-dd")
+                        </div>
+                    }
+                    <div class="widget-status">@leanBuilderStatus</div>
+                </section>
+
+                <section class="agent-widget">
+                    <h4>Backtest Runner</h4>
+                    <p class="agent-subtitle">Runs Lean, captures outputs, and reports completion status.</p>
+                    <button class="add-position-btn" @onclick="DelegateRunBacktest" disabled="@strategyBusy">Run Lean Backtest</button>
+
+                    @if (strategyRunResult is not null)
+                    {
+                        <div style="margin-top: 0.35rem; color: #fde68a; font-size: 0.9rem;">
+                            Run: @strategyRunResult.RunId
+                        </div>
+                        <div style="color: #fde68a; font-size: 0.9rem;">
+                            Success: @(strategyRunResult.LeanSuccess ? "Yes" : "No") | Exit: @strategyRunResult.LeanExitCode
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(strategyRunResult.BacktestOutputDirectory))
+                        {
+                            <div style="color: #fde68a; font-size: 0.9rem;">Output: @strategyRunResult.BacktestOutputDirectory</div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(strategyRunResult.LeanMessage))
+                        {
+                            <div style="color: #fde68a; font-size: 0.9rem;">@strategyRunResult.LeanMessage</div>
+                        }
+                    }
+                    <div class="widget-status">@backtestRunnerStatus</div>
+                </section>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(strategyStatus))
+            {
+                <div class="widget-status">@strategyStatus</div>
             }
+
+            @if (!string.IsNullOrWhiteSpace(strategyError))
+            {
+                <div class="error-box">@strategyError</div>
+            }
+
+            <section class="agent-log">
+                <h4>Agent Delegation Log</h4>
+                @if (agentLogs.Count == 0)
+                {
+                    <div style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">No agent messages yet.</div>
+                }
+                else
+                {
+                @foreach (var entry in agentLogs)
+                {
+                    <div class="log-line">
+                        <div class="meta">@entry.Timestamp.ToString("HH:mm:ss") | @entry.Agent</div>
+                        <div class="message">@entry.Message</div>
+                    </div>
+                }
+                }
+            </section>
         </div>
     }
     else if (activeTab == "risk")
@@ -285,19 +462,7 @@
                 Deep dive into portfolio performance with rolling statistics, sector exposure, diversification metrics, 
                 risk-adjusted returns (Sharpe, Sortino, Calmar ratios), and performance attribution.
             </p>
-            <button class="add-position-btn" @onclick="RunAnalytics">Run Portfolio Analytics</button>
-        </div>
-    }
-    else if (activeTab == "strategy")
-    {
-        <div class="tab-content">
-            <h3 style="color: #fff; margin-bottom: 1rem;">Strategy Builder</h3>
-            <p style="color: rgba(255,255,255,0.6); margin-bottom: 2rem;">
-                Create custom investment strategies with automated rebalancing rules and triggers.
-                <br/><br/>
-                Examples: "Rebalance when any position exceeds 30%", "Sell if portfolio drops 10%", "Buy more if volatility is low"
-            </p>
-            <button class="add-position-btn" @onclick="BuildStrategy">Create Strategy</button>
+            <button class="add-position-btn" @onclick="RunPortfolioAnalytics">Run Portfolio Analytics</button>
         </div>
     }
     else if (activeTab == "monte-carlo")
@@ -334,61 +499,42 @@
 </div>
 
 @code {
-    private string activeTab = "summary";
-    private List<Position> positions = new();
-    private double totalValue = 0;
-    private double todayPnL = 0;
-    private double totalPnL = 0;
-    private double totalPnLPercent = 0;
+    private string activeTab = "strategy";
+    private bool strategyBusy;
+    private bool confirmDataDownload;
+    private string strategyResolution = "daily";
+    private decimal strategyCapital = 100000;
+    private string strategyInput = string.Empty;
+    private DateTime strategyStartDate = new DateTime(2020, 1, 1);
+    private DateTime strategyEndDate = new DateTime(2023, 12, 31);
+    private string strategyStatus = string.Empty;
+    private string strategyError = string.Empty;
+    private string strategyPlannerStatus = "Waiting for your strategy description";
+    private string dataScoutStatus = "Awaiting plan and coverage check";
+    private string leanBuilderStatus = "No Lean plan yet";
+    private string backtestRunnerStatus = "Backtest not started";
+    private readonly List<AgentLogEntry> agentLogs = new();
+    private StrategyPlanViewModel? strategyPlanResult;
+    private StrategyRunViewModel? strategyRunResult;
 
-    public class Position
+    protected override void OnInitialized()
     {
-        public string Symbol { get; set; } = "";
-        public int Shares { get; set; }
-        public double AvgCost { get; set; }
-        public double CurrentPrice { get; set; }
-        public double MarketValue => Shares * CurrentPrice;
-        public double PnL => MarketValue - (Shares * AvgCost);
-        public double PnLPercent => (CurrentPrice - AvgCost) / AvgCost * 100;
+        AddAgentLog("DeepSeek Strategist", "Describe your strategy and constraints. I will parse it and hand off a coverage check before any run.");
     }
 
-    protected override async Task OnInitializedAsync()
+    private async Task DelegateStrategyPlanning()
     {
-        await LoadPortfolio();
-    }
+        strategyError = string.Empty;
+        strategyRunResult = null;
+        strategyBusy = true;
+        strategyStatus = "Delegating to DeepSeek Strategist and Data Scout...";
+        strategyPlannerStatus = "DeepSeek parsing strategy";
+        dataScoutStatus = "Preparing local data checks";
+        leanBuilderStatus = "Waiting for parsed plan";
 
-    private async Task LoadPortfolio()
-    {
-        try
-        {
-            var quotes = await Http.GetFromJsonAsync<Quote[]>("api/marketdata/quotes");
-            
-            if (quotes != null && quotes.Length > 0)
-            {
-                // Create sample simulated positions with real prices
-                positions = new List<Position>
-                {
-                    new() { Symbol = "AAPL", Shares = 100, AvgCost = 250.00, CurrentPrice = quotes.FirstOrDefault(q => q.Symbol == "AAPL")?.Price ?? 273.79 },
-                    new() { Symbol = "NVDA", Shares = 50, AvgCost = 180.00, CurrentPrice = quotes.FirstOrDefault(q => q.Symbol == "NVDA")?.Price ?? 188.23 },
-                    new() { Symbol = "TSLA", Shares = 25, AvgCost = 470.00, CurrentPrice = quotes.FirstOrDefault(q => q.Symbol == "TSLA")?.Price ?? 459.68 },
-                };
+        AddAgentLog("DeepSeek Strategist", "Received request. Extracting symbol, date range, and trading rules.");
 
-                totalValue = positions.Sum(p => p.MarketValue);
-                totalPnL = positions.Sum(p => p.PnL);
-                todayPnL = totalValue * 0.0123; // Mock today's change
-                totalPnLPercent = (totalPnL / (totalValue - totalPnL)) * 100;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"Portfolio error: {ex.Message}");
-        }
-    }
-
-    private void ShowAddPosition()
-    {
-        Console.WriteLine("Add position clicked - will open modal for simulation");
-        // TODO: Open modal to add position to simulation portfolio
+        await BuildStrategyPlan();
     }
 
     private async Task CalculateRisk()
@@ -405,7 +551,7 @@
         }
     }
 
-    private async Task RunAnalytics()
+    private async Task RunPortfolioAnalytics()
     {
         try
         {
@@ -419,18 +565,268 @@
         }
     }
 
-    private async Task BuildStrategy()
+    private async Task BuildStrategyPlan()
     {
         try
         {
-            Console.WriteLine("Calling strategy builder API");
-            var response = await Http.PostAsJsonAsync("api/portfolio/strategy", new { portfolioId = "simulation" });
-            // TODO: Display strategy builder form
+            strategyStatus = "Building strategy plan...";
+
+            var response = await Http.PostAsJsonAsync("api/StrategyBuilder/plan", new
+            {
+                strategyText = strategyInput
+            });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                strategyStatus = $"Plan request failed: {(int)response.StatusCode}";
+                strategyPlannerStatus = "Plan failed";
+                dataScoutStatus = "Could not validate local data";
+                AddAgentLog("DeepSeek Strategist", strategyStatus);
+                return;
+            }
+
+            var payload = await response.Content.ReadFromJsonAsync<StrategyPlanResponse>();
+            if (payload?.Plan is null || payload.DataPlan is null || payload.DataAvailability is null)
+            {
+                strategyStatus = "Failed to parse strategy plan response.";
+                strategyPlannerStatus = "Plan parsing failed";
+                AddAgentLog("Lean Builder", strategyStatus);
+                return;
+            }
+
+            strategyPlanResult = new StrategyPlanViewModel
+            {
+                Symbol = payload.Plan.Symbol,
+                PreferredSource = payload.DataPlan.PreferredSource,
+                Resolution = payload.DataPlan.Resolution,
+                StartDate = payload.DataPlan.StartDate,
+                EndDate = payload.DataPlan.EndDate,
+                RequiresDownload = payload.DataAvailability.RequiresDownload,
+                HasLocalLeanData = payload.DataAvailability.HasLocalLeanData,
+                HasRequestedRangeCoverage = payload.DataAvailability.HasRequestedRangeCoverage,
+                CoverageEstimated = payload.DataAvailability.CoverageEstimated,
+                EarliestAvailableDate = payload.DataAvailability.EarliestAvailableDate,
+                LatestAvailableDate = payload.DataAvailability.LatestAvailableDate
+            };
+
+            strategyPlannerStatus = "Strategy parsed and delegated";
+            dataScoutStatus = strategyPlanResult.HasRequestedRangeCoverage
+                ? (strategyPlanResult.CoverageEstimated ? "Coverage likely available (estimated)" : "Coverage likely available")
+                : "Coverage not confirmed for requested range";
+            leanBuilderStatus = "Lean plan generated and waiting for backtest run";
+
+            if (strategyPlanResult.RequiresDownload)
+            {
+                confirmDataDownload = false;
+                AddAgentLog("Data Scout", $"Could not confirm local coverage for {strategyPlanResult.Symbol} over requested dates. Confirm auto-download to continue.");
+            }
+            else
+            {
+                confirmDataDownload = true;
+                var confidence = strategyPlanResult.CoverageEstimated ? "estimated" : "high";
+                AddAgentLog("Data Scout", $"Local coverage appears sufficient for {strategyPlanResult.Symbol} ({confidence} confidence). Ready for Lean build and backtest.");
+            }
+
+            AddAgentLog("Lean Builder", $"Built Lean execution plan for {strategyPlanResult.Symbol} using {strategyPlanResult.Resolution} resolution.");
+            strategyStatus = "Plan generated. Review data check status and run Lean backtest.";
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Strategy error: {ex.Message}");
+            strategyStatus = $"Strategy planning error: {ex.Message}";
+            strategyPlannerStatus = "Strategy planning error";
+            strategyError = strategyStatus;
+            AddAgentLog("DeepSeek Strategist", strategyStatus);
         }
+        finally
+        {
+            strategyBusy = false;
+        }
+    }
+
+    private async Task DelegateRunBacktest()
+    {
+        if (strategyPlanResult is null)
+        {
+            await DelegateStrategyPlanning();
+            if (strategyPlanResult is null)
+            {
+                return;
+            }
+        }
+
+        strategyError = string.Empty;
+        strategyBusy = true;
+        strategyStatus = "Delegating Lean backtest execution...";
+        backtestRunnerStatus = "Backtest agent starting";
+        AddAgentLog("Backtest Runner", "Starting Lean execution and preparing output artifact capture.");
+
+        await RunLeanStrategyStream();
+    }
+
+    private async Task RunLeanStrategyStream()
+    {
+        try
+        {
+            strategyStatus = "Running delegated agent workflow...";
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "api/StrategyBuilder/run-agentic-stream")
+            {
+                Content = JsonContent.Create(new
+                {
+                    strategyText = strategyInput,
+                    confirmDataDownload,
+                    startDate = strategyStartDate,
+                    endDate = strategyEndDate,
+                    initialCapital = strategyCapital,
+                    resolution = strategyResolution
+                })
+            };
+
+            using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                strategyStatus = $"Run request failed: {(int)response.StatusCode}";
+                backtestRunnerStatus = "Backtest request failed";
+                AddAgentLog("Backtest Runner", strategyStatus);
+                return;
+            }
+
+            using var stream = await response.Content.ReadAsStreamAsync();
+            using var reader = new StreamReader(stream);
+
+            while (!reader.EndOfStream)
+            {
+                var line = await reader.ReadLineAsync();
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    using var doc = JsonDocument.Parse(line);
+                    var root = doc.RootElement;
+
+                    if (!root.TryGetProperty("type", out var typeElement))
+                    {
+                        continue;
+                    }
+
+                    var type = typeElement.GetString();
+                    if (string.Equals(type, "agent-step", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var agent = root.TryGetProperty("agent", out var agentElement) ? agentElement.GetString() ?? "Agent" : "Agent";
+                        var phase = root.TryGetProperty("phase", out var phaseElement) ? phaseElement.GetString() ?? string.Empty : string.Empty;
+                        var message = root.TryGetProperty("message", out var messageElement) ? messageElement.GetString() ?? string.Empty : string.Empty;
+
+                        AddAgentLog(agent, message);
+                        ApplyAgentPhaseStatus(agent, phase, message);
+                        await InvokeAsync(StateHasChanged);
+                        continue;
+                    }
+
+                    if (string.Equals(type, "error", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var message = root.TryGetProperty("message", out var messageElement) ? messageElement.GetString() ?? "Unknown error" : "Unknown error";
+                        strategyError = message;
+                        backtestRunnerStatus = "Backtest execution error";
+                        AddAgentLog("Backtest Runner", message);
+                        await InvokeAsync(StateHasChanged);
+                        continue;
+                    }
+
+                    if (string.Equals(type, "final", StringComparison.OrdinalIgnoreCase)
+                        && root.TryGetProperty("payload", out var payloadElement))
+                    {
+                        var payload = payloadElement.Deserialize<StrategyRunResponse>();
+                        if (payload is not null)
+                        {
+                            ApplyRunPayload(payload);
+                            await InvokeAsync(StateHasChanged);
+                        }
+                    }
+                }
+                catch (JsonException)
+                {
+                    // Ignore malformed stream lines.
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            strategyStatus = $"Strategy run error: {ex.Message}";
+            backtestRunnerStatus = "Backtest execution error";
+            strategyError = strategyStatus;
+            AddAgentLog("Backtest Runner", strategyStatus);
+        }
+        finally
+        {
+            strategyBusy = false;
+        }
+    }
+
+    private void ApplyAgentPhaseStatus(string agent, string phase, string message)
+    {
+        if (phase.Equals("plan", StringComparison.OrdinalIgnoreCase) || agent.Equals("DeepSeek Strategist", StringComparison.OrdinalIgnoreCase))
+        {
+            strategyPlannerStatus = message;
+            return;
+        }
+
+        if (phase.Equals("data", StringComparison.OrdinalIgnoreCase) || agent.Equals("Data Scout", StringComparison.OrdinalIgnoreCase))
+        {
+            dataScoutStatus = message;
+            return;
+        }
+
+        if (phase.Equals("build", StringComparison.OrdinalIgnoreCase) || agent.Equals("Lean Builder", StringComparison.OrdinalIgnoreCase))
+        {
+            leanBuilderStatus = message;
+            return;
+        }
+
+        if (phase.Equals("run", StringComparison.OrdinalIgnoreCase) || agent.Equals("Backtest Runner", StringComparison.OrdinalIgnoreCase))
+        {
+            backtestRunnerStatus = message;
+        }
+    }
+
+    private void ApplyRunPayload(StrategyRunResponse payload)
+    {
+        strategyRunResult = new StrategyRunViewModel
+        {
+            RunId = payload.RunId ?? "pending",
+            LeanSuccess = payload.Lean?.Success ?? false,
+            LeanExitCode = payload.Lean?.ExitCode ?? -1,
+            LeanMessage = payload.Lean?.Message ?? payload.Message ?? string.Empty,
+            BacktestOutputDirectory = payload.Artifacts?.BacktestOutputDirectory ?? string.Empty
+        };
+
+        if (payload.Type?.Equals("strategy-run-blocked", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            strategyStatus = "Data missing. Confirm auto-download and run again.";
+            backtestRunnerStatus = "Blocked: awaiting download confirmation";
+            AddAgentLog("Data Scout", "Backtest run paused because local data was missing and auto-download was not confirmed.");
+            return;
+        }
+
+        if (payload.DataDownload?.Triggered == true)
+        {
+            AddAgentLog("Data Scout", payload.DataDownload.Succeeded
+                ? "Missing data was downloaded successfully before Lean run."
+                : "Data download was triggered but did not fully succeed.");
+        }
+
+        strategyStatus = strategyRunResult.LeanSuccess
+            ? "Lean backtest completed. Review outputs and statistics."
+            : "Lean backtest did not complete successfully. Check output logs/details.";
+
+        backtestRunnerStatus = strategyRunResult.LeanSuccess
+            ? "Backtest completed"
+            : "Backtest completed with errors";
+
+        AddAgentLog("Backtest Runner", strategyStatus);
     }
 
     private async Task RunMonteCarlo()
@@ -461,9 +857,117 @@
         }
     }
 
-    public class Quote
+    private void AddAgentLog(string agent, string message)
     {
-        public string Symbol { get; set; } = "";
-        public double Price { get; set; }
+        agentLogs.Insert(0, new AgentLogEntry
+        {
+            Agent = agent,
+            Message = message,
+            Timestamp = DateTime.UtcNow
+        });
+    }
+
+    public class StrategyPlanResponse
+    {
+        public string? Type { get; set; }
+        public StrategyPlanPayload? Plan { get; set; }
+        public StrategyDataPlanPayload? DataPlan { get; set; }
+        public StrategyDataAvailabilityPayload? DataAvailability { get; set; }
+    }
+
+    public class StrategyPlanPayload
+    {
+        public string Symbol { get; set; } = string.Empty;
+    }
+
+    public class StrategyDataPlanPayload
+    {
+        public string PreferredSource { get; set; } = string.Empty;
+        public string Resolution { get; set; } = string.Empty;
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+    }
+
+    public class StrategyDataAvailabilityPayload
+    {
+        public bool HasLocalLeanData { get; set; }
+        public bool HasRequestedRangeCoverage { get; set; }
+        public bool CoverageEstimated { get; set; }
+        public DateTime? EarliestAvailableDate { get; set; }
+        public DateTime? LatestAvailableDate { get; set; }
+        public bool RequiresDownload { get; set; }
+    }
+
+    public class StrategyRunResponse
+    {
+        public string? Type { get; set; }
+        public string? RunId { get; set; }
+        public string? Message { get; set; }
+        public StrategyDataAvailabilityPayload? DataAvailability { get; set; }
+        public StrategyRunDataDownloadPayload? DataDownload { get; set; }
+        public StrategyRunLeanPayload? Lean { get; set; }
+        public StrategyRunArtifactsPayload? Artifacts { get; set; }
+        public List<StrategyTimelineEntryPayload>? Timeline { get; set; }
+    }
+
+    public class StrategyTimelineEntryPayload
+    {
+        public string Agent { get; set; } = string.Empty;
+        public string Phase { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+    }
+
+    public class StrategyRunDataDownloadPayload
+    {
+        public bool Triggered { get; set; }
+        public bool Succeeded { get; set; }
+    }
+
+    public class StrategyRunLeanPayload
+    {
+        public bool Success { get; set; }
+        public int ExitCode { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
+
+    public class StrategyRunArtifactsPayload
+    {
+        public string BacktestOutputDirectory { get; set; } = string.Empty;
+    }
+
+    public class StrategyPlanViewModel
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public string PreferredSource { get; set; } = string.Empty;
+        public string Resolution { get; set; } = string.Empty;
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public bool HasLocalLeanData { get; set; }
+        public bool HasRequestedRangeCoverage { get; set; }
+        public bool CoverageEstimated { get; set; }
+        public DateTime? EarliestAvailableDate { get; set; }
+        public DateTime? LatestAvailableDate { get; set; }
+        public bool RequiresDownload { get; set; }
+
+        public string CoverageWindow => EarliestAvailableDate.HasValue && LatestAvailableDate.HasValue
+            ? $"{EarliestAvailableDate.Value:yyyy-MM-dd} to {LatestAvailableDate.Value:yyyy-MM-dd}"
+            : string.Empty;
+    }
+
+    public class StrategyRunViewModel
+    {
+        public string RunId { get; set; } = string.Empty;
+        public bool LeanSuccess { get; set; }
+        public int LeanExitCode { get; set; }
+        public string LeanMessage { get; set; } = string.Empty;
+        public string BacktestOutputDirectory { get; set; } = string.Empty;
+    }
+
+    public class AgentLogEntry
+    {
+        public string Agent { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
     }
 }

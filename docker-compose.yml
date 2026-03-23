@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  lean:
+    image: quantconnect/lean:latest
+    volumes:
+      - .:/LeanCLI
+      - ./data:/Data
+      - ./TestDiversifiedLeverage:/Algorithm
+    working_dir: /LeanCLI
+    command: >
+      --algorithm-location /Algorithm
+      --data-folder /Data
+      --config /LeanCLI/lean.json
+      --results-destination-folder /LeanCLI/TestDiversifiedLeverage/backtests
+    
+  lean-cli:
+    image: quantconnect/lean-cli
+    volumes:
+      - .:/LeanCLI
+    working_dir: /LeanCLI
+    stdin_open: true
+    tty: true
+    
+  research:
+    image: quantconnect/research
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/LeanCLI
+      - ./data:/Data
+    working_dir: /LeanCLI
+    environment:
+      - JUPYTER_ENABLE_LAB=yes

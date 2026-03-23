@@ -24,7 +24,8 @@ DATA_BENTO_USER_ID = os.getenv('DATA_BENTO_USER_ID', '')
 DATA_BENTO_PROD_NAME = os.getenv('DATA_BENTO_PROD_NAME', 'prod-001')
 
 # Data Configuration
-DATA_ROOT = os.path.join(os.path.dirname(__file__), '..', 'data')
+# Write into repo-root data so LEAN docker mount (/Data) and downloader output stay aligned.
+DATA_ROOT = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data')
 EQUITY_DATA_PATH = os.path.join(DATA_ROOT, 'equity', 'usa')
 CRYPTO_DATA_PATH = os.path.join(DATA_ROOT, 'crypto', 'binance')
 OPTION_DATA_PATH = os.path.join(DATA_ROOT, 'option', 'usa')

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "VHjiW1xLdaQ=",
+  "dgSpecHash": "9Web1omtZFI=",
   "success": true,
   "projectFilePath": "/home/misango/codechest/FeenQR/QuantResearchAgent.csproj",
   "expectedPackageFiles": [
@@ -120,7 +120,8 @@
     "/home/misango/.nuget/packages/system.threading.tasks.extensions/4.5.4/system.threading.tasks.extensions.4.5.4.nupkg.sha512",
     "/home/misango/.nuget/packages/system.valuetuple/4.5.0/system.valuetuple.4.5.0.nupkg.sha512",
     "/home/misango/.nuget/packages/terminal.gui/1.19.0/terminal.gui.1.19.0.nupkg.sha512",
-    "/home/misango/.nuget/packages/yahoofinanceapi/2.3.3/yahoofinanceapi.2.3.3.nupkg.sha512"
+    "/home/misango/.nuget/packages/yahoofinanceapi/2.3.3/yahoofinanceapi.2.3.3.nupkg.sha512",
+    "/home/misango/.nuget/packages/microsoft.netcore.app.host.linux-x64/9.0.14/microsoft.netcore.app.host.linux-x64.9.0.14.nupkg.sha512"
   ],
   "logs": []
 }

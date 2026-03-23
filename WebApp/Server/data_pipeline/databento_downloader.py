@@ -11,20 +11,34 @@ from typing import List, Dict, Any, Optional, Union
 from tqdm import tqdm
 import time
 
+import sys
+import os
+
 try:
     import databento as db
     from databento import Schema, Encoding, SType
 except ImportError:
     raise ImportError("Please install databento: pip install databento")
 
-from .config import (
-    DATA_BENTO_API_KEY,
-    DATA_BENTO_USER_ID,
-    DATA_BENTO_PROD_NAME,
-    DATA_ROOT,
-    LEAN_PRICE_MULTIPLIER,
-)
-from .utils import ensure_directory_exists, setup_logging
+# Support both package and direct script execution
+try:
+    from .config import (
+        DATA_BENTO_API_KEY,
+        DATA_BENTO_USER_ID,
+        DATA_BENTO_PROD_NAME,
+        DATA_ROOT,
+        LEAN_PRICE_MULTIPLIER,
+    )
+    from .utils import ensure_directory_exists, setup_logging
+except ImportError:
+    from config import (
+        DATA_BENTO_API_KEY,
+        DATA_BENTO_USER_ID,
+        DATA_BENTO_PROD_NAME,
+        DATA_ROOT,
+        LEAN_PRICE_MULTIPLIER,
+    )
+    from utils import ensure_directory_exists, setup_logging
 
 
 class DatabentoFuturesDownloader:

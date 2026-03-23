@@ -1,0 +1,67 @@
+2026-03-23T02:10:51.4005008Z TRACE:: Engine.Main(): LEAN ALGORITHMIC TRADING ENGINE v2.5.0.0 Mode: DEBUG (64bit) Host: cfc30b003081
+2026-03-23T02:10:51.4053466Z TRACE:: Engine.Main(): Started 2:10 AM
+2026-03-23T02:10:51.4238025Z TRACE:: JobQueue.NextJob(): Selected /LeanCLI/WebApp/Server/strategies/generated/TQQQ_20260323_021023.py
+2026-03-23T02:10:51.4522024Z TRACE:: AlgorithmManager.CreateTokenBucket(): Initializing LeakyBucket: Capacity: 120 RefillAmount: 18 TimeInterval: 1440
+2026-03-23T02:10:51.4592183Z TRACE:: Engine.Run(): Resource limits '0' CPUs. 2147483647 MB RAM.
+2026-03-23T02:10:51.4599076Z TRACE:: TextSubscriptionDataSourceReader.SetCacheSize(): Setting cache size to 71582788 items
+2026-03-23T02:10:51.9386340Z TRACE:: PythonInitializer.Initialize(): start...
+2026-03-23T02:10:52.1288248Z TRACE:: PythonInitializer.Initialize(): ended
+2026-03-23T02:10:52.1306400Z TRACE:: AlgorithmPythonWrapper(): Python version 3.11.14 (main, Oct 21 2025, 18:40:40) [GCC 11.2.0]: Importing python module TQQQ_20260323_021023
+2026-03-23T02:10:54.0967706Z TRACE:: AlgorithmPythonWrapper(): TQQQ_20260323_021023 successfully imported.
+2026-03-23T02:10:54.1008533Z TRACE:: AlgorithmPythonWrapper(): Creating IAlgorithm instance.
+2026-03-23T02:10:54.2730176Z TRACE:: LocalObjectStore.Initialize(): Storage Root: /Lean/Launcher/bin/Debug/storage. StorageFileCount 10000. StorageLimit 10240MB. StoragePermissions Read=True Write=True Delete=True
+2026-03-23T02:10:54.2864326Z TRACE:: HistoryProviderManager.Initialize(): history providers [SubscriptionDataReaderHistoryProvider]
+2026-03-23T02:10:54.2903823Z TRACE:: BaseSetupHandler.Setup(LocalPlatform): UID: 0, PID: 0, Version: 2.5.0.0, Source: WebIDE
+2026-03-23T02:10:54.3187449Z TRACE:: Extensions.IsDirectoryEmpty(): directory '/Data/equity/usa/map_files' not found or empty
+2026-03-23T02:10:54.3825682Z TRACE:: BacktestingResultHandler(): Sample Period Set: 525.96
+2026-03-23T02:10:54.4138725Z ERROR:: Engine.Run(): During the algorithm initialization, the following exception has occurred: 'ExponentialMovingAverage' object has no attribute 'Period'
+  at Initialize
+    self.Debug(f"Fast EMA: {self.fast_ema.Period}, Slow EMA: {self.slow_ema.Period}")
+                            ^^^^^^^^^^^^^^^^^^^^
+ in TQQQ_20260323_021023.py: line 23
+ 'ExponentialMovingAverage' object has no attribute 'Period'
+2026-03-23T02:10:54.4145177Z TRACE:: JOB HANDLERS:
+         DataFeed:             QuantConnect.Lean.Engine.DataFeeds.FileSystemDataFeed
+         Setup:                QuantConnect.Lean.Engine.Setup.ConsoleSetupHandler
+         RealTime:             QuantConnect.Lean.Engine.RealTime.BacktestingRealTimeHandler
+         Results:              QuantConnect.Lean.Engine.Results.BacktestingResultHandler
+         Transactions:         QuantConnect.Lean.Engine.TransactionHandlers.BacktestingTransactionHandler
+         Object Store:         QuantConnect.Lean.Engine.Storage.LocalObjectStore
+         History Provider:     QuantConnect.Lean.Engine.HistoricalData.HistoryProviderManager
+         Brokerage:            QuantConnect.Brokerages.Backtesting.BacktestingBrokerage
+         Data Provider:        QuantConnect.Lean.Engine.DataFeeds.DefaultDataProvider
+
+2026-03-23T02:10:54.4150427Z TRACE:: FileSystemDataFeed.Exit(): Start. Setting cancellation token...
+2026-03-23T02:10:54.4159534Z TRACE:: FileSystemDataFeed.Exit(): Exit Finished.
+2026-03-23T02:10:54.4162786Z TRACE:: BacktestingResultHandler.Exit(): starting...
+2026-03-23T02:10:54.4237137Z TRACE:: BacktestingResultHandler.Exit(): Saving logs...
+2026-03-23T02:10:54.4251546Z TRACE:: StopSafely(): Waiting for 'Result Thread' thread to stop...
+2026-03-23T02:10:54.4251768Z ERROR:: During the algorithm initialization, the following exception has occurred: 'ExponentialMovingAverage' object has no attribute 'Period'
+  at Initialize
+    self.Debug(f"Fast EMA: {self.fast_ema.Period}, Slow EMA: {self.slow_ema.Period}")
+                            ^^^^^^^^^^^^^^^^^^^^
+ in TQQQ_20260323_021023.py: line 23
+ 'ExponentialMovingAverage' object has no attribute 'Period'
+ 'ExponentialMovingAverage' object has no attribute 'Period'
+  at Initialize
+    self.Debug(f"Fast EMA: {self.fast_ema.Period}, Slow EMA: {self.slow_ema.Period}")
+                            ^^^^^^^^^^^^^^^^^^^^
+ in TQQQ_20260323_021023.py: line 23
+ 'ExponentialMovingAverage' object has no attribute 'Period'
+2026-03-23T02:10:54.4256204Z TRACE:: Debug: 2020-01-01 00:00:00 Algorithm initialized for TQQQ from 2020-01-01 00:00:00 to 2023-12-31 23:59:59.999999
+2026-03-23T02:10:54.4257595Z TRACE:: Debug: 2020-01-01 00:00:00 Initial cash: $100000.0
+2026-03-23T02:10:54.4259941Z TRACE:: Debug: Your log was successfully created and can be retrieved from: /LeanCLI/WebApp/Server/backtests/TQQQ_20260323_021023/-log.txt
+2026-03-23T02:10:54.4261901Z TRACE:: BacktestingResultHandler.Run(): Ending Thread...
+2026-03-23T02:10:54.5009864Z TRACE:: 
+STATISTICS:: OrderListHash d41d8cd98f00b204e9800998ecf8427e
+2026-03-23T02:10:54.5011228Z TRACE:: BacktestingResultHandler.SendAnalysisResult(): Processed final packet
+2026-03-23T02:10:54.5017207Z TRACE:: Engine.Run(): Disconnecting from brokerage...
+2026-03-23T02:10:54.5019773Z TRACE:: Engine.Run(): Disposing of setup handler...
+2026-03-23T02:10:54.5023341Z TRACE:: Engine.Main(): Analysis Completed and Results Posted.
+2026-03-23T02:10:54.5066329Z TRACE:: Engine.Main(): Packet removed from queue: 
+2026-03-23T02:10:54.5068697Z TRACE:: LeanEngineSystemHandlers.Dispose(): start...
+2026-03-23T02:10:54.5078014Z TRACE:: LeanEngineSystemHandlers.Dispose(): Disposed of system handlers.
+2026-03-23T02:10:54.5080626Z TRACE:: LeanEngineAlgorithmHandlers.Dispose(): start...
+2026-03-23T02:10:54.5083865Z TRACE:: LocalObjectStore.Dispose(): start...
+2026-03-23T02:10:54.5087687Z TRACE:: LocalObjectStore.Dispose(): end
+2026-03-23T02:10:54.5090416Z TRACE:: LeanEngineAlgorithmHandlers.Dispose(): Disposed of algorithm handlers.

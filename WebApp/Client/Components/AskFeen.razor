@@ -267,8 +267,8 @@
 
         if (lowerMessage.Contains("backtest"))
         {
-            await JS.InvokeVoidAsync("eval", "window.location.href = '/backtesting';");
-            return "Taking you to the backtesting module.";
+            await JS.InvokeVoidAsync("eval", "window.location.href = '/portfolio';");
+            return "Taking you to Portfolio Backtesting.";
         }
 
         // Help commands
