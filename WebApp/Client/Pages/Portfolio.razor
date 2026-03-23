@@ -408,6 +408,14 @@
                         {
                             <div style="color: #fde68a; font-size: 0.9rem;">@strategyRunResult.LeanMessage</div>
                         }
+                        @if (strategyRunResult.KeyStats.Count > 0)
+                        {
+                            <div style="margin-top: 0.45rem; color: #d1fae5; font-size: 0.9rem; font-weight: 600;">Backtest Stats</div>
+                            @foreach (var stat in strategyRunResult.KeyStats)
+                            {
+                                <div style="color: #d1fae5; font-size: 0.88rem;">@stat.Name: @stat.Value</div>
+                            }
+                        }
                     }
                     <div class="widget-status">@backtestRunnerStatus</div>
                 </section>
@@ -499,6 +507,11 @@
 </div>
 
 @code {
+    private static readonly JsonSerializerOptions StreamJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private string activeTab = "strategy";
     private bool strategyBusy;
     private bool confirmDataDownload;
@@ -655,6 +668,7 @@
         }
 
         strategyError = string.Empty;
+        strategyRunResult = null;
         strategyBusy = true;
         strategyStatus = "Delegating Lean backtest execution...";
         backtestRunnerStatus = "Backtest agent starting";
@@ -739,7 +753,7 @@
                     if (string.Equals(type, "final", StringComparison.OrdinalIgnoreCase)
                         && root.TryGetProperty("payload", out var payloadElement))
                     {
-                        var payload = payloadElement.Deserialize<StrategyRunResponse>();
+                        var payload = payloadElement.Deserialize<StrategyRunResponse>(StreamJsonOptions);
                         if (payload is not null)
                         {
                             ApplyRunPayload(payload);
@@ -794,13 +808,16 @@
 
     private void ApplyRunPayload(StrategyRunResponse payload)
     {
+        var keyStats = ExtractKeyStats(payload.Lean);
+
         strategyRunResult = new StrategyRunViewModel
         {
             RunId = payload.RunId ?? "pending",
             LeanSuccess = payload.Lean?.Success ?? false,
             LeanExitCode = payload.Lean?.ExitCode ?? -1,
             LeanMessage = payload.Lean?.Message ?? payload.Message ?? string.Empty,
-            BacktestOutputDirectory = payload.Artifacts?.BacktestOutputDirectory ?? string.Empty
+            BacktestOutputDirectory = payload.Artifacts?.BacktestOutputDirectory ?? string.Empty,
+            KeyStats = keyStats
         };
 
         if (payload.Type?.Equals("strategy-run-blocked", StringComparison.OrdinalIgnoreCase) == true)
@@ -827,6 +844,65 @@
             : "Backtest completed with errors";
 
         AddAgentLog("Backtest Runner", strategyStatus);
+    }
+
+    private static List<StatEntry> ExtractKeyStats(StrategyRunLeanPayload? lean)
+    {
+        var result = new List<StatEntry>();
+        if (lean is null)
+        {
+            return result;
+        }
+
+        var keys = new[]
+        {
+            "Net Profit",
+            "Sharpe Ratio",
+            "Drawdown",
+            "Win Rate",
+            "Total Orders",
+            "End Equity"
+        };
+
+        foreach (var key in keys)
+        {
+            var value = TryGetStatValue(lean, key);
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                result.Add(new StatEntry { Name = key, Value = value });
+            }
+        }
+
+        return result;
+    }
+
+    private static string? TryGetStatValue(StrategyRunLeanPayload lean, string key)
+    {
+        // First, handle flat statistics payload where keys are direct metric names.
+        if (lean.Statistics is not null && lean.Statistics.TryGetValue(key, out var flatValue))
+        {
+            var text = flatValue.ToString();
+            if (!string.IsNullOrWhiteSpace(text)) return text;
+        }
+
+        // Fallback to nested structures under Results.Statistics / Results.statistics.
+        if (lean.Results is not null && lean.Results.TryGetValue("Statistics", out var statsFromResults)
+            && statsFromResults.ValueKind == JsonValueKind.Object
+            && statsFromResults.TryGetProperty(key, out var nestedValue))
+        {
+            var text = nestedValue.ToString();
+            if (!string.IsNullOrWhiteSpace(text)) return text;
+        }
+
+        if (lean.Results is not null && lean.Results.TryGetValue("statistics", out var statsFromResultsLower)
+            && statsFromResultsLower.ValueKind == JsonValueKind.Object
+            && statsFromResultsLower.TryGetProperty(key, out var nestedLowerValue))
+        {
+            var text = nestedLowerValue.ToString();
+            if (!string.IsNullOrWhiteSpace(text)) return text;
+        }
+
+        return null;
     }
 
     private async Task RunMonteCarlo()
@@ -929,6 +1005,8 @@
         public bool Success { get; set; }
         public int ExitCode { get; set; }
         public string Message { get; set; } = string.Empty;
+        public Dictionary<string, JsonElement>? Statistics { get; set; }
+        public Dictionary<string, JsonElement>? Results { get; set; }
     }
 
     public class StrategyRunArtifactsPayload
@@ -962,6 +1040,13 @@
         public int LeanExitCode { get; set; }
         public string LeanMessage { get; set; } = string.Empty;
         public string BacktestOutputDirectory { get; set; } = string.Empty;
+        public List<StatEntry> KeyStats { get; set; } = new();
+    }
+
+    public class StatEntry
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
     }
 
     public class AgentLogEntry
