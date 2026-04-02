@@ -154,15 +154,15 @@ namespace Server.Controllers
 
     public class PairTestRequest
     {
-        public string Symbol1 { get; set; }
-        public string Symbol2 { get; set; }
+        public string? Symbol1 { get; set; }
+        public string? Symbol2 { get; set; }
         public int LookbackDays { get; set; } = 252; // 1 year of trading days
         public int MaxLags { get; set; } = 5;
     }
 
     public class MultiPairTestRequest
     {
-        public string[] Symbols { get; set; }
+        public string[]? Symbols { get; set; }
         public int LookbackDays { get; set; } = 252;
     }
 }

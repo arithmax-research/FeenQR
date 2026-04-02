@@ -179,46 +179,46 @@ namespace QuantResearchAgent.Services
 
     public class SecFilingAnalysis
     {
-        public string Symbol { get; set; }
-        public string FilingType { get; set; }
+        public string? Symbol { get; set; }
+        public string? FilingType { get; set; }
         public DateTime FilingDate { get; set; }
-        public string CompanyName { get; set; }
-        public string Industry { get; set; }
-        public Dictionary<string, object> KeyMetrics { get; set; }
-        public string ExecutiveSummary { get; set; }
-        public string[] MetricsHighlights { get; set; }
+        public string? CompanyName { get; set; }
+        public string? Industry { get; set; }
+        public Dictionary<string, object>? KeyMetrics { get; set; }
+        public string? ExecutiveSummary { get; set; }
+        public string[]? MetricsHighlights { get; set; }
     }
 
     public class SecFilingHistory
     {
-        public string FilingType { get; set; }
+        public string? FilingType { get; set; }
         public DateTime FilingDate { get; set; }
         public int FiscalYear { get; set; }
-        public string FilingUrl { get; set; }
+        public string? FilingUrl { get; set; }
     }
 
     public class RiskFactorsAnalysis
     {
-        public string Symbol { get; set; }
-        public RiskFactor[] IdentifiedRisks { get; set; }
-        public string RiskSummary { get; set; }
-        public string[] MitigationStrategies { get; set; }
+        public string? Symbol { get; set; }
+        public RiskFactor[]? IdentifiedRisks { get; set; }
+        public string? RiskSummary { get; set; }
+        public string[]? MitigationStrategies { get; set; }
     }
 
     public class RiskFactor
     {
-        public string Category { get; set; }
-        public string Description { get; set; }
-        public string Severity { get; set; }
+        public string? Category { get; set; }
+        public string? Description { get; set; }
+        public string? Severity { get; set; }
     }
 
     public class MdAAnalysis
     {
-        public string Symbol { get; set; }
-        public string ResultsOfOperations { get; set; }
-        public string LiquidityAndCapitalResources { get; set; }
-        public string OperatingActivities { get; set; }
-        public Dictionary<string, string> KeyMetricsChange { get; set; }
+        public string? Symbol { get; set; }
+        public string? ResultsOfOperations { get; set; }
+        public string? LiquidityAndCapitalResources { get; set; }
+        public string? OperatingActivities { get; set; }
+        public Dictionary<string, string>? KeyMetricsChange { get; set; }
     }
 
     public class ComprehensiveSecAnalysis

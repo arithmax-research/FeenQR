@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.SemanticKernel.Memory;
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.RegularExpressions;
 using UglyToad.PdfPig;
@@ -40,9 +41,12 @@ public class PaperRAGService
     private const int CHUNK_SIZE = 500; // tokens per chunk (reduced to fit in 8192 model limit)
     private const int CHUNK_OVERLAP = 100; // overlap between chunks
     private const int VECTOR_SIZE = 1536; // text-embedding-3-small dimensions
+    private const int QdrantBatchSize = 32;
+    private const int QdrantMaxRetries = 3;
     
     // Track loaded papers
     private readonly Dictionary<string, LoadedPaper> _loadedPapers = new();
+    private readonly ConcurrentDictionary<string, List<PaperChunk>> _chunkCache = new();
 
     public PaperRAGService(
         ILogger<PaperRAGService> logger,
@@ -87,6 +91,7 @@ public class PaperRAGService
 
             // Step 3: Store chunks in vector memory with embeddings
             var collectionName = $"paper_{Guid.NewGuid():N}";
+            CacheChunks(collectionName, chunks);
             await StoreChunksInMemoryAsync(chunks, collectionName, paperUrl);
             Console.WriteLine($"      [RAG] Stored {chunks.Count} chunks with embeddings in memory");
 
@@ -97,6 +102,11 @@ public class PaperRAGService
                 maxChunks: 15 // Get top 15 most relevant chunks
             );
             Console.WriteLine($"      [RAG] Retrieved {relevantChunks.Count} most relevant chunks for analysis");
+
+            if (!relevantChunks.Any())
+            {
+                relevantChunks = SelectFallbackChunks(chunks, focusArea, maxChunks: 15);
+            }
 
             // Step 5: Generate comprehensive analysis using retrieved chunks
             var analysis = await GenerateAnalysisFromChunksAsync(
@@ -254,9 +264,10 @@ public class PaperRAGService
         
         // Ensure collection exists
         await EnsureCollectionExistsAsync(collectionName);
-        
-        var points = new List<PointStruct>();
-        
+
+        var pendingBatch = new List<PointStruct>(QdrantBatchSize);
+        var storedCount = 0;
+
         foreach (var chunk in chunks)
         {
             Console.WriteLine($"      [RAG] Processing chunk {chunk.Index}: {chunk.Text.Length} chars, {chunk.TokenCount} tokens");
@@ -281,8 +292,14 @@ public class PaperRAGService
                         ["tokens"] = chunk.TokenCount
                     }
                 };
-                points.Add(point);
+                pendingBatch.Add(point);
                 Console.WriteLine($"      [RAG] Prepared chunk {chunk.Index} for storage");
+
+                if (pendingBatch.Count >= QdrantBatchSize)
+                {
+                    storedCount += await UpsertChunkBatchAsync(collectionName, pendingBatch);
+                    pendingBatch.Clear();
+                }
             }
             catch (Exception ex)
             {
@@ -291,22 +308,13 @@ public class PaperRAGService
             }
         }
         
-        // Batch upsert all points
-        if (points.Any())
+        if (pendingBatch.Any())
         {
-            try
-            {
-                await _qdrantClient.UpsertAsync(collectionName, points);
-                Console.WriteLine($"      [RAG] Successfully stored {points.Count} chunks in Qdrant");
-                _logger.LogInformation("Stored {Count} chunks in Qdrant collection: {Collection}", 
-                    points.Count, collectionName);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"      [RAG] ERROR upserting to Qdrant: {ex.Message}");
-                _logger.LogError(ex, "Failed to upsert chunks to Qdrant");
-            }
+            storedCount += await UpsertChunkBatchAsync(collectionName, pendingBatch);
         }
+
+        Console.WriteLine($"      [RAG] Stored {storedCount} chunks in Qdrant out of {chunks.Count}");
+        _logger.LogInformation("Stored {StoredCount}/{TotalCount} chunks in Qdrant collection: {Collection}", storedCount, chunks.Count, collectionName);
         
         // Verify storage
         Console.WriteLine($"      [RAG] Verifying storage in Qdrant...");
@@ -323,6 +331,33 @@ public class PaperRAGService
         {
             Console.WriteLine($"      [RAG] Verification failed: {ex.Message}");
         }
+    }
+
+    private async Task<int> UpsertChunkBatchAsync(string collectionName, List<PointStruct> batch)
+    {
+        for (var attempt = 1; attempt <= QdrantMaxRetries; attempt++)
+        {
+            try
+            {
+                await _qdrantClient.UpsertAsync(collectionName, batch);
+                Console.WriteLine($"      [RAG] Upserted batch of {batch.Count} chunks to Qdrant");
+                return batch.Count;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Qdrant batch upsert failed for {Collection} on attempt {Attempt}/{MaxAttempts}", collectionName, attempt, QdrantMaxRetries);
+                Console.WriteLine($"      [RAG] WARNING: batch upsert failed on attempt {attempt}/{QdrantMaxRetries}: {ex.Message}");
+
+                if (attempt == QdrantMaxRetries)
+                {
+                    return 0;
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(250 * attempt));
+            }
+        }
+
+        return 0;
     }
     
     /// <summary>
@@ -391,6 +426,12 @@ public class PaperRAGService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to search Qdrant collection");
+        }
+
+        if (!relevantChunks.Any() && _chunkCache.TryGetValue(collectionName, out var cachedChunks))
+        {
+            relevantChunks = SelectFallbackChunks(cachedChunks, query, maxChunks);
+            _logger.LogInformation("Used cached chunk fallback for collection {Collection}", collectionName);
         }
 
         _logger.LogInformation("Retrieved {Count} relevant chunks for query: {Query}", 
@@ -562,6 +603,7 @@ Paper URL: {paperUrl}
 
             // Step 3: Store with embeddings
             var collectionName = $"chat_{Guid.NewGuid():N}";
+            CacheChunks(collectionName, chunks);
             await StoreChunksInMemoryAsync(chunks, collectionName, paperUrl);
             
             // Track loaded paper
@@ -619,6 +661,7 @@ Paper URL: {paperUrl}
 
             // Step 3: Store with embeddings
             var collectionName = $"chat_{Guid.NewGuid():N}";
+            CacheChunks(collectionName, chunks);
             await StoreChunksInMemoryAsync(chunks, collectionName, filePath);
             
             // Track loaded paper
@@ -687,6 +730,43 @@ Paper URL: {paperUrl}
             }
         }
         return fallback;
+    }
+
+    private void CacheChunks(string collectionName, List<PaperChunk> chunks)
+    {
+        _chunkCache[collectionName] = chunks.ToList();
+    }
+
+    private List<string> SelectFallbackChunks(List<PaperChunk> chunks, string query, int maxChunks)
+    {
+        var queryTerms = Regex.Matches(query.ToLowerInvariant(), @"[a-z0-9]+")
+            .Select(match => match.Value)
+            .Where(term => term.Length > 2)
+            .ToHashSet();
+
+        if (queryTerms.Count == 0)
+        {
+            return chunks
+                .OrderByDescending(chunk => chunk.TokenCount)
+                .Take(maxChunks)
+                .Select(chunk => chunk.Text)
+                .ToList();
+        }
+
+        return chunks
+            .Select(chunk => new
+            {
+                Chunk = chunk,
+                Score = Regex.Matches(chunk.Text.ToLowerInvariant(), @"[a-z0-9]+")
+                    .Select(match => match.Value)
+                    .Count(term => queryTerms.Contains(term))
+            })
+            .OrderByDescending(item => item.Score)
+            .ThenByDescending(item => item.Chunk.TokenCount)
+            .Take(maxChunks)
+            .Where(item => item.Score > 0)
+            .Select(item => item.Chunk.Text)
+            .ToList();
     }
 
     /// <summary>

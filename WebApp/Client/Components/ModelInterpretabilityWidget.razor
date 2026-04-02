@@ -114,10 +114,10 @@
     private string modelName = "RandomForest";
     private bool isLoading = false;
 
-    private ShapAnalysisResult shapAnalysis;
-    private ModelFairnessResult fairnessAnalysis;
-    private PermutationImportanceResult permutationAnalysis;
-    private FeatureInteractionResult interactionAnalysis;
+    private ShapAnalysisResult? shapAnalysis = null;
+    private ModelFairnessResult? fairnessAnalysis = null;
+    private PermutationImportanceResult? permutationAnalysis = null;
+    private FeatureInteractionResult? interactionAnalysis = null;
 
     protected override async Task OnInitializedAsync()
     {

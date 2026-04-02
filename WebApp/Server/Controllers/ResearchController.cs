@@ -319,6 +319,8 @@ namespace Server.Controllers
         }
 
         [HttpPost("upload-paper")]
+        [RequestFormLimits(MultipartBodyLengthLimit = 104857600)]
+        [RequestSizeLimit(104857600)]
         public async Task<IActionResult> UploadPaper(IFormFile file)
         {
             try
@@ -573,6 +575,8 @@ namespace Server.Controllers
         }
 
         [HttpPost("analyze-pdf-quick")]
+        [RequestFormLimits(MultipartBodyLengthLimit = 104857600)]
+        [RequestSizeLimit(104857600)]
         public async Task<IActionResult> AnalyzePdfQuick(IFormFile file)
         {
             try
@@ -677,6 +681,8 @@ Keep it concise and actionable. Focus on what's useful for quantitative research
         }
 
         [HttpPost("analyze-pdf")]
+        [RequestFormLimits(MultipartBodyLengthLimit = 104857600)]
+        [RequestSizeLimit(104857600)]
         public async Task<IActionResult> AnalyzePdf(IFormFile file)
         {
             try
@@ -996,6 +1002,8 @@ Answer:";
         }
 
         [HttpPost("upload-video-pdf")]
+        [RequestFormLimits(MultipartBodyLengthLimit = 104857600)]
+        [RequestSizeLimit(104857600)]
         public async Task<IActionResult> UploadVideoPdf(IFormFile file)
         {
             try

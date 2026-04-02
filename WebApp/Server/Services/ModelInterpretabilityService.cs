@@ -208,7 +208,7 @@ public class ModelInterpretabilityService
         var permutationAnalysis = await ComputePermutationImportanceAsync(modelName, datasetSymbol, 5);
         var interactionAnalysis = await AnalyzeFeatureInteractionsAsync(modelName, datasetSymbol, 3);
 
-        ModelFairnessResult fairnessAnalysis = null;
+        ModelFairnessResult? fairnessAnalysis = null;
         if (includeFairness)
         {
             fairnessAnalysis = await AnalyzeModelFairnessAsync(modelName, datasetSymbol, "demographic_group");

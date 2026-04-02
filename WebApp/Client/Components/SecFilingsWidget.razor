@@ -325,9 +325,9 @@
     private bool isLoading = false;
     private string errorMessage = "";
 
-    private EarningsAnalysis latestEarnings = null;
-    private RiskFactorsAnalysis riskSummary = null;
-    private List<SecFilingHistory> filingHistory = null;
+    private EarningsAnalysis? latestEarnings = null;
+    private RiskFactorsAnalysis? riskSummary = null;
+    private List<SecFilingHistory>? filingHistory = null;
 
     private void OpenSecFilings()
     {
@@ -343,7 +343,7 @@
         }
 
         isLoading = true;
-        errorMessage = null;
+        errorMessage = "";
         currentSymbol = symbolInput.ToUpper();
 
         try
@@ -434,7 +434,7 @@
 
     public class EarningsAnalysis
     {
-        public string Symbol { get; set; }
+        public string? Symbol { get; set; }
         public DateTime LatestEarningsDate { get; set; }
         public decimal Eps { get; set; }
         public decimal EpsEstimate { get; set; }
@@ -442,31 +442,31 @@
         public decimal Revenue { get; set; }
         public decimal RevenueEstimate { get; set; }
         public bool RevenueBeats { get; set; }
-        public string GuidanceFromManagement { get; set; }
-        public string[] KeyTakeaways { get; set; }
+        public string? GuidanceFromManagement { get; set; }
+        public string[]? KeyTakeaways { get; set; }
         public double SentimentScore { get; set; }
     }
 
     public class RiskFactorsAnalysis
     {
-        public string Symbol { get; set; }
-        public RiskFactor[] IdentifiedRisks { get; set; }
-        public string RiskSummary { get; set; }
-        public string[] MitigationStrategies { get; set; }
+        public string? Symbol { get; set; }
+        public RiskFactor[]? IdentifiedRisks { get; set; }
+        public string? RiskSummary { get; set; }
+        public string[]? MitigationStrategies { get; set; }
     }
 
     public class RiskFactor
     {
-        public string Category { get; set; }
-        public string Description { get; set; }
-        public string Severity { get; set; }
+        public string? Category { get; set; }
+        public string? Description { get; set; }
+        public string? Severity { get; set; }
     }
 
     public class SecFilingHistory
     {
-        public string FilingType { get; set; }
+        public string? FilingType { get; set; }
         public DateTime FilingDate { get; set; }
         public int FiscalYear { get; set; }
-        public string FilingUrl { get; set; }
+        public string? FilingUrl { get; set; }
     }
 }

@@ -703,9 +703,9 @@ h1 {
     private bool isLoading = false;
     private string errorMessage = "";
 
-    private ComprehensiveCointegrationAnalysis comprehensive = null;
-    private GrangerCausalityTestResult grangerResult = null;
-    private LeadLagAnalysisResult leadLagResult = null;
+    private ComprehensiveCointegrationAnalysis? comprehensive;
+    private GrangerCausalityTestResult? grangerResult;
+    private LeadLagAnalysisResult? leadLagResult;
 
     private async Task AnalyzePair()
     {
@@ -794,15 +794,15 @@ h1 {
     public class ApiResponse<T>
     {
         public bool Success { get; set; }
-        public T Data { get; set; }
+        public T? Data { get; set; }
     }
 
     public class ComprehensiveCointegrationAnalysis
     {
-        public string Symbol1 { get; set; }
-        public string Symbol2 { get; set; }
+        public string? Symbol1 { get; set; }
+        public string? Symbol2 { get; set; }
         public DateTime AnalysisDate { get; set; }
-        public EngleGrangerTestResult EngleGrangerResult { get; set; }
+        public EngleGrangerTestResult? EngleGrangerResult { get; set; }
         public decimal CorrelationCoefficient { get; set; }
         public decimal HalfLife { get; set; }
         public decimal SpreadMean { get; set; }
@@ -810,28 +810,28 @@ h1 {
         public decimal CurrentSpread { get; set; }
         public decimal SpreadZScore { get; set; }
         public bool IsStationarySpread { get; set; }
-        public string TradingSignal { get; set; }
-        public RiskMetricsForPair RiskMetrics { get; set; }
+        public string? TradingSignal { get; set; }
+        public RiskMetricsForPair? RiskMetrics { get; set; }
     }
 
     public class EngleGrangerTestResult
     {
-        public string Symbol1 { get; set; }
-        public string Symbol2 { get; set; }
+        public string? Symbol1 { get; set; }
+        public string? Symbol2 { get; set; }
         public DateTime TestDate { get; set; }
         public decimal PValue { get; set; }
         public bool IsCointegrated { get; set; }
         public decimal CriticalValue5Pct { get; set; }
         public decimal CriticalValue1Pct { get; set; }
         public decimal BetaCoefficient { get; set; }
-        public string Interpretation { get; set; }
-        public string Recommendation { get; set; }
+        public string? Interpretation { get; set; }
+        public string? Recommendation { get; set; }
     }
 
     public class GrangerCausalityTestResult
     {
-        public string CauseSymbol { get; set; }
-        public string EffectSymbol { get; set; }
+        public string? CauseSymbol { get; set; }
+        public string? EffectSymbol { get; set; }
         public DateTime TestDate { get; set; }
         public int OptimalLags { get; set; }
         public decimal GrangerFStatistic { get; set; }
@@ -841,24 +841,24 @@ h1 {
         public bool GrangerCauses { get; set; }
         public decimal ReverseGrangerPValue { get; set; }
         public bool ReverseGrangerCauses { get; set; }
-        public string Interpretation { get; set; }
+        public string? Interpretation { get; set; }
         public int LeadTime { get; set; }
-        public string Recommendation { get; set; }
+        public string? Recommendation { get; set; }
     }
 
     public class LeadLagAnalysisResult
     {
-        public string Symbol1 { get; set; }
-        public string Symbol2 { get; set; }
+        public string? Symbol1 { get; set; }
+        public string? Symbol2 { get; set; }
         public DateTime AnalysisDate { get; set; }
         public int MaxCorrelationLag { get; set; }
         public decimal MaxCorrelation { get; set; }
-        public Dictionary<int, decimal> LaggedCorrelations { get; set; }
-        public string LeadingSymbol { get; set; }
+        public Dictionary<int, decimal>? LaggedCorrelations { get; set; }
+        public string? LeadingSymbol { get; set; }
         public int LeadTimeInDays { get; set; }
-        public string Interpretation { get; set; }
-        public string PredictiveValue { get; set; }
-        public string RecommendedTradingStrategy { get; set; }
+        public string? Interpretation { get; set; }
+        public string? PredictiveValue { get; set; }
+        public string? RecommendedTradingStrategy { get; set; }
     }
 
     public class RiskMetricsForPair

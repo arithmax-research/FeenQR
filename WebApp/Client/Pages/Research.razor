@@ -1324,6 +1324,8 @@
 </div>
 
 @code {
+    private const long MaxPdfUploadSizeBytes = 100L * 1024L * 1024L;
+
     private string activeTab = "ai-assistant";
     private string chatQuery = "";
     private string selectedModel = "openai"; // "openai" or "deepseek"
@@ -1959,9 +1961,11 @@
             lastResult = "";
             StateHasChanged();
 
-            // Read PDF file (max 10MB)
-            var buffer = new byte[selectedPdf.Size];
-            await selectedPdf.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).ReadAsync(buffer);
+            // Read the full PDF stream using the shared upload limit
+            using var pdfStream = selectedPdf.OpenReadStream(maxAllowedSize: MaxPdfUploadSizeBytes);
+            using var memoryStream = new MemoryStream();
+            await pdfStream.CopyToAsync(memoryStream);
+            var buffer = memoryStream.ToArray();
 
             // Create multipart form content
             using var content = new MultipartFormDataContent();
@@ -2214,7 +2218,7 @@
             {
                 // Handle PDF upload
                 var content = new MultipartFormDataContent();
-                var fileContent = new StreamContent(uploadedVideoPdf.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024));
+                var fileContent = new StreamContent(uploadedVideoPdf.OpenReadStream(maxAllowedSize: MaxPdfUploadSizeBytes));
                 fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
                 content.Add(fileContent, "file", uploadedVideoPdf.Name);
 
@@ -2787,7 +2791,7 @@
         {
             // Upload PDF to server
             var content = new MultipartFormDataContent();
-            var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024)); // 50MB max
+            var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: MaxPdfUploadSizeBytes));
             fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
             content.Add(fileContent, "file", file.Name);
 
