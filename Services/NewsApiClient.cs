@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -27,108 +29,258 @@ public class NewsApiClient
 
         var config = configuration.GetSection("NewsAPI").Get<NewsApiConfig>() ?? new NewsApiConfig();
         _apiKey = config.ApiKey;
-        _baseUrl = config.BaseUrl;
+        _baseUrl = config.BaseUrl.TrimEnd('/');
         _defaultPageSize = config.DefaultPageSize;
         _language = config.Language;
     }
 
     /// <summary>
-    /// Fetch news for a symbol from NewsAPI
+    /// Fetch news for a symbol from NewsAPI.
     /// </summary>
-    /// <param name="symbol">Stock symbol to search for</param>
-    /// <param name="limit">Maximum number of articles to return (default: 20)</param>
-    /// <returns>List of news items</returns>
-    public async Task<List<NewsItem>> GetNewsAsync(string symbol, int limit = 20)
+    public Task<List<NewsItem>> GetNewsAsync(string symbol, int limit = 20)
     {
-        var startTime = DateTime.UtcNow;
-        
-        // Validate symbol parameter
-        if (string.IsNullOrWhiteSpace(symbol))
+        return GetEverythingAsync(symbol, limit, sortBy: "publishedAt");
+    }
+
+    /// <summary>
+    /// Fetch articles from the Everything endpoint with explicit filters.
+    /// </summary>
+    public async Task<List<NewsItem>> GetEverythingAsync(
+        string query,
+        int limit = 20,
+        DateTime? from = null,
+        DateTime? to = null,
+        string sortBy = "publishedAt",
+        string? language = null,
+        string? sources = null,
+        string? domains = null,
+        string? excludeDomains = null,
+        string? searchIn = null)
+    {
+        if (string.IsNullOrWhiteSpace(query))
         {
-            _logger.LogWarning("NewsAPI: Symbol parameter is null or empty, skipping request");
+            _logger.LogWarning("NewsAPI Everything request skipped because query was empty");
             return new List<NewsItem>();
         }
-        
+
+        var url = BuildEverythingUrl(query, limit, from, to, sortBy, language, sources, domains, excludeDomains, searchIn);
+        var json = await SendRequestAsync(url, $"everything:{query}");
+        return string.IsNullOrWhiteSpace(json) ? new List<NewsItem>() : ParseArticles(json);
+    }
+
+    /// <summary>
+    /// Fetch articles from the Top Headlines endpoint.
+    /// </summary>
+    public async Task<List<NewsItem>> GetTopHeadlinesAsync(
+        int limit = 20,
+        string? country = null,
+        string? category = null,
+        string? sources = null,
+        string? query = null,
+        string? language = null)
+    {
+        if (string.IsNullOrWhiteSpace(country) && string.IsNullOrWhiteSpace(category) && string.IsNullOrWhiteSpace(sources) && string.IsNullOrWhiteSpace(query))
+        {
+            _logger.LogWarning("NewsAPI Top Headlines request skipped because no filters were provided");
+            return new List<NewsItem>();
+        }
+
+        var url = BuildTopHeadlinesUrl(limit, country, category, sources, query, language);
+        var json = await SendRequestAsync(url, "top-headlines");
+        return string.IsNullOrWhiteSpace(json) ? new List<NewsItem>() : ParseArticles(json);
+    }
+
+    /// <summary>
+    /// Fetch the available sources for the top-headlines endpoint.
+    /// </summary>
+    public async Task<List<NewsApiSourceInfo>> GetSourcesAsync(
+        string? category = null,
+        string? language = null,
+        string? country = null)
+    {
+        var url = BuildSourcesUrl(category, language, country);
+        var json = await SendRequestAsync(url, "sources");
+        return string.IsNullOrWhiteSpace(json) ? new List<NewsApiSourceInfo>() : ParseSources(json);
+    }
+
+    private async Task<string?> SendRequestAsync(string url, string context)
+    {
+        if (string.IsNullOrWhiteSpace(_apiKey))
+        {
+            _logger.LogWarning("NewsAPI request skipped for {Context} because the API key is missing", context);
+            return null;
+        }
+
+        var startTime = DateTime.UtcNow;
+
         try
         {
-            var url = BuildQueryUrl(symbol, limit);
-            
-            // Add API key and User-Agent to request headers
-            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Add("X-Api-Key", _apiKey);
             request.Headers.Add("User-Agent", "QuantResearchAgent/1.0 (Financial Research Application)");
 
-            _logger.LogInformation("NewsAPI request: symbol={Symbol}, limit={Limit}", symbol, limit);
+            _logger.LogInformation("NewsAPI request started for {Context}", context);
 
-            var response = await _httpClient.SendAsync(request);
-            var responseTime = DateTime.UtcNow - startTime;
+            using var response = await _httpClient.SendAsync(request);
+            var elapsed = DateTime.UtcNow - startTime;
 
-            // Handle rate limit error (HTTP 429)
-            if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
-                _logger.LogWarning("NewsAPI rate limit exceeded for symbol {Symbol}. Response time: {ResponseTime}ms", 
-                    symbol, responseTime.TotalMilliseconds);
-                return new List<NewsItem>();
+                _logger.LogWarning("NewsAPI rate limit exceeded for {Context}. Response time: {ResponseTime}ms", context, elapsed.TotalMilliseconds);
+                return null;
             }
 
-            // Handle authentication error (HTTP 401)
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
-                _logger.LogError("NewsAPI authentication failed for symbol {Symbol}. Invalid API key.", symbol);
-                return new List<NewsItem>();
+                _logger.LogError("NewsAPI authentication failed for {Context}", context);
+                return null;
             }
 
-            // Handle bad request (HTTP 400) - invalid query
-            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogWarning("NewsAPI bad request for symbol {Symbol}. Error: {Error}. Response time: {ResponseTime}ms", 
-                    symbol, errorContent, responseTime.TotalMilliseconds);
-                return new List<NewsItem>();
+                _logger.LogWarning("NewsAPI bad request for {Context}. Error: {Error}. Response time: {ResponseTime}ms", context, errorContent, elapsed.TotalMilliseconds);
+                return null;
             }
 
-            // Handle other errors gracefully
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("NewsAPI request failed for symbol {Symbol}. Status: {Status}. Response time: {ResponseTime}ms", 
-                    symbol, response.StatusCode, responseTime.TotalMilliseconds);
-                return new List<NewsItem>();
+                _logger.LogWarning("NewsAPI request failed for {Context}. Status: {Status}. Response time: {ResponseTime}ms", context, response.StatusCode, elapsed.TotalMilliseconds);
+                return null;
             }
 
             var json = await response.Content.ReadAsStringAsync();
-            var newsItems = ParseResponse(json);
-
-            _logger.LogInformation("NewsAPI response: symbol={Symbol}, resultCount={Count}, responseTime={ResponseTime}ms",
-                symbol, newsItems.Count, responseTime.TotalMilliseconds);
-
-            return newsItems;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            throw; // Re-throw authentication errors
+            _logger.LogInformation("NewsAPI request completed for {Context} in {ResponseTime}ms", context, elapsed.TotalMilliseconds);
+            return json;
         }
         catch (Exception ex)
         {
-            var responseTime = DateTime.UtcNow - startTime;
-            _logger.LogError(ex, "NewsAPI request failed for symbol {Symbol}. Response time: {ResponseTime}ms", 
-                symbol, responseTime.TotalMilliseconds);
-            return new List<NewsItem>();
+            var elapsed = DateTime.UtcNow - startTime;
+            _logger.LogError(ex, "NewsAPI request failed for {Context}. Response time: {ResponseTime}ms", context, elapsed.TotalMilliseconds);
+            return null;
         }
     }
 
-    /// <summary>
-    /// Build query URL for NewsAPI /everything endpoint
-    /// </summary>
-    private string BuildQueryUrl(string symbol, int limit)
+    private string BuildEverythingUrl(
+        string query,
+        int limit,
+        DateTime? from,
+        DateTime? to,
+        string sortBy,
+        string? language,
+        string? sources,
+        string? domains,
+        string? excludeDomains,
+        string? searchIn)
     {
-        var pageSize = Math.Min(limit, _defaultPageSize);
-        return $"{_baseUrl}/everything?q={Uri.EscapeDataString(symbol)}&language={_language}&sortBy=publishedAt&pageSize={pageSize}";
+        var pageSize = Math.Clamp(limit, 1, Math.Max(1, _defaultPageSize));
+        var parameters = new List<string>
+        {
+            $"q={Escape(query)}",
+            $"language={Escape(language ?? _language)}",
+            $"sortBy={Escape(sortBy)}",
+            $"pageSize={pageSize}"
+        };
+
+        if (from.HasValue)
+        {
+            parameters.Add($"from={Escape(FormatDate(from.Value))}");
+        }
+
+        if (to.HasValue)
+        {
+            parameters.Add($"to={Escape(FormatDate(to.Value))}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(sources))
+        {
+            parameters.Add($"sources={Escape(sources)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(domains))
+        {
+            parameters.Add($"domains={Escape(domains)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(excludeDomains))
+        {
+            parameters.Add($"excludeDomains={Escape(excludeDomains)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchIn))
+        {
+            parameters.Add($"searchIn={Escape(searchIn)}");
+        }
+
+        return $"{_baseUrl}/everything?{string.Join("&", parameters)}";
     }
 
-    /// <summary>
-    /// Parse NewsAPI JSON response to NewsItem model
-    /// </summary>
-    private List<NewsItem> ParseResponse(string json)
+    private string BuildTopHeadlinesUrl(
+        int limit,
+        string? country,
+        string? category,
+        string? sources,
+        string? query,
+        string? language)
+    {
+        var pageSize = Math.Clamp(limit, 1, Math.Max(1, _defaultPageSize));
+        var parameters = new List<string>
+        {
+            $"pageSize={pageSize}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(country))
+        {
+            parameters.Add($"country={Escape(country)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            parameters.Add($"category={Escape(category)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(sources))
+        {
+            parameters.Add($"sources={Escape(sources)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            parameters.Add($"q={Escape(query)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(language))
+        {
+            parameters.Add($"language={Escape(language)}");
+        }
+
+        return $"{_baseUrl}/top-headlines?{string.Join("&", parameters)}";
+    }
+
+    private string BuildSourcesUrl(string? category, string? language, string? country)
+    {
+        var parameters = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            parameters.Add($"category={Escape(category)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(language))
+        {
+            parameters.Add($"language={Escape(language)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(country))
+        {
+            parameters.Add($"country={Escape(country)}");
+        }
+
+        var queryString = parameters.Count == 0 ? string.Empty : $"?{string.Join("&", parameters)}";
+        return $"{_baseUrl}/top-headlines/sources{queryString}";
+    }
+
+    private List<NewsItem> ParseArticles(string json)
     {
         var newsItems = new List<NewsItem>();
 
@@ -147,30 +299,29 @@ public class NewsApiClient
             {
                 try
                 {
+                    var publisher = article.TryGetProperty("source", out var source) && source.TryGetProperty("name", out var sourceName)
+                        ? sourceName.GetString() ?? string.Empty
+                        : string.Empty;
+
                     var newsItem = new NewsItem
                     {
                         Title = article.TryGetProperty("title", out var title) ? title.GetString() ?? string.Empty : string.Empty,
-                        Summary = article.TryGetProperty("description", out var desc) ? desc.GetString() ?? string.Empty : string.Empty,
+                        Summary = article.TryGetProperty("description", out var description) ? description.GetString() ?? string.Empty : string.Empty,
                         Link = article.TryGetProperty("url", out var url) ? url.GetString() ?? string.Empty : string.Empty,
-                        PublishedDate = article.TryGetProperty("publishedAt", out var pubDate) && DateTime.TryParse(pubDate.GetString(), out var date) 
-                            ? date 
+                        ImageUrl = article.TryGetProperty("urlToImage", out var imageUrl) ? imageUrl.GetString() : null,
+                        PublishedDate = article.TryGetProperty("publishedAt", out var publishedAt) && DateTime.TryParse(publishedAt.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var date)
+                            ? date
                             : DateTime.UtcNow,
-                        Publisher = article.TryGetProperty("source", out var source) && source.TryGetProperty("name", out var sourceName)
-                            ? sourceName.GetString() ?? string.Empty
-                            : string.Empty,
+                        Publisher = publisher,
                         Source = "NewsAPI"
                     };
 
-                    // Add author if available
-                    if (article.TryGetProperty("author", out var author) && !string.IsNullOrEmpty(author.GetString()))
+                    if (article.TryGetProperty("author", out var author) && !string.IsNullOrWhiteSpace(author.GetString()))
                     {
                         var authorName = author.GetString() ?? string.Empty;
-                        if (!string.IsNullOrEmpty(authorName))
-                        {
-                            newsItem.Publisher = string.IsNullOrEmpty(newsItem.Publisher) 
-                                ? authorName 
-                                : $"{newsItem.Publisher} - {authorName}";
-                        }
+                        newsItem.Publisher = string.IsNullOrEmpty(newsItem.Publisher)
+                            ? authorName
+                            : $"{newsItem.Publisher} - {authorName}";
                     }
 
                     newsItems.Add(newsItem);
@@ -187,5 +338,59 @@ public class NewsApiClient
         }
 
         return newsItems;
+    }
+
+    private List<NewsApiSourceInfo> ParseSources(string json)
+    {
+        var sources = new List<NewsApiSourceInfo>();
+
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            var root = document.RootElement;
+
+            if (!root.TryGetProperty("sources", out var sourceArray))
+            {
+                _logger.LogWarning("NewsAPI sources response missing 'sources' property");
+                return sources;
+            }
+
+            foreach (var source in sourceArray.EnumerateArray())
+            {
+                sources.Add(new NewsApiSourceInfo
+                {
+                    Id = GetString(source, "id"),
+                    Name = GetString(source, "name"),
+                    Description = GetString(source, "description"),
+                    Url = GetString(source, "url"),
+                    Category = GetString(source, "category"),
+                    Language = GetString(source, "language"),
+                    Country = GetString(source, "country")
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to parse NewsAPI sources JSON");
+        }
+
+        return sources;
+    }
+
+    private static string GetString(JsonElement element, string propertyName)
+    {
+        return element.TryGetProperty(propertyName, out var value)
+            ? value.GetString() ?? string.Empty
+            : string.Empty;
+    }
+
+    private static string Escape(string value)
+    {
+        return Uri.EscapeDataString(value);
+    }
+
+    private static string FormatDate(DateTime value)
+    {
+        return value.ToUniversalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
     }
 }

@@ -1536,6 +1536,7 @@ Provide analysis in this JSON format:
         public string Publisher { get; set; } = string.Empty;
         public DateTime PublishedDate { get; set; }
         public string Link { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
         public string Source { get; set; } = string.Empty;
         public double SentimentScore { get; set; }
         public string SentimentLabel { get; set; } = string.Empty;

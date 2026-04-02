@@ -1,0 +1,624 @@
+@page "/market-pulse"
+@inject HttpClient Http
+
+<PageTitle>Market Pulse</PageTitle>
+
+<style>
+    .market-pulse-page {
+        position: fixed;
+        left: 280px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: inherit;
+        overflow-x: hidden;
+        overflow-y: auto;
+        box-sizing: border-box;
+        padding: 1rem 0.5rem 1.5rem;
+    }
+
+    .market-pulse-shell {
+        margin-top: 0.5rem;
+        background: linear-gradient(180deg, rgba(14, 18, 28, 0.98), rgba(9, 12, 18, 0.98));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+        overflow: hidden;
+    }
+
+    .market-pulse-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1.1rem 1.25rem 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(90deg, rgba(41, 98, 255, 0.12), rgba(255, 255, 255, 0.02));
+    }
+
+    .market-pulse-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #f9fafb;
+        letter-spacing: 0.01em;
+        margin: 0;
+    }
+
+    .market-pulse-subtitle {
+        margin: 0.35rem 0 0;
+        color: #9ca3af;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        max-width: 72ch;
+    }
+
+    .market-pulse-refresh {
+        padding: 0.6rem 1rem;
+        background: #2962ff;
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        font-size: 0.86rem;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+        box-shadow: 0 8px 20px rgba(41, 98, 255, 0.3);
+    }
+
+    .market-pulse-refresh:hover {
+        filter: brightness(1.05);
+    }
+
+    .market-pulse-toolbar {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.9rem;
+        padding: 1rem 1.25rem 0.9rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .pulse-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        min-width: 0;
+    }
+
+    .pulse-field label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #9ca3af;
+    }
+
+    .pulse-field input,
+    .pulse-field select {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 0.7rem 0.8rem;
+        color: #f9fafb;
+        font-size: 0.92rem;
+        outline: none;
+    }
+
+    .pulse-field input::placeholder {
+        color: #6b7280;
+    }
+
+    .market-pulse-tabs {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding: 0.9rem 1.25rem 0.75rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .market-pulse-tab {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        color: #cbd5e1;
+        padding: 0.65rem 0.95rem;
+        border-radius: 999px;
+        font-size: 0.84rem;
+        font-weight: 700;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    .market-pulse-tab.active {
+        background: linear-gradient(135deg, #2962ff, #5b8cff);
+        color: #fff;
+        border-color: transparent;
+    }
+
+    .market-pulse-content {
+        padding: 1rem 1.25rem 1.25rem;
+    }
+
+    .market-pulse-panel-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .market-pulse-panel-title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #f9fafb;
+    }
+
+    .market-pulse-panel-subtitle {
+        margin: 0.35rem 0 0;
+        color: #9ca3af;
+        line-height: 1.5;
+        font-size: 0.9rem;
+        max-width: 72ch;
+    }
+
+    .market-pulse-meta {
+        color: #9ca3af;
+        font-size: 0.8rem;
+        text-align: right;
+    }
+
+    .market-pulse-empty {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: #9ca3af;
+        border: 1px dashed rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .market-pulse-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 0.95rem;
+    }
+
+    .market-pulse-card {
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .market-pulse-card-image {
+        aspect-ratio: 16 / 9;
+        width: 100%;
+        object-fit: cover;
+        background: linear-gradient(135deg, rgba(41, 98, 255, 0.18), rgba(0, 0, 0, 0.18));
+    }
+
+    .market-pulse-card-body {
+        padding: 0.9rem 0.95rem 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+        flex: 1;
+    }
+
+    .market-pulse-card-source {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: center;
+        color: #9ca3af;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .market-pulse-card-title {
+        color: #f9fafb;
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1.45;
+        text-decoration: none;
+    }
+
+    .market-pulse-card-title:hover {
+        color: #9ec1ff;
+    }
+
+    .market-pulse-card-summary {
+        color: #cbd5e1;
+        font-size: 0.88rem;
+        line-height: 1.55;
+    }
+
+    .market-pulse-card-footer {
+        margin-top: auto;
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: center;
+        color: #94a3b8;
+        font-size: 0.78rem;
+    }
+
+    .market-pulse-card-footer a {
+        color: #93c5fd;
+        text-decoration: none;
+        font-weight: 700;
+    }
+
+    .market-pulse-card-footer a:hover {
+        text-decoration: underline;
+    }
+
+    .market-pulse-loading,
+    .market-pulse-error {
+        padding: 1rem 1.25rem;
+        color: #cbd5e1;
+    }
+
+    .market-pulse-error {
+        color: #fca5a5;
+    }
+
+    @@media (max-width: 768px) {
+        .market-pulse-page {
+            left: 0;
+            padding: 1rem;
+        }
+
+        .market-pulse-header,
+        .market-pulse-panel-header {
+            flex-direction: column;
+        }
+
+        .market-pulse-toolbar {
+            grid-template-columns: 1fr;
+        }
+
+        .market-pulse-meta {
+            text-align: left;
+        }
+    }
+</style>
+
+<div class="market-pulse-page">
+    <section class="market-pulse-shell">
+        <div class="market-pulse-header">
+            <div>
+                <h2 class="market-pulse-title">Market Pulse</h2>
+                <p class="market-pulse-subtitle">NewsAPI-powered coverage for one stock, one country, one source, and selected domains. The selected stock drives the symbol-centric tabs; the filters below keep the rest of the feed focused.</p>
+            </div>
+            <button class="market-pulse-refresh" @onclick="RefreshMarketPulseAsync" disabled="@marketPulseLoading">
+                @(marketPulseLoading ? "Loading..." : "Refresh Pulse")
+            </button>
+        </div>
+
+        <div class="market-pulse-toolbar">
+            <div class="pulse-field">
+                <label for="marketPulseSymbol">Stock</label>
+                <input id="marketPulseSymbol"
+                        type="text"
+                        @bind="marketPulseSymbolInput"
+                        @bind:event="oninput"
+                        @onkeypress="HandleMarketPulseKeyPress"
+                        placeholder="AAPL" />
+            </div>
+            <div class="pulse-field">
+                <label for="marketPulseCountry">Country</label>
+                <select id="marketPulseCountry" value="@marketPulseCountry" @onchange="OnMarketPulseCountryChanged">
+                    @foreach (var country in marketPulseCountries)
+                    {
+                        <option value="@country.Code">@country.Label</option>
+                    }
+                </select>
+            </div>
+            <div class="pulse-field">
+                <label for="marketPulseSource">Source</label>
+                <select id="marketPulseSource" value="@marketPulseSourceId" @onchange="OnMarketPulseSourceChanged">
+                    <option value="">Auto-select source</option>
+                    @foreach (var source in GetMarketPulseSources())
+                    {
+                        <option value="@source.Id">@source.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="pulse-field">
+                <label for="marketPulseDomains">Domains</label>
+                <input id="marketPulseDomains"
+                        type="text"
+                        @bind="marketPulseDomains"
+                        @bind:event="oninput"
+                        @onkeypress="HandleMarketPulseDomainsKeyPress"
+                        placeholder="techcrunch.com, thenextweb.com" />
+            </div>
+        </div>
+
+        <div class="market-pulse-tabs">
+            @foreach (var tab in marketPulseTabDefinitions)
+            {
+                <button class="market-pulse-tab @(selectedMarketPulseTab == tab.Key ? "active" : "")" @onclick='() => SelectMarketPulseTab(tab.Key)'>
+                    @tab.Label
+                </button>
+            }
+        </div>
+
+        @if (marketPulseLoading && marketPulseData is null)
+        {
+            <div class="market-pulse-loading">Loading market pulse data from NewsAPI...</div>
+        }
+        else if (!string.IsNullOrWhiteSpace(marketPulseError))
+        {
+            <div class="market-pulse-error">@marketPulseError</div>
+        }
+        else if (GetActiveMarketPulseTab() is { } activePulseTab)
+        {
+            <div class="market-pulse-content">
+                <div class="market-pulse-panel-header">
+                    <div>
+                        <h3 class="market-pulse-panel-title">@activePulseTab.Title</h3>
+                        <p class="market-pulse-panel-subtitle">@activePulseTab.Subtitle</p>
+                    </div>
+                    <div class="market-pulse-meta">
+                        <div>@(string.IsNullOrWhiteSpace(marketPulseData?.SelectedSourceName) ? "Source: auto-selected" : $"Source: {marketPulseData?.SelectedSourceName}")</div>
+                        <div>Updated @marketPulseLastUpdated.ToLocalTime().ToString("g")</div>
+                    </div>
+                </div>
+
+                @if (activePulseTab.Articles.Count == 0)
+                {
+                    <div class="market-pulse-empty">@activePulseTab.EmptyMessage</div>
+                }
+                else
+                {
+                    <div class="market-pulse-card-grid">
+                        @foreach (var article in activePulseTab.Articles)
+                        {
+                            <article class="market-pulse-card">
+                                @if (!string.IsNullOrWhiteSpace(article.ImageUrl))
+                                {
+                                    <img class="market-pulse-card-image" src="@article.ImageUrl" alt="@article.Title" loading="lazy" />
+                                }
+                                <div class="market-pulse-card-body">
+                                    <div class="market-pulse-card-source">
+                                        <span>@article.Publisher</span>
+                                        <span>@article.PublishedDate.ToLocalTime().ToString("MMM d")</span>
+                                    </div>
+                                    <a class="market-pulse-card-title" href="@article.Link" target="_blank" rel="noreferrer noopener">@article.Title</a>
+                                    <div class="market-pulse-card-summary">@GetArticleSummary(article)</div>
+                                    <div class="market-pulse-card-footer">
+                                        <span>@article.Source</span>
+                                        <a href="@article.Link" target="_blank" rel="noreferrer noopener">Open article</a>
+                                    </div>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </section>
+</div>
+
+@code {
+    private string marketPulseSymbolInput = "AAPL";
+    private string marketPulseCountry = "us";
+    private string marketPulseSourceId = string.Empty;
+    private string marketPulseDomains = "techcrunch.com,thenextweb.com";
+    private string selectedMarketPulseTab = "yesterday";
+    private string marketPulseError = string.Empty;
+    private bool marketPulseLoading;
+    private DateTime marketPulseLastUpdated = DateTime.UtcNow;
+    private NewsApiMarketPulseResponse? marketPulseData;
+
+    private readonly List<MarketPulseCountryOption> marketPulseCountries = new()
+    {
+        new("us", "United States"),
+        new("gb", "United Kingdom"),
+        new("ca", "Canada"),
+        new("au", "Australia"),
+        new("de", "Germany"),
+        new("fr", "France"),
+        new("in", "India"),
+        new("jp", "Japan"),
+        new("br", "Brazil"),
+        new("hk", "Hong Kong"),
+        new("sg", "Singapore"),
+        new("za", "South Africa")
+    };
+
+    private readonly List<MarketPulseTabOption> marketPulseTabDefinitions = new()
+    {
+        new("yesterday", "Yesterday"),
+        new("month", "Last Month"),
+        new("country", "Country"),
+        new("source", "Source"),
+        new("domains", "Domains")
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMarketPulseAsync();
+    }
+
+    private async Task LoadMarketPulseAsync()
+    {
+        marketPulseLoading = true;
+        marketPulseError = string.Empty;
+
+        try
+        {
+            var symbol = ResolveMarketPulseSymbol(marketPulseSymbolInput);
+            marketPulseSymbolInput = symbol;
+
+            var requestUrl = $"/api/NewsApi/market-pulse?symbol={Uri.EscapeDataString(symbol)}&country={Uri.EscapeDataString(marketPulseCountry)}&sourceId={Uri.EscapeDataString(marketPulseSourceId)}&domains={Uri.EscapeDataString(marketPulseDomains ?? string.Empty)}";
+            var response = await Http.GetFromJsonAsync<NewsApiMarketPulseResponse>(requestUrl);
+
+            marketPulseData = response;
+
+            if (response != null)
+            {
+                if (!string.IsNullOrWhiteSpace(response.SelectedSourceId))
+                {
+                    marketPulseSourceId = response.SelectedSourceId;
+                }
+
+                if (!marketPulseTabDefinitions.Any(tab => tab.Key == selectedMarketPulseTab) && response.Tabs.Count > 0)
+                {
+                    selectedMarketPulseTab = response.Tabs[0].Key;
+                }
+
+                marketPulseLastUpdated = response.Timestamp == default ? DateTime.UtcNow : response.Timestamp;
+            }
+        }
+        catch (Exception ex)
+        {
+            marketPulseError = $"Failed to load NewsAPI market pulse: {ex.Message}";
+            Console.WriteLine(marketPulseError);
+        }
+        finally
+        {
+            marketPulseLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshMarketPulseAsync()
+    {
+        await LoadMarketPulseAsync();
+    }
+
+    private async Task OnMarketPulseCountryChanged(ChangeEventArgs e)
+    {
+        marketPulseCountry = e.Value?.ToString() ?? "us";
+        marketPulseSourceId = string.Empty;
+        await LoadMarketPulseAsync();
+    }
+
+    private async Task OnMarketPulseSourceChanged(ChangeEventArgs e)
+    {
+        marketPulseSourceId = e.Value?.ToString() ?? string.Empty;
+        await LoadMarketPulseAsync();
+    }
+
+    private async Task HandleMarketPulseKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await LoadMarketPulseAsync();
+        }
+    }
+
+    private async Task HandleMarketPulseDomainsKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await LoadMarketPulseAsync();
+        }
+    }
+
+    private Task SelectMarketPulseTab(string tabKey)
+    {
+        selectedMarketPulseTab = tabKey;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private NewsApiMarketPulseTab? GetActiveMarketPulseTab()
+    {
+        if (marketPulseData?.Tabs is null || marketPulseData.Tabs.Count == 0)
+        {
+            return null;
+        }
+
+        return marketPulseData.Tabs.FirstOrDefault(tab => string.Equals(tab.Key, selectedMarketPulseTab, StringComparison.OrdinalIgnoreCase))
+            ?? marketPulseData.Tabs.First();
+    }
+
+    private IEnumerable<NewsApiSourceInfo> GetMarketPulseSources()
+    {
+        return marketPulseData?.Sources ?? Enumerable.Empty<NewsApiSourceInfo>();
+    }
+
+    private static string ResolveMarketPulseSymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+        {
+            return "AAPL";
+        }
+
+        var trimmed = symbol.Trim().ToUpperInvariant();
+        if (trimmed.Contains(':'))
+        {
+            var parts = trimmed.Split(':', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[1]))
+            {
+                return parts[1];
+            }
+        }
+
+        return trimmed;
+    }
+
+    private static string GetArticleSummary(MarketPulseArticle article)
+    {
+        if (string.IsNullOrWhiteSpace(article.Summary))
+        {
+            return "No summary provided by NewsAPI for this article.";
+        }
+
+        return article.Summary.Length > 220 ? article.Summary.Substring(0, 220) + "..." : article.Summary;
+    }
+
+    public class MarketPulseArticle
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Summary { get; set; } = string.Empty;
+        public string Publisher { get; set; } = string.Empty;
+        public DateTime PublishedDate { get; set; }
+        public string Link { get; set; } = string.Empty;
+        public string Source { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
+    }
+
+    public class NewsApiSourceInfo
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Language { get; set; } = string.Empty;
+        public string Country { get; set; } = string.Empty;
+    }
+
+    public class NewsApiMarketPulseTab
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Subtitle { get; set; } = string.Empty;
+        public string EmptyMessage { get; set; } = string.Empty;
+        public List<MarketPulseArticle> Articles { get; set; } = new();
+    }
+
+    public class NewsApiMarketPulseResponse
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public string Country { get; set; } = string.Empty;
+        public string? SelectedSourceId { get; set; }
+        public string? SelectedSourceName { get; set; }
+        public string Domains { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+        public List<NewsApiSourceInfo> Sources { get; set; } = new();
+        public List<NewsApiMarketPulseTab> Tabs { get; set; } = new();
+    }
+
+    private sealed record MarketPulseCountryOption(string Code, string Label);
+
+    private sealed record MarketPulseTabOption(string Key, string Label);
+}
