@@ -45,11 +45,11 @@
         </div>
 
         <div class="tabs">
-            <button class="tab @(activeTab == "training" ? "active" : "")" @onclick="() => activeTab = "training"">Training</button>
-            <button class="tab @(activeTab == "bandits" ? "active" : "")" @onclick="() => activeTab = "bandits"">Bandits</button>
-            <button class="tab @(activeTab == "adaptation" ? "active" : "")" @onclick="() => activeTab = "adaptation"">Adaptation</button>
-            <button class="tab @(activeTab == "evaluation" ? "active" : "")" @onclick="() => activeTab = "evaluation"">Evaluation</button>
-            <button class="tab @(activeTab == "report" ? "active" : "")" @onclick="() => activeTab = "report"">Report</button>
+            <button class="tab @(activeTab == "training" ? "active" : "")" @onclick='() => activeTab = "training"'>Training</button>
+            <button class="tab @(activeTab == "bandits" ? "active" : "")" @onclick='() => activeTab = "bandits"'>Bandits</button>
+            <button class="tab @(activeTab == "adaptation" ? "active" : "")" @onclick='() => activeTab = "adaptation"'>Adaptation</button>
+            <button class="tab @(activeTab == "evaluation" ? "active" : "")" @onclick='() => activeTab = "evaluation"'>Evaluation</button>
+            <button class="tab @(activeTab == "report" ? "active" : "")" @onclick='() => activeTab = "report"'>Report</button>
         </div>
 
         <div class="tab-content">
@@ -323,5 +323,5 @@
 .list-shell { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
 .list-item { background: rgba(0, 212, 255, 0.04); border: 1px solid rgba(0, 212, 255, 0.10); border-radius: 8px; padding: 9px; }
 .report-text { background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 8px; padding: 10px; white-space: pre-wrap; color: #dce7f6; }
-@media (max-width: 900px) { .input-grid, .summary-row, .grid2, .grid3 { grid-template-columns: 1fr; } }
+@@media (max-width: 900px) { .input-grid, .summary-row, .grid2, .grid3 { grid-template-columns: 1fr; } }
 </style>

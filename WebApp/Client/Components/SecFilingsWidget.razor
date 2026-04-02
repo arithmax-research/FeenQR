@@ -1,4 +1,5 @@
 @using System.Text.Json
+@using System.Net.Http.Json
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject ILogger<SecFilingsWidget> Logger
@@ -14,7 +15,7 @@
             type="text" 
             placeholder="Enter symbol..." 
             @bind="symbolInput"
-            @onkeyup="@(e => e.Key == "Enter" && SearchSymbol())"
+            @onkeyup='async e => { if (e.Key == "Enter") await SearchSymbol(); }'
             class="symbol-quick-search" />
         <button class="btn-search-small" @onclick="SearchSymbol">Search</button>
     </div>
@@ -371,7 +372,7 @@
             var response = await Http.PostAsJsonAsync("/api/secfilings/earnings-analysis", new { symbol = currentSymbol });
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadAsJsonAsync<ApiResponse<EarningsAnalysis>>();
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<EarningsAnalysis>>();
                 latestEarnings = result?.Data;
             }
         }
@@ -388,7 +389,7 @@
             var response = await Http.PostAsJsonAsync("/api/secfilings/risk-factors", new { symbol = currentSymbol });
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadAsJsonAsync<ApiResponse<RiskFactorsAnalysis>>();
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<RiskFactorsAnalysis>>();
                 riskSummary = result?.Data;
             }
         }
@@ -405,7 +406,7 @@
             var response = await Http.GetAsync($"/api/secfilings/history/{currentSymbol}?limit=3");
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadAsJsonAsync<ApiResponse<List<SecFilingHistory>>>();
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<SecFilingHistory>>>();
                 filingHistory = result?.Data;
             }
         }

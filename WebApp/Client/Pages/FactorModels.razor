@@ -54,11 +54,11 @@
         </div>
 
         <div class="tabs">
-            <button class="tab @(activeTab == "compare" ? "active" : "")" @onclick="() => activeTab = "compare"">Compare</button>
-            <button class="tab @(activeTab == "attribution" ? "active" : "")" @onclick="() => activeTab = "attribution"">Attribution</button>
-            <button class="tab @(activeTab == "research" ? "active" : "")" @onclick="() => activeTab = "research"">Research</button>
-            <button class="tab @(activeTab == "efficacy" ? "active" : "")" @onclick="() => activeTab = "efficacy"">Efficacy</button>
-            <button class="tab @(activeTab == "dynamic" ? "active" : "")" @onclick="() => activeTab = "dynamic"">Dynamic</button>
+            <button class="tab @(activeTab == "compare" ? "active" : "")" @onclick='() => activeTab = "compare"'>Compare</button>
+            <button class="tab @(activeTab == "attribution" ? "active" : "")" @onclick='() => activeTab = "attribution"'>Attribution</button>
+            <button class="tab @(activeTab == "research" ? "active" : "")" @onclick='() => activeTab = "research"'>Research</button>
+            <button class="tab @(activeTab == "efficacy" ? "active" : "")" @onclick='() => activeTab = "efficacy"'>Efficacy</button>
+            <button class="tab @(activeTab == "dynamic" ? "active" : "")" @onclick='() => activeTab = "dynamic"'>Dynamic</button>
         </div>
 
         <div class="tab-content">
@@ -293,5 +293,5 @@
 .tab-content { margin-top: 14px; background: rgba(5, 10, 22, 0.72); border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 10px; padding: 14px; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 10px; }
 .card-row { display: flex; justify-content: space-between; padding: 10px; background: rgba(0, 212, 255, 0.05); border: 1px solid rgba(0, 212, 255, 0.12); border-radius: 8px; }
-@media (max-width: 900px) { .input-grid, .summary-row, .grid2 { grid-template-columns: 1fr; } }
+@@media (max-width: 900px) { .input-grid, .summary-row, .grid2 { grid-template-columns: 1fr; } }
 </style>

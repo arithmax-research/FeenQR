@@ -1,5 +1,6 @@
 @page "/cointegration"
 @using System.Text.Json
+@using System.Net.Http.Json
 @inject HttpClient Http
 @inject ILogger<Cointegration> Logger
 
@@ -19,7 +20,7 @@
                 type="text" 
                 placeholder="Symbol 2 (e.g., MSFT)" 
                 @bind="symbol2"
-                @onkeyup="@(e => e.Key == "Enter" && AnalyzePair())"
+                @onkeyup='async e => { if (e.Key == "Enter") await AnalyzePair(); }'
                 class="symbol-input" />
             <button class="btn-search" @onclick="AnalyzePair">
                 @if (isLoading)
@@ -50,19 +51,19 @@
         <div class="tabs-container">
             <div class="tabs">
                 <button class="tab @(activeTab == "overview" ? "active" : "")" 
-                        @onclick="@(() => activeTab = "overview")">
+                        @onclick='() => activeTab = "overview"'>
                     🎯 Overview
                 </button>
                 <button class="tab @(activeTab == "engle-granger" ? "active" : "")" 
-                        @onclick="@(() => activeTab = "engle-granger")">
+                        @onclick='() => activeTab = "engle-granger"'>
                     📊 Engle-Granger
                 </button>
                 <button class="tab @(activeTab == "granger" ? "active" : "")" 
-                        @onclick="@(() => activeTab = "granger")">
+                        @onclick='() => activeTab = "granger"'>
                     ➡️ Granger Causality
                 </button>
                 <button class="tab @(activeTab == "lead-lag" ? "active" : "")" 
-                        @onclick="@(() => activeTab = "lead-lag")">
+                        @onclick='() => activeTab = "lead-lag"'>
                     ⚡ Lead-Lag
                 </button>
             </div>
@@ -744,7 +745,7 @@ h1 {
                 new { symbol1, symbol2, lookbackDays = 252 });
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadAsJsonAsync<ApiResponse<ComprehensiveCointegrationAnalysis>>();
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<ComprehensiveCointegrationAnalysis>>();
                 comprehensive = result?.Data;
             }
         }
@@ -762,7 +763,7 @@ h1 {
                 new { symbol1, symbol2, lookbackDays = 252, maxLags = 5 });
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadAsJsonAsync<ApiResponse<GrangerCausalityTestResult>>();
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<GrangerCausalityTestResult>>();
                 grangerResult = result?.Data;
             }
         }
@@ -780,7 +781,7 @@ h1 {
                 new { symbol1, symbol2, lookbackDays = 252 });
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadAsJsonAsync<ApiResponse<LeadLagAnalysisResult>>();
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<LeadLagAnalysisResult>>();
                 leadLagResult = result?.Data;
             }
         }

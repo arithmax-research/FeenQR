@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
 namespace QuantResearchAgent.Services
 {
     public class EarningsService

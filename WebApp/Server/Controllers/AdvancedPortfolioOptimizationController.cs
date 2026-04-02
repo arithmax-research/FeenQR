@@ -199,9 +199,9 @@ public class AdvancedPortfolioOptimizationController : ControllerBase
         }
     }
 
-    private static OptimizationConstraints BuildConstraints(AdvancedOptimizationRequest request)
+    private static QuantResearchAgent.Core.OptimizationConstraints BuildConstraints(AdvancedOptimizationRequest request)
     {
-        var constraints = new OptimizationConstraints
+        var constraints = new QuantResearchAgent.Core.OptimizationConstraints
         {
             AllowShortSelling = request.AllowShortSelling,
             MaxRisk = request.MaxRisk ?? 0.35,

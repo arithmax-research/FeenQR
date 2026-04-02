@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using FeenQR.Core.Models;
 using FeenQR.Services;
 
 namespace FeenQR.Controllers;
@@ -152,54 +153,4 @@ public class ModelInterpretabilityController : ControllerBase
             return BadRequest(new { error = ex.Message });
         }
     }
-}
-
-public class ShapAnalysisRequest
-{
-    public string ModelName { get; set; }
-    public string DatasetSymbol { get; set; }
-    public int TopFeatures { get; set; } = 10;
-}
-
-public class PartialDependenceRequest
-{
-    public string ModelName { get; set; }
-    public string FeatureName { get; set; }
-    public int GridSize { get; set; } = 20;
-}
-
-public class FeatureInteractionRequest
-{
-    public string ModelName { get; set; }
-    public string DatasetSymbol { get; set; }
-    public int TopFeaturePairs { get; set; } = 5;
-}
-
-public class ExplainPredictionRequest
-{
-    public string ModelName { get; set; }
-    public Dictionary<string, decimal> InputData { get; set; }
-    public decimal PredictionValue { get; set; }
-    public string InputDescription { get; set; }
-}
-
-public class PermutationImportanceRequest
-{
-    public string ModelName { get; set; }
-    public string DatasetSymbol { get; set; }
-    public int NumberOfRepeats { get; set; } = 10;
-}
-
-public class ModelFairnessRequest
-{
-    public string ModelName { get; set; }
-    public string DatasetSymbol { get; set; }
-    public string SensitiveAttribute { get; set; }
-}
-
-public class InterpretabilityReportRequest
-{
-    public string ModelName { get; set; }
-    public string DatasetSymbol { get; set; }
-    public bool IncludeFairness { get; set; } = true;
 }

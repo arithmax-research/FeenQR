@@ -60,11 +60,11 @@
         </div>
 
         <div class="tabs">
-            <button class="tab @(activeTab == "compare" ? "active" : "")" @onclick="() => activeTab = "compare"">Compare</button>
-            <button class="tab @(activeTab == "black-litterman" ? "active" : "")" @onclick="() => activeTab = "black-litterman"">Black-Litterman</button>
-            <button class="tab @(activeTab == "risk-parity" ? "active" : "")" @onclick="() => activeTab = "risk-parity"">Risk Parity</button>
-            <button class="tab @(activeTab == "hrp" ? "active" : "")" @onclick="() => activeTab = "hrp"">Hierarchical RP</button>
-            <button class="tab @(activeTab == "min-variance" ? "active" : "")" @onclick="() => activeTab = "min-variance"">Minimum Variance</button>
+            <button class="tab @(activeTab == "compare" ? "active" : "")" @onclick='() => activeTab = "compare"'>Compare</button>
+            <button class="tab @(activeTab == "black-litterman" ? "active" : "")" @onclick='() => activeTab = "black-litterman"'>Black-Litterman</button>
+            <button class="tab @(activeTab == "risk-parity" ? "active" : "")" @onclick='() => activeTab = "risk-parity"'>Risk Parity</button>
+            <button class="tab @(activeTab == "hrp" ? "active" : "")" @onclick='() => activeTab = "hrp"'>Hierarchical RP</button>
+            <button class="tab @(activeTab == "min-variance" ? "active" : "")" @onclick='() => activeTab = "min-variance"'>Minimum Variance</button>
         </div>
 
         <div class="tab-content">
@@ -465,7 +465,7 @@
     padding: 8px 10px;
 }
 
-@media (max-width: 900px) {
+@@media (max-width: 900px) {
     .input-grid,
     .summary-row,
     .metrics-grid,
