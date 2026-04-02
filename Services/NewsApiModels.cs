@@ -25,6 +25,7 @@ public class NewsApiMarketPulseTab
 public class NewsApiMarketPulseResponse
 {
     public string Symbol { get; set; } = string.Empty;
+    public string SearchQuery { get; set; } = string.Empty;
     public string Country { get; set; } = string.Empty;
     public string? SelectedSourceId { get; set; }
     public string? SelectedSourceName { get; set; }

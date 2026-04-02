@@ -46,7 +46,7 @@ public class NewsApiClient
     /// Fetch articles from the Everything endpoint with explicit filters.
     /// </summary>
     public async Task<List<NewsItem>> GetEverythingAsync(
-        string query,
+        string? query = null,
         int limit = 20,
         DateTime? from = null,
         DateTime? to = null,
@@ -57,9 +57,15 @@ public class NewsApiClient
         string? excludeDomains = null,
         string? searchIn = null)
     {
-        if (string.IsNullOrWhiteSpace(query))
+        if (string.IsNullOrWhiteSpace(query)
+            && !from.HasValue
+            && !to.HasValue
+            && string.IsNullOrWhiteSpace(sources)
+            && string.IsNullOrWhiteSpace(domains)
+            && string.IsNullOrWhiteSpace(excludeDomains)
+            && string.IsNullOrWhiteSpace(searchIn))
         {
-            _logger.LogWarning("NewsAPI Everything request skipped because query was empty");
+            _logger.LogWarning("NewsAPI Everything request skipped because no filters were provided");
             return new List<NewsItem>();
         }
 
@@ -162,7 +168,7 @@ public class NewsApiClient
     }
 
     private string BuildEverythingUrl(
-        string query,
+        string? query,
         int limit,
         DateTime? from,
         DateTime? to,
@@ -176,11 +182,15 @@ public class NewsApiClient
         var pageSize = Math.Clamp(limit, 1, Math.Max(1, _defaultPageSize));
         var parameters = new List<string>
         {
-            $"q={Escape(query)}",
             $"language={Escape(language ?? _language)}",
             $"sortBy={Escape(sortBy)}",
             $"pageSize={pageSize}"
         };
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            parameters.Add($"q={Escape(query)}");
+        }
 
         if (from.HasValue)
         {

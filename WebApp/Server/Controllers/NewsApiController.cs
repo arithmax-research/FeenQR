@@ -19,14 +19,18 @@ public class NewsApiController : ControllerBase
     [HttpGet("market-pulse")]
     public async Task<ActionResult<NewsApiMarketPulseResponse>> GetMarketPulse(
         [FromQuery] string symbol = "AAPL",
+        [FromQuery] string? searchQuery = null,
         [FromQuery] string country = "us",
+        [FromQuery] string? countryCategory = null,
         [FromQuery] string? sourceId = null,
         [FromQuery] string? domains = null)
     {
         try
         {
             var normalizedSymbol = NormalizeSymbol(symbol);
+            var normalizedSearchQuery = NormalizeSearchQuery(searchQuery);
             var normalizedCountry = NormalizeCountry(country);
+            var normalizedCountryCategory = NormalizeCountryCategory(countryCategory);
             var normalizedDomains = NormalizeDomains(domains);
 
             var sources = await _newsApiClient.GetSourcesAsync(category: "business", language: "en", country: normalizedCountry);
@@ -51,11 +55,7 @@ public class NewsApiController : ControllerBase
                 sortBy: "publishedAt",
                 language: "en");
 
-            var countryHeadlinesTask = _newsApiClient.GetTopHeadlinesAsync(
-                limit: 10,
-                country: normalizedCountry,
-                category: "business",
-                language: "en");
+            var countryHeadlinesTask = GetCountryHeadlinesAsync(sources, normalizedCountry, normalizedCountryCategory);
 
             var sourceHeadlinesTask = !string.IsNullOrWhiteSpace(selectedSource.Id)
                 ? _newsApiClient.GetTopHeadlinesAsync(
@@ -64,10 +64,20 @@ public class NewsApiController : ControllerBase
                     language: "en")
                 : Task.FromResult(new List<NewsItem>());
 
+            var searchResultsTask = string.IsNullOrWhiteSpace(normalizedSearchQuery)
+                ? Task.FromResult(new List<NewsItem>())
+                : _newsApiClient.GetEverythingAsync(
+                    query: normalizedSearchQuery,
+                    limit: 10,
+                    from: now.AddDays(-30),
+                    to: now,
+                    sortBy: "popularity",
+                    language: "en");
+
             var domainCoverageTask = string.IsNullOrWhiteSpace(normalizedDomains)
                 ? Task.FromResult(new List<NewsItem>())
                 : _newsApiClient.GetEverythingAsync(
-                    normalizedSymbol,
+                    query: null,
                     limit: 10,
                     from: now.AddMonths(-6),
                     to: now,
@@ -75,11 +85,12 @@ public class NewsApiController : ControllerBase
                     language: "en",
                     domains: normalizedDomains);
 
-            await Task.WhenAll(yesterdayCoverageTask, monthCoverageTask, countryHeadlinesTask, sourceHeadlinesTask, domainCoverageTask);
+            await Task.WhenAll(yesterdayCoverageTask, monthCoverageTask, countryHeadlinesTask, sourceHeadlinesTask, domainCoverageTask, searchResultsTask);
 
             return Ok(new NewsApiMarketPulseResponse
             {
                 Symbol = normalizedSymbol,
+                SearchQuery = normalizedSearchQuery,
                 Country = normalizedCountry,
                 SelectedSourceId = string.IsNullOrWhiteSpace(selectedSource.Id) ? null : selectedSource.Id,
                 SelectedSourceName = string.IsNullOrWhiteSpace(selectedSource.Name) ? null : selectedSource.Name,
@@ -88,6 +99,20 @@ public class NewsApiController : ControllerBase
                 Sources = sources,
                 Tabs = new List<NewsApiMarketPulseTab>
                 {
+                    new()
+                    {
+                        Key = "search",
+                        Title = string.IsNullOrWhiteSpace(normalizedSearchQuery)
+                            ? "Search news"
+                            : $"Search results for \"{normalizedSearchQuery}\"",
+                        Subtitle = string.IsNullOrWhiteSpace(normalizedSearchQuery)
+                            ? "Use the search bar to query NewsAPI's Everything endpoint by keyword."
+                            : "Keyword search results from NewsAPI's Everything endpoint, sorted by popularity.",
+                        EmptyMessage = string.IsNullOrWhiteSpace(normalizedSearchQuery)
+                            ? "Enter a keyword in the search bar and press Search."
+                            : $"No articles found for \"{normalizedSearchQuery}\".",
+                        Articles = searchResultsTask.Result
+                    },
                     new()
                     {
                         Key = "yesterday",
@@ -107,9 +132,15 @@ public class NewsApiController : ControllerBase
                     new()
                     {
                         Key = "country",
-                        Title = $"Top business headlines in {GetCountryLabel(normalizedCountry)}",
-                        Subtitle = "National business headlines from NewsAPI's curated sources.",
-                        EmptyMessage = $"No business headlines returned for {GetCountryLabel(normalizedCountry)}.",
+                        Title = string.IsNullOrWhiteSpace(normalizedCountryCategory)
+                            ? $"Top headlines in {GetCountryLabel(normalizedCountry)}"
+                            : $"Top {normalizedCountryCategory} headlines in {GetCountryLabel(normalizedCountry)}",
+                        Subtitle = string.IsNullOrWhiteSpace(normalizedCountryCategory)
+                            ? "National headlines from NewsAPI's curated sources."
+                            : $"National {normalizedCountryCategory} headlines from NewsAPI's curated sources.",
+                        EmptyMessage = string.IsNullOrWhiteSpace(normalizedCountryCategory)
+                            ? $"No headlines returned for {GetCountryLabel(normalizedCountry)}."
+                            : $"No {normalizedCountryCategory} headlines returned for {GetCountryLabel(normalizedCountry)}.",
                         Articles = countryHeadlinesTask.Result
                     },
                     new()
@@ -128,7 +159,7 @@ public class NewsApiController : ControllerBase
                         Title = string.IsNullOrWhiteSpace(normalizedDomains)
                             ? "Coverage from selected domains"
                             : $"Coverage from {normalizedDomains}",
-                        Subtitle = "Articles from the selected domains over the last six months.",
+                        Subtitle = "Articles from the selected domains over the last six months. This tab does not use the stock symbol.",
                         EmptyMessage = string.IsNullOrWhiteSpace(normalizedDomains)
                             ? "Enter one or more domains to load this tab."
                             : $"No articles found for {normalizedDomains}.",
@@ -169,6 +200,26 @@ public class NewsApiController : ControllerBase
         return string.IsNullOrWhiteSpace(country) ? "us" : country.Trim().ToLowerInvariant();
     }
 
+    private static string NormalizeSearchQuery(string? searchQuery)
+    {
+        return string.IsNullOrWhiteSpace(searchQuery) ? string.Empty : searchQuery.Trim();
+    }
+
+    private static string NormalizeCountryCategory(string? category)
+    {
+        if (string.IsNullOrWhiteSpace(category))
+        {
+            return string.Empty;
+        }
+
+        var normalized = category.Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            "business" or "entertainment" or "general" or "health" or "science" or "sports" or "technology" => normalized,
+            _ => string.Empty
+        };
+    }
+
     private static string NormalizeDomains(string? domains)
     {
         if (string.IsNullOrWhiteSpace(domains))
@@ -184,6 +235,47 @@ public class NewsApiController : ControllerBase
             .ToArray();
 
         return string.Join(',', normalizedDomains);
+    }
+
+    private async Task<List<NewsItem>> GetCountryHeadlinesAsync(List<NewsApiSourceInfo> sources, string country, string? category)
+    {
+        var headlines = await _newsApiClient.GetTopHeadlinesAsync(
+            limit: 10,
+            country: country,
+            category: string.IsNullOrWhiteSpace(category) ? null : category,
+            language: "en");
+
+        if (headlines.Count > 0)
+        {
+            return headlines;
+        }
+
+        var fallbackSourceIds = sources
+            .Where(source => string.Equals(source.Country, country, StringComparison.OrdinalIgnoreCase))
+            .Where(source => string.IsNullOrWhiteSpace(category) || string.Equals(source.Category, category, StringComparison.OrdinalIgnoreCase))
+            .Select(source => source.Id)
+            .Where(sourceId => !string.IsNullOrWhiteSpace(sourceId))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(5)
+            .ToArray();
+
+        if (fallbackSourceIds.Length > 0)
+        {
+            var sourceFallbackHeadlines = await _newsApiClient.GetTopHeadlinesAsync(
+                limit: 10,
+                sources: string.Join(',', fallbackSourceIds),
+                language: "en");
+
+            if (sourceFallbackHeadlines.Count > 0)
+            {
+                return sourceFallbackHeadlines;
+            }
+        }
+
+        return await _newsApiClient.GetTopHeadlinesAsync(
+            limit: 10,
+            country: country,
+            language: "en");
     }
 
     private static NewsApiSourceInfo SelectSource(string? sourceId, List<NewsApiSourceInfo> sources)
