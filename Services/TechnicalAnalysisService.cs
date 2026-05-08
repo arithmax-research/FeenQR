@@ -42,8 +42,17 @@ public class TechnicalAnalysisService
             
             if (!bars.Any())
             {
-                _logger.LogError("No historical data available for {Symbol}", symbol);
-                throw new InvalidOperationException($"No historical data available for {symbol}");
+                _logger.LogWarning("No historical data available for {Symbol}. Skipping technical analysis.", symbol);
+                return new TechnicalAnalysisResult
+                {
+                    Symbol = symbol,
+                    Timestamp = DateTime.UtcNow,
+                    CurrentPrice = 0,
+                    Indicators = new(),
+                    OverallSignal = SignalType.Hold,
+                    SignalStrength = 0,
+                    Reasoning = "Technical analysis unavailable – no historical data could be retrieved."
+                };
             }
 
             _logger.LogInformation("Converting bars to quotes for {Symbol}...", symbol);

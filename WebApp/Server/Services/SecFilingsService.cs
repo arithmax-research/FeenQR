@@ -223,11 +223,11 @@ namespace QuantResearchAgent.Services
 
     public class ComprehensiveSecAnalysis
     {
-        public string Symbol { get; set; }
-        public SecFilingAnalysis FilingAnalysis { get; set; }
-        public RiskFactorsAnalysis RiskFactors { get; set; }
-        public MdAAnalysis MdA { get; set; }
+        public string? Symbol { get; set; }
+        public SecFilingAnalysis? FilingAnalysis { get; set; }
+        public RiskFactorsAnalysis? RiskFactors { get; set; }
+        public MdAAnalysis? MdA { get; set; }
         public DateTime AnalysisDate { get; set; }
-        public string Conclusion { get; set; }
+        public string? Conclusion { get; set; }
     }
 }

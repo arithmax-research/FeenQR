@@ -23,6 +23,8 @@
     <EmbeddedResource Remove="WebApp/**/*" />
     <None Remove="WebApp/**/*" />
     <Compile Remove="Controllers/**/*.cs" />
+    <!-- Exclude accidentally committed duplicate source tree under 'home/' -->
+    <Compile Remove="home/**/*.cs" />
     <EmbeddedResource Remove="Controllers/**/*" />
     <None Remove="Controllers/**/*" />
     <Compile Remove="test_qdrant.cs" />
