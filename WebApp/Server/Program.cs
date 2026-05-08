@@ -20,9 +20,19 @@ using Server.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add configuration from main FeenQR project (root level)
-builder.Configuration
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "../../appsettings.json"), optional: false, reloadOnChange: true);
+// First try local (WebApp/Server), then fall back to root FeenQR project
+var rootConfig = Path.Combine(Directory.GetCurrentDirectory(), "../../appsettings.json");
+if (!File.Exists("appsettings.json") && File.Exists(rootConfig))
+{
+    builder.Configuration
+        .AddJsonFile(rootConfig, optional: false, reloadOnChange: true);
+}
+else
+{
+    builder.Configuration
+        .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+        .AddJsonFile(rootConfig, optional: true, reloadOnChange: true);
+}
 
 // Add services to the container
 builder.Services.AddControllers()
