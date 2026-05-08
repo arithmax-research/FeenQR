@@ -1,0 +1,35 @@
+@* Reusable accordion item for pitch sections *@
+<div class="accordion-item pitch-accordion-item">
+    <h2 class="accordion-header" id="heading@(SectionId)">
+        <button class="accordion-button @(IsExpanded ? "" : "collapsed") pitch-accordion-btn" 
+                type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#collapse@(SectionId)" 
+                aria-expanded="@(IsExpanded ? "true" : "false")" 
+                aria-controls="collapse@(SectionId)">
+            @Title
+        </button>
+    </h2>
+    <div id="collapse@(SectionId)" 
+         class="accordion-collapse collapse @(IsExpanded ? "show" : "")" 
+         aria-labelledby="heading@(SectionId)" 
+         data-bs-parent="#pitchAccordion">
+        <div class="accordion-body pitch-accordion-body">
+            @Content
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string SectionId { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Content { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool IsExpanded { get; set; }
+}

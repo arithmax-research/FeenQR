@@ -1256,3 +1256,18 @@ public class EnsemblePredictionResult
     public double Confidence { get; set; }
     public string EnsembleMethod { get; set; } = "WeightedAverage";
 }
+
+/// <summary>
+/// DTO for Chart.js technical chart rendering
+/// </summary>
+public class TechnicalChartDto
+{
+    public List<string> Dates { get; set; } = new();
+    public List<decimal> Close { get; set; } = new();
+    public List<decimal?> Sma20 { get; set; } = new();
+    public List<decimal?> Sma50 { get; set; } = new();
+    public List<decimal?> Sma200 { get; set; } = new();
+    public List<double?> Rsi { get; set; } = new();
+    public List<double?> Macd { get; set; } = new();
+    public List<double?> MacdSignal { get; set; } = new();
+}

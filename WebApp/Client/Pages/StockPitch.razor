@@ -1,580 +1,128 @@
 @page "/stock-pitch"
 @using System.Text.Json
+@using System.Net.Http.Json
 @inject HttpClient Http
+@inject IJSRuntime JS
 
-<PageTitle>FeenQR - Stock Pitch Generator</PageTitle>
+<PageTitle>Stock Pitch</PageTitle>
 
-<style>
-    .sp-container {
-        position: fixed;
-        left: 280px;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        background: inherit;
-        overflow-x: hidden;
-        overflow-y: auto;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .sp-header {
-        background: rgba(18, 18, 18, 0.95);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        padding: 1rem 1.5rem;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        flex-shrink: 0;
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .sp-content {
-        flex: 1;
-        padding: 2rem;
-        overflow-y: auto;
-        max-width: 1200px;
-        margin: 0 auto;
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .input-section {
-        background: rgba(255, 255, 255, 0.02);
-        padding: 1.5rem;
-        border-radius: 12px;
-        margin-bottom: 2rem;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .input-group {
-        display: flex;
-        gap: 1rem;
-        align-items: flex-end;
-        flex-wrap: wrap;
-    }
-
-    .input-field {
-        flex: 1;
-        min-width: 200px;
-    }
-
-    .input-field label {
-        display: block;
-        color: #9ca3af;
-        font-size: 0.875rem;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-    }
-
-    .input-field input,
-    .input-field select {
-        width: 100%;
-        padding: 0.75rem;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 6px;
-        color: #fff;
-        font-size: 0.875rem;
-        transition: border-color 0.2s;
-    }
-
-    .input-field input:focus,
-    .input-field select:focus {
-        outline: none;
-        border-color: #1a73e8;
-    }
-
-    .btn-primary {
-        background: #1a73e8;
-        color: white;
-        border: none;
-        padding: 0.75rem 2rem;
-        border-radius: 6px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: 0.875rem;
-    }
-
-    .btn-primary:hover {
-        background: #1557b0;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
-    }
-
-    .btn-primary:disabled {
-        background: #555;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-    }
-
-    .btn-secondary {
-        background: transparent;
-        color: #9ca3af;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 0.75rem 1.5rem;
-        border-radius: 6px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: 0.875rem;
-    }
-
-    .btn-secondary:hover {
-        background: rgba(255, 255, 255, 0.05);
-        color: #fff;
-    }
-
-    .loading-container {
-        text-align: center;
-        padding: 4rem 2rem;
-        color: #9ca3af;
-    }
-
-    .loading-spinner {
-        width: 48px;
-        height: 48px;
-        border: 3px solid rgba(255, 255, 255, 0.1);
-        border-top-color: #1a73e8;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        margin: 0 auto 1.5rem auto;
-    }
-
-    @@keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-
-    .loading-status {
-        font-size: 0.875rem;
-        color: #6b7280;
-        margin-top: 0.75rem;
-    }
-
-    .summary-banner {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2rem;
-        padding: 1.5rem;
-        background: linear-gradient(135deg, rgba(26, 115, 232, 0.1), rgba(26, 115, 232, 0.02));
-        border: 1px solid rgba(26, 115, 232, 0.2);
-        border-radius: 12px;
-    }
-
-    .summary-item {
-        text-align: center;
-        padding: 0.5rem;
-    }
-
-    .summary-label {
-        color: #9ca3af;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-    }
-
-    .summary-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #fff;
-    }
-
-    .summary-value.long {
-        color: #10b981;
-    }
-
-    .summary-value.short {
-        color: #ef4444;
-    }
-
-    .summary-value.positive {
-        color: #10b981;
-    }
-
-    .summary-value.negative {
-        color: #ef4444;
-    }
-
-    .pitch-section {
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 12px;
-        padding: 1.75rem;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        margin-bottom: 1.5rem;
-        transition: border-color 0.2s;
-    }
-
-    .pitch-section:hover {
-        border-color: rgba(255, 255, 255, 0.15);
-    }
-
-    .section-header {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 1.25rem;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .section-icon {
-        font-size: 1.25rem;
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(26, 115, 232, 0.1);
-        border-radius: 8px;
-        flex-shrink: 0;
-    }
-
-    .section-title {
-        color: #fff;
-        font-size: 1.125rem;
-        font-weight: 600;
-    }
-
-    .section-content {
-        color: #d1d5db;
-        font-size: 0.938rem;
-        line-height: 1.75;
-        white-space: pre-wrap;
-    }
-
-    .section-content p {
-        margin-bottom: 0.75rem;
-    }
-
-    .data-sources-bar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        padding: 1rem 1.5rem;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 8px;
-        margin-top: 1.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .data-source-chip {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
-        background: rgba(26, 115, 232, 0.1);
-        border: 1px solid rgba(26, 115, 232, 0.2);
-        color: #1a73e8;
-    }
-
-    .data-source-chip.unavailable {
-        background: rgba(239, 68, 68, 0.1);
-        border-color: rgba(239, 68, 68, 0.2);
-        color: #ef4444;
-    }
-
-    .error-message {
-        padding: 1.5rem;
-        background: rgba(239, 68, 68, 0.1);
-        border: 1px solid rgba(239, 68, 68, 0.2);
-        border-radius: 8px;
-        color: #ef4444;
-        margin-bottom: 1.5rem;
-    }
-
-    .timestamp {
-        color: #6b7280;
-        font-size: 0.75rem;
-        text-align: right;
-        margin-top: 1rem;
-    }
-
-    .help-text {
-        color: #6b7280;
-        font-size: 0.813rem;
-        margin-top: 0.5rem;
-    }
-
-    .position-tabs {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: 0.75rem;
-    }
-
-    .position-tab {
-        padding: 0.5rem 1.25rem;
-        border-radius: 20px;
-        font-size: 0.813rem;
-        font-weight: 500;
-        cursor: pointer;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: transparent;
-        color: #9ca3af;
-        transition: all 0.2s;
-    }
-
-    .position-tab.active-long {
-        background: rgba(16, 185, 129, 0.15);
-        border-color: rgba(16, 185, 129, 0.3);
-        color: #10b981;
-    }
-
-    .position-tab.active-short {
-        background: rgba(239, 68, 68, 0.15);
-        border-color: rgba(239, 68, 68, 0.3);
-        color: #ef4444;
-    }
-
-    .position-tab.active-auto {
-        background: rgba(26, 115, 232, 0.15);
-        border-color: rgba(26, 115, 232, 0.3);
-        color: #1a73e8;
-    }
-
-    .position-tab:hover {
-        border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    @@media (max-width: 768px) {
-        .sp-container {
-            left: 0;
-        }
-        .sp-content {
-            padding: 1rem;
-        }
-        .summary-banner {
-            grid-template-columns: repeat(2, 1fr);
-        }
-        .input-group {
-            flex-direction: column;
-        }
-    }
-        .sp-container {
-            left: 0;
-        }
-        .sp-content {
-            padding: 1rem;
-        }
-        .summary-banner {
-            grid-template-columns: repeat(2, 1fr);
-        }
-        .input-group {
-            flex-direction: column;
-        }
-    }
-</style>
-
-<div class="sp-container">
-    <div class="sp-header">
-        <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: #fff;">Stock Pitch Generator</h2>
-        <p style="margin: 0.25rem 0 0 0; font-size: 0.813rem; color: #6b7280;">
-            Generate institutional-quality equity research pitches powered by real-time data
-        </p>
+<div class="page-container" id="pitchContainer">
+    <div class="page-header">
+        <h1>Stock Pitch Generator</h1>
+        <p class="subtitle">Institutional-quality equity research pitches powered by real-time data</p>
     </div>
 
-    <div class="sp-content">
-        @* Input Section *@
-        <div class="input-section">
-            <div class="input-group">
-                <div class="input-field">
-                    <label for="symbol-input">Stock Symbol</label>
-                    <input id="symbol-input" type="text" @bind="symbol" @bind:event="oninput" 
-                           placeholder="e.g., AAPL, MSFT, TSLA, NVDA" 
-                           @onkeypress="@(async (e) => { if (e.Key == "Enter" && !isLoading) await GeneratePitch(); })" />
-                </div>
-                <div class="input-field" style="flex: 0.6; min-width: 150px;">
-                    <label>Position Type</label>
-                    <select @bind="positionType">
-                        <option value="auto">Auto (AI Decides)</option>
-                        <option value="long">Long / Buy</option>
-                        <option value="short">Short / Sell</option>
-                    </select>
-                </div>
-                <button class="btn-primary" @onclick="GeneratePitch" disabled="@isLoading">
-                    @(isLoading ? "Generating..." : "Generate Pitch")
-                </button>
-            </div>
-            <div class="help-text">
-                Enter a stock symbol to get a comprehensive stock pitch with recommendation, investment thesis, catalysts, valuation analysis, risks, and conclusion.
-            </div>
+    <div class="row mt-4">
+        <!-- Left: Sidebar with inputs and actions -->
+        <div class="col-md-3">
+            <PitchSidebar @bind-Symbol="Symbol"
+                          @bind-Lookback="Lookback"
+                          @bind-PositionType="PositionType"
+                          OnGenerate="Generate"
+                          IsLoading="IsGenerating" />
+
+            <button class="btn btn-primary w-100 mt-3" @onclick="CopyToClipboard" disabled="@IsGenerating">
+                Copy Pitch
+            </button>
+            <button class="btn btn-secondary w-100 mt-2" @onclick="ExportPdf" disabled="@IsGenerating">
+                Export PDF
+            </button>
         </div>
 
-        @* Loading State *@
-        @if (isLoading)
-        {
-            <div class="loading-container">
-                <div class="loading-spinner"></div>
-                <div style="color: #e5e7eb; font-weight: 500;">Generating Stock Pitch for @symbol...</div>
-                <div class="loading-status">
-                    Gathering data from multiple sources (fundamentals, valuation, news sentiment, SEC filings, earnings, technical analysis)
-                </div>
-            </div>
-        }
-
-        @* Error State *@
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <div class="error-message">
-                <strong>Error:</strong> @errorMessage
-            </div>
-        }
-
-        @* Results Section *@
-        @if (pitchResult != null)
-        {
-            <div class="summary-banner">
-                <div class="summary-item">
-                    <div class="summary-label">Direction</div>
-                    <div class="summary-value @pitchResult.PositionType.ToLower()">@pitchResult.PositionType</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Target Price</div>
-                    <div class="summary-value">@pitchResult.TargetPrice</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Expected Return</div>
-                    <div class="summary-value @(pitchResult.ExpectedReturn.Contains('-') ? "negative" : "positive")">@pitchResult.ExpectedReturn</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Conviction</div>
-                    <div class="summary-value">@pitchResult.Conviction</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Time Horizon</div>
-                    <div class="summary-value" style="font-size: 1.1rem;">@pitchResult.TimeHorizon</div>
-                </div>
-            </div>
-
-            @if (!string.IsNullOrWhiteSpace(pitchResult.StockRecommendation))
+        <!-- Right: Tabbed display -->
+        <div class="col-md-9">
+            @if (IsGenerating)
             {
-                <div class="pitch-section">
-                    <div class="section-header">
-                        <div class="section-icon">📋</div>
-                        <div class="section-title">Stock Recommendation</div>
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Generating Stock Pitch for @Symbol...</div>
+                    <div class="loading-status">
+                        Gathering data from fundamentals, valuation, news sentiment, SEC filings, earnings, and technical analysis
                     </div>
-                    <div class="section-content">@pitchResult.StockRecommendation</div>
                 </div>
             }
-
-            @if (!string.IsNullOrWhiteSpace(pitchResult.CompanyOverview))
+            else if (!string.IsNullOrEmpty(Error))
             {
-                <div class="pitch-section">
-                    <div class="section-header">
-                        <div class="section-icon">🏢</div>
-                        <div class="section-title">Company Overview</div>
-                    </div>
-                    <div class="section-content">@pitchResult.CompanyOverview</div>
+                <div class="error-message">
+                    <strong>Error:</strong> @Error
                 </div>
             }
-
-            @if (!string.IsNullOrWhiteSpace(pitchResult.InvestmentThesis))
+            else if (Pitch != null)
             {
-                <div class="pitch-section">
-                    <div class="section-header">
-                        <div class="section-icon">💡</div>
-                        <div class="section-title">Investment Thesis</div>
-                    </div>
-                    <div class="section-content">@pitchResult.InvestmentThesis</div>
-                </div>
-            }
+                <!-- Tab Navigation -->
+                <ul class="nav nav-tabs pitch-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link @(ActiveTab == 0 ? "active" : "")" 
+                                @onclick="() => SetActiveTab(0)" type="button" role="tab">
+                            Pitch
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link @(ActiveTab == 1 ? "active" : "")" 
+                                @onclick="() => SetActiveTab(1)" type="button" role="tab"
+                                disabled="@(ChartData == null)">
+                            Technical Charts
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link @(ActiveTab == 2 ? "active" : "")" 
+                                @onclick="() => SetActiveTab(2)" type="button" role="tab">
+                            Raw Data
+                        </button>
+                    </li>
+                </ul>
 
-            @if (!string.IsNullOrWhiteSpace(pitchResult.Catalysts))
-            {
-                <div class="pitch-section">
-                    <div class="section-header">
-                        <div class="section-icon">⚡</div>
-                        <div class="section-title">Catalysts</div>
-                    </div>
-                    <div class="section-content">@pitchResult.Catalysts</div>
-                </div>
-            }
-
-            @if (!string.IsNullOrWhiteSpace(pitchResult.ValuationAndReturns))
-            {
-                <div class="pitch-section">
-                    <div class="section-header">
-                        <div class="section-icon">💰</div>
-                        <div class="section-title">Valuation &amp; Returns</div>
-                    </div>
-                    <div class="section-content">@pitchResult.ValuationAndReturns</div>
-                </div>
-            }
-
-            @if (!string.IsNullOrWhiteSpace(pitchResult.RisksAndMitigation))
-            {
-                <div class="pitch-section">
-                    <div class="section-header">
-                        <div class="section-icon">⚠️</div>
-                        <div class="section-title">Risks &amp; Mitigation</div>
-                    </div>
-                    <div class="section-content">@pitchResult.RisksAndMitigation</div>
-                </div>
-            }
-
-            @if (!string.IsNullOrWhiteSpace(pitchResult.Conclusion))
-            {
-                <div class="pitch-section" style="border-color: rgba(26, 115, 232, 0.3); background: rgba(26, 115, 232, 0.03);">
-                    <div class="section-header">
-                        <div class="section-icon" style="background: rgba(26, 115, 232, 0.2);">🎯</div>
-                        <div class="section-title">Conclusion</div>
-                    </div>
-                    <div class="section-content">@pitchResult.Conclusion</div>
-                </div>
-            }
-
-            @* Data Sources *@
-            <div class="data-sources-bar">
-                <span style="color: #9ca3af; font-size: 0.813rem; font-weight: 500; padding-right: 0.5rem;">Data Sources:</span>
-                @if (pitchResult.DataSources != null)
-                {
-                    @foreach (var source in pitchResult.DataSources)
+                <!-- Tab Content -->
+                <div class="tab-content-wrapper">
+                    @if (ActiveTab == 0)
                     {
-                        var isUnavailable = source.Contains("(unavailable)");
-                        <span class="data-source-chip @(isUnavailable ? "unavailable" : "")">@source</span>
+                        <PitchContent Pitch="Pitch" />
                     }
-                }
-            </div>
-
-            <div class="timestamp">
-                Generated @pitchResult.GeneratedAt | Analysis time: @pitchResult.GenerationTimeMs.ToString("F0") ms
-            </div>
-        }
+                    else if (ActiveTab == 1)
+                    {
+                        <TechnicalCharts Data="ChartData" />
+                    }
+                    else if (ActiveTab == 2)
+                    {
+                        <RawJson Data="Pitch" />
+                    }
+                </div>
+            }
+        </div>
     </div>
 </div>
 
 @code {
-    private string symbol = "AAPL";
-    private string positionType = "auto";
-    private bool isLoading = false;
-    private string? errorMessage;
-    private PitchDisplayResult? pitchResult;
+    private string Symbol = "AAPL";
+    private int Lookback = 365;
+    private string PositionType = "auto";
+    private bool IsGenerating;
+    private StockPitchResult? Pitch;
+    private TechnicalChartDto? ChartData;
+    private string? Error;
+    private int ActiveTab;
 
-    private async Task GeneratePitch()
+    private async Task Generate()
     {
-        if (string.IsNullOrWhiteSpace(symbol))
+        if (string.IsNullOrWhiteSpace(Symbol))
         {
-            errorMessage = "Please enter a stock symbol.";
+            Error = "Please enter a stock symbol.";
             return;
         }
 
-        isLoading = true;
-        errorMessage = null;
-        pitchResult = null;
+        IsGenerating = true;
+        Error = null;
+        Pitch = null;
+        ChartData = null;
+        ActiveTab = 0;
 
         try
         {
-            var cleanSymbol = symbol.Trim().ToUpper();
-            
+            var cleanSymbol = Symbol.Trim().ToUpper();
             var requestBody = new
             {
                 Symbol = cleanSymbol,
-                PositionType = positionType
+                PositionType = PositionType
             };
 
             var response = await Http.PostAsJsonAsync("/api/stockpitch/generate", requestBody);
@@ -582,7 +130,7 @@
             if (!response.IsSuccessStatusCode)
             {
                 var errorBody = await response.Content.ReadAsStringAsync();
-                errorMessage = $"Server error ({response.StatusCode}): {errorBody}";
+                Error = $"Server error ({response.StatusCode}): {errorBody}";
                 return;
             }
 
@@ -590,7 +138,7 @@
 
             if (responseData.TryGetProperty("success", out var successProp) && successProp.GetBoolean())
             {
-                pitchResult = new PitchDisplayResult
+                Pitch = new StockPitchResult
                 {
                     Symbol = responseData.GetProperty("symbol").GetString() ?? cleanSymbol,
                     PositionType = responseData.GetProperty("positionType").GetString() ?? "N/A",
@@ -605,40 +153,89 @@
 
                 var pitch = responseData.GetProperty("pitch");
                 if (pitch.TryGetProperty("stockRecommendation", out var rec))
-                    pitchResult.StockRecommendation = rec.GetString() ?? "";
+                    Pitch.StockRecommendation = rec.GetString() ?? "";
                 if (pitch.TryGetProperty("companyOverview", out var co))
-                    pitchResult.CompanyOverview = co.GetString() ?? "";
+                    Pitch.CompanyOverview = co.GetString() ?? "";
                 if (pitch.TryGetProperty("investmentThesis", out var it))
-                    pitchResult.InvestmentThesis = it.GetString() ?? "";
+                    Pitch.InvestmentThesis = it.GetString() ?? "";
                 if (pitch.TryGetProperty("catalysts", out var cat))
-                    pitchResult.Catalysts = cat.GetString() ?? "";
+                    Pitch.Catalysts = cat.GetString() ?? "";
                 if (pitch.TryGetProperty("valuationAndReturns", out var vr))
-                    pitchResult.ValuationAndReturns = vr.GetString() ?? "";
+                    Pitch.ValuationAndReturns = vr.GetString() ?? "";
                 if (pitch.TryGetProperty("risksAndMitigation", out var rm))
-                    pitchResult.RisksAndMitigation = rm.GetString() ?? "";
+                    Pitch.RisksAndMitigation = rm.GetString() ?? "";
                 if (pitch.TryGetProperty("conclusion", out var conc))
-                    pitchResult.Conclusion = conc.GetString() ?? "";
+                    Pitch.Conclusion = conc.GetString() ?? "";
+
+                // Build raw text from sections for clipboard copy
+                var rawText = new System.Text.StringBuilder();
+                rawText.AppendLine($"STOCK PITCH: {Pitch.Symbol}");
+                rawText.AppendLine($"Position: {Pitch.PositionType} | Target: {Pitch.TargetPrice} | Return: {Pitch.ExpectedReturn} | Conviction: {Pitch.Conviction} | Horizon: {Pitch.TimeHorizon}");
+                rawText.AppendLine();
+                if (!string.IsNullOrWhiteSpace(Pitch.StockRecommendation)) { rawText.AppendLine("STOCK RECOMMENDATION"); rawText.AppendLine(Pitch.StockRecommendation); rawText.AppendLine(); }
+                if (!string.IsNullOrWhiteSpace(Pitch.CompanyOverview)) { rawText.AppendLine("COMPANY OVERVIEW"); rawText.AppendLine(Pitch.CompanyOverview); rawText.AppendLine(); }
+                if (!string.IsNullOrWhiteSpace(Pitch.InvestmentThesis)) { rawText.AppendLine("INVESTMENT THESIS"); rawText.AppendLine(Pitch.InvestmentThesis); rawText.AppendLine(); }
+                if (!string.IsNullOrWhiteSpace(Pitch.Catalysts)) { rawText.AppendLine("CATALYSTS"); rawText.AppendLine(Pitch.Catalysts); rawText.AppendLine(); }
+                if (!string.IsNullOrWhiteSpace(Pitch.ValuationAndReturns)) { rawText.AppendLine("VALUATION & RETURNS"); rawText.AppendLine(Pitch.ValuationAndReturns); rawText.AppendLine(); }
+                if (!string.IsNullOrWhiteSpace(Pitch.RisksAndMitigation)) { rawText.AppendLine("RISKS & MITIGATION"); rawText.AppendLine(Pitch.RisksAndMitigation); rawText.AppendLine(); }
+                if (!string.IsNullOrWhiteSpace(Pitch.Conclusion)) { rawText.AppendLine("CONCLUSION"); rawText.AppendLine(Pitch.Conclusion); }
+                Pitch.RawPitchText = rawText.ToString();
+
+                // Fetch technical chart data
+                try
+                {
+                    ChartData = await Http.GetFromJsonAsync<TechnicalChartDto>($"/api/pitch/technicalcharts/{cleanSymbol}?days={Lookback}");
+                }
+                catch { /* Charts are optional */ }
             }
             else
             {
                 if (responseData.TryGetProperty("error", out var errorProp))
-                    errorMessage = errorProp.GetString();
+                    Error = errorProp.GetString();
                 else
-                    errorMessage = "Failed to generate stock pitch. Please try again.";
+                    Error = "Failed to generate stock pitch. Please try again.";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error: {ex.Message}";
+            Error = $"Error: {ex.Message}";
             Console.WriteLine($"StockPitch error: {ex}");
         }
         finally
         {
-            isLoading = false;
+            IsGenerating = false;
         }
     }
 
-    public class PitchDisplayResult
+    private async Task CopyToClipboard()
+    {
+        if (Pitch != null && !string.IsNullOrEmpty(Pitch.RawPitchText))
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", Pitch.RawPitchText);
+        }
+    }
+
+    private async Task ExportPdf()
+    {
+        await JS.InvokeVoidAsync("feenqr.exportPitchPdf", "pitchContainer", $"{Symbol}-pitch.pdf");
+    }
+
+    private void SetActiveTab(int tab)
+    {
+        ActiveTab = tab;
+        if (tab == 1 && ChartData != null)
+        {
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(100);
+                await InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+
+    // ---- Data Models ----
+
+    public class StockPitchResult
     {
         public string Symbol { get; set; } = string.Empty;
         public string PositionType { get; set; } = string.Empty;
@@ -649,6 +246,7 @@
         public string GeneratedAt { get; set; } = string.Empty;
         public double GenerationTimeMs { get; set; }
         public List<string> DataSources { get; set; } = new();
+        public string RawPitchText { get; set; } = string.Empty;
 
         public string StockRecommendation { get; set; } = string.Empty;
         public string CompanyOverview { get; set; } = string.Empty;

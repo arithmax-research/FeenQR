@@ -1,0 +1,72 @@
+@* Sidebar component: symbol input, lookback, position type, and generate button *@
+<div class="card pitch-card">
+    <div class="card-header">
+        <h5 class="mb-0">Input Parameters</h5>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label for="sym" class="form-label">Stock Symbol</label>
+            <input id="sym" type="text" class="form-control pitch-input" 
+                   @bind="Symbol" @bind:event="oninput"
+                   placeholder="e.g., AAPL, MSFT"
+                   @onkeypress="@(async (e) => { if (e.Key == "Enter" && !IsLoading) await OnGenerate.InvokeAsync(); })" />
+        </div>
+
+        <div class="mb-3">
+            <label for="pos" class="form-label">Position Type</label>
+            <select id="pos" class="form-select pitch-select" @bind="PositionType">
+                <option value="auto">Auto (AI Decides)</option>
+                <option value="long">Long / Buy</option>
+                <option value="short">Short / Sell</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="look" class="form-label">Lookback Period (days)</label>
+            <select id="look" class="form-select pitch-select" @bind="Lookback">
+                <option value="90">90 days</option>
+                <option value="180">180 days</option>
+                <option value="365">1 year</option>
+                <option value="730">2 years</option>
+            </select>
+        </div>
+
+        <button class="btn btn-primary w-100" @onclick="OnGenerate" disabled="@IsLoading">
+            @if (IsLoading)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                <span>Generating...</span>
+            }
+            else
+            {
+                <span>Generate Pitch</span>
+            }
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string Symbol { get; set; } = "AAPL";
+
+    [Parameter]
+    public EventCallback<string> SymbolChanged { get; set; }
+
+    [Parameter]
+    public int Lookback { get; set; } = 365;
+
+    [Parameter]
+    public EventCallback<int> LookbackChanged { get; set; }
+
+    [Parameter]
+    public string PositionType { get; set; } = "auto";
+
+    [Parameter]
+    public EventCallback<string> PositionTypeChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnGenerate { get; set; }
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+}

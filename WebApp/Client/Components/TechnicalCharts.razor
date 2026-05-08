@@ -1,0 +1,41 @@
+@inject IJSRuntime JS
+
+@if (Data != null)
+{
+    <div class="card mb-3 pitch-card">
+        <div class="card-header">
+            <h5 class="mb-0">Price and Moving Averages</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="priceChart" class="tech-chart-canvas"></canvas>
+        </div>
+    </div>
+
+    <div class="card mb-3 pitch-card">
+        <div class="card-header">
+            <h5 class="mb-0">RSI and MACD</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="rsiChart" class="tech-chart-canvas"></canvas>
+        </div>
+    </div>
+}
+else
+{
+    <div class="text-secondary p-4 text-center">
+        Technical chart data is not available for this symbol.
+    </div>
+}
+
+@code {
+    [Parameter]
+    public TechnicalChartDto? Data { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Data != null)
+        {
+            await JS.InvokeVoidAsync("feenqr.renderTechCharts", Data);
+        }
+    }
+}

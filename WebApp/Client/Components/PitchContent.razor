@@ -1,0 +1,110 @@
+@* Renders the structured pitch sections as collapsible accordion cards *@
+<div class="pitch-content">
+    @if (Pitch != null)
+    {
+        <!-- Summary Banner -->
+        <div class="summary-banner">
+            <div class="summary-item">
+                <div class="summary-label">Direction</div>
+                <div class="summary-value @Pitch.PositionType.ToLower()">@Pitch.PositionType</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Target Price</div>
+                <div class="summary-value">@Pitch.TargetPrice</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Expected Return</div>
+                <div class="summary-value @(Pitch.ExpectedReturn.StartsWith('-') ? "negative" : "positive")">@Pitch.ExpectedReturn</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Conviction</div>
+                <div class="summary-value">@Pitch.Conviction</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Time Horizon</div>
+                <div class="summary-value horizon">@Pitch.TimeHorizon</div>
+            </div>
+        </div>
+
+        <!-- Accordion Sections -->
+        <div class="accordion pitch-accordion" id="pitchAccordion">
+            @if (!string.IsNullOrWhiteSpace(Pitch.StockRecommendation))
+            {
+                <RenderSection SectionId="rec" Title="Stock Recommendation" 
+                               Content="Pitch.StockRecommendation" IsExpanded="true" />
+            }
+            @if (!string.IsNullOrWhiteSpace(Pitch.CompanyOverview))
+            {
+                <RenderSection SectionId="overview" Title="Company Overview" 
+                               Content="Pitch.CompanyOverview" />
+            }
+            @if (!string.IsNullOrWhiteSpace(Pitch.InvestmentThesis))
+            {
+                <RenderSection SectionId="thesis" Title="Investment Thesis" 
+                               Content="Pitch.InvestmentThesis" />
+            }
+            @if (!string.IsNullOrWhiteSpace(Pitch.Catalysts))
+            {
+                <RenderSection SectionId="catalysts" Title="Catalysts" 
+                               Content="Pitch.Catalysts" />
+            }
+            @if (!string.IsNullOrWhiteSpace(Pitch.ValuationAndReturns))
+            {
+                <RenderSection SectionId="valuation" Title="Valuation and Returns" 
+                               Content="Pitch.ValuationAndReturns" />
+            }
+            @if (!string.IsNullOrWhiteSpace(Pitch.RisksAndMitigation))
+            {
+                <RenderSection SectionId="risks" Title="Risks and Mitigation" 
+                               Content="Pitch.RisksAndMitigation" />
+            }
+            @if (!string.IsNullOrWhiteSpace(Pitch.Conclusion))
+            {
+                <RenderSection SectionId="conclusion" Title="Conclusion" 
+                               Content="Pitch.Conclusion" />
+            }
+        </div>
+
+        <!-- Data Sources -->
+        <div class="data-sources-bar">
+            <span class="data-sources-label">Data Sources:</span>
+            @if (Pitch.DataSources != null)
+            {
+                @foreach (var source in Pitch.DataSources)
+                {
+                    var isUnavailable = source.Contains("(unavailable)");
+                    <span class="data-source-chip @(isUnavailable ? "unavailable" : "")">@source</span>
+                }
+            }
+        </div>
+
+        <div class="timestamp">
+            Generated @Pitch.GeneratedAt | Analysis time: @Pitch.GenerationTimeMs.ToString("F0") ms
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public StockPitchResult? Pitch { get; set; }
+
+    public class StockPitchResult
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public string PositionType { get; set; } = string.Empty;
+        public string TargetPrice { get; set; } = "N/A";
+        public string ExpectedReturn { get; set; } = "N/A";
+        public string Conviction { get; set; } = "Medium";
+        public string TimeHorizon { get; set; } = "6-12 months";
+        public string GeneratedAt { get; set; } = string.Empty;
+        public double GenerationTimeMs { get; set; }
+        public List<string> DataSources { get; set; } = new();
+        public string StockRecommendation { get; set; } = string.Empty;
+        public string CompanyOverview { get; set; } = string.Empty;
+        public string InvestmentThesis { get; set; } = string.Empty;
+        public string Catalysts { get; set; } = string.Empty;
+        public string ValuationAndReturns { get; set; } = string.Empty;
+        public string RisksAndMitigation { get; set; } = string.Empty;
+        public string Conclusion { get; set; } = string.Empty;
+    }
+}
