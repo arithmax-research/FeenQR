@@ -23,10 +23,14 @@ namespace QuantResearchAgent.Services
         {
             _httpClient = httpClient;
             _logger = logger;
-            _apiKey = configuration["DataBento:ApiKey"] ?? throw new ArgumentException("DataBento API key not configured");
-            _userId = configuration["DataBento:UserId"] ?? throw new ArgumentException("DataBento UserId not configured");
-            _prodName = configuration["DataBento:ProdName"] ?? throw new ArgumentException("DataBento ProdName not configured");
-            // Removed default Authorization header to set it per request
+            _apiKey = configuration["DataBento:ApiKey"] ?? string.Empty;
+            _userId = configuration["DataBento:UserId"] ?? string.Empty;
+            _prodName = configuration["DataBento:ProdName"] ?? string.Empty;
+            
+            if (string.IsNullOrEmpty(_apiKey))
+            {
+                _logger.LogWarning("DataBento API key not configured. DataBento features will be unavailable.");
+            }
         }
 
         private AuthenticationHeaderValue GetAuthHeader()
