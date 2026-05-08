@@ -258,6 +258,8 @@ builder.Services.AddSingleton<MonteCarloService>();
 // Register SEC Filings & Earnings services
 builder.Services.AddSingleton<SecFilingsService>();
 builder.Services.AddSingleton<EarningsService>();
+// Also register the root SECFilingsService used by StockPitchService
+builder.Services.AddSingleton<SECFilingsService>();
 
 // Register Cointegration & Causality services
 builder.Services.AddSingleton<CointegrationService>();
@@ -276,6 +278,9 @@ builder.Services.AddSingleton<ReinforcementLearningWebService>();
 
 // Register Machine Learning service
 builder.Services.AddSingleton<MachineLearningService>();
+
+// Register Stock Pitch service
+builder.Services.AddSingleton<StockPitchService>();
 
 var app = builder.Build();
 
