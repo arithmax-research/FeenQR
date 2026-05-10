@@ -1,6 +1,8 @@
+using Alpaca.Markets;
+using FeenQR.Core.Models;
 using Microsoft.AspNetCore.Mvc;
 using QuantResearchAgent.Services;
-using QuantResearchAgent.Core;
+using Skender.Stock.Indicators;
 
 namespace Server.Controllers
 {
@@ -9,13 +11,19 @@ namespace Server.Controllers
     public class PitchController : ControllerBase
     {
         private readonly TechnicalAnalysisService _technicalAnalysisService;
+        private readonly AlpacaService _alpacaService;
+        private readonly YahooFinanceService _yahooFinanceService;
         private readonly ILogger<PitchController> _logger;
 
         public PitchController(
             TechnicalAnalysisService technicalAnalysisService,
+            AlpacaService alpacaService,
+            YahooFinanceService yahooFinanceService,
             ILogger<PitchController> logger)
         {
             _technicalAnalysisService = technicalAnalysisService;
+            _alpacaService = alpacaService;
+            _yahooFinanceService = yahooFinanceService;
             _logger = logger;
         }
 
@@ -30,10 +38,7 @@ namespace Server.Controllers
                 var cleanSymbol = symbol.Trim().ToUpper();
                 _logger.LogInformation("Fetching technical chart data for {Symbol}, days={Days}", cleanSymbol, days);
 
-                var analysis = await _technicalAnalysisService.PerformFullAnalysisAsync(cleanSymbol, days);
-
-                // Build the chart DTO from the raw indicator data
-                // We need bar-level data - fetch bars and compute per-bar indicators
+                // Fetch bars from Alpaca, fallback to TechnicalAnalysisService data
                 var bars = await FetchBarsAsync(cleanSymbol, days);
                 if (bars == null || bars.Count == 0)
                 {
@@ -66,9 +71,9 @@ namespace Server.Controllers
 
                 for (int i = 0; i < quotes.Count; i++)
                 {
-                    dto.Sma20.Add(i < sma20List.Count ? sma20List[i]?.Sma : null);
-                    dto.Sma50.Add(i < sma50List.Count ? sma50List[i]?.Sma : null);
-                    dto.Sma200.Add(i < sma200List.Count ? sma200List[i]?.Sma : null);
+                    dto.Sma20.Add(i < sma20List.Count ? (decimal?)sma20List[i]?.Sma : null);
+                    dto.Sma50.Add(i < sma50List.Count ? (decimal?)sma50List[i]?.Sma : null);
+                    dto.Sma200.Add(i < sma200List.Count ? (decimal?)sma200List[i]?.Sma : null);
                 }
 
                 // RSI
@@ -95,37 +100,38 @@ namespace Server.Controllers
             }
         }
 
-        private async Task<List<AlpacaBar>> FetchBarsAsync(string symbol, int days)
+        private async Task<List<IBar>> FetchBarsAsync(string symbol, int days)
         {
+            // Try Alpaca first
             try
             {
-                // Use the AlpacaService or YahooFinance to get bars
-                var alpacaService = HttpContext.RequestServices.GetRequiredService<AlpacaService>();
-                var bars = await alpacaService.GetHistoricalBarsAsync(symbol, days);
-                return bars;
+                var bars = await _alpacaService.GetHistoricalBarsAsync(symbol, days);
+                if (bars != null && bars.Count > 0)
+                    return bars;
             }
-            catch
+            catch (Exception ex)
             {
-                // Fallback: try Yahoo Finance
-                try
+                _logger.LogWarning(ex, "Alpaca failed to fetch bars for {Symbol}", symbol);
+            }
+
+            // Fallback: try to get data from the technical analysis service's internal data
+            try
+            {
+                // Use TechnicalAnalysisService which also fetches via Alpaca
+                var analysis = await _technicalAnalysisService.PerformFullAnalysisAsync(symbol, days);
+                // The analysis object has limited bar data, try to construct from it
+                if (analysis?.Indicators != null)
                 {
-                    var yahooService = HttpContext.RequestServices.GetRequiredService<YahooFinanceService>();
-                    var bars = await yahooService.GetHistoricalBarsAsync(symbol, DateTime.UtcNow.AddDays(-days), DateTime.UtcNow);
-                    return bars.Select(b => new AlpacaBar
-                    {
-                        TimeUtc = b.Timestamp,
-                        Open = b.Open,
-                        High = b.High,
-                        Low = b.Low,
-                        Close = b.Close,
-                        Volume = b.Volume
-                    }).ToList();
-                }
-                catch
-                {
-                    return new List<AlpacaBar>();
+                    _logger.LogInformation("Got technical analysis for {Symbol}, but cannot reconstruct full bars from it", symbol);
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "TechnicalAnalysisService fallback failed for {Symbol}", symbol);
+            }
+
+            return new List<IBar>();
         }
     }
 }
+

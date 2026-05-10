@@ -1,44 +1,60 @@
 @* Sidebar component: symbol input, lookback, position type, and generate button *@
-<div class="card pitch-card">
-    <div class="card-header">
-        <h5 class="mb-0">Input Parameters</h5>
+<div class="sidebar-card">
+    <div class="sidebar-card-header">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/>
+        </svg>
+        <span>Input Parameters</span>
     </div>
-    <div class="card-body">
-        <div class="mb-3">
-            <label for="sym" class="form-label">Stock Symbol</label>
-            <input id="sym" type="text" class="form-control pitch-input" 
-                   @bind="Symbol" @bind:event="oninput"
-                   placeholder="e.g., AAPL, MSFT"
-                   @onkeypress="@(async (e) => { if (e.Key == "Enter" && !IsLoading) await OnGenerate.InvokeAsync(); })" />
+    <div class="sidebar-card-body">
+        <div class="input-group">
+            <label for="sym">Stock Symbol</label>
+            <div class="input-wrapper">
+                <input id="sym" type="text" 
+                       @bind="Symbol" @bind:event="oninput"
+                       placeholder="e.g., AAPL, MSFT"
+                       @onkeypress="@(async (e) => { if (e.Key == "Enter" && !IsLoading) await OnGenerate.InvokeAsync(); })" />
+                <span class="input-highlight"></span>
+            </div>
         </div>
 
-        <div class="mb-3">
-            <label for="pos" class="form-label">Position Type</label>
-            <select id="pos" class="form-select pitch-select" @bind="PositionType">
-                <option value="auto">Auto (AI Decides)</option>
-                <option value="long">Long / Buy</option>
-                <option value="short">Short / Sell</option>
-            </select>
+        <div class="input-group">
+            <label for="pos">Position Type</label>
+            <div class="select-wrapper">
+                <select id="pos" @bind="PositionType">
+                    <option value="auto">Auto (AI Decides)</option>
+                    <option value="long">Long / Buy</option>
+                    <option value="short">Short / Sell</option>
+                </select>
+                <svg class="select-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
         </div>
 
-        <div class="mb-3">
-            <label for="look" class="form-label">Lookback Period (days)</label>
-            <select id="look" class="form-select pitch-select" @bind="Lookback">
-                <option value="90">90 days</option>
-                <option value="180">180 days</option>
-                <option value="365">1 year</option>
-                <option value="730">2 years</option>
-            </select>
+        <div class="input-group">
+            <label for="look">Lookback Period</label>
+            <div class="select-wrapper">
+                <select id="look" @bind="Lookback">
+                    <option value="90">90 Days</option>
+                    <option value="180">180 Days</option>
+                    <option value="365">1 Year</option>
+                    <option value="730">2 Years</option>
+                </select>
+                <svg class="select-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
         </div>
 
-        <button class="btn btn-primary w-100" @onclick="OnGenerate" disabled="@IsLoading">
+        <button class="generate-btn" @onclick="OnGenerate" disabled="@IsLoading">
             @if (IsLoading)
             {
-                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                <span class="btn-spinner"></span>
                 <span>Generating...</span>
             }
             else
             {
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
                 <span>Generate Pitch</span>
             }
         </button>

@@ -1,20 +1,16 @@
-@* Reusable accordion item for pitch sections *@
-<div class="accordion-item pitch-accordion-item">
-    <h2 class="accordion-header" id="heading@(SectionId)">
-        <button class="accordion-button @(IsExpanded ? "" : "collapsed") pitch-accordion-btn" 
-                type="button" 
-                data-bs-toggle="collapse" 
-                data-bs-target="#collapse@(SectionId)" 
-                aria-expanded="@(IsExpanded ? "true" : "false")" 
-                aria-controls="collapse@(SectionId)">
-            @Title
-        </button>
-    </h2>
-    <div id="collapse@(SectionId)" 
-         class="accordion-collapse collapse @(IsExpanded ? "show" : "")" 
-         aria-labelledby="heading@(SectionId)" 
-         data-bs-parent="#pitchAccordion">
-        <div class="accordion-body pitch-accordion-body">
+@* Reusable collapsible section for pitch content *@
+<div class="pitch-section @(IsExpanded ? "expanded" : "")">
+    <button class="pitch-section-header" @onclick="ToggleSection" aria-expanded="@(IsExpanded ? "true" : "false")">
+        <div class="section-title-group">
+            <span class="section-indicator"></span>
+            <span class="section-title">@Title</span>
+        </div>
+        <svg class="section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+        </svg>
+    </button>
+    <div class="pitch-section-body @(IsExpanded ? "open" : "")">
+        <div class="pitch-section-content">
             @Content
         </div>
     </div>
@@ -32,4 +28,9 @@
 
     [Parameter]
     public bool IsExpanded { get; set; }
+
+    private void ToggleSection()
+    {
+        IsExpanded = !IsExpanded;
+    }
 }

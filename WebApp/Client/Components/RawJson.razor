@@ -2,12 +2,17 @@
 
 @if (Data != null)
 {
-    <div class="card pitch-card">
-        <div class="card-header">
-            <h5 class="mb-0">Raw Pitch Data (JSON)</h5>
+    <div class="raw-json-card">
+        <div class="raw-json-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            <span>Raw Pitch Data (JSON)</span>
+            <button class="copy-json-btn" @onclick="CopyJson">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                <span>@(_copied ? "Copied!" : "Copy")</span>
+            </button>
         </div>
-        <div class="card-body">
-            <pre class="raw-json-pre"><code>@JsonSerializer.Serialize(Data, new JsonSerializerOptions 
+        <div class="raw-json-body">
+            <pre><code>@JsonSerializer.Serialize(Data, new JsonSerializerOptions 
     { 
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
@@ -19,4 +24,25 @@
 @code {
     [Parameter]
     public object? Data { get; set; }
+    private bool _copied;
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    private async Task CopyJson()
+    {
+        if (Data != null)
+        {
+            var json = JsonSerializer.Serialize(Data, new JsonSerializerOptions 
+            { 
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+            });
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", json);
+            _copied = true;
+            StateHasChanged();
+            await Task.Delay(2000);
+            _copied = false;
+            StateHasChanged();
+        }
+    }
 }
