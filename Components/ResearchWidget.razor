@@ -1,32 +1,124 @@
-<div class="card">
-    <div class="card-header">
-        <h5 class="card-title">Academic Research Papers</h5>
+@using System.Text.Json
+@using System.Text.Json.Serialization
+
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-journal-text me-2"></i> Academic Research Papers
+        </h5>
     </div>
     <div class="card-body">
         <div class="mb-3">
-            <label for="topicInput" class="form-label">Research Topic</label>
-            <input type="text" class="form-control" id="topicInput" @bind="topic" @bind:event="oninput" placeholder="e.g., machine learning in finance" />
+            <label for="topicInput" class="form-label fw-bold">Research Topic</label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="topicInput" @bind="topic" @bind:event="oninput" placeholder="e.g., machine learning in finance" @onkeypress="HandleKeyPress" />
+                <button class="btn btn-primary" @onclick="SearchPapers" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        <span>Searching...</span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-search me-2"></i>
+                        <span>Search Papers</span>
+                    }
+                </button>
+            </div>
+            <small class="form-text text-muted">Searches academic papers and returns summaries, authors and links when available.</small>
         </div>
-        <div class="mb-3">
-            <label for="maxPapersInput" class="form-label">Max Papers</label>
-            <input type="number" class="form-control" id="maxPapersInput" @bind="maxPapers" min="1" max="10" />
+
+        <div class="row g-2 align-items-center mb-3">
+            <div class="col-auto">
+                <label for="maxPapersInput" class="form-label mb-0">Max Papers</label>
+                <input type="number" class="form-control" id="maxPapersInput" style="width:100px;" @bind="maxPapers" min="1" max="25" />
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary" @onclick="ExportToCSV" disabled="@(papers == null || !papers.Any())">
+                    <i class="bi bi-download me-1"></i> Export CSV
+                </button>
+            </div>
         </div>
-        <button class="btn btn-primary" @onclick="SearchPapers">Search Papers</button>
-        
-        @if (papersData != null)
+
+        @if (!string.IsNullOrEmpty(errorMessage))
         {
-            <div class="mt-3">
-                <h6>Research Papers on "@topic"</h6>
-                <pre>@papersData</pre>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                @errorMessage
+                <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
             </div>
         }
-        else if (isLoading)
+
+        @if (isLoading && (papers == null || !papers.Any()))
         {
-            <div class="mt-3">
-                <div class="spinner-border" role="status">
+            <div class="d-flex justify-content-center my-4">
+                <div class="spinner-border" role="status" style="width:3rem;height:3rem;">
                     <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
+        }
+
+        @if (papers != null && papers.Any())
+        {
+            <div class="mt-3">
+                <h6 class="mb-3">Results for "@topic" (@papers.Length papers)</h6>
+
+                @foreach (var p in papers)
+                {
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="flex-grow-1">
+                                    <h6 class="card-title mb-1">
+                                        @if (!string.IsNullOrEmpty(p.Link))
+                                        {
+                                            <a href="@p.Link" target="_blank" class="text-decoration-none text-dark">@p.Title <i class="bi bi-box-arrow-up-right ms-1 small"></i></a>
+                                        }
+                                        else
+                                        {
+                                            @p.Title
+                                        }
+                                    </h6>
+
+                                    @if (!string.IsNullOrEmpty(p.Journal) || p.Year > 0)
+                                    {
+                                        <div class="mb-2 small text-muted">
+                                            @if (!string.IsNullOrEmpty(p.Journal)) { <span>@p.Journal</span>; }
+                                            @if (p.Year > 0) { <span class="ms-2">@p.Year</span>; }
+                                        </div>
+                                    }
+
+                                    @if (p.Authors != null && p.Authors.Any())
+                                    {
+                                        <div class="mb-2">
+                                            @foreach (var a in p.Authors.Take(5))
+                                            {
+                                                <span class="badge bg-light text-dark me-1">@a</span>
+                                            }
+                                            @if (p.Authors.Length > 5)
+                                            {
+                                                <span class="badge bg-secondary">+@((p.Authors.Length) - 5) more</span>
+                                            }
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(p.Abstract))
+                                    {
+                                        <p class="card-text text-muted small mb-0">@Truncate(p.Abstract, 350)</p>
+                                    }
+                                </div>
+                                <div class="ms-3 text-end">
+                                    <span class="badge bg-info">Score: @p.Score.ToString("F2")</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else if (!isLoading && (papers == null || !papers.Any()))
+        {
+            <div class="text-muted">No papers found yet. Enter a topic and click Search.</div>
         }
     </div>
 </div>
@@ -34,31 +126,107 @@
 @code {
     private string topic = "quantitative finance";
     private int maxPapers = 5;
-    private string? papersData;
+
+    private ResearchPaper[]? papers;
     private bool isLoading = false;
+    private string? errorMessage;
 
     private async Task SearchPapers()
     {
+        if (string.IsNullOrWhiteSpace(topic))
+        {
+            errorMessage = "Please enter a research topic.";
+            return;
+        }
+
         isLoading = true;
-        papersData = null;
-        
+        errorMessage = null;
+        papers = null;
+
         try
         {
-            var requestData = new { Topic = topic, MaxPapers = maxPapers };
+            var requestData = new { Topic = topic.Trim(), MaxPapers = maxPapers };
             var response = await Http.PostAsJsonAsync("api/research-papers", requestData);
-            if (response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
-                papersData = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Failed to load papers: {response.StatusCode}";
+                return;
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+
+            // Try to deserialize into structured objects. Fallback to simple string if not JSON.
+            try
+            {
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                papers = JsonSerializer.Deserialize<ResearchPaper[]>(json, options);
+
+                // If deserialization produced null but server returned text, wrap it
+                if (papers == null)
+                {
+                    papers = new[] { new ResearchPaper { Title = json } };
+                }
+            }
+            catch
+            {
+                // Not JSON array, treat as plain text
+                papers = new[] { new ResearchPaper { Title = json } };
             }
         }
         catch (Exception ex)
         {
-            papersData = $"Error: {ex.Message}";
+            errorMessage = $"Error: {ex.Message}";
         }
-        
-        isLoading = false;
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchPapers();
+        }
+    }
+
+    private string Truncate(string? text, int maxLen)
+    {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        return text.Length <= maxLen ? text : text.Substring(0, maxLen) + "...";
+    }
+
+    private void ExportToCSV()
+    {
+        if (papers == null || !papers.Any()) return;
+
+        var csv = "Title,Authors,Journal,Year,Link,Abstract,Score\n";
+        foreach (var p in papers)
+        {
+            var authors = p.Authors != null ? string.Join(";", p.Authors).Replace("\"","\"\"") : "";
+            var title = p.Title?.Replace("\"","\"\"") ?? "";
+            var journal = p.Journal?.Replace("\"","\"\"") ?? "";
+            var link = p.Link?.Replace("\"","\"\"") ?? "";
+            var abs = p.Abstract?.Replace("\"","\"\"") ?? "";
+            csv += $"\"{title}\",\"{authors}\",\"{journal}\",\"{p.Year}\",\"{link}\",\"{abs}\",\"{p.Score}\"\n";
+        }
+
+        // For now, write to console. In production use JSInterop to trigger download.
+        Console.WriteLine(csv);
     }
 
     [Inject]
     private HttpClient Http { get; set; } = default!;
+
+    public class ResearchPaper
+    {
+        public string Title { get; set; } = "";
+        public string[] Authors { get; set; } = Array.Empty<string>();
+        public string Abstract { get; set; } = "";
+        public string Journal { get; set; } = "";
+        public int Year { get; set; }
+        public string Link { get; set; } = "";
+        public double Score { get; set; }
+    }
 }
