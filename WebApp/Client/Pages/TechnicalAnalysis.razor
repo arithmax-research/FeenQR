@@ -4,7 +4,7 @@
 @inject IJSRuntime JS
 @inject HttpClient Http
 
-<PageTitle>FeenQR - Technical Analysis</PageTitle>
+<PageTitle>Technical Analysis</PageTitle>
 
 <style>
     .ta-container {
@@ -910,9 +910,16 @@
                             <select class="select-field" @bind="lookbackDays">
                                 <option value="30">30 Days</option>
                                 <option value="60">60 Days</option>
-                                <option value="100" selected>100 Days</option>
+                                <option value="90">90 Days</option>
+                                <option value="100">100 Days</option>
                                 <option value="200">200 Days</option>
                                 <option value="365">1 Year</option>
+                                <option value="730">2 Years</option>
+                                <option value="1095">3 Years</option>
+                                <option value="1460">4 Years</option>
+                                <option value="1825">5 Years</option>
+                                <option value="2190">6 Years</option>
+                                <option value="2555">7 Years</option>
                             </select>
                         </div>
                         <button class="submit-btn" style="width: 100%; margin-top: 1rem;" @onclick="AnalyzeSymbol" disabled="@isLoading">

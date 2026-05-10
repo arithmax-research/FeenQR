@@ -83,10 +83,8 @@
 /* ── Layout Grid ── */
 
 .pitch-layout {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 2rem;
-    align-items: start;
+    /* deprecated grid layout replaced by Bootstrap rows/cols */
+    display: block;
 }
 
 @media (max-width: 992px) {

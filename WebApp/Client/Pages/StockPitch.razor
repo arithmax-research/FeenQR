@@ -5,9 +5,9 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-<PageTitle>Stock Pitch Generator - FeenQR</PageTitle>
+<PageTitle>Stock Pitcher</PageTitle>
 
-<div class="stock-pitch-page" id="pitchContainer">
+<div class="container-fluid py-4 stock-pitch-page" id="pitchContainer">
     <!-- Page Header with brand gradient -->
     <div class="pitch-header">
         <div class="pitch-header-content">
@@ -27,9 +27,9 @@
         </div>
     </div>
 
-    <div class="pitch-layout">
+    <div class="row g-4">
         <!-- Left Sidebar -->
-        <aside class="pitch-sidebar">
+        <div class="col-lg-3 pitch-sidebar">
             <PitchSidebar @bind-Symbol="Symbol"
                           @bind-Lookback="Lookback"
                           @bind-PositionType="PositionType"
@@ -80,10 +80,10 @@
                     </ul>
                 </div>
             }
-        </aside>
+        </div>
 
         <!-- Right: Main Content Area -->
-        <main class="pitch-main">
+        <div class="col-lg-9 pitch-main">
             @if (IsGenerating)
             {
                 <div class="pitch-loading">
@@ -186,7 +186,7 @@
                     </div>
                 </div>
             }
-        </main>
+        </div>
     </div>
 </div>
 
