@@ -537,10 +537,26 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<IConfiguration>()
                 )
             );
+            services.AddSingleton<FinnhubService>(sp =>
+                new FinnhubService(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<FinnhubService>>(),
+                    sp.GetRequiredService<IConfiguration>()
+                )
+            );
+            services.AddSingleton<TiingoService>(sp =>
+                new TiingoService(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<TiingoService>>(),
+                    sp.GetRequiredService<IConfiguration>()
+                )
+            );
             services.AddSingleton<EnhancedFundamentalAnalysisService>(sp =>
                 new EnhancedFundamentalAnalysisService(
                     sp.GetRequiredService<AlphaVantageService>(),
                     sp.GetRequiredService<FinancialModelingPrepService>(),
+                    sp.GetRequiredService<FinnhubService>(),
+                    sp.GetRequiredService<TiingoService>(),
                     sp.GetRequiredService<YFinanceApiService>(),
                     sp.GetRequiredService<AlpacaService>(),
                     sp.GetRequiredService<DataBentoService>(),

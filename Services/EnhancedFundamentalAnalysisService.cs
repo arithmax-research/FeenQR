@@ -17,6 +17,8 @@ public class EnhancedFundamentalAnalysisService
 {
     private readonly AlphaVantageService _alphaVantageService;
     private readonly FinancialModelingPrepService _fmpService;
+    private readonly FinnhubService _finnhubService;
+    private readonly TiingoService _tiingoService;
     private readonly YFinanceApiService _yfinanceService;
     private readonly AlpacaService _alpacaService;
     private readonly DataBentoService _databentoService;
@@ -26,6 +28,8 @@ public class EnhancedFundamentalAnalysisService
     public EnhancedFundamentalAnalysisService(
         AlphaVantageService alphaVantageService,
         FinancialModelingPrepService fmpService,
+        FinnhubService finnhubService,
+        TiingoService tiingoService,
         YFinanceApiService yfinanceService,
         AlpacaService alpacaService,
         DataBentoService databentoService,
@@ -34,6 +38,8 @@ public class EnhancedFundamentalAnalysisService
     {
         _alphaVantageService = alphaVantageService;
         _fmpService = fmpService;
+        _finnhubService = finnhubService;
+        _tiingoService = tiingoService;
         _yfinanceService = yfinanceService;
         _alpacaService = alpacaService;
         _databentoService = databentoService;
@@ -52,7 +58,7 @@ public class EnhancedFundamentalAnalysisService
 
     /// <summary>
     /// Get comprehensive company overview combining multiple data sources
-    /// Fallback order: FMP -> Alpha Vantage -> Yahoo Finance -> Alpaca -> DataBento
+    /// Fallback order: FMP -> Finnhub -> Tiingo -> Alpha Vantage -> Yahoo Finance -> Alpaca -> DataBento
     /// </summary>
     public async Task<EnhancedCompanyOverview> GetComprehensiveCompanyOverviewAsync(string symbol)
     {
@@ -63,16 +69,20 @@ public class EnhancedFundamentalAnalysisService
             var fmpKeyMetricsTask = _fmpService.GetKeyMetricsAsync(symbol, 1); // Get latest metrics
             var fmpRatiosTask = _fmpService.GetFinancialRatiosAsync(symbol, 1); // Get latest ratios
             var fmpQuoteTask = _fmpService.GetQuoteAsync(symbol);
+            var finnhubMetricsTask = _finnhubService.GetCompanyMetricsAsync(symbol);
+            var tiingoMetadataTask = _tiingoService.GetDailyMetadataAsync(symbol);
             var alphaVantageOverviewTask = _alphaVantageService.GetCompanyOverviewAsync(symbol);
             var yfinanceTask = _yfinanceService.GetFundamentalsAsync(symbol);
             var alpacaMarketDataTask = _alpacaService.GetMarketDataAsync(symbol);
 
-            await Task.WhenAll(fmpProfileTask, fmpKeyMetricsTask, fmpRatiosTask, fmpQuoteTask, alphaVantageOverviewTask, yfinanceTask, alpacaMarketDataTask);
+            await Task.WhenAll(fmpProfileTask, fmpKeyMetricsTask, fmpRatiosTask, fmpQuoteTask, finnhubMetricsTask, tiingoMetadataTask, alphaVantageOverviewTask, yfinanceTask, alpacaMarketDataTask);
 
             var fmpProfile = await fmpProfileTask;
             var fmpKeyMetrics = await fmpKeyMetricsTask;
             var fmpRatios = await fmpRatiosTask;
             var fmpQuote = await fmpQuoteTask;
+            var finnhubMetrics = await finnhubMetricsTask;
+            var tiingoMetadata = await tiingoMetadataTask;
             var alphaVantageOverview = await alphaVantageOverviewTask;
             var yfinance = await yfinanceTask;
             var alpacaData = await alpacaMarketDataTask;
@@ -81,59 +91,61 @@ public class EnhancedFundamentalAnalysisService
             var keyMetrics = fmpKeyMetrics?.FirstOrDefault();
             var ratios = fmpRatios?.FirstOrDefault();
 
-            _logger.LogInformation($"Data sources for {symbol} - FMP Profile: {fmpProfile != null}, FMP Metrics: {keyMetrics != null}, FMP Ratios: {ratios != null}, AlphaVantage: {alphaVantageOverview != null}, YFinance: {yfinance != null}, Alpaca: {alpacaData != null}");
+            _logger.LogInformation($"Data sources for {symbol} - FMP: {fmpProfile != null}, Finnhub: {finnhubMetrics != null}, Tiingo: {tiingoMetadata != null}, AlphaVantage: {alphaVantageOverview != null}, YFinance: {yfinance != null}");
 
-            // Combine data from all sources with cascading fallback logic: FMP -> Alpha Vantage -> YFinance -> Alpaca
+            // Combine data from all sources with cascading fallback logic: FMP -> Finnhub -> Tiingo -> Alpha Vantage -> YFinance -> Alpaca
             var overview = new EnhancedCompanyOverview
             {
                 Symbol = symbol,
-                CompanyName = fmpProfile?.CompanyName ?? alphaVantageOverview?.Name,
-                Description = fmpProfile?.Description ?? alphaVantageOverview?.Description ?? yfinance?.LongBusinessSummary,
-                Industry = fmpProfile?.Industry ?? alphaVantageOverview?.Industry ?? yfinance?.Industry,
-                Sector = fmpProfile?.Sector ?? alphaVantageOverview?.Sector ?? yfinance?.Sector,
-                Exchange = fmpQuote?.Exchange ?? alphaVantageOverview?.Exchange,
+                CompanyName = fmpProfile?.CompanyName ?? alphaVantageOverview?.Name ?? tiingoMetadata?.Name,
+                Description = fmpProfile?.Description ?? alphaVantageOverview?.Description ?? yfinance?.LongBusinessSummary ?? tiingoMetadata?.Description,
+                Industry = fmpProfile?.Industry ?? tiingoMetadata?.Industry ?? alphaVantageOverview?.Industry ?? yfinance?.Industry,
+                Sector = fmpProfile?.Sector ?? tiingoMetadata?.Sector ?? alphaVantageOverview?.Sector ?? yfinance?.Sector,
+                Exchange = fmpQuote?.Exchange ?? tiingoMetadata?.ExchangeCode ?? alphaVantageOverview?.Exchange,
                 Country = fmpProfile?.Country ?? alphaVantageOverview?.Country,
-                Website = fmpProfile?.Website ?? alphaVantageOverview?.Website,
+                Website = fmpProfile?.Website ?? tiingoMetadata?.Website ?? alphaVantageOverview?.Website,
                 CEO = fmpProfile?.CEO,
                 Employees = int.TryParse(fmpProfile?.FullTimeEmployees, out var emp) ? emp : 0,
-                MarketCap = fmpQuote?.MarketCap > 0.0m ? (long)fmpQuote.MarketCap : (long.TryParse(alphaVantageOverview?.MarketCapitalization, out var mc) ? mc : (yfinance?.MarketCap ?? 0L)),
+                MarketCap = fmpQuote?.MarketCap > 0.0m ? (long)fmpQuote.MarketCap : ((tiingoMetadata?.MarketCap ?? 0m) > 0 ? (long)tiingoMetadata.MarketCap.Value : (long.TryParse(alphaVantageOverview?.MarketCapitalization, out var mc) ? mc : (yfinance?.MarketCap ?? 0L))),
                 
-                // P/E Ratio - triple fallback: FMP -> Alpha Vantage -> YFinance
-                PERatio = (keyMetrics?.PeRatio ?? 0m) > 0 ? keyMetrics.PeRatio.Value : (ParseDecimal(alphaVantageOverview?.PERatio) > 0 ? ParseDecimal(alphaVantageOverview?.PERatio) : (yfinance?.TrailingPE ?? 0m)),
+                // P/E Ratio - quad fallback: FMP -> Alpha Vantage -> YFinance -> Tiingo
+                PERatio = (keyMetrics?.PeRatio ?? 0m) > 0 ? keyMetrics.PeRatio.Value : (ParseDecimal(alphaVantageOverview?.PERatio) > 0 ? ParseDecimal(alphaVantageOverview?.PERatio) : ((tiingoMetadata?.PERatio ?? 0m) > 0 ? tiingoMetadata.PERatio.Value : (yfinance?.TrailingPE ?? 0m))),
                 
-                // PEG Ratio - triple fallback
-                PEGRatio = (ratios?.PriceEarningsToGrowthRatio ?? 0m) > 0 ? ratios.PriceEarningsToGrowthRatio : (ParseDecimal(alphaVantageOverview?.PEGRatio) > 0 ? ParseDecimal(alphaVantageOverview?.PEGRatio) : (yfinance?.PegRatio ?? 0m)),
+                // PEG Ratio - penta fallback: FMP -> Finnhub -> Tiingo -> Alpha Vantage -> YFinance
+                PEGRatio = (ratios?.PriceEarningsToGrowthRatio ?? 0m) > 0 ? ratios.PriceEarningsToGrowthRatio : ((finnhubMetrics?.PEGRatio ?? 0m) > 0 ? finnhubMetrics.PEGRatio.Value : ((tiingoMetadata?.PEGRatio ?? 0m) > 0 ? tiingoMetadata.PEGRatio.Value : (ParseDecimal(alphaVantageOverview?.PEGRatio) > 0 ? ParseDecimal(alphaVantageOverview?.PEGRatio) : (yfinance?.PegRatio ?? 0m)))),
                 
-                BookValue = keyMetrics?.BookValuePerShare ?? (ParseDecimal(alphaVantageOverview?.BookValue) > 0 ? ParseDecimal(alphaVantageOverview?.BookValue) : (yfinance?.PriceToBook ?? 0m)),
-                DividendPerShare = keyMetrics?.DividendYield ?? (ParseDecimal(alphaVantageOverview?.DividendPerShare) > 0 ? ParseDecimal(alphaVantageOverview?.DividendPerShare) : 0m),
-                DividendYield = ratios?.DividendYield ?? (ParseDecimal(alphaVantageOverview?.DividendYield) > 0 ? ParseDecimal(alphaVantageOverview?.DividendYield) : (yfinance?.DividendYield ?? 0m)),
+                BookValue = keyMetrics?.BookValuePerShare ?? ((tiingoMetadata?.PriceToBook ?? 0m) > 0 ? tiingoMetadata.PriceToBook.Value : (ParseDecimal(alphaVantageOverview?.BookValue) > 0 ? ParseDecimal(alphaVantageOverview?.BookValue) : (yfinance?.PriceToBook ?? 0m))),
+                DividendPerShare = keyMetrics?.DividendYield ?? (tiingoMetadata?.DividendPerShare ?? (ParseDecimal(alphaVantageOverview?.DividendPerShare) > 0 ? ParseDecimal(alphaVantageOverview?.DividendPerShare) : 0m)),
+                DividendYield = ratios?.DividendYield ?? ((finnhubMetrics?.DividendYield ?? 0m) > 0 ? finnhubMetrics.DividendYield.Value : ((tiingoMetadata?.DividendYield ?? 0m) > 0 ? tiingoMetadata.DividendYield.Value : (ParseDecimal(alphaVantageOverview?.DividendYield) > 0 ? ParseDecimal(alphaVantageOverview?.DividendYield) : (yfinance?.DividendYield ?? 0m)))),
                 
                 // EPS - triple fallback
-                EPS = keyMetrics?.NetIncomePerShare ?? (ParseDecimal(alphaVantageOverview?.EPS) > 0 ? ParseDecimal(alphaVantageOverview?.EPS) : (yfinance?.TrailingPE > 0 && yfinance?.CurrentPrice > 0 ? (yfinance.CurrentPrice.Value / yfinance.TrailingPE.Value) : 0m)),
+                EPS = keyMetrics?.NetIncomePerShare ?? ((tiingoMetadata?.EPS ?? 0m) > 0 ? tiingoMetadata.EPS.Value : (ParseDecimal(alphaVantageOverview?.EPS) > 0 ? ParseDecimal(alphaVantageOverview?.EPS) : (yfinance?.TrailingPE > 0 && yfinance?.CurrentPrice > 0 ? (yfinance.CurrentPrice.Value / yfinance.TrailingPE.Value) : 0m))),
                 
-                RevenuePerShareTTM = keyMetrics?.RevenuePerShare ?? (ParseDecimal(alphaVantageOverview?.RevenuePerShareTTM) > 0 ? ParseDecimal(alphaVantageOverview?.RevenuePerShareTTM) : 0m),
+                RevenuePerShareTTM = keyMetrics?.RevenuePerShare ?? ((finnhubMetrics?.RevenuePerShare ?? 0m) > 0 ? finnhubMetrics.RevenuePerShare.Value : (ParseDecimal(alphaVantageOverview?.RevenuePerShareTTM) > 0 ? ParseDecimal(alphaVantageOverview?.RevenuePerShareTTM) : 0m)),
                 
                 // Profitability Metrics - triple fallback
-                ProfitMargin = (ratios?.NetProfitMargin ?? 0m) > 0 ? ratios.NetProfitMargin : (ParseDecimal(alphaVantageOverview?.ProfitMargin) > 0 ? ParseDecimal(alphaVantageOverview?.ProfitMargin) : 0m),
-                OperatingMarginTTM = (ratios?.OperatingMargin ?? 0m) > 0 ? ratios.OperatingMargin : (ParseDecimal(alphaVantageOverview?.OperatingMarginTTM) > 0 ? ParseDecimal(alphaVantageOverview?.OperatingMarginTTM) : 0m),
-                ReturnOnAssetsTTM = (ratios?.ReturnOnAssets ?? 0m) > 0 ? ratios.ReturnOnAssets : (ParseDecimal(alphaVantageOverview?.ReturnOnAssetsTTM) > 0 ? ParseDecimal(alphaVantageOverview?.ReturnOnAssetsTTM) : 0m),
-                ReturnOnEquityTTM = (ratios?.ReturnOnEquity ?? 0m) > 0 ? ratios.ReturnOnEquity : (ParseDecimal(alphaVantageOverview?.ReturnOnEquityTTM) > 0 ? ParseDecimal(alphaVantageOverview?.ReturnOnEquityTTM) : (yfinance?.ReturnOnEquity ?? 0m)),
+                ProfitMargin = (ratios?.NetProfitMargin ?? 0m) > 0 ? ratios.NetProfitMargin : ((finnhubMetrics?.NetMargin ?? 0m) > 0 ? finnhubMetrics.NetMargin.Value : ((tiingoMetadata?.ProfitMargin ?? 0m) > 0 ? tiingoMetadata.ProfitMargin.Value : (ParseDecimal(alphaVantageOverview?.ProfitMargin) > 0 ? ParseDecimal(alphaVantageOverview?.ProfitMargin) : 0m))),
+                OperatingMarginTTM = (ratios?.OperatingMargin ?? 0m) > 0 ? ratios.OperatingMargin : ((finnhubMetrics?.OperatingMargin ?? 0m) > 0 ? finnhubMetrics.OperatingMargin.Value : ((tiingoMetadata?.OperatingMargin ?? 0m) > 0 ? tiingoMetadata.OperatingMargin.Value : (ParseDecimal(alphaVantageOverview?.OperatingMarginTTM) > 0 ? ParseDecimal(alphaVantageOverview?.OperatingMarginTTM) : 0m))),
+                ReturnOnAssetsTTM = (ratios?.ReturnOnAssets ?? 0m) > 0 ? ratios.ReturnOnAssets : ((finnhubMetrics?.ROA ?? 0m) > 0 ? finnhubMetrics.ROA.Value : ((tiingoMetadata?.ROA ?? 0m) > 0 ? tiingoMetadata.ROA.Value : (ParseDecimal(alphaVantageOverview?.ReturnOnAssetsTTM) > 0 ? ParseDecimal(alphaVantageOverview?.ReturnOnAssetsTTM) : 0m))),
+                ReturnOnEquityTTM = (ratios?.ReturnOnEquity ?? 0m) > 0 ? ratios.ReturnOnEquity : ((finnhubMetrics?.ROE ?? 0m) > 0 ? finnhubMetrics.ROE.Value : ((tiingoMetadata?.ROE ?? 0m) > 0 ? tiingoMetadata.ROE.Value : (ParseDecimal(alphaVantageOverview?.ReturnOnEquityTTM) > 0 ? ParseDecimal(alphaVantageOverview?.ReturnOnEquityTTM) : (yfinance?.ReturnOnEquity ?? 0m)))),
                 
-                QuarterlyEarningsGrowthYOY = (ParseDecimal(alphaVantageOverview?.QuarterlyEarningsGrowthYOY) > 0 ? ParseDecimal(alphaVantageOverview?.QuarterlyEarningsGrowthYOY) : (yfinance?.EarningsGrowth ?? 0m)),
+                QuarterlyEarningsGrowthYOY = (ParseDecimal(alphaVantageOverview?.QuarterlyEarningsGrowthYOY) > 0 ? ParseDecimal(alphaVantageOverview?.QuarterlyEarningsGrowthYOY) : ((tiingoMetadata?.EPSGrowth ?? 0m) > 0 ? tiingoMetadata.EPSGrowth.Value : (yfinance?.EarningsGrowth ?? 0m))),
                 QuarterlyRevenueGrowthYOY = (ParseDecimal(alphaVantageOverview?.QuarterlyRevenueGrowthYOY) > 0 ? ParseDecimal(alphaVantageOverview?.QuarterlyRevenueGrowthYOY) : (yfinance?.RevenueGrowth ?? 0m)),
                 AnalystTargetPrice = ParseDecimal(alphaVantageOverview?.AnalystTargetPrice),
-                TrailingPE = (keyMetrics?.PeRatio ?? 0m) > 0 ? keyMetrics.PeRatio.Value : (ParseDecimal(alphaVantageOverview?.PERatio) > 0 ? ParseDecimal(alphaVantageOverview?.PERatio) : (yfinance?.TrailingPE ?? 0m)),
-                ForwardPE = ParseDecimal(alphaVantageOverview?.ForwardPE) > 0 ? ParseDecimal(alphaVantageOverview?.ForwardPE) : (yfinance?.ForwardPE ?? 0m),
-                PriceToSalesRatioTTM = keyMetrics?.PriceToSalesRatio ?? (ParseDecimal(alphaVantageOverview?.PriceToSalesRatioTTM) > 0 ? ParseDecimal(alphaVantageOverview?.PriceToSalesRatioTTM) : (yfinance?.PriceToSalesTrailing12Months ?? 0m)),
-                PriceToBookRatio = keyMetrics?.PbRatio ?? (ParseDecimal(alphaVantageOverview?.PriceToBookRatio) > 0 ? ParseDecimal(alphaVantageOverview?.PriceToBookRatio) : (yfinance?.PriceToBook ?? 0m)),
-                EVToRevenue = (keyMetrics?.EvToSales ?? 0m) > 0 ? keyMetrics.EvToSales.Value : (ParseDecimal(alphaVantageOverview?.EVToRevenue) > 0 ? ParseDecimal(alphaVantageOverview?.EVToRevenue) : 0m),
-                EVToEBITDA = (keyMetrics?.EnterpriseValueOverEBITDA ?? 0m) > 0 ? keyMetrics.EnterpriseValueOverEBITDA.Value : (ParseDecimal(alphaVantageOverview?.EVToEBITDA) > 0 ? ParseDecimal(alphaVantageOverview?.EVToEBITDA) : 0m),
-                Beta = ParseDecimal(alphaVantageOverview?.Beta) > 0 ? ParseDecimal(alphaVantageOverview?.Beta) : (yfinance?.Beta ?? 0m),
-                FiftyTwoWeekHigh = fmpQuote?.YearHigh ?? (ParseDecimal(alphaVantageOverview?.FiftyTwoWeekHigh) > 0 ? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekHigh) : (yfinance?.FiftyTwoWeekHigh ?? 0m)),
-                FiftyTwoWeekLow = fmpQuote?.YearLow ?? (ParseDecimal(alphaVantageOverview?.FiftyTwoWeekLow) > 0 ? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekLow) : (yfinance?.FiftyTwoWeekLow ?? 0m)),
+                TrailingPE = (keyMetrics?.PeRatio ?? 0m) > 0 ? keyMetrics.PeRatio.Value : (ParseDecimal(alphaVantageOverview?.PERatio) > 0 ? ParseDecimal(alphaVantageOverview?.PERatio) : ((tiingoMetadata?.PERatio ?? 0m) > 0 ? tiingoMetadata.PERatio.Value : (yfinance?.TrailingPE ?? 0m))),
+                // Forward P/E - penta fallback: FMP -> Finnhub -> Tiingo -> Alpha Vantage -> YFinance
+                ForwardPE = ((finnhubMetrics?.ForwardPE ?? 0m) > 0 ? finnhubMetrics.ForwardPE.Value : ((tiingoMetadata?.ForwardDividendYield ?? 0m) > 0 ? tiingoMetadata.ForwardDividendYield.Value : (ParseDecimal(alphaVantageOverview?.ForwardPE) > 0 ? ParseDecimal(alphaVantageOverview?.ForwardPE) : (yfinance?.ForwardPE ?? 0m)))),
+                PriceToSalesRatioTTM = keyMetrics?.PriceToSalesRatio ?? ((finnhubMetrics?.PriceToSales ?? 0m) > 0 ? finnhubMetrics.PriceToSales.Value : ((tiingoMetadata?.PriceToSales ?? 0m) > 0 ? tiingoMetadata.PriceToSales.Value : (ParseDecimal(alphaVantageOverview?.PriceToSalesRatioTTM) > 0 ? ParseDecimal(alphaVantageOverview?.PriceToSalesRatioTTM) : (yfinance?.PriceToSalesTrailing12Months ?? 0m)))),
+                PriceToBookRatio = keyMetrics?.PbRatio ?? ((finnhubMetrics?.PriceToBook ?? 0m) > 0 ? finnhubMetrics.PriceToBook.Value : ((tiingoMetadata?.PriceToBook ?? 0m) > 0 ? tiingoMetadata.PriceToBook.Value : (ParseDecimal(alphaVantageOverview?.PriceToBookRatio) > 0 ? ParseDecimal(alphaVantageOverview?.PriceToBookRatio) : (yfinance?.PriceToBook ?? 0m)))),
+                EVToRevenue = (keyMetrics?.EvToSales ?? 0m) > 0 ? keyMetrics.EvToSales.Value : ((finnhubMetrics?.EVToRevenue ?? 0m) > 0 ? finnhubMetrics.EVToRevenue.Value : ((tiingoMetadata?.EVToRevenue ?? 0m) > 0 ? tiingoMetadata.EVToRevenue.Value : (ParseDecimal(alphaVantageOverview?.EVToRevenue) > 0 ? ParseDecimal(alphaVantageOverview?.EVToRevenue) : 0m))),
+                // EV/EBITDA - penta fallback: FMP -> Finnhub -> Tiingo -> Alpha Vantage -> 0 (if all fail)
+                EVToEBITDA = (keyMetrics?.EnterpriseValueOverEBITDA ?? 0m) > 0 ? keyMetrics.EnterpriseValueOverEBITDA.Value : ((finnhubMetrics?.EVToEBITDA ?? 0m) > 0 ? finnhubMetrics.EVToEBITDA.Value : ((tiingoMetadata?.EVToEBITDA ?? 0m) > 0 ? tiingoMetadata.EVToEBITDA.Value : (ParseDecimal(alphaVantageOverview?.EVToEBITDA) > 0 ? ParseDecimal(alphaVantageOverview?.EVToEBITDA) : 0m))),
+                Beta = ((finnhubMetrics?.Beta ?? 0m) > 0 ? finnhubMetrics.Beta.Value : ((tiingoMetadata?.Beta ?? 0m) > 0 ? tiingoMetadata.Beta.Value : (ParseDecimal(alphaVantageOverview?.Beta) > 0 ? ParseDecimal(alphaVantageOverview?.Beta) : (yfinance?.Beta ?? 0m)))),
+                FiftyTwoWeekHigh = fmpQuote?.YearHigh ?? ((tiingoMetadata?.FiftyTwoWeekHigh ?? 0m) > 0 ? tiingoMetadata.FiftyTwoWeekHigh.Value : (ParseDecimal(alphaVantageOverview?.FiftyTwoWeekHigh) > 0 ? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekHigh) : (yfinance?.FiftyTwoWeekHigh ?? 0m))),
+                FiftyTwoWeekLow = fmpQuote?.YearLow ?? ((tiingoMetadata?.FiftyTwoWeekLow ?? 0m) > 0 ? tiingoMetadata.FiftyTwoWeekLow.Value : (ParseDecimal(alphaVantageOverview?.FiftyTwoWeekLow) > 0 ? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekLow) : (yfinance?.FiftyTwoWeekLow ?? 0m))),
                 FiftyDayMovingAverage = fmpQuote?.PriceAvg50 ?? (ParseDecimal(alphaVantageOverview?.FiftyDayMovingAverage) > 0 ? ParseDecimal(alphaVantageOverview?.FiftyDayMovingAverage) : 0m),
                 TwoHundredDayMovingAverage = fmpQuote?.PriceAvg200 ?? (ParseDecimal(alphaVantageOverview?.TwoHundredDayMovingAverage) > 0 ? ParseDecimal(alphaVantageOverview?.TwoHundredDayMovingAverage) : 0m),
-                SharesOutstanding = fmpQuote?.SharesOutstanding > 0 ? fmpQuote.SharesOutstanding : (long.TryParse(alphaVantageOverview?.SharesOutstanding, out var so) ? so : (yfinance?.SharesOutstanding ?? 0L)),
+                SharesOutstanding = fmpQuote?.SharesOutstanding > 0 ? fmpQuote.SharesOutstanding : ((tiingoMetadata?.SharesOutstanding ?? 0L) > 0 ? tiingoMetadata.SharesOutstanding.Value : (long.TryParse(alphaVantageOverview?.SharesOutstanding, out var so) ? so : (yfinance?.SharesOutstanding ?? 0L))),
                 DividendDate = alphaVantageOverview?.DividendDate,
                 ExDividendDate = alphaVantageOverview?.ExDividendDate,
                 LastSplitFactor = alphaVantageOverview?.LastSplitFactor,

@@ -306,6 +306,362 @@
         color: #6b7280;
         font-style: italic;
     }
+
+    .stock-pitch-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .stock-pitch-subtitle {
+        color: #9ca3af;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin-top: -0.75rem;
+        max-width: 72rem;
+    }
+
+    .stock-pitch-shell {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .stock-pitch-banner {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(26, 115, 232, 0.16), rgba(16, 185, 129, 0.08));
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+    }
+
+    .stock-pitch-banner h3 {
+        margin: 0.25rem 0 0.5rem;
+        color: #ffffff;
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    .stock-pitch-banner p {
+        margin: 0;
+        color: #cbd5e1;
+        max-width: 64rem;
+        line-height: 1.6;
+        font-size: 0.92rem;
+    }
+
+    .stock-pitch-kicker {
+        color: #60a5fa;
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+
+    .stock-pitch-badge {
+        align-self: flex-start;
+        padding: 0.55rem 0.85rem;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(96, 165, 250, 0.3);
+        color: #bfdbfe;
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .stock-pitch-layout {
+        display: grid;
+        grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .stock-pitch-sidebar,
+    .stock-pitch-main {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 1rem;
+        box-sizing: border-box;
+    }
+
+    .stock-pitch-main {
+        min-width: 0;
+    }
+
+    .stock-pitch-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.65rem;
+        margin-top: 1rem;
+    }
+
+    .stock-pitch-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        padding: 0.75rem 0.9rem;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: rgba(15, 23, 42, 0.55);
+        color: #e5e7eb;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .stock-pitch-action-btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        border-color: rgba(96, 165, 250, 0.35);
+        background: rgba(30, 41, 59, 0.8);
+    }
+
+    .stock-pitch-action-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .stock-pitch-action-btn.primary {
+        border-color: rgba(59, 130, 246, 0.35);
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.9), rgba(14, 165, 233, 0.75));
+        color: #ffffff;
+    }
+
+    .stock-pitch-action-btn.secondary {
+        border-color: rgba(16, 185, 129, 0.28);
+        color: #d1fae5;
+    }
+
+    .stock-pitch-action-btn.ghost {
+        border-color: rgba(148, 163, 184, 0.22);
+        color: #cbd5e1;
+    }
+
+    .stock-pitch-tip-card,
+    .stock-pitch-empty,
+    .stock-pitch-loading,
+    .stock-pitch-error {
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(15, 23, 42, 0.5);
+        padding: 1.25rem;
+    }
+
+    .stock-pitch-tip-card {
+        margin-top: 1rem;
+    }
+
+    .stock-pitch-tip-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #bfdbfe;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+    }
+
+    .stock-pitch-tip-list {
+        margin: 0;
+        padding-left: 1.1rem;
+        color: #cbd5e1;
+        line-height: 1.6;
+        font-size: 0.88rem;
+    }
+
+    .stock-pitch-tabs {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+
+    .stock-pitch-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.7rem 1rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(255, 255, 255, 0.03);
+        color: #9ca3af;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .stock-pitch-tab:hover:not(:disabled) {
+        color: #f9fafb;
+        border-color: rgba(96, 165, 250, 0.3);
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .stock-pitch-tab.active {
+        color: #ffffff;
+        border-color: rgba(59, 130, 246, 0.4);
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.85), rgba(14, 165, 233, 0.65));
+    }
+
+    .stock-pitch-tab:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .stock-pitch-tab-unavailable {
+        margin-left: 0.35rem;
+        padding: 0.12rem 0.45rem;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.15);
+        color: #cbd5e1;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+    .stock-pitch-main-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .stock-pitch-main-title {
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .stock-pitch-main-subtitle {
+        color: #9ca3af;
+        font-size: 0.85rem;
+        margin-top: 0.2rem;
+    }
+
+    .stock-pitch-loading {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+
+    .stock-pitch-spinner {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 4px solid rgba(255, 255, 255, 0.08);
+        border-top-color: #60a5fa;
+        animation: stockPitchSpin 1s linear infinite;
+    }
+
+    @@keyframes stockPitchSpin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .stock-pitch-loading-title,
+    .stock-pitch-error-title,
+    .stock-pitch-empty h3 {
+        color: #ffffff;
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .stock-pitch-loading-copy,
+    .stock-pitch-error-copy,
+    .stock-pitch-empty p {
+        color: #cbd5e1;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    .stock-pitch-error {
+        border-color: rgba(239, 68, 68, 0.22);
+        background: rgba(69, 10, 10, 0.35);
+    }
+
+    .stock-pitch-empty {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .stock-pitch-empty-icon,
+    .stock-pitch-error-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(37, 99, 235, 0.14);
+        color: #93c5fd;
+        flex-shrink: 0;
+    }
+
+    .stock-pitch-error-icon {
+        background: rgba(239, 68, 68, 0.12);
+        color: #fca5a5;
+    }
+
+    .stock-pitch-empty-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .stock-pitch-metric-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .stock-pitch-metric {
+        padding: 0.85rem 0.9rem;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stock-pitch-metric-label {
+        color: #9ca3af;
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.35rem;
+        font-weight: 700;
+    }
+
+    .stock-pitch-metric-value {
+        color: #ffffff;
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
+
+    @@media (max-width: 1100px) {
+        .stock-pitch-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .stock-pitch-banner {
+            flex-direction: column;
+        }
+
+        .stock-pitch-actions,
+        .stock-pitch-metric-row {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
 <div class="research-container">
@@ -318,6 +674,7 @@
             <button class="tab-btn @(activeTab == "scraper" ? "active" : "")" @onclick='() => SwitchTab("scraper")'>Scraper</button>
             <button class="tab-btn @(activeTab == "research-synthesis" ? "active" : "")" @onclick='() => SwitchTab("research-synthesis")'>Synthesis</button>
             <button class="tab-btn @(activeTab == "research-reports" ? "active" : "")" @onclick='() => SwitchTab("research-reports")'>Reports</button>
+            <button class="tab-btn @(activeTab == "stock-pitch" ? "active" : "")" @onclick='() => SwitchTab("stock-pitch")'>Stock Pitch</button>
             <button class="tab-btn @(activeTab == "news-analytics" ? "active" : "")" @onclick='() => SwitchTab("news-analytics")'>News Analytics</button>
         </div>
     </div>
@@ -704,6 +1061,160 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        }
+
+        @if (activeTab == "stock-pitch")
+        {
+            <div class="stock-pitch-section">
+
+                <!-- Top: Horizontal input row for parameters -->
+                <div class="stock-pitch-params" style="display:flex; gap:1rem; align-items:center; padding:1rem; background: rgba(255,255,255,0.03); border-radius:12px; margin-bottom:1rem;">
+                    <div style="font-weight:600; color:#9ca3af; min-width:140px;">Input Parameters</div>
+
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <label style="color:#9ca3af; font-size:0.85rem;">Stock Symbol</label>
+                        <input type="text" @bind="stockPitchSymbol" placeholder="AAPL" style="padding:0.5rem 0.75rem; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); color:#fff;" />
+                    </div>
+
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <label style="color:#9ca3af; font-size:0.85rem;">Position Type</label>
+                        <select @bind="stockPitchPositionType" style="padding:0.5rem 0.75rem; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); color:#fff;">
+                            <option value="Auto">Auto (AI Decides)</option>
+                            <option value="Long">Long</option>
+                            <option value="Short">Short</option>
+                        </select>
+                    </div>
+
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <label style="color:#9ca3af; font-size:0.85rem;">Lookback Period</label>
+                        <select @bind="stockPitchLookback" style="padding:0.5rem 0.75rem; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); color:#fff;">
+                            <option value="30">30 days</option>
+                            <option value="90">90 days</option>
+                            <option value="180">180 days</option>
+                            <option value="365">1 year</option>
+                            <option value="730">2 years</option>
+                            <option value="1095">3 years</option>
+                            <option value="1460">4 years</option>
+                            <option value="1825">5 years</option>
+                            <option value="2190">6 years</option>
+                            <option value="2555">7 years</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-left:auto; display:flex; gap:0.5rem;">
+                        <button class="stock-pitch-action-btn primary" @onclick="GenerateStockPitch" disabled="@isGeneratingStockPitch">
+                            @if (isGeneratingStockPitch) { <span>Generating...</span> } else { <span>Generate</span> }
+                        </button>
+                        <button class="stock-pitch-action-btn ghost" @onclick="ClearStockPitch" disabled="@(isGeneratingStockPitch)">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Bottom: Two-column grid - left analysis, right charts + resources -->
+                <div class="stock-pitch-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+
+                    <!-- Left: Analysis / Pitch Content -->
+                    <div style="background: rgba(255,255,255,0.03); border-radius:12px; padding:1rem; min-height:420px;">
+                        @if (isGeneratingStockPitch)
+                        {
+                            <div class="stock-pitch-loading">
+                                <div class="stock-pitch-spinner"></div>
+                                <div class="stock-pitch-loading-title">Generating pitch for @stockPitchSymbol</div>
+                                <div class="stock-pitch-loading-copy">Gathering fundamentals, valuation inputs, news context, SEC filings, earnings, and technical data.</div>
+                            </div>
+                        }
+                        else if (!string.IsNullOrEmpty(stockPitchError))
+                        {
+                            <div class="stock-pitch-error">
+                                <div class="stock-pitch-error-title">Generation failed</div>
+                                <div class="stock-pitch-error-copy">@stockPitchError</div>
+                                <div style="margin-top:1rem; display:flex; gap:0.5rem;"><button class="stock-pitch-action-btn primary" @onclick="GenerateStockPitch">Try again</button><button class="stock-pitch-action-btn ghost" @onclick="ClearStockPitch">Reset</button></div>
+                            </div>
+                        }
+                        else if (stockPitch != null)
+                        {
+                            <div class="stock-pitch-main-header">
+                                <div>
+                                    <div class="stock-pitch-main-title">@stockPitch.Symbol pitch</div>
+                                    <div class="stock-pitch-main-subtitle">@stockPitch.PositionType | @stockPitch.TargetPrice target | @stockPitch.ExpectedReturn expected return</div>
+                                </div>
+                                <div class="stock-pitch-badge">@stockPitch.Conviction conviction</div>
+                            </div>
+
+                            <div style="margin-top:1rem;">
+                                <PitchContent Pitch="stockPitch" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="display:flex; align-items:center; justify-content:center; height:100%; color:#6b7280; text-align:center;">
+                                <div>
+                                    <h3>Ready to generate a pitch</h3>
+                                    <p>Configure a symbol, choose the position style, and generate a research-backed stock pitch.</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Right: Charts (ScottPlot / Technical) + Resources -->
+                    <div style="display:flex; flex-direction:column; gap:1rem;">
+                        <div style="background: rgba(255,255,255,0.03); border-radius:12px; padding:1rem; min-height:320px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                                <div style="font-weight:600; color:#9ca3af;">Technical Charts</div>
+                                <div style="color:#6b7280; font-size:0.85rem;">Data: Alpaca / Market</div>
+                            </div>
+
+                            @if (stockPitchChartData != null)
+                            {
+                                <!-- Server-rendered ScottPlot image or client fallback. -->
+                                <TechnicalCharts Data="stockPitchChartData" Symbol="@stockPitch?.Symbol" Days="@stockPitchLookback" />
+                            }
+                            else
+                            {
+                                <div style="color:#6b7280;">Charts will appear here after generation. (We parse OHLCV from Alpaca.)</div>
+                            }
+                        </div>
+
+                        <div style="background: rgba(255,255,255,0.02); border-radius:12px; padding:1rem; flex:1; overflow:auto;">
+                            <div style="font-weight:600; color:#9ca3af; margin-bottom:0.5rem;">Resources & Citations</div>
+                            <div style="margin-bottom:0.75rem; color:#d1d5db;">Fundamentals</div>
+                            @if (stockPitch?.Fundamentals != null)
+                            {
+                                <table style="width:100%; border-collapse:collapse; color:#d1d5db; font-size:0.9rem;">
+                                    <tbody>
+                                        @foreach (var kv in stockPitch.Fundamentals)
+                                        {
+                                            <tr>
+                                                <td style="padding:6px 8px; border-bottom:1px solid rgba(255,255,255,0.03); color:#9ca3af; width:40%;">@kv.Key</td>
+                                                <td style="padding:6px 8px; border-bottom:1px solid rgba(255,255,255,0.03);">@kv.Value</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                            else
+                            {
+                                <div style="color:#6b7280;">Fundamental tables will populate after generation.</div>
+                            }
+
+                            <div style="margin-top:1rem; color:#d1d5db; font-weight:600;">Citations</div>
+                            @if (stockPitch?.Citations != null && stockPitch.Citations.Any())
+                            {
+                                <ul style="color:#d1d5db; font-size:0.9rem;">
+                                    @foreach (var c in stockPitch.Citations)
+                                    {
+                                        <li><a href="@c.Url" target="_blank" style="color:#93c5fd;">@c.Title</a></li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <div style="color:#6b7280;">Sources, filings, and research links will be listed here.</div>
+                            }
+                        </div>
+                    </div>
+
                 </div>
             </div>
         }
@@ -1330,6 +1841,15 @@
     private string chatQuery = "";
     private string selectedModel = "openai"; // "openai" or "deepseek"
     private List<ConversationMessage> conversationHistory = new();
+    private string stockPitchSymbol = "AAPL";
+    private int stockPitchLookback = 365;
+    private string stockPitchPositionType = "auto";
+    private bool isGeneratingStockPitch = false;
+    private StockPitchResult? stockPitch;
+    private TechnicalChartDto? stockPitchChartData;
+    private string? stockPitchError;
+    private int stockPitchActiveView;
+    private bool stockPitchCopyFeedback;
     private string videoQuery = "";
     private string paperQuery = "";
     private string synthesisQuery = "";
@@ -1478,6 +1998,162 @@
         StateHasChanged();
     }
 
+    private async Task GenerateStockPitch()
+    {
+        if (string.IsNullOrWhiteSpace(stockPitchSymbol))
+        {
+            stockPitchError = "Please enter a stock symbol.";
+            return;
+        }
+
+        isGeneratingStockPitch = true;
+        stockPitchError = null;
+        stockPitch = null;
+        stockPitchChartData = null;
+        stockPitchActiveView = 0;
+
+        try
+        {
+            var cleanSymbol = stockPitchSymbol.Trim().ToUpperInvariant();
+            var response = await Http.PostAsJsonAsync("/api/stockpitch/generate", new
+            {
+                Symbol = cleanSymbol,
+                PositionType = stockPitchPositionType
+            });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                stockPitchError = $"Server error ({response.StatusCode}): {errorBody}";
+                return;
+            }
+
+            var responseData = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+            if (responseData.TryGetProperty("success", out var successProp) && successProp.GetBoolean())
+            {
+                stockPitch = new StockPitchResult
+                {
+                    Symbol = responseData.GetProperty("symbol").GetString() ?? cleanSymbol,
+                    PositionType = responseData.GetProperty("positionType").GetString() ?? "N/A",
+                    TargetPrice = responseData.GetProperty("targetPrice").GetString() ?? "N/A",
+                    ExpectedReturn = responseData.GetProperty("expectedReturn").GetString() ?? "N/A",
+                    Conviction = responseData.GetProperty("conviction").GetString() ?? "Medium",
+                    TimeHorizon = responseData.GetProperty("timeHorizon").GetString() ?? "6-12 months",
+                    GeneratedAt = responseData.GetProperty("generatedAt").GetDateTime().ToString("yyyy-MM-dd HH:mm:ss UTC"),
+                    GenerationTimeMs = responseData.GetProperty("generationTimeMs").GetDouble(),
+                    DataSources = JsonSerializer.Deserialize<List<string>>(responseData.GetProperty("dataSourcesUsed").GetRawText()) ?? new List<string>()
+                };
+
+                if (responseData.TryGetProperty("fundamentals", out var fundamentalsProp))
+                {
+                    stockPitch.Fundamentals = JsonSerializer.Deserialize<Dictionary<string, string>>(fundamentalsProp.GetRawText()) ?? new Dictionary<string, string>();
+                }
+
+                if (responseData.TryGetProperty("citations", out var citationsProp))
+                {
+                    stockPitch.Citations = JsonSerializer.Deserialize<List<Citation>>(citationsProp.GetRawText()) ?? new List<Citation>();
+                }
+
+                var pitch = responseData.GetProperty("pitch");
+                if (pitch.TryGetProperty("stockRecommendation", out var rec))
+                    stockPitch.StockRecommendation = rec.GetString() ?? "";
+                if (pitch.TryGetProperty("companyOverview", out var co))
+                    stockPitch.CompanyOverview = co.GetString() ?? "";
+                if (pitch.TryGetProperty("investmentThesis", out var it))
+                    stockPitch.InvestmentThesis = it.GetString() ?? "";
+                if (pitch.TryGetProperty("catalysts", out var cat))
+                    stockPitch.Catalysts = cat.GetString() ?? "";
+                if (pitch.TryGetProperty("valuationAndReturns", out var vr))
+                    stockPitch.ValuationAndReturns = vr.GetString() ?? "";
+                if (pitch.TryGetProperty("risksAndMitigation", out var rm))
+                    stockPitch.RisksAndMitigation = rm.GetString() ?? "";
+                if (pitch.TryGetProperty("conclusion", out var conc))
+                    stockPitch.Conclusion = conc.GetString() ?? "";
+
+                var rawText = new System.Text.StringBuilder();
+                rawText.AppendLine($"STOCK PITCH: {stockPitch.Symbol}");
+                rawText.AppendLine($"Position: {stockPitch.PositionType} | Target: {stockPitch.TargetPrice} | Return: {stockPitch.ExpectedReturn} | Conviction: {stockPitch.Conviction} | Horizon: {stockPitch.TimeHorizon}");
+                rawText.AppendLine();
+                if (!string.IsNullOrWhiteSpace(stockPitch.StockRecommendation)) { rawText.AppendLine("STOCK RECOMMENDATION"); rawText.AppendLine(stockPitch.StockRecommendation); rawText.AppendLine(); }
+                if (!string.IsNullOrWhiteSpace(stockPitch.CompanyOverview)) { rawText.AppendLine("COMPANY OVERVIEW"); rawText.AppendLine(stockPitch.CompanyOverview); rawText.AppendLine(); }
+                if (!string.IsNullOrWhiteSpace(stockPitch.InvestmentThesis)) { rawText.AppendLine("INVESTMENT THESIS"); rawText.AppendLine(stockPitch.InvestmentThesis); rawText.AppendLine(); }
+                if (!string.IsNullOrWhiteSpace(stockPitch.Catalysts)) { rawText.AppendLine("CATALYSTS"); rawText.AppendLine(stockPitch.Catalysts); rawText.AppendLine(); }
+                if (!string.IsNullOrWhiteSpace(stockPitch.ValuationAndReturns)) { rawText.AppendLine("VALUATION & RETURNS"); rawText.AppendLine(stockPitch.ValuationAndReturns); rawText.AppendLine(); }
+                if (!string.IsNullOrWhiteSpace(stockPitch.RisksAndMitigation)) { rawText.AppendLine("RISKS & MITIGATION"); rawText.AppendLine(stockPitch.RisksAndMitigation); rawText.AppendLine(); }
+                if (!string.IsNullOrWhiteSpace(stockPitch.Conclusion)) { rawText.AppendLine("CONCLUSION"); rawText.AppendLine(stockPitch.Conclusion); }
+                stockPitch.RawPitchText = rawText.ToString();
+
+                try
+                {
+                    stockPitchChartData = await Http.GetFromJsonAsync<TechnicalChartDto>($"/api/pitch/technicalcharts/{cleanSymbol}?days={stockPitchLookback}");
+                }
+                catch
+                {
+                    // Technical charts are optional.
+                }
+            }
+            else
+            {
+                if (responseData.TryGetProperty("error", out var errorProp))
+                    stockPitchError = errorProp.GetString();
+                else
+                    stockPitchError = "Failed to generate stock pitch. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            stockPitchError = $"Error: {ex.Message}";
+            Console.WriteLine($"StockPitch error: {ex}");
+        }
+        finally
+        {
+            isGeneratingStockPitch = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearStockPitch()
+    {
+        stockPitch = null;
+        stockPitchChartData = null;
+        stockPitchError = null;
+        stockPitchActiveView = 0;
+        stockPitchCopyFeedback = false;
+    }
+
+    private async Task CopyStockPitch()
+    {
+        if (stockPitch != null && !string.IsNullOrEmpty(stockPitch.RawPitchText))
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", stockPitch.RawPitchText);
+            stockPitchCopyFeedback = true;
+            StateHasChanged();
+            await Task.Delay(2000);
+            stockPitchCopyFeedback = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExportStockPitchPdf()
+    {
+        await JS.InvokeVoidAsync("feenqr.exportPitchPdf", "stockPitchContainer", $"{stockPitchSymbol}-pitch.pdf");
+    }
+
+    private void SetStockPitchView(int view)
+    {
+        stockPitchActiveView = view;
+
+        if (view == 1 && stockPitchChartData != null)
+        {
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(100);
+                await InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+
     private async Task ScrapeNewsUrl()
     {
         if (string.IsNullOrWhiteSpace(scraperUrl))
@@ -1496,7 +2172,7 @@
             var response = await Http.PostAsJsonAsync("api/scrape-news-url", new { Url = scraperUrl });
             response.EnsureSuccessStatusCode();
             
-            var article = await response.Content.ReadFromJsonAsync<NewsScraperResult>();
+            var article = await response.Content.ReadFromJsonAsync(typeof(NewsScraperResult)) as NewsScraperResult;
             if (article != null)
             {
                 newsArticles = new List<NewsScraperResult> { article };
@@ -1552,7 +2228,7 @@
             var response = await Http.PostAsJsonAsync("api/scrape-news-urls-batch", new { Urls = urls });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<NewsBatchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(NewsBatchResponse)) as NewsBatchResponse;
             if (result?.Results != null && result.Results.Any())
             {
                 newsArticles = result.Results;
@@ -1659,7 +2335,7 @@
                 var response = await Http.PostAsJsonAsync("api/research/linkedin-scrape", new { Url = scraperUrl });
                 response.EnsureSuccessStatusCode();
                 
-                var posts = await response.Content.ReadFromJsonAsync<List<ScrapedPost>>();
+                var posts = await response.Content.ReadFromJsonAsync(typeof(List<ScrapedPost>)) as List<ScrapedPost>;
                 if (posts != null && posts.Any())
                 {
                     scrapedPosts = posts;
@@ -1733,7 +2409,7 @@
             
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<FeenChatResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(FeenChatResponse)) as FeenChatResponse;
             
             if (result != null)
             {
@@ -1780,7 +2456,7 @@
             var response = await Http.PostAsJsonAsync("api/research/analyze-video", new { VideoUrl = videoQuery });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result;
             
             await JS.InvokeVoidAsync("console.log", $"Video Analysis Result: {lastResult}");
@@ -1811,7 +2487,7 @@
             var response = await Http.PostAsJsonAsync("api/research/research-papers", new { Query = paperQuery, MaxResults = 20 });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             
             // Parse the result to extract individual papers
             if (!string.IsNullOrWhiteSpace(result?.Result))
@@ -1892,7 +2568,7 @@
             
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result ?? "No insights generated";
             foundPapers.Clear(); // Clear to show insights
             
@@ -1926,7 +2602,7 @@
             
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result ?? "No analysis generated";
             foundPapers.Clear(); // Clear to show analysis result
             
@@ -1978,7 +2654,7 @@
             var response = await Http.PostAsync(endpoint, content);
             response.EnsureSuccessStatusCode();
 
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result ?? "No analysis generated";
             
             await JS.InvokeVoidAsync("console.log", $"PDF Analysis Result: {lastResult}");
@@ -2007,7 +2683,7 @@
             var response = await Http.PostAsJsonAsync("api/research/research-synthesis", new { Topic = synthesisQuery, PaperUrls = new List<string>(), MaxPapers = 10 });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result;
             
             await JS.InvokeVoidAsync("console.log", $"Research Synthesis Result: {lastResult}");
@@ -2036,7 +2712,7 @@
             var response = await Http.PostAsJsonAsync("api/research/research-report", new { Symbol = reportQuery, ReportType = "comprehensive" });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result;
             
             await JS.InvokeVoidAsync("console.log", $"Report Result: {lastResult}");
@@ -2159,7 +2835,7 @@
             var response1 = await Http.PostAsJsonAsync("api/research/load-video-transcript", new { VideoUrl = videoUrl1 });
             if (response1.IsSuccessStatusCode)
             {
-                var result1 = await response1.Content.ReadFromJsonAsync<VideoTranscriptResponse>();
+                var result1 = await response1.Content.ReadFromJsonAsync(typeof(VideoTranscriptResponse)) as VideoTranscriptResponse;
                 if (result1 != null && !string.IsNullOrEmpty(result1.Transcript))
                 {
                     loadedVideos.Add(new LoadedVideoInfo
@@ -2182,7 +2858,7 @@
                     
                     if (analysisResponse.IsSuccessStatusCode)
                     {
-                        var analysis = await analysisResponse.Content.ReadFromJsonAsync<VideoAnalysisResponse>();
+                        var analysis = await analysisResponse.Content.ReadFromJsonAsync(typeof(VideoAnalysisResponse)) as VideoAnalysisResponse;
                         if (analysis != null && !string.IsNullOrEmpty(analysis.Analysis))
                         {
                             videoMessages.Add(new RagMessage
@@ -2201,7 +2877,7 @@
                 var response2 = await Http.PostAsJsonAsync("api/research/load-video-transcript", new { VideoUrl = videoUrl2 });
                 if (response2.IsSuccessStatusCode)
                 {
-                    var result2 = await response2.Content.ReadFromJsonAsync<VideoTranscriptResponse>();
+                    var result2 = await response2.Content.ReadFromJsonAsync(typeof(VideoTranscriptResponse)) as VideoTranscriptResponse;
                     if (result2 != null && !string.IsNullOrEmpty(result2.Transcript))
                     {
                         loadedVideos.Add(new LoadedVideoInfo
@@ -2225,7 +2901,7 @@
                 var pdfResponse = await Http.PostAsync("/api/research/upload-video-pdf", content);
                 if (pdfResponse.IsSuccessStatusCode)
                 {
-                    var pdfResult = await pdfResponse.Content.ReadFromJsonAsync<PdfContentResponse>();
+                    var pdfResult = await pdfResponse.Content.ReadFromJsonAsync(typeof(PdfContentResponse)) as PdfContentResponse;
                     if (pdfResult != null && !string.IsNullOrEmpty(pdfResult.Content))
                     {
                         loadedVideos.Add(new LoadedVideoInfo
@@ -2298,7 +2974,7 @@
 
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadFromJsonAsync<VideoChatResponse>();
+                var result = await response.Content.ReadFromJsonAsync(typeof(VideoChatResponse)) as VideoChatResponse;
                 if (result != null && !string.IsNullOrEmpty(result.Answer))
                 {
                     videoMessages.Add(new RagMessage
@@ -2361,7 +3037,7 @@
             var response = await Http.PostAsJsonAsync("api/research/analyze-video", new { VideoUrl = videoQuery });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result;
             
             await JS.InvokeVoidAsync("console.log", $"Video Analysis: {lastResult}");
@@ -2387,7 +3063,7 @@
             var response = await Http.GetAsync("api/research/quantopian-videos");
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result;
             
             await JS.InvokeVoidAsync("console.log", $"Quantopian Videos: {lastResult}");
@@ -2415,7 +3091,7 @@
             var response = await Http.PostAsJsonAsync("api/research/search-finance-videos", new { Query = videoQuery, MaxResults = 10 });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result;
             
             await JS.InvokeVoidAsync("console.log", $"Finance Videos: {lastResult}");
@@ -2444,7 +3120,7 @@
             var response = await Http.PostAsJsonAsync("api/research/research-papers", new { Query = paperQuery, MaxResults = 20 });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result;
             
             await JS.InvokeVoidAsync("console.log", $"Paper Search: {lastResult}");
@@ -2472,7 +3148,7 @@
             var response = await Http.PostAsJsonAsync("api/research/analyze-paper", new { PaperUrl = paperQuery });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result;
             
             await JS.InvokeVoidAsync("console.log", $"Paper Analysis: {lastResult}");
@@ -2500,7 +3176,7 @@
             var response = await Http.PostAsJsonAsync("api/research/research-synthesis", new { Topic = paperQuery, PaperUrls = new List<string>(), MaxPapers = 10 });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result;
             
             await JS.InvokeVoidAsync("console.log", $"Paper Synthesis: {lastResult}");
@@ -2529,7 +3205,7 @@
             var response = await Http.PostAsJsonAsync("api/research/research-synthesis", new { Topic = synthesisQuery, PaperUrls = new List<string>(), MaxPapers = 10 });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result;
             
             await JS.InvokeVoidAsync("console.log", $"Research Synthesis: {lastResult}");
@@ -2557,7 +3233,7 @@
             var response = await Http.PostAsJsonAsync("api/research/quick-research", new { Query = synthesisQuery });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result;
             
             await JS.InvokeVoidAsync("console.log", $"Quick Research: {lastResult}");
@@ -2585,7 +3261,7 @@
             var response = await Http.PostAsJsonAsync("api/research/research-query", new { Query = synthesisQuery });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result;
             
             await JS.InvokeVoidAsync("console.log", $"Query System: {lastResult}");
@@ -2614,7 +3290,7 @@
             var response = await Http.PostAsJsonAsync("api/research/research-report", new { Symbol = reportQuery, ReportType = "comprehensive" });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result;
             
             await JS.InvokeVoidAsync("console.log", $"Research Report: {lastResult}");
@@ -2642,7 +3318,7 @@
             var response = await Http.PostAsJsonAsync("api/research/research-report", new { Symbol = reportQuery, ReportType = "strategy" });
             response.EnsureSuccessStatusCode();
             
-            var result = await response.Content.ReadFromJsonAsync<ResearchResponse>();
+            var result = await response.Content.ReadFromJsonAsync(typeof(ResearchResponse)) as ResearchResponse;
             lastResult = result?.Result;
             
             await JS.InvokeVoidAsync("console.log", $"Strategy Report: {lastResult}");

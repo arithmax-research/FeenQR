@@ -1,3 +1,4 @@
+using FeenQR.Core.Models;
 using Microsoft.AspNetCore.Mvc;
 using QuantResearchAgent.Services;
 
@@ -62,6 +63,8 @@ namespace Server.Controllers
                     generatedAt = result.GeneratedAt,
                     generationTimeMs = result.GenerationTimeMs,
                     dataSourcesUsed = result.DataSourcesUsed,
+                    fundamentals = BuildFundamentals(result),
+                    citations = BuildCitations(result),
                     pitch = new
                     {
                         stockRecommendation = result.StockRecommendation,
@@ -79,6 +82,87 @@ namespace Server.Controllers
                 _logger.LogError(ex, "Error generating stock pitch for {Symbol}", request.Symbol);
                 return StatusCode(500, new { error = $"Internal error: {ex.Message}" });
             }
+        }
+
+        private static Dictionary<string, string> BuildFundamentals(global::QuantResearchAgent.Services.StockPitchResult result)
+        {
+            var fundamentals = new Dictionary<string, string>();
+
+            if (result.CompanyOverviewData != null)
+            {
+                var c = result.CompanyOverviewData;
+                fundamentals["Company"] = c.CompanyName;
+                fundamentals["Sector"] = c.Sector;
+                fundamentals["Industry"] = c.Industry;
+                fundamentals["Market Cap"] = c.MarketCap > 0 ? $"${c.MarketCap:N0}" : "N/A";
+                fundamentals["P/E Ratio"] = c.PERatio > 0 ? c.PERatio.ToString("F2") : "N/A";
+                fundamentals["Dividend Yield"] = c.DividendYield > 0 ? c.DividendYield.ToString("P2") : "N/A";
+                fundamentals["ROE"] = c.ReturnOnEquityTTM > 0 ? c.ReturnOnEquityTTM.ToString("P2") : "N/A";
+                fundamentals["ROA"] = c.ReturnOnAssetsTTM > 0 ? c.ReturnOnAssetsTTM.ToString("P2") : "N/A";
+                fundamentals["52W High"] = c.FiftyTwoWeekHigh > 0 ? $"${c.FiftyTwoWeekHigh:F2}" : "N/A";
+                fundamentals["52W Low"] = c.FiftyTwoWeekLow > 0 ? $"${c.FiftyTwoWeekLow:F2}" : "N/A";
+            }
+
+            if (result.ValuationData != null)
+            {
+                var v = result.ValuationData;
+                fundamentals["Target Price"] = v.AnalystTargetPrice > 0 ? $"${v.AnalystTargetPrice:F2}" : "N/A";
+                fundamentals["Forward P/E"] = v.ForwardPE > 0 ? v.ForwardPE.ToString("F2") : "N/A";
+                fundamentals["PEG Ratio"] = v.PEGRatio > 0 ? v.PEGRatio.ToString("F2") : "N/A";
+                fundamentals["EV/EBITDA"] = v.EVToEBITDA > 0 ? v.EVToEBITDA.ToString("F2") : "N/A";
+                fundamentals["EV/Revenue"] = v.EVToRevenue > 0 ? v.EVToRevenue.ToString("F2") : "N/A";
+            }
+
+            if (result.AnalystData != null)
+            {
+                fundamentals["Consensus Rating"] = result.AnalystData.ConsensusRating ?? "N/A";
+                fundamentals["Analyst Count"] = result.AnalystData.NumberOfAnalysts > 0 ? result.AnalystData.NumberOfAnalysts.ToString() : "N/A";
+            }
+
+            if (result.MarketData?.Any() == true)
+            {
+                var latest = result.MarketData.OrderByDescending(x => x.Timestamp).First();
+                fundamentals["Last Price"] = latest.Close > 0 ? $"${latest.Close:F2}" : "N/A";
+                fundamentals["Last Volume"] = latest.Volume > 0 ? latest.Volume.ToString("N0") : "N/A";
+                fundamentals["Source"] = latest.Source;
+            }
+
+            return fundamentals;
+        }
+
+        private static List<global::FeenQR.Core.Models.Citation> BuildCitations(global::QuantResearchAgent.Services.StockPitchResult result)
+        {
+            var citations = new List<global::FeenQR.Core.Models.Citation>();
+            var symbol = result.Symbol?.ToUpperInvariant() ?? string.Empty;
+
+            void Add(string title, string url, string source, string description)
+            {
+                citations.Add(new global::FeenQR.Core.Models.Citation
+                {
+                    Title = title,
+                    Url = url,
+                    Source = source,
+                    Description = description,
+                    PublishedAt = DateTime.UtcNow
+                });
+            }
+
+            if (result.DataSourcesUsed.Any(x => x.Contains("MarketData", StringComparison.OrdinalIgnoreCase)))
+                Add($"{symbol} Market Data", $"/api/pitch/technicalcharts/{symbol}", "MarketData", "Historical technical and market data used in the pitch.");
+
+            if (result.CompanyOverviewData != null || result.ValuationData != null)
+                Add($"{symbol} Yahoo Finance", $"https://finance.yahoo.com/quote/{symbol}", "Yahoo Finance", "Price, valuation, and company fundamentals reference.");
+
+            if (result.SecFilingData != null)
+                Add($"{symbol} SEC Filings", $"https://www.sec.gov/edgar/search/#/q={symbol}", "SEC", "Recent SEC filing context used in the pitch.");
+
+            if (result.SentimentData?.NewsItems?.Any() == true)
+                Add($"{symbol} News Sentiment", "https://news.google.com/search?q=" + Uri.EscapeDataString(symbol + " stock"), "News", "Recent news and sentiment context used in the pitch.");
+
+            if (!citations.Any())
+                Add($"{symbol} Research", $"https://finance.yahoo.com/quote/{symbol}", "Research", "Primary market research reference.");
+
+            return citations;
         }
 
         /// <summary>

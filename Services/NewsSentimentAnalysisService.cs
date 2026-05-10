@@ -971,11 +971,11 @@ namespace QuantResearchAgent.Services
         /// <summary>
         /// Fetch full article content from URL
         /// </summary>
-        private async Task<string?> FetchArticleContentAsync(string url)
+        private async Task<string?> FetchArticleContentAsync(string url, CancellationToken cancellationToken = default)
         {
             try
             {
-                var response = await _httpClient.GetAsync(url);
+                var response = await _httpClient.GetAsync(url, cancellationToken);
                 if (!response.IsSuccessStatusCode)
                     return null;
 
@@ -1053,11 +1053,17 @@ namespace QuantResearchAgent.Services
                     try
                     {
                         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                        var content = await FetchArticleContentAsync(n.Link);
+                        var content = await FetchArticleContentAsync(n.Link, cts.Token);
                         return (n, content);
                     }
-                    catch
+                    catch (OperationCanceledException)
                     {
+                        _logger.LogInformation("Skipping slow article fetch for {Url} after timeout", n.Link);
+                        return (n, (string?)null);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Skipping article fetch for {Url} due to error", n.Link);
                         return (n, (string?)null);
                     }
                 }).ToList();

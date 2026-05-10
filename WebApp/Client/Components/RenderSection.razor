@@ -1,17 +1,17 @@
 @* Reusable collapsible section for pitch content *@
-<div class="pitch-section @(IsExpanded ? "expanded" : "")">
-    <button class="pitch-section-header" @onclick="ToggleSection" aria-expanded="@(IsExpanded ? "true" : "false")">
-        <div class="section-title-group">
-            <span class="section-indicator"></span>
-            <span class="section-title">@Title</span>
+<div class="pitch-section @(IsExpanded ? "expanded" : "")" style="margin-bottom:1rem; border-radius:8px; overflow:hidden;">
+    <button class="pitch-section-header" @onclick="ToggleSection" aria-expanded="@(IsExpanded ? "true" : "false")" style="display:flex; align-items:center; justify-content:space-between; width:100%; padding:0.75rem 1rem; background:linear-gradient(90deg, rgba(59,130,246,0.06), transparent); border:none; cursor:pointer;">
+        <div class="section-title-group" style="display:flex; align-items:center; gap:0.75rem;">
+            <span class="section-indicator" style="width:10px; height:10px; background:#93c5fd; border-radius:50%; display:inline-block;"></span>
+            <span class="section-title" style="font-weight:700; color:#e5eefc;">@Title</span>
         </div>
-        <svg class="section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="section-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="6 9 12 15 18 9"/>
         </svg>
     </button>
-    <div class="pitch-section-body @(IsExpanded ? "open" : "")">
-        <div class="pitch-section-content">
-            @Content
+    <div class="pitch-section-body @(IsExpanded ? "open" : "")" style="background: rgba(255,255,255,0.02); padding:1rem;">
+        <div class="pitch-section-content" style="color:#d1d5db; line-height:1.6; font-size:0.95rem;">
+            @((MarkupString)FormatContent(Content))
         </div>
     </div>
 </div>
@@ -32,5 +32,14 @@
     private void ToggleSection()
     {
         IsExpanded = !IsExpanded;
+    }
+
+    private string FormatContent(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        // Convert double newlines into paragraphs and single newlines into <br/>
+        var paragraphs = text.Split(new string[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(p => p.Trim().Replace("\r\n", "\n").Replace("\n", "<br/>"));
+        return "<p>" + string.Join("</p><p>", paragraphs) + "</p>";
     }
 }

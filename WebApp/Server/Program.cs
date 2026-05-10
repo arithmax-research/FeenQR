@@ -165,6 +165,8 @@ builder.Services.AddSingleton<DataRequirementAdvisor>();
 builder.Services.AddSingleton<AlpacaService>();
 builder.Services.AddSingleton<AlphaVantageService>();
 builder.Services.AddSingleton<FinancialModelingPrepService>();
+builder.Services.AddSingleton<FinnhubService>();
+builder.Services.AddSingleton<TiingoService>();
 builder.Services.AddSingleton<YahooFinanceService>();
 builder.Services.AddSingleton<YFinanceApiService>();
 builder.Services.AddSingleton<PolygonService>();
@@ -216,6 +218,8 @@ builder.Services.AddSingleton<EnhancedFundamentalAnalysisService>(sp =>
     new EnhancedFundamentalAnalysisService(
         sp.GetRequiredService<AlphaVantageService>(),
         sp.GetRequiredService<FinancialModelingPrepService>(),
+        sp.GetRequiredService<FinnhubService>(),
+        sp.GetRequiredService<TiingoService>(),
         sp.GetRequiredService<YFinanceApiService>(),
         sp.GetRequiredService<AlpacaService>(),
         sp.GetRequiredService<DataBentoService>(),

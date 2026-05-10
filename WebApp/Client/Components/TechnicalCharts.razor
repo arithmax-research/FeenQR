@@ -1,14 +1,14 @@
 @inject IJSRuntime JS
 
-@if (Data != null)
+@if (Data != null && Data.Dates.Any())
 {
-    <div class="chart-panel">
+    <div class="chart-panel" style="margin-bottom:1rem;">
         <div class="chart-panel-header">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             <span>Price Action &amp; Moving Averages</span>
         </div>
         <div class="chart-panel-body">
-            <canvas id="priceChart" class="tech-chart-canvas"></canvas>
+            <canvas id="priceChart" class="tech-chart-canvas" style="min-height:520px;"></canvas>
         </div>
     </div>
 
@@ -34,11 +34,22 @@ else
     [Parameter]
     public TechnicalChartDto? Data { get; set; }
 
+    [Parameter]
+    public string? Symbol { get; set; }
+
+    [Parameter]
+    public int Days { get; set; } = 365;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (Data != null)
         {
-            await JS.InvokeVoidAsync("feenqr.renderTechCharts", Data);
+            // Render both price and indicator charts directly from the Alpaca-derived DTO.
+            try
+            {
+                await JS.InvokeVoidAsync("feenqr.renderTechCharts", Data);
+            }
+            catch { }
         }
     }
 }

@@ -7,7 +7,11 @@ namespace FeenQR.Core.Models;
 public class TechnicalChartDto
 {
     public List<string> Dates { get; set; } = new();
+    public List<decimal> Open { get; set; } = new();
     public List<decimal> Close { get; set; } = new();
+    public List<decimal> High { get; set; } = new();
+    public List<decimal> Low { get; set; } = new();
+    public List<decimal> Volume { get; set; } = new();
     public List<decimal?> Sma20 { get; set; } = new();
     public List<decimal?> Sma50 { get; set; } = new();
     public List<decimal?> Sma200 { get; set; } = new();

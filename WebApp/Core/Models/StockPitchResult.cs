@@ -22,4 +22,18 @@ public class StockPitchResult
     public string ValuationAndReturns { get; set; } = string.Empty;
     public string RisksAndMitigation { get; set; } = string.Empty;
     public string Conclusion { get; set; } = string.Empty;
+    // Optional structured fundamentals table (label -> value)
+    public Dictionary<string, string>? Fundamentals { get; set; } = new();
+
+    // References and research citations used to build the pitch
+    public List<Citation>? Citations { get; set; } = new();
+}
+
+public class Citation
+{
+    public string Title { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty;
+    public DateTime? PublishedAt { get; set; }
+    public string Description { get; set; } = string.Empty;
 }

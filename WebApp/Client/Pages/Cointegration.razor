@@ -82,7 +82,7 @@
                             </div>
                             <div class="metric-card">
                                 <div class="metric-label">Cointegrated</div>
-                                <div class="metric-value">@(comprehensive.EngleGrangerResult.IsCointegrated ? "✓ YES" : "✗ NO")</div>
+                                <div class="metric-value">@(comprehensive.EngleGrangerResult?.IsCointegrated == true ? "✓ YES" : "✗ NO")</div>
                             </div>
                             <div class="metric-card">
                                 <div class="metric-label">Half-Life (days)</div>

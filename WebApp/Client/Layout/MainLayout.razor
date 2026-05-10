@@ -10,7 +10,10 @@
         <MudDrawerHeader Style="@GetDrawerHeaderStyle()">
             <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                 <MudText Typo="Typo.h5" Style="@GetHeaderTextStyle()">FeenQR</MudText>
-                <MudIconButton Icon="@GetThemeIcon()" Color="Color.Inherit" OnClick="@ToggleTheme" Size="Size.Small" Style="@GetThemeIconStyle()" />
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <MudIconButton Icon="@GetThemeIcon()" Color="Color.Inherit" OnClick="@ToggleTheme" Size="Size.Small" Style="@GetThemeIconStyle()" />
+                    <MudIconButton Icon="@(drawerOpen ? Icons.Material.Filled.ChevronLeft : Icons.Material.Filled.Menu)" Color="Color.Inherit" OnClick="@ToggleDrawer" Size="Size.Small" Style="@GetThemeIconStyle()" Title="Toggle sidebar" />
+                </div>
             </div>
         </MudDrawerHeader>
         
@@ -28,7 +31,6 @@
             <MudText Typo="Typo.caption" Style="padding: 1rem 1rem 0.5rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Analytics</MudText>
             <MudNavLink Href="/technical-analysis" Icon="@Icons.Material.Filled.Timeline" IconColor="Color.Default">Technical Analysis</MudNavLink>
             <MudNavLink Href="/fundamental-analysis" Icon="@Icons.Material.Filled.Assessment" IconColor="Color.Default">Fundamental Analysis</MudNavLink>
-            <MudNavLink Href="/stock-pitch" Icon="@Icons.Material.Filled.Campaign" IconColor="Color.Default">Stock Pitch Generator</MudNavLink>
             <MudNavLink Href="/statistical-analysis" Icon="@Icons.Material.Filled.QueryStats" IconColor="Color.Default">Statistical Analysis</MudNavLink>
             <MudNavLink Href="/risk-analysis" Icon="@Icons.Material.Filled.Security" IconColor="Color.Default">Risk Analysis</MudNavLink>
             <MudNavLink Href="/sentiment" Icon="@Icons.Material.Filled.SentimentSatisfied" IconColor="Color.Default">Sentiment Analysis</MudNavLink>
@@ -68,6 +70,11 @@
         @Body
     </MudMainContent>
 </MudLayout>
+
+@if (!drawerOpen)
+{
+    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Primary" OnClick="@ToggleDrawer" Style="position:fixed; left:12px; top:12px; z-index:2000;" Title="Open sidebar" />
+}
 
 <AskFeen />
 
