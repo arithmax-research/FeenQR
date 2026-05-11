@@ -2,6 +2,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using QuantResearchAgent.Services;
 using QuantResearchAgent.Plugins;
+using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Text.Json;
 
@@ -264,6 +266,7 @@ namespace QuantResearchAgent.Services
                 {
                     uniqueNews[i].SentimentScore = sentimentResults[i].Score;
                     uniqueNews[i].SentimentLabel = sentimentResults[i].Label;
+                    uniqueNews[i].SentimentConfidence = sentimentResults[i].Confidence;
                     uniqueNews[i].KeyTopics = sentimentResults[i].KeyTopics;
                     uniqueNews[i].Impact = sentimentResults[i].Impact;
                 }
@@ -412,6 +415,7 @@ namespace QuantResearchAgent.Services
                 {
                     uniqueNews[i].SentimentScore = sentimentResults[i].Score;
                     uniqueNews[i].SentimentLabel = sentimentResults[i].Label;
+                    uniqueNews[i].SentimentConfidence = sentimentResults[i].Confidence;
                     uniqueNews[i].KeyTopics = sentimentResults[i].KeyTopics;
                     uniqueNews[i].Impact = sentimentResults[i].Impact;
                 }
@@ -832,6 +836,7 @@ namespace QuantResearchAgent.Services
                 {
                     uniqueNews[i].SentimentScore = sentimentResults[i].Score;
                     uniqueNews[i].SentimentLabel = sentimentResults[i].Label;
+                    uniqueNews[i].SentimentConfidence = sentimentResults[i].Confidence;
                     uniqueNews[i].KeyTopics = sentimentResults[i].KeyTopics;
                     uniqueNews[i].Impact = sentimentResults[i].Impact;
                 }
@@ -913,6 +918,7 @@ namespace QuantResearchAgent.Services
                     var sentiment = await AnalyzeNewsItemSentimentAsync(newsItem);
                     newsItem.SentimentScore = sentiment.Score;
                     newsItem.SentimentLabel = sentiment.Label;
+                    newsItem.SentimentConfidence = sentiment.Confidence;
                     newsItem.KeyTopics = sentiment.KeyTopics;
                     newsItem.Impact = sentiment.Impact;
                 }
@@ -926,73 +932,6 @@ namespace QuantResearchAgent.Services
             }
         }
 
-        /// <summary>
-        /// Fetch full article content from URL
-        /// </summary>
-        private async Task<string?> FetchArticleContentAsync(string url, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var response = await _httpClient.GetAsync(url, cancellationToken);
-                if (!response.IsSuccessStatusCode)
-                    return null;
-
-                var html = await response.Content.ReadAsStringAsync();
-                
-                // Extract main content using simple heuristics
-                // Remove script and style tags
-                html = System.Text.RegularExpressions.Regex.Replace(html, @"<script[^>]*>.*?</script>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                html = System.Text.RegularExpressions.Regex.Replace(html, @"<style[^>]*>.*?</style>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                
-                // Try to find main article content (common patterns)
-                var articlePatterns = new[] { 
-                    @"<article[^>]*>(.*?)</article>",
-                    @"<div[^>]*class=[""'][^""']*article[^""']*[""'][^>]*>(.*?)</div>",
-                    @"<div[^>]*class=[""'][^""']*content[^""']*[""'][^>]*>(.*?)</div>",
-                    @"<div[^>]*class=[""'][^""']*story[^""']*[""'][^>]*>(.*?)</div>"
-                };
-                
-                string? articleContent = null;
-                foreach (var pattern in articlePatterns)
-                {
-                    var match = System.Text.RegularExpressions.Regex.Match(html, pattern, System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                    if (match.Success)
-                    {
-                        articleContent = match.Groups[1].Value;
-                        break;
-                    }
-                }
-                
-                // If no specific article tag found, use body content
-                if (string.IsNullOrEmpty(articleContent))
-                {
-                    var bodyMatch = System.Text.RegularExpressions.Regex.Match(html, @"<body[^>]*>(.*?)</body>", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                    articleContent = bodyMatch.Success ? bodyMatch.Groups[1].Value : html;
-                }
-                
-                // Strip all HTML tags
-                articleContent = System.Text.RegularExpressions.Regex.Replace(articleContent, @"<[^>]+>", " ");
-                
-                // Decode HTML entities
-                articleContent = System.Net.WebUtility.HtmlDecode(articleContent);
-                
-                // Clean up whitespace
-                articleContent = System.Text.RegularExpressions.Regex.Replace(articleContent, @"\s+", " ");
-                articleContent = articleContent.Trim();
-                
-                // Limit to first 2000 chars to avoid token limits while getting substantial content
-                if (articleContent.Length > 2000)
-                    articleContent = articleContent.Substring(0, 2000) + "...";
-                
-                return string.IsNullOrWhiteSpace(articleContent) ? null : articleContent;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, $"Failed to fetch article content from {url}");
-                return null;
-            }
-        }
-
         private async Task<List<NewsItemSentiment>> AnalyzeBatchSentimentAsync(List<NewsItem> newsItems)
         {
             try
@@ -1000,135 +939,26 @@ namespace QuantResearchAgent.Services
                 if (newsItems.Count == 0)
                     return new List<NewsItemSentiment>();
 
-                _logger.LogInformation($"Fetching full article content for {newsItems.Count} items...");
-                
-                // Fetch article content in parallel (with timeout per article)
-                var contentTasks = newsItems.Select(async n => 
+                _logger.LogInformation($"Scoring {newsItems.Count} pipeline-provided articles without refetching article bodies");
+
+                var payload = new
                 {
-                    if (string.IsNullOrEmpty(n.Link))
-                        return (n, (string?)null);
-                    
-                    try
+                    articles = newsItems.Select(n => new
                     {
-                        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                        var content = await FetchArticleContentAsync(n.Link, cts.Token);
-                        return (n, content);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        _logger.LogInformation("Skipping slow article fetch for {Url} after timeout", n.Link);
-                        return (n, (string?)null);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Skipping article fetch for {Url} due to error", n.Link);
-                        return (n, (string?)null);
-                    }
-                }).ToList();
-                
-                var contentResults = await Task.WhenAll(contentTasks);
-                var articleContents = contentResults.ToDictionary(r => r.Item1, r => r.Item2);
-                
-                var fetchedCount = articleContents.Count(kv => !string.IsNullOrEmpty(kv.Value));
-                _logger.LogInformation($"Successfully fetched {fetchedCount}/{newsItems.Count} full articles");
+                        title = n.Title,
+                        summary = n.Summary,
+                        content = !string.IsNullOrWhiteSpace(n.FullContent)
+                            ? n.FullContent
+                            : n.Summary,
+                        publisher = n.Publisher,
+                        source = n.Source,
+                        publishedDate = n.PublishedDate,
+                        url = n.Link
+                    }).ToList()
+                };
 
-                var newsItemsJson = newsItems.Select((n, i) =>
-                {
-                    var content = articleContents.TryGetValue(n, out var c) && !string.IsNullOrEmpty(c) 
-                        ? c 
-                        : n.Summary;
-                    
-                    return $@"
-Item {i + 1}:
-Title: {n.Title}
-Publisher: {n.Publisher}
-Date: {n.PublishedDate:yyyy-MM-dd}
-Content: {content}
-Source URL: {n.Link}";
-                }).ToList();
-
-                var prompt = $@"
-Analyze the financial sentiment of these {newsItems.Count} news articles in a SINGLE batch response.
-Each article includes the FULL CONTENT (not just summary) for comprehensive analysis.
-
-{string.Join("\n\n", newsItemsJson)}
-
-Provide DEEP analysis for ALL articles based on the full content in this exact JSON array format:
-[
-    {{
-        ""score"": <number between -1.0 and 1.0>,
-        ""label"": ""<Very Negative|Negative|Neutral|Positive|Very Positive>"",
-        ""keyTopics"": [""topic1"", ""topic2"", ""topic3""],
-        ""impact"": ""<Low|Medium|High>"",
-        ""reasoning"": ""<comprehensive explanation based on full article analysis>""
-    }},
-    ... (repeat for all {newsItems.Count} items in order)
-]
-
-Perform COMPREHENSIVE analysis considering:
-- Full article context and narrative flow
-- Financial metrics and quantitative data mentioned
-- Expert quotes and analyst opinions with specific details
-- Market impact indicators (earnings beats/misses, guidance, partnerships)
-- Forward-looking statements and growth projections
-- Risk factors and challenges discussed
-- Competitive positioning and market share insights
-- Regulatory, legal, or compliance issues
-- Sentiment shifts throughout the article
-- Technical language indicating bullish/bearish positioning
-
-Provide nuanced scores reflecting the depth of content, not just headline sentiment.
-";
-
-                var jsonResponse = await _openAIService.GetChatCompletionAsync(prompt);
-                var cleanJson = ExtractJsonFromResponse(jsonResponse);
-                
-                if (string.IsNullOrWhiteSpace(cleanJson))
-                {
-                    _logger.LogWarning("No JSON extracted from OpenAI response");
-                    throw new Exception("Failed to extract JSON from response");
-                }
-                
-                _logger.LogInformation($"Extracted complete JSON response: {cleanJson}");
-                
-                var sentimentArray = JsonSerializer.Deserialize<JsonElement>(cleanJson);
-
-                var results = new List<NewsItemSentiment>();
-                if (sentimentArray.ValueKind == JsonValueKind.Array)
-                {
-                    foreach (var item in sentimentArray.EnumerateArray())
-                    {
-                        double scoreValue = 0.0;
-                        if (item.TryGetProperty("score", out var score) && score.ValueKind == JsonValueKind.Number)
-                        {
-                            score.TryGetDouble(out scoreValue);
-                        }
-
-                        results.Add(new NewsItemSentiment
-                        {
-                            Score = scoreValue,
-                            Label = item.TryGetProperty("label", out var label) ? label.GetString() ?? "Neutral" : "Neutral",
-                            KeyTopics = item.TryGetProperty("keyTopics", out var topics) && topics.ValueKind == JsonValueKind.Array
-                                ? topics.EnumerateArray().Select(t => t.GetString() ?? "").Where(t => !string.IsNullOrEmpty(t)).ToList()
-                                : new List<string>(),
-                            Impact = item.TryGetProperty("impact", out var impact) ? impact.GetString() ?? "Medium" : "Medium"
-                        });
-                    }
-                }
-
-                // Fill in any missing results with neutral sentiment
-                while (results.Count < newsItems.Count)
-                {
-                    results.Add(new NewsItemSentiment
-                    {
-                        Score = 0.0,
-                        Label = "Neutral",
-                        KeyTopics = new List<string>(),
-                        Impact = "Medium"
-                    });
-                }
-
-                return results;
+                var jsonResponse = await RunFastEmbedSentimentAsync(payload);
+                return ParseFastEmbedSentimentResults(jsonResponse, newsItems.Count);
             }
             catch (Exception ex)
             {
@@ -1147,45 +977,13 @@ Provide nuanced scores reflecting the depth of content, not just headline sentim
         {
             try
             {
-                var prompt = $@"
-Analyze the financial sentiment of this news article:
-
-Title: {newsItem.Title}
-Summary: {newsItem.Summary}
-Publisher: {newsItem.Publisher}
-Date: {newsItem.PublishedDate:yyyy-MM-dd}
-
-Provide analysis in this exact JSON format:
-{{
-    ""score"": <number between -1.0 and 1.0>,
-    ""label"": ""<Very Negative|Negative|Neutral|Positive|Very Positive>"",
-    ""keyTopics"": [""topic1"", ""topic2"", ""topic3""],
-    ""impact"": ""<Low|Medium|High>"",
-    ""reasoning"": ""<brief explanation>""
-}}
-
-Consider:
-- Financial keywords (earnings, revenue, growth, losses, etc.)
-- Market impact words (surge, plummet, rise, fall, etc.)
-- Forward-looking statements
-- Analyst opinions and price targets
-- Company performance indicators
-";
-
-
-                var jsonResponse = await _openAIService.GetChatCompletionAsync(prompt);
-
-                // Clean and parse JSON
-                var cleanJson = ExtractJsonFromResponse(jsonResponse);
-                var sentimentData = JsonSerializer.Deserialize<JsonElement>(cleanJson);
-
-                return new NewsItemSentiment
+                var results = await AnalyzeBatchSentimentAsync(new List<NewsItem> { newsItem });
+                return results.FirstOrDefault() ?? new NewsItemSentiment
                 {
-                    Score = sentimentData.GetProperty("score").GetDouble(),
-                    Label = sentimentData.GetProperty("label").GetString() ?? "Neutral",
-                    KeyTopics = sentimentData.GetProperty("keyTopics").EnumerateArray()
-                        .Select(t => t.GetString() ?? "").Where(t => !string.IsNullOrEmpty(t)).ToList(),
-                    Impact = sentimentData.GetProperty("impact").GetString() ?? "Medium"
+                    Score = 0.0,
+                    Label = "Neutral",
+                    KeyTopics = new List<string>(),
+                    Impact = "Medium"
                 };
             }
             catch (Exception ex)
@@ -1203,100 +1001,78 @@ Consider:
 
         private async Task<OverallSentimentResult> GenerateOverallSentimentAnalysisAsync(string symbol, List<NewsItem> newsItems)
         {
-            // Create detailed article references with indices for citation
-            var articleReferences = string.Join("\n\n", newsItems.Select((n, idx) => 
+            double GetAverageScore() => newsItems.Count == 0 ? 0.0 : newsItems.Average(n => n.SentimentScore);
+            double GetAverageConfidence() => newsItems.Count == 0 ? 0.0 : newsItems.Average(n => n.SentimentConfidence > 0 ? n.SentimentConfidence : Math.Abs(n.SentimentScore));
+            double GetVolatility() => newsItems.Count <= 1 ? 0.0 : Math.Sqrt(newsItems.Average(n => Math.Pow(n.SentimentScore - GetAverageScore(), 2)));
+
+            string MapOverallLabel(double score) => score switch
+            {
+                > 0.45 => "Very Positive",
+                > 0.15 => "Positive",
+                < -0.45 => "Very Negative",
+                < -0.15 => "Negative",
+                _ => "Neutral"
+            };
+
+            string MapTrend(double score) => score > 0.15 ? "Improving" : score < -0.15 ? "Declining" : "Stable";
+            string MapTradingSignal(double score) => score > 0.45 ? "Strong Buy" : score > 0.15 ? "Buy" : score < -0.45 ? "Strong Sell" : score < -0.15 ? "Sell" : "Hold";
+            string MapThreeWay(string positive, string neutral, string negative, double score) => score > 0.15 ? positive : score < -0.15 ? negative : neutral;
+            string MapVolatility(double volatility) => volatility > 0.35 ? "High" : volatility > 0.18 ? "Medium" : "Low";
+            string MapMomentum(double score) => score > 0.45 ? "Strong Positive" : score > 0.15 ? "Positive" : score < -0.45 ? "Strong Negative" : score < -0.15 ? "Negative" : "Neutral";
+
+            var aggregateScore = GetAverageScore();
+            var aggregateConfidence = GetAverageConfidence();
+            var overallSentiment = MapOverallLabel(aggregateScore);
+            var trendDirection = MapTrend(aggregateScore);
+            var tradingSignal = MapTradingSignal(aggregateScore);
+            var volatilityIndicator = MapVolatility(GetVolatility());
+            var priceTargetBias = MapThreeWay("Bullish", "Neutral", "Bearish", aggregateScore);
+            var institutionalSentiment = MapThreeWay("Positive", "Neutral", "Negative", aggregateScore);
+            var retailSentiment = MapThreeWay("Positive", "Neutral", "Negative", aggregateScore);
+            var analystConsensus = MapThreeWay("Buy", "Hold", "Sell", aggregateScore);
+            var earningsImpact = MapThreeWay("Positive", "Neutral", "Negative", aggregateScore);
+            var sectorComparison = MapThreeWay("Outperform", "Inline", "Underperform", aggregateScore);
+            var momentumSignal = MapMomentum(aggregateScore);
+
+            var articleReferences = string.Join("\n\n", newsItems.Select((n, idx) =>
                 $"[{idx + 1}] {n.Title}\n" +
                 $"    Source: {n.Source} | Published: {n.PublishedDate:yyyy-MM-dd}\n" +
-                $"    Sentiment: {n.SentimentLabel} (Score: {n.SentimentScore:F2})\n" +
+                $"    FastEmbed Sentiment: {n.SentimentLabel} (Score: {n.SentimentScore:F2}, Confidence: {n.SentimentConfidence:F2})\n" +
                 $"    Key Topics: {string.Join(", ", n.KeyTopics ?? new List<string>())}\n" +
                 $"    Impact Level: {n.Impact}\n" +
                 $"    URL: {n.Link}\n" +
                 $"    Summary: {(string.IsNullOrEmpty(n.Summary) ? "N/A" : (n.Summary.Length > 300 ? n.Summary.Substring(0, 300) + "..." : n.Summary))}"
             ));
 
-            var prompt = $@"
-You are a senior quantitative financial analyst preparing an institutional-grade sentiment report for {symbol}. 
-Analyze the following {newsItems.Count} news articles and produce a comprehensive, evidence-based analysis.
+                        var prompt = $$"""
+You are writing a concise, readable institutional summary for {{symbol}}.
+The FastEmbed model already scored the articles. Do not recalculate sentiment or change the labels.
 
-ARTICLES FOR ANALYSIS:
-{articleReferences}
+FASTEMBED AGGREGATE:
+- Overall label: {{overallSentiment}}
+- Average score: {{aggregateScore:F4}}
+- Average confidence: {{aggregateConfidence:F4}}
+- Trend: {{trendDirection}}
+- Trading signal: {{tradingSignal}}
 
-REQUIRED OUTPUT FORMAT (JSON):
-{{
-    ""overallSentiment"": ""<Very Negative|Negative|Neutral|Positive|Very Positive>"",
-    ""sentimentScore"": <-1.0 to 1.0>,
-    ""confidence"": <0.0 to 1.0>,
-    ""trendDirection"": ""<Improving|Stable|Declining>"",
-    ""keyThemes"": [""theme1"", ""theme2"", ""theme3""],
-    ""tradingSignal"": ""<Strong Buy|Buy|Hold|Sell|Strong Sell>"",
-    ""riskFactors"": [""risk1"", ""risk2""],
-    ""summary"": ""<DETAILED ACADEMIC ANALYSIS - SEE REQUIREMENTS BELOW>"",
-    ""positiveThemes"": [
-        {{
-            ""theme"": ""theme description"",
-            ""evidence"": ""specific evidence from articles"",
-            ""citations"": [1, 3, 5],
-            ""impact"": ""High|Medium|Low""
-        }}
+ARTICLES:
+{{articleReferences}}
+
+Return JSON with this shape:
+{
+    "summary": "clear plain-English summary",
+    "keyThemes": ["theme1", "theme2", "theme3"],
+    "riskFactors": ["risk1", "risk2"],
+    "positiveThemes": [
+        {"theme":"","evidence":"","citations":[1],"impact":"High|Medium|Low"}
     ],
-    ""negativeThemes"": [
-        {{
-            ""theme"": ""theme description"",
-            ""evidence"": ""specific evidence from articles"",
-            ""citations"": [2, 4],
-            ""impact"": ""High|Medium|Low""
-        }}
-    ],
-    ""volatilityIndicator"": ""<Low|Medium|High>"",
-    ""priceTargetBias"": ""<Bullish|Neutral|Bearish>"",
-    ""institutionalSentiment"": ""<Positive|Neutral|Negative>"",
-    ""retailSentiment"": ""<Positive|Neutral|Negative>"",
-    ""analystConsensus"": ""<Buy|Hold|Sell>"",
-    ""earningsImpact"": ""<Positive|Neutral|Negative>"",
-    ""sectorComparison"": ""<Outperform|Inline|Underperform>"",
-    ""momentumSignal"": ""<Strong Positive|Positive|Neutral|Negative|Strong Negative>""
-}}
+    "negativeThemes": [
+        {"theme":"","evidence":"","citations":[1],"impact":"High|Medium|Low"}
+    ]
+}
 
-CRITICAL REQUIREMENTS FOR 'summary' FIELD:
-1. LENGTH: Minimum 800 words, structured in clear paragraphs
-2. STRUCTURE:
-   - Executive Summary (2-3 sentences)
-   - Positive Sentiment Analysis (detailed paragraph with citations)
-   - Negative Sentiment Analysis (detailed paragraph with citations)
-   - Market Context & Implications (paragraph)
-   - Technical & Fundamental Factors (paragraph)
-   - Risk Assessment (paragraph)
-   - Conclusion & Outlook (paragraph)
-
-3. CITATIONS: Use [1], [2], [3] format to reference specific articles. Every claim must be cited.
-4. SPECIFICITY: Include actual numbers, percentages, price targets, analyst names, dates when mentioned in articles
-5. EVIDENCE: Quote or paraphrase specific statements from articles
-6. BALANCE: Present both bullish and bearish perspectives with equal rigor
-7. QUANTITATIVE: Reference specific metrics, ratios, financial figures mentioned in sources
-
-EXAMPLE CITATION STYLE:
-""Recent earnings reports indicate strong revenue growth of 15% YoY [1], though margin compression remains a concern with operating margins declining to 12.3% [3]. Analyst consensus from major institutions suggests a price target of $150 [2], representing 8% upside from current levels. However, competitive pressures in the sector have intensified [4,5], with market share declining 2 percentage points in Q3 [5].""
-
-POSITIVE/NEGATIVE THEMES REQUIREMENTS:
-- Each theme must have specific evidence (not generic statements)
-- Citations must reference actual article numbers
-- Impact assessment must be justified
-- Minimum 3 themes per category (positive/negative)
-
-Focus your analysis on:
-- Specific financial metrics (revenue, earnings, margins, cash flow)
-- Analyst price targets and rating changes with names/firms
-- Institutional activity (insider trades, 13F filings, block trades)
-- Technical levels (support/resistance, moving averages, volume)
-- Sector dynamics and competitive positioning
-- Macroeconomic factors and their specific impact
-- Management guidance and forward estimates
-- Options market signals (put/call ratios, unusual activity)
-- Short interest and sentiment indicators
-- Regulatory or legal developments
-- Product launches, partnerships, or strategic initiatives
-
-Be rigorous, specific, and evidence-based. This is for institutional investors making multi-million dollar decisions.";
+Make the summary more discernible and specific, but do not include sentiment scores or confidence values.
+""";
 
             var jsonResponse = await _openAIService.GetChatCompletionAsync(prompt);
             var jsonClean = ExtractJsonFromResponse(jsonResponse);
@@ -1304,23 +1080,25 @@ Be rigorous, specific, and evidence-based. This is for institutional investors m
 
             return new OverallSentimentResult
             {
-                OverallSentiment = data.GetProperty("overallSentiment").GetString() ?? "Neutral",
-                SentimentScore = data.GetProperty("sentimentScore").GetDouble(),
-                Confidence = data.GetProperty("confidence").GetDouble(),
-                TrendDirection = data.GetProperty("trendDirection").GetString() ?? "Stable",
-                KeyThemes = data.GetProperty("keyThemes").EnumerateArray()
-                    .Select(t => t.GetString() ?? "").Where(t => !string.IsNullOrEmpty(t)).ToList(),
-                TradingSignal = data.GetProperty("tradingSignal").GetString() ?? "Hold",
-                RiskFactors = data.GetProperty("riskFactors").EnumerateArray()
-                    .Select(r => r.GetString() ?? "").Where(r => !string.IsNullOrEmpty(r)).ToList(),
-                Summary = data.GetProperty("summary").GetString() ?? "",
-                PositiveThemes = data.TryGetProperty("positiveThemes", out var posThemes) 
+                OverallSentiment = overallSentiment,
+                SentimentScore = aggregateScore,
+                Confidence = aggregateConfidence,
+                TrendDirection = trendDirection,
+                KeyThemes = data.TryGetProperty("keyThemes", out var keyThemes) && keyThemes.ValueKind == JsonValueKind.Array
+                    ? keyThemes.EnumerateArray().Select(t => t.GetString() ?? "").Where(t => !string.IsNullOrWhiteSpace(t)).ToList()
+                    : new List<string>(),
+                TradingSignal = tradingSignal,
+                RiskFactors = data.TryGetProperty("riskFactors", out var riskFactors) && riskFactors.ValueKind == JsonValueKind.Array
+                    ? riskFactors.EnumerateArray().Select(r => r.GetString() ?? "").Where(r => !string.IsNullOrWhiteSpace(r)).ToList()
+                    : new List<string>(),
+                Summary = data.TryGetProperty("summary", out var summary) ? summary.GetString() ?? "" : "",
+                PositiveThemes = data.TryGetProperty("positiveThemes", out var posThemes)
                     ? posThemes.EnumerateArray().Select(t => new SentimentTheme
                     {
                         Theme = t.GetProperty("theme").GetString() ?? "",
                         Evidence = t.GetProperty("evidence").GetString() ?? "",
-                        Citations = t.TryGetProperty("citations", out var cits) 
-                            ? cits.EnumerateArray().Select(c => c.GetInt32()).ToList() 
+                        Citations = t.TryGetProperty("citations", out var cits)
+                            ? cits.EnumerateArray().Select(c => c.GetInt32()).ToList()
                             : new List<int>(),
                         Impact = t.GetProperty("impact").GetString() ?? "Medium"
                     }).ToList()
@@ -1336,64 +1114,229 @@ Be rigorous, specific, and evidence-based. This is for institutional investors m
                         Impact = t.GetProperty("impact").GetString() ?? "Medium"
                     }).ToList()
                     : new List<SentimentTheme>(),
-                VolatilityIndicator = data.TryGetProperty("volatilityIndicator", out var vol) ? vol.GetString() ?? "Medium" : "Medium",
-                PriceTargetBias = data.TryGetProperty("priceTargetBias", out var pt) ? pt.GetString() ?? "Neutral" : "Neutral",
-                InstitutionalSentiment = data.TryGetProperty("institutionalSentiment", out var inst) ? inst.GetString() ?? "Neutral" : "Neutral",
-                RetailSentiment = data.TryGetProperty("retailSentiment", out var retail) ? retail.GetString() ?? "Neutral" : "Neutral",
-                AnalystConsensus = data.TryGetProperty("analystConsensus", out var analyst) ? analyst.GetString() ?? "Hold" : "Hold",
-                EarningsImpact = data.TryGetProperty("earningsImpact", out var earnings) ? earnings.GetString() ?? "Neutral" : "Neutral",
-                SectorComparison = data.TryGetProperty("sectorComparison", out var sector) ? sector.GetString() ?? "Inline" : "Inline",
-                MomentumSignal = data.TryGetProperty("momentumSignal", out var momentum) ? momentum.GetString() ?? "Neutral" : "Neutral"
+                VolatilityIndicator = volatilityIndicator,
+                PriceTargetBias = priceTargetBias,
+                InstitutionalSentiment = institutionalSentiment,
+                RetailSentiment = retailSentiment,
+                AnalystConsensus = analystConsensus,
+                EarningsImpact = earningsImpact,
+                SectorComparison = sectorComparison,
+                MomentumSignal = momentumSignal
             };
         }
 
         private async Task<MarketSentimentResult> GenerateMarketSentimentAnalysisAsync(List<NewsItem> newsItems)
         {
-            var prompt = $@"
-Analyze overall market sentiment based on these financial news articles:
+            double GetAverageScore() => newsItems.Count == 0 ? 0.0 : newsItems.Average(n => n.SentimentScore);
+            double GetAverageConfidence() => newsItems.Count == 0 ? 0.0 : newsItems.Average(n => n.SentimentConfidence > 0 ? n.SentimentConfidence : Math.Abs(n.SentimentScore));
+            double GetVolatility() => newsItems.Count <= 1 ? 0.0 : Math.Sqrt(newsItems.Average(n => Math.Pow(n.SentimentScore - GetAverageScore(), 2)));
 
-{string.Join("\n\n", newsItems.Take(15).Select(n => $"Title: {n.Title}\nSentiment: {n.SentimentLabel} ({n.SentimentScore:F2})"))}
+            string MapOverallLabel(double score) => score switch
+            {
+                > 0.45 => "Very Positive",
+                > 0.15 => "Positive",
+                < -0.45 => "Very Negative",
+                < -0.15 => "Negative",
+                _ => "Neutral"
+            };
 
-Provide analysis in this JSON format:
-{{
-    ""overallSentiment"": ""<Very Negative|Negative|Neutral|Positive|Very Positive>"",
-    ""sentimentScore"": <-1.0 to 1.0>,
-    ""confidence"": <0.0 to 1.0>,
-    ""marketMood"": ""<Fear|Caution|Neutral|Optimism|Euphoria>"",
-    ""sectorSentiments"": {{
-        ""technology"": <-1.0 to 1.0>,
-        ""finance"": <-1.0 to 1.0>,
-        ""healthcare"": <-1.0 to 1.0>
-    }},
-    ""keyThemes"": [""theme1"", ""theme2"", ""theme3""],
-    ""riskLevel"": ""<Low|Medium|High>"",
-    ""summary"": ""<2-3 sentence market summary>""
-}}";
+            string MapMarketMood(double score) => score switch
+            {
+                > 0.55 => "Euphoria",
+                > 0.15 => "Optimism",
+                < -0.55 => "Fear",
+                < -0.15 => "Caution",
+                _ => "Neutral"
+            };
+
+            string MapRiskLevel(double volatility) => volatility > 0.35 ? "High" : volatility > 0.18 ? "Medium" : "Low";
+
+            var aggregateScore = GetAverageScore();
+            var aggregateConfidence = GetAverageConfidence();
+            var overallSentiment = MapOverallLabel(aggregateScore);
+            var marketMood = MapMarketMood(aggregateScore);
+            var riskLevel = MapRiskLevel(GetVolatility());
+
+                        var prompt = $$"""
+Summarize the market implications of these FastEmbed-scored articles.
+Do not recalculate sentiment or assign numeric scores.
+
+FASTEMBED SNAPSHOT:
+- Overall label: {{overallSentiment}}
+- Average score: {{aggregateScore:F4}}
+- Average confidence: {{aggregateConfidence:F4}}
+- Market mood: {{marketMood}}
+
+ARTICLES:
+{{string.Join("\n\n", newsItems.Take(15).Select((n, idx) => $"[{idx + 1}] {n.Title}\nSentiment: {n.SentimentLabel} ({n.SentimentScore:F2}, conf {n.SentimentConfidence:F2})\nTopics: {string.Join(", ", n.KeyTopics ?? new List<string>())}\nSummary: {(string.IsNullOrWhiteSpace(n.Summary) ? "N/A" : n.Summary)}"))}}
+
+Return JSON with this shape:
+{
+    "summary": "2-3 sentence market summary",
+    "keyThemes": ["theme1", "theme2", "theme3"],
+    "marketMood": "<Fear|Caution|Neutral|Optimism|Euphoria>"
+}
+
+Make the wording plain, specific, and easy to understand.
+""";
 
             var jsonResponse = await _openAIService.GetChatCompletionAsync(prompt);
             var jsonClean = ExtractJsonFromResponse(jsonResponse);
             var data = JsonSerializer.Deserialize<JsonElement>(jsonClean);
 
-            var sectorSentiments = new Dictionary<string, double>();
-            if (data.TryGetProperty("sectorSentiments", out var sectors))
+            var sectorSentiments = new Dictionary<string, double>
             {
-                foreach (var sector in sectors.EnumerateObject())
-                {
-                    sectorSentiments[sector.Name] = sector.Value.GetDouble();
-                }
-            }
+                ["technology"] = aggregateScore,
+                ["finance"] = aggregateScore,
+                ["healthcare"] = aggregateScore
+            };
 
             return new MarketSentimentResult
             {
-                OverallSentiment = data.GetProperty("overallSentiment").GetString() ?? "Neutral",
-                SentimentScore = data.GetProperty("sentimentScore").GetDouble(),
-                Confidence = data.GetProperty("confidence").GetDouble(),
-                MarketMood = data.GetProperty("marketMood").GetString() ?? "Neutral",
+                OverallSentiment = overallSentiment,
+                SentimentScore = aggregateScore,
+                Confidence = aggregateConfidence,
+                MarketMood = data.TryGetProperty("marketMood", out var mood) ? mood.GetString() ?? marketMood : marketMood,
                 SectorSentiments = sectorSentiments,
-                KeyThemes = data.GetProperty("keyThemes").EnumerateArray()
-                    .Select(t => t.GetString() ?? "").Where(t => !string.IsNullOrEmpty(t)).ToList(),
-                RiskLevel = data.GetProperty("riskLevel").GetString() ?? "Medium",
-                Summary = data.GetProperty("summary").GetString() ?? ""
+                KeyThemes = data.TryGetProperty("keyThemes", out var keyThemes) && keyThemes.ValueKind == JsonValueKind.Array
+                    ? keyThemes.EnumerateArray().Select(t => t.GetString() ?? "").Where(t => !string.IsNullOrWhiteSpace(t)).ToList()
+                    : new List<string>(),
+                RiskLevel = riskLevel,
+                Summary = data.TryGetProperty("summary", out var summary) ? summary.GetString() ?? "" : ""
+            };
+        }
+
+        private async Task<string> RunFastEmbedSentimentAsync(object payload)
+        {
+            var scriptPath = ResolveScriptPath();
+            if (string.IsNullOrEmpty(scriptPath) || !File.Exists(scriptPath))
+            {
+                throw new FileNotFoundException($"Unable to locate Python pipeline script at {scriptPath}");
+            }
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "python3",
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = Directory.GetCurrentDirectory()
+            };
+
+            startInfo.ArgumentList.Add(scriptPath);
+            startInfo.ArgumentList.Add("--sentiment");
+
+            using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start python3 process");
+            var payloadJson = JsonSerializer.Serialize(payload);
+            await process.StandardInput.WriteAsync(payloadJson);
+            await process.StandardInput.FlushAsync();
+            process.StandardInput.Close();
+
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException($"Python sentiment pipeline failed with exit code {process.ExitCode}: {stderr}");
+            }
+
+            return stdout;
+        }
+
+        private static string ResolveScriptPath()
+        {
+            var candidates = new[]
+            {
+                Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "Scripts", "news_pipeline.py")),
+                Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "Scripts", "news_pipeline.py")),
+                Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Scripts", "news_pipeline.py"))
+            };
+
+            return candidates.FirstOrDefault(File.Exists) ?? candidates[0];
+        }
+
+        private List<NewsItemSentiment> ParseFastEmbedSentimentResults(string json, int expectedCount)
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            var items = new List<NewsItemSentiment>();
+
+            JsonElement? articles = null;
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("articles", out var articlesElement))
+            {
+                articles = articlesElement;
+            }
+            else if (root.ValueKind == JsonValueKind.Array)
+            {
+                articles = root;
+            }
+
+            if (articles.HasValue && articles.Value.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in articles.Value.EnumerateArray())
+                {
+                    var score = 0.0;
+                    if (item.TryGetProperty("score", out var scoreProp) && scoreProp.ValueKind == JsonValueKind.Number)
+                    {
+                        scoreProp.TryGetDouble(out score);
+                    }
+                    else if (item.TryGetProperty("polarity", out var polarityProp) && polarityProp.ValueKind == JsonValueKind.Number)
+                    {
+                        polarityProp.TryGetDouble(out score);
+                    }
+
+                    var label = item.TryGetProperty("label", out var labelProp)
+                        ? labelProp.GetString() ?? "Neutral"
+                        : item.TryGetProperty("sentiment", out var sentimentProp)
+                            ? sentimentProp.GetString() ?? "Neutral"
+                            : "Neutral";
+
+                    items.Add(new NewsItemSentiment
+                    {
+                        Score = score,
+                        Confidence = item.TryGetProperty("confidence", out var confidenceProp) && confidenceProp.ValueKind == JsonValueKind.Number
+                            ? confidenceProp.GetDouble()
+                            : Math.Abs(score),
+                        Label = NormalizeSentimentLabel(label),
+                        KeyTopics = item.TryGetProperty("keyTopics", out var topicsProp) && topicsProp.ValueKind == JsonValueKind.Array
+                            ? topicsProp.EnumerateArray().Select(topic => topic.GetString() ?? string.Empty).Where(topic => !string.IsNullOrWhiteSpace(topic)).ToList()
+                            : new List<string>(),
+                        Impact = item.TryGetProperty("impact", out var impactProp)
+                            ? impactProp.GetString() ?? "Medium"
+                            : "Medium"
+                    });
+                }
+            }
+
+            while (items.Count < expectedCount)
+            {
+                items.Add(new NewsItemSentiment
+                {
+                    Score = 0.0,
+                    Confidence = 0.0,
+                    Label = "Neutral",
+                    KeyTopics = new List<string>(),
+                    Impact = "Medium"
+                });
+            }
+
+            return items;
+        }
+
+        private static string NormalizeSentimentLabel(string label)
+        {
+            return label.Trim().ToUpperInvariant() switch
+            {
+                "POSITIVE" or "VERY POSITIVE" => "Positive",
+                "NEGATIVE" or "VERY NEGATIVE" => "Negative",
+                "BULLISH" => "Positive",
+                "BEARISH" => "Negative",
+                _ => "Neutral"
             };
         }
 
@@ -1510,6 +1453,7 @@ Provide analysis in this JSON format:
         public string Source { get; set; } = string.Empty;
         public double SentimentScore { get; set; }
         public string SentimentLabel { get; set; } = string.Empty;
+        public double SentimentConfidence { get; set; }
         public List<string> KeyTopics { get; set; } = new();
         public string Impact { get; set; } = string.Empty;
         
@@ -1524,6 +1468,7 @@ Provide analysis in this JSON format:
     public class NewsItemSentiment
     {
         public double Score { get; set; }
+        public double Confidence { get; set; }
         public string Label { get; set; } = string.Empty;
         public List<string> KeyTopics { get; set; } = new();
         public string Impact { get; set; } = string.Empty;

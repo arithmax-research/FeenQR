@@ -31,22 +31,25 @@ namespace QuantResearchAgent.Controllers
         /// </summary>
         [HttpGet("search")]
         public async Task<ActionResult<PipelineSearchResult>> SearchNews(
-            [FromQuery] string ticker,
+            [FromQuery] string? ticker,
+            [FromQuery] string? symbol = null,
             [FromQuery] string sourceFilter = "All",
             [FromQuery] int limit = 25)
         {
-            if (string.IsNullOrWhiteSpace(ticker))
+            var resolvedTicker = !string.IsNullOrWhiteSpace(ticker) ? ticker : symbol;
+
+            if (string.IsNullOrWhiteSpace(resolvedTicker))
                 return BadRequest("Ticker is required");
 
             try
             {
-                _logger.LogInformation($"[API] News search: {ticker}, source: {sourceFilter}, limit: {limit}");
-                var result = await _pipelineService.SearchNewsAsync(ticker, sourceFilter, limit);
+                _logger.LogInformation($"[API] News search: {resolvedTicker}, source: {sourceFilter}, limit: {limit}");
+                var result = await _pipelineService.SearchNewsAsync(resolvedTicker, sourceFilter, limit);
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error searching for {ticker}");
+                _logger.LogError(ex, $"Error searching for {resolvedTicker}");
                 return StatusCode(500, new { error = ex.Message });
             }
         }

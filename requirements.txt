@@ -18,3 +18,4 @@ newsapi-python
 newspaper3k
 beautifulsoup4
 lxml
+fastembed

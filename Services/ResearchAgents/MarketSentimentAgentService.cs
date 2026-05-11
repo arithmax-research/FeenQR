@@ -326,16 +326,123 @@ SENTIMENT_SCORE: 0.4
 CONFIDENCE: 0.75
 ";
 
-            var function = _kernel.CreateFunctionFromPrompt(prompt);
-            var result = await _kernel.InvokeAsync(function);
-            
-            return ParseSentimentResult(result.ToString(), "Social Media");
+            var result = await InvokePromptWithRetryAsync(prompt, "social media sentiment");
+            if (result != null)
+            {
+                return ParseSentimentResult(result.ToString(), "Social Media");
+            }
+
+            return BuildFallbackSocialSentiment(socialMediaPosts);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to analyze social media sentiment");
-            return new SentimentData { Source = "Social Media", Score = 0, Confidence = 0 };
+            _logger.LogWarning(ex, "Failed to analyze social media sentiment, using heuristic fallback");
+            return BuildFallbackSocialSentiment(Array.Empty<SocialMediaPost>());
         }
+    }
+
+    private async Task<FunctionResult?> InvokePromptWithRetryAsync(string prompt, string operationName)
+    {
+        const int maxRetries = 3;
+
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                var function = _kernel.CreateFunctionFromPrompt(prompt);
+                return await _kernel.InvokeAsync(function);
+            }
+            catch (Exception ex) when (IsTransientTransportFailure(ex) && attempt < maxRetries)
+            {
+                var delayMs = (int)Math.Pow(2, attempt - 1) * 1000;
+                _logger.LogWarning(ex, "Transient failure during {Operation} (attempt {Attempt}/{MaxRetries}), retrying after {Delay}ms", operationName, attempt, maxRetries, delayMs);
+                await Task.Delay(delayMs);
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsTransientTransportFailure(Exception ex)
+    {
+        if (ex is HttpRequestException or IOException)
+        {
+            return true;
+        }
+
+        var typeName = ex.GetType().FullName ?? string.Empty;
+        if (typeName.Contains("HttpOperationException", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return ex.InnerException != null && IsTransientTransportFailure(ex.InnerException);
+    }
+
+    private SentimentData BuildFallbackSocialSentiment(IEnumerable<SocialMediaPost> posts)
+    {
+        var postList = posts.ToList();
+        if (postList.Count == 0)
+        {
+            return new SentimentData
+            {
+                Source = "Social Media",
+                Score = 0,
+                Confidence = 0.2,
+                Label = "Neutral",
+                Analysis = "Social media sentiment unavailable; returned neutral fallback."
+            };
+        }
+
+        var positiveKeywords = new[] { "bullish", "buy", "breakout", "moon", "rally", "strong", "growth", "up", "positive", "win" };
+        var negativeKeywords = new[] { "bearish", "sell", "dump", "weak", "down", "loss", "crash", "negative", "panic", "fear" };
+
+        var weightedScore = 0.0;
+        var totalWeight = 0.0;
+        var positiveMentions = 0;
+        var negativeMentions = 0;
+
+        foreach (var post in postList)
+        {
+            var content = post.Content ?? string.Empty;
+            var lowerContent = content.ToLowerInvariant();
+            var weight = Math.Max(1, post.EngagementScore);
+
+            var positiveCount = positiveKeywords.Count(keyword => lowerContent.Contains(keyword));
+            var negativeCount = negativeKeywords.Count(keyword => lowerContent.Contains(keyword));
+
+            if (positiveCount > negativeCount)
+            {
+                weightedScore += 0.2 * weight;
+                positiveMentions += positiveCount;
+            }
+            else if (negativeCount > positiveCount)
+            {
+                weightedScore -= 0.2 * weight;
+                negativeMentions += negativeCount;
+            }
+
+            totalWeight += weight;
+        }
+
+        var normalizedScore = totalWeight > 0 ? Math.Max(-1.0, Math.Min(1.0, weightedScore / totalWeight)) : 0.0;
+        var confidence = Math.Min(0.7, 0.25 + (postList.Sum(p => Math.Max(1, p.EngagementScore)) / (double)(postList.Count * 25)));
+
+        var label = normalizedScore switch
+        {
+            > 0.2 => "Positive",
+            < -0.2 => "Negative",
+            _ => "Neutral"
+        };
+
+        return new SentimentData
+        {
+            Source = "Social Media",
+            Score = normalizedScore,
+            Confidence = Math.Max(0.2, Math.Min(0.7, confidence)),
+            Label = label,
+            Analysis = $"Heuristic fallback used after OpenAI transport failure. Positive mentions: {positiveMentions}, negative mentions: {negativeMentions}, posts analyzed: {postList.Count}."
+        };
     }
 
     private async Task<SentimentData> AnalyzeFearGreedIndexAsync(string assetClass)

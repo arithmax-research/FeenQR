@@ -1,3 +1,23 @@
+html, body {
+    font-family: Georgia, serif !important;
+    color: #e0e0e0;
+    --bs-body-font-family: Georgia, serif;
+    --bs-font-sans-serif: Georgia, serif;
+    --mud-default-font-family: Georgia, serif;
+}
+
+body,
+body * {
+    font-family: Georgia, serif !important;
+}
+
+code,
+pre,
+kbd,
+samp {
+    font-family: Georgia, serif !important;
+}
+
 .glass-panel {
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
@@ -55,7 +75,7 @@
     font-weight: 700;
     margin: 0;
     color: #f0f0f0;
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: Georgia, serif;
     letter-spacing: 0.5px;
 }
 
@@ -63,7 +83,7 @@
     margin: 0.3rem 0 0;
     color: var(--text-secondary);
     font-size: 0.9rem;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .pitch-header-badge .badge-glow {
@@ -77,7 +97,7 @@
     background: linear-gradient(135deg, rgba(128,128,128,0.2), rgba(128,128,128,0.05));
     border: 1px solid rgba(128,128,128,0.3);
     color: #aaa;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 /* ── Layout Grid ── */
@@ -121,7 +141,7 @@
     color: #ccc;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .sidebar-card-header svg {
@@ -148,7 +168,7 @@
     color: #999;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .input-wrapper {
@@ -164,7 +184,7 @@
     color: #f0f0f0;
     font-size: 1rem;
     font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Georgia, serif;
     transition: all 0.3s ease;
     outline: none;
 }
@@ -209,7 +229,7 @@
     border-radius: 10px;
     color: #f0f0f0;
     font-size: 0.9rem;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
     cursor: pointer;
     transition: all 0.3s ease;
     outline: none;
@@ -254,7 +274,7 @@
     justify-content: center;
     gap: 0.6rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
     position: relative;
     overflow: hidden;
 }
@@ -326,7 +346,7 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .pitch-action-btn:hover:not(:disabled) {
@@ -391,7 +411,7 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 0.75rem;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .tips-list {
@@ -407,7 +427,7 @@
     font-size: 0.8rem;
     color: #888;
     line-height: 1.5;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .tips-list li::before {
@@ -420,7 +440,7 @@
 
 .tips-list li strong {
     color: #aaa;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Georgia, serif;
 }
 
 /* ── Main Content Area ── */
@@ -475,14 +495,14 @@
     font-weight: 600;
     color: #ddd;
     margin-bottom: 0.25rem;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .loading-symbol {
     font-size: 2.5rem;
     font-weight: 700;
     color: rgba(128,128,128,0.4);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Georgia, serif;
     margin-bottom: 0.75rem;
     letter-spacing: 4px;
 }
@@ -494,7 +514,7 @@
     max-width: 400px;
     line-height: 1.6;
     margin-bottom: 1.5rem;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .loading-progress {
@@ -531,7 +551,7 @@
     color: #444;
     text-transform: uppercase;
     letter-spacing: 1px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
     position: relative;
 }
 
@@ -574,7 +594,7 @@
     font-weight: 600;
     color: #ef4444;
     margin-bottom: 0.75rem;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .error-detail {
@@ -583,7 +603,7 @@
     max-width: 500px;
     line-height: 1.6;
     margin-bottom: 1.5rem;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
     word-break: break-word;
 }
 
@@ -610,7 +630,7 @@
     font-weight: 600;
     color: #ddd;
     margin: 0 0 0.5rem;
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: Georgia, serif;
 }
 
 .pitch-empty p {
@@ -619,7 +639,7 @@
     max-width: 400px;
     line-height: 1.6;
     margin: 0 0 1.5rem;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .pitch-empty p strong {
@@ -638,7 +658,7 @@
     gap: 0.75rem;
     font-size: 0.85rem;
     color: #777;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .empty-feature svg {
@@ -671,7 +691,7 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
     position: relative;
 }
 
@@ -749,14 +769,14 @@
     text-transform: uppercase;
     letter-spacing: 0.8px;
     margin-bottom: 0.4rem;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .summary-value {
     font-size: 1rem;
     font-weight: 700;
     color: #ddd;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Georgia, serif;
 }
 
 .summary-value.direction {
@@ -829,7 +849,7 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .pitch-section-header:hover {
@@ -881,7 +901,7 @@
     color: #bbb;
     font-size: 0.9rem;
     line-height: 1.8;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
     white-space: pre-wrap;
     word-wrap: break-word;
 }
@@ -908,7 +928,7 @@
     color: #666;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
     white-space: nowrap;
 }
 
@@ -925,7 +945,7 @@
     border-radius: 6px;
     font-size: 0.7rem;
     color: #888;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .data-source-chip.unavailable {
@@ -941,7 +961,7 @@
     padding: 0.75rem 1rem;
     font-size: 0.75rem;
     color: #555;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .footer-item {
@@ -973,7 +993,7 @@
     font-size: 0.8rem;
     font-weight: 600;
     color: #888;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .raw-json-header svg {
@@ -993,7 +1013,7 @@
     font-size: 0.7rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .copy-json-btn:hover {
@@ -1042,7 +1062,7 @@
     font-size: 0.85rem;
     font-weight: 600;
     color: #bbb;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .chart-panel-header svg {
@@ -1068,7 +1088,7 @@
     padding: 3rem;
     color: #666;
     font-size: 0.9rem;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Georgia, serif;
 }
 
 .chart-unavailable svg {

@@ -535,7 +535,7 @@
                                         @GetStringProperty(ss, "overallSentiment")
                                     </span>
                                     <span style="color: #9ca3af;">Score: @GetDoubleProperty(ss, "sentimentScore").ToString("F2")</span>
-                                    <span style="color: #9ca3af;">Confidence: @(GetDoubleProperty(ss, "confidence") * 100).ToString("F0")%</span>
+                                    <span style="color: #9ca3af;">Confidence: @((GetDoubleProperty(ss, "confidence") * 100).ToString("F0"))%</span>
                                 </div>
 
                                 <div class="metric-grid">
