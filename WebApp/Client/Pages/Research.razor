@@ -675,7 +675,6 @@
             <button class="tab-btn @(activeTab == "research-synthesis" ? "active" : "")" @onclick='() => SwitchTab("research-synthesis")'>Synthesis</button>
             <button class="tab-btn @(activeTab == "research-reports" ? "active" : "")" @onclick='() => SwitchTab("research-reports")'>Reports</button>
             <button class="tab-btn @(activeTab == "stock-pitch" ? "active" : "")" @onclick='() => SwitchTab("stock-pitch")'>Stock Pitch</button>
-            <button class="tab-btn @(activeTab == "news-analytics" ? "active" : "")" @onclick='() => SwitchTab("news-analytics")'>News Analytics</button>
         </div>
     </div>
 
@@ -1635,105 +1634,6 @@
             </div>
         }
 
-        @if (activeTab == "news-analytics")
-        {
-            <div class="section-header">
-                News Scraper with AI Analytics
-            </div>
-
-            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
-                <h6 style="color: #10b981; margin-bottom: 1rem; font-weight: 600;">Financial News Pipeline with AI Analysis</h6>
-                <p style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 0;">Search for stock-related news using the dual pipeline (NewsAPI + Yahoo Finance). AI automatically extracts sentiment, key topics, market impact, and actionable insights.</p>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-                <!-- Left Column: Symbol Search -->
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; padding: 1.5rem; height: fit-content;">
-                        <h6 style="color: #ffffff; margin-bottom: 1rem; font-weight: 600;">Search by Symbol</h6>
-                        
-                        <div style="margin-bottom: 1rem;">
-                            <label style="color: #9ca3af; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Stock Symbol</label>
-                            <input type="text" class="chat-input" style="margin-bottom: 0.5rem; width: 100%; padding: 0.75rem; font-size: 0.95rem;" @bind="newsSymbol" placeholder="e.g., TSLA, AAPL, MSFT" @onkeyup="HandleNewsKeyPress" />
-                        </div>
-
-                        <div style="margin-bottom: 1rem;">
-                            <label style="color: #9ca3af; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Results Limit</label>
-                            <input type="number" class="chat-input" style="width: 100%; padding: 0.75rem; font-size: 0.95rem;" @bind="newsLimit" min="1" max="50" />
-                        </div>
-
-                        <button class="chat-submit" style="width: 100%; margin-bottom: 0.5rem;" @onclick="LoadNewsForSymbolAsync" disabled="@isLoadingNews">
-                            @if (isLoadingNews)
-                            {
-                                <span>Loading...</span>
-                            }
-                            else
-                            {
-                                <span>Search News</span>
-                            }
-                        </button>
-
-                        @if (!string.IsNullOrWhiteSpace(newsSymbol))
-                        {
-                            <button class="chat-submit" style="width: 100%; background: rgba(239, 68, 68, 0.3); border-color: rgba(239, 68, 68, 0.5);" @onclick="ClearNewsAsync">
-                                <span>Clear Cache</span>
-                            </button>
-                        }
-                    </div>
-
-                    @if (!string.IsNullOrWhiteSpace(newsError))
-                    {
-                        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 1rem; color: #ef4444; font-size: 0.9rem;">
-                            <i class="bi bi-exclamation-triangle me-2"></i>@newsError
-                        </div>
-                    }
-                </div>
-
-                <!-- Right Column: Articles & Analytics -->
-                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1.5rem; max-height: 85vh; overflow-y: auto;">
-                    @if (isLoadingNews)
-                    {
-                        <div class="progress-container" style="margin-top: 5rem;">
-                            <div class="spinner"></div>
-                            <div class="progress-text">Loading and analyzing news...</div>
-                        </div>
-                    }
-                    else if (pipelineArticles != null && pipelineArticles.Any())
-                    {
-                        <div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(16, 185, 129, 0.15); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
-                            <strong style="color: #10b981;">Articles Found: @pipelineArticles.Count</strong>
-                        </div>
-
-                        @foreach (var article in pipelineArticles)
-                        {
-                            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
-                                <div style="margin-bottom: 1rem;">
-                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
-                                        <span style="background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">@article.Provider</span>
-                                        <span style="color: #6b7280; font-size: 0.85rem;">@article.PublishedDate.ToString("g")</span>
-                                    </div>
-                                    <h5 style="color: #ffffff; font-weight: 600; margin-bottom: 0.5rem; font-size: 1.05rem; line-height: 1.4;">@article.Title</h5>
-                                    @if (!string.IsNullOrEmpty(article.Summary))
-                                    {
-                                        <p style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 0.75rem; line-height: 1.5;">@article.Summary</p>
-                                    }
-                                    <a href="@article.Url" target="_blank" style="color: #60a5fa; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem;">
-                                        Read Full Article →
-                                    </a>
-                                </div>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <div style="text-align: center; padding: 4rem 2rem; color: #6b7280;">
-                            <p style="font-size: 1rem; color: #9ca3af; margin-bottom: 0.5rem;">No news loaded yet</p>
-                            <p style="font-size: 0.9rem; color: #6b7280;">Enter a stock symbol to search for related news articles</p>
-                        </div>
-                    }
-                </div>
-            </div>
-        }
     </div>
 </div>
 
@@ -1883,6 +1783,23 @@
         public List<NewsScraperResult> Results { get; set; } = new();
         public int Total { get; set; }
         public int Successful { get; set; }
+    }
+
+    public class PipelineSearchResultDto
+    {
+        public string Symbol { get; set; } = "";
+        public List<PipelineArticleDto> Articles { get; set; } = new();
+        public int Count { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+
+    public class PipelineArticleDto
+    {
+        public string Title { get; set; } = "";
+        public string Url { get; set; } = "";
+        public string Provider { get; set; } = "";
+        public DateTime PublishedDate { get; set; }
+        public string Summary { get; set; } = "";
     }
 
     private void SwitchTab(string tab)
@@ -3546,23 +3463,6 @@
         }
     }
 
-    // Local DTOs for pipeline news
-    public class PipelineSearchResultDto
-    {
-        public string Symbol { get; set; } = "";
-        public List<PipelineArticleDto> Articles { get; set; } = new();
-        public int Count { get; set; }
-        public DateTime Timestamp { get; set; }
-    }
-
-    public class PipelineArticleDto
-    {
-        public string Title { get; set; } = "";
-        public string Url { get; set; } = "";
-        public string Provider { get; set; } = "";
-        public DateTime PublishedDate { get; set; }
-        public string Summary { get; set; } = "";
-    }
 }
 
 }

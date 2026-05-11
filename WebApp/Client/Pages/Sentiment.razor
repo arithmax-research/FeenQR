@@ -170,6 +170,7 @@
         display: flex;
         gap: 0.5rem;
         margin-bottom: 1rem;
+        flex-wrap: wrap;
     }
 
     .search-input {
@@ -206,6 +207,11 @@
     .search-btn:disabled {
         background: #6b7280;
         cursor: not-allowed;
+    }
+
+    .limit-input {
+        width: 110px;
+        flex: 0 0 110px;
     }
 
     .sentiment-card {
@@ -507,10 +513,11 @@
             <div class="analysis-panel">
                 <div class="analysis-header">
                     <h2 style="color: #ffffff; font-size: 1.25rem; margin: 0;">Symbol Sentiment Analysis</h2>
-                    <p style="color: #9ca3af; font-size: 0.875rem; margin: 0.5rem 0 0 0;">Analyze news sentiment for any stock symbol</p>
+                    <p style="color: #9ca3af; font-size: 0.875rem; margin: 0.5rem 0 0 0;">News scraping and AI sentiment analysis in one view</p>
                     
                     <div class="search-bar" style="margin-top: 1rem;">
                         <input type="text" class="search-input" placeholder="Enter symbol (e.g., AAPL, TSLA)" @bind="symbolQuery" @onkeypress="HandleKeyPress" />
+                        <input type="number" class="search-input limit-input" min="1" max="50" placeholder="20" @bind="newsLimit" />
                         <button class="search-btn" @onclick="AnalyzeSymbolSentiment" disabled="@isLoading">Analyze</button>
                     </div>
                 </div>
@@ -1256,6 +1263,7 @@
     private bool isLoading = false;
     
     private string symbolQuery = "";
+    private int newsLimit = 20;
     private string assetClass = "stocks";
     private string specificAsset = "";
     private string redditSymbol = "";
@@ -1293,7 +1301,7 @@
 
         try
         {
-            var response = await Http.GetAsync($"api/sentiment/symbol/{symbolQuery}?newsLimit=20");
+            var response = await Http.GetAsync($"api/sentiment/symbol/{symbolQuery}?newsLimit={newsLimit}");
             if (response.IsSuccessStatusCode)
             {
                 symbolSentiment = await response.Content.ReadFromJsonAsync<dynamic>();
