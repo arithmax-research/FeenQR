@@ -53,3 +53,14 @@ public class NewsApiConfig
     public int DefaultPageSize { get; set; } = 20;
     public string Language { get; set; } = "en";
 }
+
+/// <summary>
+/// Configuration for NewsData.io integration
+/// </summary>
+public class NewsDataConfig
+{
+    public string ApiKey { get; set; } = string.Empty;
+    public string BaseUrl { get; set; } = "https://newsdata.io/api/1/market";
+    public int DefaultPageSize { get; set; } = 20;
+    public string Language { get; set; } = "en";
+}

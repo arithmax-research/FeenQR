@@ -88,21 +88,57 @@ namespace QuantResearchAgent
         {
             try
             {
-                Console.WriteLine("📰 Testing NewsAPI...");
-                var newsApiClient = new NewsApiClient(_httpClient, _config, NullLogger<NewsApiClient>.Instance);
-                var news = await newsApiClient.GetNewsAsync(symbol, 5);
-
-                Console.WriteLine($"✅ NewsAPI: Retrieved {news.Count} news items");
-                if (news.Count > 0)
+                Console.WriteLine("📰 Testing Python dual news pipeline...");
+                var scriptPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Scripts", "news_pipeline.py"));
+                if (!File.Exists(scriptPath))
                 {
-                    Console.WriteLine($"   Sample: {news[0].Title}");
-                    Console.WriteLine($"   Publisher: {news[0].Publisher}");
-                    Console.WriteLine($"   Published: {news[0].PublishedDate}");
+                    scriptPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "Scripts", "news_pipeline.py"));
+                }
+
+                var process = new System.Diagnostics.Process
+                {
+                    StartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "python3",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+                process.StartInfo.ArgumentList.Add(scriptPath);
+                process.StartInfo.ArgumentList.Add(symbol);
+                process.StartInfo.ArgumentList.Add("--source");
+                process.StartInfo.ArgumentList.Add("All");
+                process.StartInfo.ArgumentList.Add("--max-articles");
+                process.StartInfo.ArgumentList.Add("5");
+                process.StartInfo.ArgumentList.Add("--pretty");
+
+                process.Start();
+                var output = await process.StandardOutput.ReadToEndAsync();
+                var errors = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode != 0)
+                {
+                    Console.WriteLine($"❌ Pipeline failed: {errors}");
+                    return;
+                }
+
+                var doc = JsonSerializer.Deserialize<JsonElement>(output);
+                var count = doc.GetProperty("count").GetInt32();
+                Console.WriteLine($"✅ Pipeline: Retrieved {count} articles");
+                if (count > 0)
+                {
+                    var first = doc.GetProperty("articles")[0];
+                    Console.WriteLine($"   Sample: {first.GetProperty("title").GetString()}");
+                    Console.WriteLine($"   Provider: {first.GetProperty("provider").GetString()}");
+                    Console.WriteLine($"   Scraped: {first.GetProperty("is_scraped").GetBoolean()}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ NewsAPI failed: {ex.Message}");
+                Console.WriteLine($"❌ Pipeline failed: {ex.Message}");
             }
             Console.WriteLine();
         }

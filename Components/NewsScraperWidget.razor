@@ -3,432 +3,303 @@
 <div class="card shadow-sm">
     <div class="card-header bg-primary text-white">
         <h5 class="card-title mb-0">
-            <i class="bi bi-newspaper"></i> News Scraper with AI Analytics
+            <i class="bi bi-newspaper me-2"></i>News Scraper with AI Analytics
         </h5>
     </div>
     <div class="card-body">
-        <div class="mb-3">
-            <label for="newsUrlInput" class="form-label fw-bold">News Article URL</label>
-            <div class="input-group">
-                <input type="text" 
-                       class="form-control" 
-                       id="newsUrlInput" 
-                       @bind="newsUrl" 
-                       @bind:event="oninput" 
-                       placeholder="https://www.cnbc.com/..." />
-                <button class="btn btn-primary" @onclick="ScrapeUrl" disabled="@isLoading">
+        <div class="row g-3 align-items-end mb-3">
+            <div class="col-lg-3 col-md-4">
+                <label class="form-label fw-semibold">Symbol</label>
+                <input class="form-control" @bind="symbol" @bind:event="oninput" placeholder="TSLA" @onkeypress="HandleKeyPress" />
+            </div>
+            <div class="col-lg-3 col-md-4">
+                <label class="form-label fw-semibold">Source</label>
+                <select class="form-select" @bind="sourceFilter">
+                    <option value="All">All Sources</option>
+                    <option value="Reuters">Reuters</option>
+                    <option value="Bloomberg">Bloomberg</option>
+                    <option value="CNBC">CNBC</option>
+                    <option value="MarketWatch">MarketWatch</option>
+                    <option value="Yahoo">Yahoo</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label fw-semibold">Limit</label>
+                <input class="form-control" type="number" min="1" max="50" @bind="limit" />
+            </div>
+            <div class="col-lg-2 col-md-6 d-grid">
+                <button class="btn btn-primary" @onclick="LoadArticlesAsync" disabled="@isLoading">
                     @if (isLoading)
                     {
-                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                        <span>Scraping...</span>
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                        <span>Loading</span>
                     }
                     else
                     {
-                        <i class="bi bi-cloud-download me-2"></i>
-                        <span>Scrape & Analyze</span>
+                        <span><i class="bi bi-search me-2"></i>Load</span>
                     }
                 </button>
             </div>
-            <small class="form-text text-muted">
-                Supported sources: CNBC, Bloomberg, Reuters, Yahoo Finance, MarketWatch, WSJ, FT
-            </small>
-        </div>
-
-        <!-- Batch URLs Section -->
-        <div class="mb-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <label class="form-label fw-bold mb-0">Batch URLs (Optional)</label>
-                <button class="btn btn-sm btn-outline-secondary" @onclick="ToggleBatchMode">
-                    <i class="bi bi-list-ul me-1"></i>
-                    @(showBatchMode ? "Hide" : "Show") Batch Input
+            <div class="col-lg-2 col-md-6 d-grid">
+                <button class="btn btn-outline-secondary" @onclick="ClearAsync" disabled="@(string.IsNullOrWhiteSpace(symbol))">
+                    <i class="bi bi-trash me-2"></i>Clear Cache
                 </button>
             </div>
-            
-            @if (showBatchMode)
-            {
-                <textarea class="form-control mb-2" 
-                          rows="4" 
-                          @bind="batchUrls" 
-                          placeholder="Enter multiple URLs (one per line)&#10;https://www.cnbc.com/article1&#10;https://www.bloomberg.com/article2&#10;https://www.reuters.com/article3"></textarea>
-                <button class="btn btn-secondary btn-sm" @onclick="ScrapeBatchUrls" disabled="@isLoading">
-                    <i class="bi bi-cloud-download me-1"></i> Scrape All
-                </button>
-            }
         </div>
 
-        <!-- Results Section -->
-        @if (errorMessage != null)
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
         {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="bi bi-exclamation-triangle me-2"></i>
-                @errorMessage
-                <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
             </div>
         }
 
-        @if (scrapedResults != null && scrapedResults.Any())
+        @if (articles.Count > 0)
         {
-            <div class="mt-4">
-                <h6 class="mb-3">
-                    <i class="bi bi-file-text me-2"></i>
-                    Scraped Articles (@scrapedResults.Count)
-                </h6>
-                
-                @foreach (var result in scrapedResults)
-                {
-                    <div class="card mb-3 border @(result.Success ? "border-success" : "border-danger")">
-                        @if (result.Success && result.Article != null)
-                        {
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <strong>@result.Article.Source</strong>
-                                <button class="btn btn-sm btn-outline-primary" 
-                                        @onclick="() => ToggleArticle(result)">
-                                    <i class="bi bi-chevron-@(expandedArticles.Contains(result) ? "up" : "down")"></i>
-                                </button>
-                            </div>
-                            <div class="card-body">
-                                <h6 class="card-title">@result.Article.Title</h6>
-                                
-                                @if (!string.IsNullOrEmpty(result.Article.Author))
-                                {
-                                    <p class="text-muted small mb-2">
-                                        <i class="bi bi-person me-1"></i> @result.Article.Author
-                                        @if (!string.IsNullOrEmpty(result.Article.PublishedDate))
-                                        {
-                                            <span class="ms-2">
-                                                <i class="bi bi-calendar me-1"></i> @result.Article.PublishedDate
-                                            </span>
-                                        }
-                                    </p>
-                                }
-                                
-                                <a href="@result.Article.Url" target="_blank" class="btn btn-sm btn-link px-0">
-                                    <i class="bi bi-box-arrow-up-right me-1"></i> View Original Article
-                                </a>
-
-                                @if (expandedArticles.Contains(result))
-                                {
-                                    <!-- Article Content -->
-                                    <div class="mt-3 border-top pt-3">
-                                        <h6><i class="bi bi-file-text me-2"></i> Article Content</h6>
-                                        <div class="article-content" style="max-height: 300px; overflow-y: auto; font-size: 0.9rem;">
-                                            @foreach (var paragraph in result.Article.Content.Split("\n\n"))
-                                            {
-                                                <p>@paragraph</p>
-                                            }
-                                        </div>
+            <div class="row g-3">
+                <div class="col-lg-5">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <span class="fw-semibold"><i class="bi bi-list-ul me-2"></i>Articles (@articles.Count)</span>
+                            <small class="text-muted">Click one to populate the source pane</small>
+                        </div>
+                        <div class="list-group list-group-flush" style="max-height: 620px; overflow:auto;">
+                            @foreach (var article in articles)
+                            {
+                                <button class="list-group-item list-group-item-action @(selectedArticle?.Url == article.Url ? "active" : "")" @onclick="() => SelectArticle(article)">
+                                    <div class="text-start">
+                                        <div class="fw-semibold">@article.Title</div>
+                                        <div class="small @(selectedArticle?.Url == article.Url ? "text-white-50" : "text-muted")">@article.Provider · @article.PublishedDate.ToString("g")</div>
                                     </div>
-
-                                    <!-- AI Analytics -->
-                                    @if (result.Analytics != null)
-                                    {
-                                        <div class="mt-4 border-top pt-3">
-                                            <h6 class="text-primary">
-                                                <i class="bi bi-robot me-2"></i> DeepSeek AI Analytics
-                                            </h6>
-                                            
-                                            <!-- Summary -->
-                                            @if (!string.IsNullOrEmpty(result.Analytics.Summary))
-                                            {
-                                                <div class="mb-3">
-                                                    <strong class="d-block mb-1">Summary:</strong>
-                                                    <p class="alert alert-info">@result.Analytics.Summary</p>
-                                                </div>
-                                            }
-
-                                            <!-- Key Topics -->
-                                            @if (result.Analytics.KeyTopics != null && result.Analytics.KeyTopics.Any())
-                                            {
-                                                <div class="mb-3">
-                                                    <strong class="d-block mb-2">Key Topics:</strong>
-                                                    <div class="d-flex flex-wrap gap-2">
-                                                        @foreach (var topic in result.Analytics.KeyTopics)
-                                                        {
-                                                            <span class="badge bg-secondary">@topic</span>
-                                                        }
-                                                    </div>
-                                                </div>
-                                            }
-
-                                            <!-- Sentiment -->
-                                            @if (!string.IsNullOrEmpty(result.Analytics.Sentiment))
-                                            {
-                                                <div class="mb-3">
-                                                    <strong class="d-block mb-1">Sentiment Analysis:</strong>
-                                                    <p class="alert alert-@GetSentimentClass(result.Analytics.Sentiment) mb-0">
-                                                        @result.Analytics.Sentiment
-                                                    </p>
-                                                </div>
-                                            }
-
-                                            <!-- Market Impact -->
-                                            @if (!string.IsNullOrEmpty(result.Analytics.MarketImpact))
-                                            {
-                                                <div class="mb-3">
-                                                    <strong class="d-block mb-1">Market Impact:</strong>
-                                                    <p>@result.Analytics.MarketImpact</p>
-                                                </div>
-                                            }
-
-                                            <!-- Key Entities -->
-                                            @if (result.Analytics.KeyEntities != null && result.Analytics.KeyEntities.Any())
-                                            {
-                                                <div class="mb-3">
-                                                    <strong class="d-block mb-2">Key Entities:</strong>
-                                                    <ul class="list-unstyled">
-                                                        @foreach (var entity in result.Analytics.KeyEntities)
-                                                        {
-                                                            <li><i class="bi bi-chevron-right me-1"></i> @entity</li>
-                                                        }
-                                                    </ul>
-                                                </div>
-                                            }
-
-                                            <!-- Actionable Insights -->
-                                            @if (result.Analytics.ActionableInsights != null && result.Analytics.ActionableInsights.Any())
-                                            {
-                                                <div class="mb-3">
-                                                    <strong class="d-block mb-2">Actionable Insights:</strong>
-                                                    <ul>
-                                                        @foreach (var insight in result.Analytics.ActionableInsights)
-                                                        {
-                                                            <li>@insight</li>
-                                                        }
-                                                    </ul>
-                                                </div>
-                                            }
-
-                                            <!-- Related Sectors -->
-                                            @if (result.Analytics.RelatedSectors != null && result.Analytics.RelatedSectors.Any())
-                                            {
-                                                <div class="mb-3">
-                                                    <strong class="d-block mb-2">Related Sectors:</strong>
-                                                    <div class="d-flex flex-wrap gap-2">
-                                                        @foreach (var sector in result.Analytics.RelatedSectors)
-                                                        {
-                                                            <span class="badge bg-primary">@sector</span>
-                                                        }
-                                                    </div>
-                                                </div>
-                                            }
-
-                                            <!-- Full Analysis -->
-                                            <details class="mt-3">
-                                                <summary class="btn btn-sm btn-outline-secondary">
-                                                    <i class="bi bi-eye me-1"></i> View Full Analysis
-                                                </summary>
-                                                <div class="mt-2 p-3 bg-light rounded">
-                                                    <pre style="white-space: pre-wrap; font-size: 0.85rem;">@result.Analytics.FullAnalysis</pre>
-                                                </div>
-                                            </details>
-                                        </div>
-                                    }
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="card-body">
-                                <div class="alert alert-danger mb-0">
-                                    <i class="bi bi-exclamation-triangle me-2"></i>
-                                    @result.Error
-                                </div>
-                            </div>
-                        }
+                                </button>
+                            }
+                        </div>
                     </div>
-                }
+                </div>
+                <div class="col-lg-7">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <span class="fw-semibold"><i class="bi bi-file-earmark-text me-2"></i>Full Article / AI Analytics</span>
+                            @if (selectedArticle != null)
+                            {
+                                <a class="btn btn-sm btn-outline-primary" href="@selectedArticle.Url" target="_blank"><i class="bi bi-box-arrow-up-right me-1"></i>Open</a>
+                            }
+                        </div>
+                        <div class="card-body" style="max-height: 620px; overflow:auto;">
+                            @if (selectedArticle == null)
+                            {
+                                <div class="text-center text-muted py-5">
+                                    <i class="bi bi-arrow-left-circle display-6"></i>
+                                    <div class="mt-3">Select a news item to inspect the full source and analytics.</div>
+                                </div>
+                            }
+                            else
+                            {
+                                <h5 class="mb-2">@selectedArticle.Title</h5>
+                                <div class="small text-muted mb-3">@selectedArticle.Provider · @selectedArticle.PublishedDate.ToString("f")</div>
+                                @if (!string.IsNullOrWhiteSpace(selectedArticle.Summary))
+                                {
+                                    <div class="alert alert-info py-2 px-3">@selectedArticle.Summary</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(selectedArticle.FullContent))
+                                {
+                                    <div class="pipeline-content">@selectedArticle.FullContent</div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-warning">No full content was returned for this item.</div>
+                                }
+
+                                <div class="mt-3 d-flex gap-2 flex-wrap">
+                                    <button class="btn btn-success btn-sm" @onclick="AnalyzeSymbolAsync" disabled="@isLoadingAnalysis">
+                                        @if (isLoadingAnalysis)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-1"></span>
+                                            <span>Analyzing</span>
+                                        }
+                                        else
+                                        {
+                                            <span><i class="bi bi-graph-up me-1"></i>Symbol Sentiment</span>
+                                        }
+                                    </button>
+                                    <button class="btn btn-outline-dark btn-sm" @onclick="AnalyzeSelectedAsync" disabled="@isLoadingAnalysis">
+                                        <i class="bi bi-stars me-1"></i>AI Notes
+                                    </button>
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(selectedAnalysis))
+                                {
+                                    <div class="alert alert-dark mt-3 mb-0">
+                                        <div class="fw-semibold mb-2">Analytics</div>
+                                        <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;">@selectedAnalysis</pre>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
             </div>
         }
-        else if (isLoading)
+        else if (!isLoading)
         {
-            <div class="mt-3 text-center">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2 text-muted">Scraping article and generating AI analytics...</p>
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle me-2"></i>Search a symbol to load pipeline articles, then click a row to show the full source and analytics.
             </div>
         }
     </div>
 </div>
 
 @code {
-    private string newsUrl = "";
-    private string batchUrls = "";
-    private bool showBatchMode = false;
-    private bool isLoading = false;
+    private string symbol = "TSLA";
+    private string sourceFilter = "All";
+    private int limit = 20;
+    private bool isLoading;
+    private bool isLoadingAnalysis;
     private string? errorMessage;
-    private List<NewsScraperResult>? scrapedResults;
-    private HashSet<NewsScraperResult> expandedArticles = new();
+    private string? selectedAnalysis;
+    private List<QuantResearchAgent.Models.PipelineArticle> articles = new();
+    private QuantResearchAgent.Models.PipelineArticle? selectedArticle;
 
     [Inject]
     private HttpClient Http { get; set; } = default!;
 
-    private async Task ScrapeUrl()
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(newsUrl))
-        {
-            errorMessage = "Please enter a valid URL";
-            return;
-        }
-
-        isLoading = true;
-        errorMessage = null;
-        scrapedResults = null;
-
-        try
-        {
-            var requestData = new { Url = newsUrl };
-            var response = await Http.PostAsJsonAsync("api/scrape-news-url", requestData);
-            
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<NewsScraperResult>();
-                if (result != null)
-                {
-                    scrapedResults = new List<NewsScraperResult> { result };
-                    if (result.Success)
-                    {
-                        expandedArticles.Add(result);
-                    }
-                    else
-                    {
-                        errorMessage = result.Error;
-                    }
-                }
-            }
-            else
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                errorMessage = $"Failed to scrape URL: {response.StatusCode}";
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Error: {ex.Message}";
-        }
-
-        isLoading = false;
+        await LoadArticlesAsync();
     }
 
-    private async Task ScrapeBatchUrls()
+    private async Task HandleKeyPress(KeyboardEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(batchUrls))
+        if (e.Key == "Enter")
         {
-            errorMessage = "Please enter at least one URL";
+            await LoadArticlesAsync();
+        }
+    }
+
+    private async Task LoadArticlesAsync()
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+        {
+            errorMessage = "Please enter a symbol.";
             return;
         }
 
         isLoading = true;
         errorMessage = null;
-        scrapedResults = null;
+        selectedAnalysis = null;
 
         try
         {
-            var urls = batchUrls.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                                 .Select(u => u.Trim())
-                                 .Where(u => !string.IsNullOrWhiteSpace(u))
-                                 .ToList();
-
-            if (!urls.Any())
+            var response = await Http.GetAsync($"api/news/search?ticker={Uri.EscapeDataString(symbol.Trim())}&sourceFilter={Uri.EscapeDataString(sourceFilter)}&limit={limit}");
+            if (!response.IsSuccessStatusCode)
             {
-                errorMessage = "No valid URLs found";
-                isLoading = false;
+                errorMessage = $"Failed to fetch articles: {response.StatusCode}";
                 return;
             }
 
-            var requestData = new { Urls = urls };
-            var response = await Http.PostAsJsonAsync("api/scrape-news-urls-batch", requestData);
-            
-            if (response.IsSuccessStatusCode)
-            {
-                var responseData = await response.Content.ReadFromJsonAsync<BatchResponse>();
-                if (responseData?.Results != null)
-                {
-                    scrapedResults = responseData.Results;
-                    // Auto-expand first successful result
-                    var firstSuccess = scrapedResults.FirstOrDefault(r => r.Success);
-                    if (firstSuccess != null)
-                    {
-                        expandedArticles.Add(firstSuccess);
-                    }
-                }
-            }
-            else
-            {
-                errorMessage = $"Failed to scrape URLs: {response.StatusCode}";
-            }
+            var json = await response.Content.ReadAsStringAsync();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+            var result = JsonSerializer.Deserialize<QuantResearchAgent.Models.PipelineSearchResult>(json, options);
+            articles = result?.Articles ?? new List<QuantResearchAgent.Models.PipelineArticle>();
+            selectedArticle = articles.FirstOrDefault();
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error: {ex.Message}";
+            errorMessage = ex.Message;
         }
-
-        isLoading = false;
-    }
-
-    private void ToggleBatchMode()
-    {
-        showBatchMode = !showBatchMode;
-    }
-
-    private void ToggleArticle(NewsScraperResult result)
-    {
-        if (expandedArticles.Contains(result))
+        finally
         {
-            expandedArticles.Remove(result);
+            isLoading = false;
         }
-        else
+    }
+
+    private void SelectArticle(QuantResearchAgent.Models.PipelineArticle article)
+    {
+        selectedArticle = article;
+        selectedAnalysis = null;
+    }
+
+    private async Task AnalyzeSymbolAsync()
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
         {
-            expandedArticles.Add(result);
+            return;
+        }
+
+        isLoadingAnalysis = true;
+        selectedAnalysis = null;
+
+        try
+        {
+            var response = await Http.GetAsync($"api/sentiment/symbol/{Uri.EscapeDataString(symbol.Trim())}?newsLimit={limit}");
+            if (!response.IsSuccessStatusCode)
+            {
+                selectedAnalysis = $"Sentiment request failed: {response.StatusCode}";
+                return;
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            selectedAnalysis = JsonSerializer.Serialize(doc.RootElement, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            selectedAnalysis = ex.Message;
+        }
+        finally
+        {
+            isLoadingAnalysis = false;
         }
     }
 
-    private string GetSentimentClass(string sentiment)
+    private async Task AnalyzeSelectedAsync()
     {
-        if (sentiment.Contains("positive", StringComparison.OrdinalIgnoreCase))
-            return "success";
-        if (sentiment.Contains("negative", StringComparison.OrdinalIgnoreCase))
-            return "danger";
-        return "secondary";
+        if (selectedArticle == null)
+        {
+            return;
+        }
+
+        isLoadingAnalysis = true;
+        selectedAnalysis = null;
+
+        try
+        {
+            var preview = selectedArticle.FullContent;
+            if (string.IsNullOrWhiteSpace(preview))
+            {
+                preview = selectedArticle.Summary;
+            }
+
+            if (string.IsNullOrWhiteSpace(preview))
+            {
+                selectedAnalysis = "No content available for analysis.";
+                return;
+            }
+
+            selectedAnalysis = preview.Length > 700 ? preview.Substring(0, 700) + "..." : preview;
+        }
+        catch (Exception ex)
+        {
+            selectedAnalysis = ex.Message;
+        }
+        finally
+        {
+            isLoadingAnalysis = false;
+        }
     }
 
-    // Data models matching the backend
-    public class NewsScraperResult
+    private async Task ClearAsync()
     {
-        public bool Success { get; set; }
-        public string Error { get; set; } = string.Empty;
-        public ScrapedNewsArticle? Article { get; set; }
-        public NewsAnalytics? Analytics { get; set; }
-    }
-
-    public class ScrapedNewsArticle
-    {
-        public string Title { get; set; } = string.Empty;
-        public string Content { get; set; } = string.Empty;
-        public string Url { get; set; } = string.Empty;
-        public string Source { get; set; } = string.Empty;
-        public string Author { get; set; } = string.Empty;
-        public string PublishedDate { get; set; } = string.Empty;
-        public string ImageUrl { get; set; } = string.Empty;
-    }
-
-    public class NewsAnalytics
-    {
-        public string Summary { get; set; } = string.Empty;
-        public List<string> KeyTopics { get; set; } = new();
-        public string Sentiment { get; set; } = string.Empty;
-        public string MarketImpact { get; set; } = string.Empty;
-        public List<string> KeyEntities { get; set; } = new();
-        public List<string> ActionableInsights { get; set; } = new();
-        public List<string> RelatedSectors { get; set; } = new();
-        public string FullAnalysis { get; set; } = string.Empty;
-        public DateTime AnalyzedAt { get; set; }
-    }
-
-    public class BatchResponse
-    {
-        public List<NewsScraperResult> Results { get; set; } = new();
-        public int Total { get; set; }
-        public int Successful { get; set; }
+        try
+        {
+            await Http.DeleteAsync($"api/news/cached/{Uri.EscapeDataString(symbol.Trim())}");
+            articles.Clear();
+            selectedArticle = null;
+            selectedAnalysis = null;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
     }
 }

@@ -14,3 +14,7 @@ pandas-datareader
 yfinance
 investiny
 investipy
+newsapi-python
+newspaper3k
+beautifulsoup4
+lxml

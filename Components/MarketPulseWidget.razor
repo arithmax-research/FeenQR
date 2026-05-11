@@ -1,299 +1,225 @@
 @using System.Text.Json
 
 <div class="card shadow-sm mb-4">
-    <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #7c3aed 100%);">
         <h5 class="card-title mb-0">
-            <i class="bi bi-activity"></i> Market Pulse & Trending
+            <i class="bi bi-newspaper me-2"></i>Dual News Pipeline
         </h5>
     </div>
     <div class="card-body">
-        <!-- Market Pulse Section -->
-        <div class="mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Overall Market Sentiment</h6>
-                <button class="btn btn-sm btn-primary" @onclick="LoadMarketPulse" disabled="@isLoadingPulse">
-                    @if (isLoadingPulse)
+        <div class="row g-3 align-items-end mb-3">
+            <div class="col-lg-3 col-md-4">
+                <label class="form-label fw-semibold">Symbol</label>
+                <input class="form-control" @bind="symbol" @bind:event="oninput" placeholder="TSLA" @onkeypress="HandleKeyPress" />
+            </div>
+            <div class="col-lg-3 col-md-4">
+                <label class="form-label fw-semibold">Source</label>
+                <select class="form-select" @bind="sourceFilter">
+                    <option value="All">All Sources</option>
+                    <option value="Reuters">Reuters</option>
+                    <option value="Bloomberg">Bloomberg</option>
+                    <option value="CNBC">CNBC</option>
+                    <option value="MarketWatch">MarketWatch</option>
+                    <option value="Yahoo">Yahoo</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label fw-semibold">Limit</label>
+                <input class="form-control" type="number" min="1" max="50" @bind="limit" />
+            </div>
+            <div class="col-lg-2 col-md-6 d-grid">
+                <button class="btn btn-primary" @onclick="SearchAsync" disabled="@isLoading">
+                    @if (isLoading)
                     {
-                        <span class="spinner-border spinner-border-sm me-1"></span>
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                        <span>Loading</span>
                     }
                     else
                     {
-                        <i class="bi bi-arrow-clockwise me-1"></i>
+                        <span><i class="bi bi-search me-2"></i>Search</span>
                     }
-                    Refresh
                 </button>
             </div>
+            <div class="col-lg-2 col-md-6 d-grid">
+                <button class="btn btn-outline-secondary" @onclick="ClearAsync" disabled="@(string.IsNullOrWhiteSpace(symbol))">
+                    <i class="bi bi-trash me-2"></i>Clear Cache
+                </button>
+            </div>
+        </div>
 
-            @if (marketPulse != null)
-            {
-                <div class="row g-3">
-                    <div class="col-md-12">
-                        <div class="alert alert-@GetMoodColorClass(marketPulse.MarketMood) mb-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>Market Mood:</strong> @marketPulse.MarketMood
-                                </div>
-                                <div>
-                                    <strong>Score:</strong> @marketPulse.OverallScore.ToString("F2")
-                                </div>
-                            </div>
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
+            </div>
+        }
+
+        @if (articles.Count > 0)
+        {
+            <div class="row g-3">
+                <div class="col-lg-5">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <span class="fw-semibold"><i class="bi bi-list-ul me-2"></i>Articles (@articles.Count)</span>
+                            <small class="text-muted">Click one to load full content</small>
+                        </div>
+                        <div class="list-group list-group-flush" style="max-height: 620px; overflow:auto;">
+                            @foreach (var article in articles)
+                            {
+                                <button class="list-group-item list-group-item-action @(selectedArticle?.Url == article.Url ? "active" : "")" @onclick="() => SelectArticle(article)">
+                                    <div class="d-flex justify-content-between align-items-start gap-2">
+                                        <div class="text-start flex-grow-1">
+                                            <div class="fw-semibold">@article.Title</div>
+                                            <div class="small @(selectedArticle?.Url == article.Url ? "text-white-50" : "text-muted")">@article.Provider · @article.PublishedDate.ToString("g")</div>
+                                            <div class="small @(selectedArticle?.Url == article.Url ? "text-white-50" : "text-muted")">@article.Source</div>
+                                        </div>
+                                        @if (article.IsScraped)
+                                        {
+                                            <span class="badge bg-success align-self-start">Full</span>
+                                        }
+                                    </div>
+                                </button>
+                            }
                         </div>
                     </div>
-
-                    @foreach (var asset in marketPulse.AssetClasses)
-                    {
-                        <div class="col-md-4">
-                            <div class="card border-@GetSentimentColorClass(asset.Sentiment)">
-                                <div class="card-body text-center">
-                                    <h6 class="text-uppercase text-muted mb-2">@asset.AssetClass</h6>
-                                    <div class="h5 mb-1">@asset.Symbol</div>
-                                    <div class="badge bg-@GetSentimentColorClass(asset.Sentiment) mb-2">
-                                        @asset.Sentiment
-                                    </div>
-                                    <div class="small text-muted">
-                                        Score: @asset.Score.ToString("F2") | Confidence: @((asset.Confidence * 100).ToString("F0"))%
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    }
                 </div>
-            }
-            else if (pulseError != null)
-            {
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle me-2"></i>@pulseError
-                </div>
-            }
-        </div>
-
-        <hr />
-
-        <!-- Trending Symbols Section -->
-        <div>
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0"><i class="bi bi-fire me-2"></i>Trending on Reddit</h6>
-                <button class="btn btn-sm btn-primary" @onclick="LoadTrending" disabled="@isLoadingTrending">
-                    @if (isLoadingTrending)
-                    {
-                        <span class="spinner-border spinner-border-sm me-1"></span>
-                    }
-                    else
-                    {
-                        <i class="bi bi-arrow-clockwise me-1"></i>
-                    }
-                    Refresh
-                </button>
-            </div>
-
-            @if (trendingSymbols != null && trendingSymbols.Any())
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Symbol</th>
-                                <th>Mentions</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @{
-                                int rank = 1;
-                            }
-                            @foreach (var item in trendingSymbols.Take(15))
+                <div class="col-lg-7">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <span class="fw-semibold"><i class="bi bi-file-text me-2"></i>Full Source</span>
+                            @if (selectedArticle != null)
                             {
-                                <tr>
-                                    <td>
-                                        @if (rank <= 3)
-                                        {
-                                            <span class="badge bg-warning text-dark">@rank</span>
-                                        }
-                                        else
-                                        {
-                                            <span>@rank</span>
-                                        }
-                                    </td>
-                                    <td><strong>@item.Symbol</strong></td>
-                                    <td>
-                                        <span class="badge bg-info">@item.Mentions mentions</span>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => AnalyzeSymbol(item.Symbol)">
-                                            <i class="bi bi-search"></i> Analyze
-                                        </button>
-                                    </td>
-                                </tr>
-                                rank++;
+                                <a class="btn btn-sm btn-outline-primary" href="@selectedArticle.Url" target="_blank"><i class="bi bi-box-arrow-up-right me-1"></i>Open</a>
                             }
-                        </tbody>
-                    </table>
+                        </div>
+                        <div class="card-body" style="max-height: 620px; overflow:auto;">
+                            @if (selectedArticle == null)
+                            {
+                                <div class="text-center text-muted py-5">
+                                    <i class="bi bi-arrow-left-circle display-6"></i>
+                                    <div class="mt-3">Select a story to populate the full news source here.</div>
+                                </div>
+                            }
+                            else
+                            {
+                                <h5 class="mb-2">@selectedArticle.Title</h5>
+                                <div class="text-muted small mb-3">@selectedArticle.Provider · @selectedArticle.PublishedDate.ToString("f")</div>
+                                @if (!string.IsNullOrWhiteSpace(selectedArticle.FullContent))
+                                {
+                                    <div class="alert alert-success py-2 px-3">
+                                        <i class="bi bi-check-circle me-1"></i>Full content cached from the pipeline
+                                    </div>
+                                    <div class="pipeline-content">@selectedArticle.FullContent</div>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(selectedArticle.Summary))
+                                {
+                                    <p class="mb-0">@selectedArticle.Summary</p>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-warning mb-0">No content was returned for this article.</div>
+                                }
+                            }
+                        </div>
+                    </div>
                 </div>
-                <small class="text-muted">
-                    <i class="bi bi-info-circle me-1"></i>
-                    Total symbols found: @trendingData?.TotalSymbolsFound | Last updated: @trendingData?.Timestamp.ToString("HH:mm:ss")
-                </small>
-            }
-            else if (trendingError != null)
-            {
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle me-2"></i>@trendingError
-                </div>
-            }
-            else if (!isLoadingTrending)
-            {
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle me-2"></i>Click "Refresh" to load trending symbols from Reddit
-                </div>
-            }
-        </div>
+            </div>
+        }
+        else if (!isLoading && string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle me-2"></i>Enter a symbol and search to load articles from NewsAPI + yfinance.
+            </div>
+        }
     </div>
 </div>
 
 @code {
-    private MarketPulseData? marketPulse;
-    private TrendingData? trendingData;
-    private List<TrendingSymbol>? trendingSymbols;
-    private string? pulseError;
-    private string? trendingError;
-    private bool isLoadingPulse = false;
-    private bool isLoadingTrending = false;
+    private string symbol = "TSLA";
+    private string sourceFilter = "All";
+    private int limit = 20;
+    private bool isLoading;
+    private string? errorMessage;
+    private List<QuantResearchAgent.Models.PipelineArticle> articles = new();
+    private QuantResearchAgent.Models.PipelineArticle? selectedArticle;
 
     [Inject]
     private HttpClient Http { get; set; } = default!;
 
-    [Parameter]
-    public EventCallback<string> OnSymbolSelected { get; set; }
-
     protected override async Task OnInitializedAsync()
     {
-        await LoadMarketPulse();
-        await LoadTrending();
+        await SearchAsync();
     }
 
-    private async Task LoadMarketPulse()
+    private async Task HandleKeyPress(KeyboardEventArgs e)
     {
-        isLoadingPulse = true;
-        pulseError = null;
-        
+        if (e.Key == "Enter")
+        {
+            await SearchAsync();
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+        {
+            errorMessage = "Enter a symbol first.";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+
         try
         {
-            var response = await Http.GetAsync("api/sentiment/market-pulse");
+            var url = $"api/news/search?ticker={Uri.EscapeDataString(symbol.Trim())}&sourceFilter={Uri.EscapeDataString(sourceFilter)}&limit={limit}";
+            var response = await Http.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = $"Failed to load news: {response.StatusCode}";
+                return;
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+            var result = JsonSerializer.Deserialize<QuantResearchAgent.Models.PipelineSearchResult>(json, options);
+            articles = result?.Articles ?? new List<QuantResearchAgent.Models.PipelineArticle>();
+            selectedArticle = articles.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SelectArticle(QuantResearchAgent.Models.PipelineArticle article)
+    {
+        selectedArticle = article;
+    }
+
+    private async Task ClearAsync()
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+        {
+            return;
+        }
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/news/cached/{Uri.EscapeDataString(symbol.Trim())}");
             if (response.IsSuccessStatusCode)
             {
-                var json = await response.Content.ReadAsStringAsync();
-                var options = new JsonSerializerOptions 
-                { 
-                    PropertyNameCaseInsensitive = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                };
-                marketPulse = JsonSerializer.Deserialize<MarketPulseData>(json, options);
-            }
-            else
-            {
-                pulseError = $"Failed to load market pulse: {response.StatusCode}";
+                articles.Clear();
+                selectedArticle = null;
             }
         }
         catch (Exception ex)
         {
-            pulseError = $"Error: {ex.Message}";
+            errorMessage = ex.Message;
         }
-        finally
-        {
-            isLoadingPulse = false;
-        }
-    }
-
-    private async Task LoadTrending()
-    {
-        isLoadingTrending = true;
-        trendingError = null;
-        
-        try
-        {
-            var response = await Http.GetAsync("api/sentiment/reddit/trending?limit=20");
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                var options = new JsonSerializerOptions 
-                { 
-                    PropertyNameCaseInsensitive = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                };
-                trendingData = JsonSerializer.Deserialize<TrendingData>(json, options);
-                trendingSymbols = trendingData?.Trending?.ToList();
-            }
-            else
-            {
-                trendingError = $"Failed to load trending symbols: {response.StatusCode}";
-            }
-        }
-        catch (Exception ex)
-        {
-            trendingError = $"Error: {ex.Message}";
-        }
-        finally
-        {
-            isLoadingTrending = false;
-        }
-    }
-
-    private async Task AnalyzeSymbol(string symbol)
-    {
-        await OnSymbolSelected.InvokeAsync(symbol);
-    }
-
-    private string GetSentimentColorClass(string sentiment)
-    {
-        return sentiment?.ToLower() switch
-        {
-            "bullish" => "success",
-            "bearish" => "danger",
-            "positive" => "success",
-            "negative" => "danger",
-            _ => "secondary"
-        };
-    }
-
-    private string GetMoodColorClass(string mood)
-    {
-        return mood?.ToLower() switch
-        {
-            "risk-on" => "success",
-            "risk-off" => "danger",
-            _ => "info"
-        };
-    }
-
-    // Data models
-    public class MarketPulseData
-    {
-        public DateTime Timestamp { get; set; }
-        public string MarketMood { get; set; } = "";
-        public double OverallScore { get; set; }
-        public List<AssetClassData> AssetClasses { get; set; } = new();
-    }
-
-    public class AssetClassData
-    {
-        public string AssetClass { get; set; } = "";
-        public string Symbol { get; set; } = "";
-        public string Sentiment { get; set; } = "";
-        public double Score { get; set; }
-        public double Confidence { get; set; }
-    }
-
-    public class TrendingData
-    {
-        public DateTime Timestamp { get; set; }
-        public List<TrendingSymbol> Trending { get; set; } = new();
-        public int TotalSymbolsFound { get; set; }
-    }
-
-    public class TrendingSymbol
-    {
-        public string Symbol { get; set; } = "";
-        public int Mentions { get; set; }
     }
 }

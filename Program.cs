@@ -330,7 +330,6 @@ namespace QuantResearchAgent
             services.AddSingleton<YFinanceApiService>();
             services.AddSingleton<YFinanceNewsService>();
             services.AddSingleton<FinvizNewsService>();
-            services.AddSingleton<NewsApiClient>();
             
             // Add memory cache for embedding caching
             services.AddMemoryCache();
@@ -348,7 +347,29 @@ namespace QuantResearchAgent
                     AllowAutoRedirect = true,
                     MaxAutomaticRedirections = 5
                 });
-            
+
+            services.Configure<QuantResearchAgent.Models.NewsPipelineConfig>(options =>
+            {
+                options.NewsApiKey = configuration["NewsAPI:ApiKey"] ?? "";
+                options.NewsApiPageSize = configuration.GetValue<int>("NewsAPI:PageSize", 15);
+                options.YfinanceMaxResults = configuration.GetValue<int>("Yfinance:MaxResults", 10);
+                options.ScraperTimeoutSeconds = configuration.GetValue<int>("ArticleScraper:TimeoutSeconds", 10);
+                options.MaxConcurrentScrapes = configuration.GetValue<int>("ArticleScraper:MaxConcurrency", 5);
+                options.WordLimitPerArticle = configuration.GetValue<int>("ArticleScraper:WordLimitPerArticle", 3000);
+            });
+            services.AddHttpClient<QuantResearchAgent.Services.INewsPipelineService, QuantResearchAgent.Services.NewsPipelineService>()
+                .ConfigureHttpClient((sp, client) =>
+                {
+                    var config = sp.GetRequiredService<IConfiguration>();
+                    var timeoutSeconds = config.GetValue<int>("ArticleScraper:TimeoutSeconds", 10);
+                    client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
+                    AllowAutoRedirect = true,
+                    MaxAutomaticRedirections = 5
+                });
+
             services.AddSingleton<ChunkGeneratorService>();
             services.AddSingleton<EmbeddingService>();
             services.AddSingleton<VectorStoreService>();

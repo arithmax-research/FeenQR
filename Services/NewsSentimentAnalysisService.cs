@@ -19,12 +19,13 @@ namespace QuantResearchAgent.Services
         private readonly FinvizNewsService _finvizNewsService;
         private readonly RedditScrapingService _redditScrapingService;
         private readonly GoogleWebSearchPlugin _googleSearchPlugin;
+        private readonly INewsPipelineService _newsPipelineService;
         private readonly HttpClient _httpClient;
         private readonly ArticleScraperService? _articleScraperService;
         private readonly ChunkGeneratorService? _chunkGeneratorService;
         private readonly EmbeddingService? _embeddingService;
         private readonly VectorStoreService? _vectorStoreService;
-        private readonly NewsApiClient? _newsApiClient;
+        
         
         // Circuit breaker state
         private readonly Dictionary<string, CircuitBreakerState> _circuitBreakers = new();
@@ -37,12 +38,12 @@ namespace QuantResearchAgent.Services
             FinvizNewsService finvizNewsService,
             RedditScrapingService redditScrapingService,
             GoogleWebSearchPlugin googleSearchPlugin,
+            INewsPipelineService newsPipelineService,
             HttpClient httpClient,
             ArticleScraperService? articleScraperService = null,
             ChunkGeneratorService? chunkGeneratorService = null,
             EmbeddingService? embeddingService = null,
-            VectorStoreService? vectorStoreService = null,
-            NewsApiClient? newsApiClient = null)
+            VectorStoreService? vectorStoreService = null)
         {
             _logger = logger;
             _openAIService = openAIService;
@@ -50,12 +51,12 @@ namespace QuantResearchAgent.Services
             _finvizNewsService = finvizNewsService;
             _redditScrapingService = redditScrapingService;
             _googleSearchPlugin = googleSearchPlugin;
+            _newsPipelineService = newsPipelineService;
             _httpClient = httpClient;
             _articleScraperService = articleScraperService;
             _chunkGeneratorService = chunkGeneratorService;
             _embeddingService = embeddingService;
             _vectorStoreService = vectorStoreService;
-            _newsApiClient = newsApiClient;
         }
 
         /// <summary>
@@ -305,6 +306,7 @@ namespace QuantResearchAgent.Services
         /// <summary>
         /// Analyze sentiment for a symbol using full article content with vector storage
         /// Fetches news from all 6 sources, scrapes full content, generates chunks, embeddings, and stores in vector DB
+            /// Fetches news from all 7 sources, scrapes full content, generates chunks, embeddings, and stores in vector DB
         /// </summary>
         public async Task<SymbolSentimentAnalysis> AnalyzeSymbolSentimentWithFullContentAsync(string symbol, int newsLimit = 10)
         {
@@ -320,12 +322,31 @@ namespace QuantResearchAgent.Services
                     return await AnalyzeSymbolSentimentAsync(symbol, newsLimit);
                 }
 
-                // Step 1: Fetch news from all 6 sources (including NewsAPI)
-                var allNews = await AggregateNewsFromAllSourcesAsync(symbol, newsLimit);
+                // Step 1: Fetch news and full article content from the Python pipeline
+                var pipelineResult = await _newsPipelineService.SearchNewsAsync(symbol, "All", newsLimit);
+                var uniqueNews = pipelineResult.Articles
+                    .Where(n => !string.IsNullOrWhiteSpace(n.Title))
+                    .GroupBy(n => n.Title.ToLower().Trim())
+                    .Select(g => g.OrderByDescending(n => n.PublishedDate).First())
+                    .OrderByDescending(n => n.PublishedDate)
+                    .Take(newsLimit)
+                    .Select(n => new NewsItem
+                    {
+                        Title = n.Title,
+                        Summary = n.Summary,
+                        FullContent = string.IsNullOrWhiteSpace(n.FullContent) ? n.Summary : n.FullContent,
+                        ContentLength = (string.IsNullOrWhiteSpace(n.FullContent) ? n.Summary : n.FullContent).Length,
+                        ContentScraped = n.IsScraped || !string.IsNullOrWhiteSpace(n.FullContent),
+                        Publisher = string.IsNullOrWhiteSpace(n.Provider) ? n.Source : n.Provider,
+                        PublishedDate = n.PublishedDate,
+                        Link = n.Url,
+                        Source = string.IsNullOrWhiteSpace(n.Source) ? "PythonPipeline" : n.Source
+                    })
+                    .ToList();
 
-                if (allNews.Count == 0)
+                if (uniqueNews.Count == 0)
                 {
-                    _logger.LogWarning($"No news items found for {symbol} from any source");
+                    _logger.LogWarning($"No news items found for {symbol} from the Python pipeline");
                     return new SymbolSentimentAnalysis
                     {
                         Symbol = symbol,
@@ -338,47 +359,7 @@ namespace QuantResearchAgent.Services
                     };
                 }
 
-                _logger.LogInformation($"Total news items collected: {allNews.Count} from all sources");
-
-                // Remove duplicates, filter old news (older than 30 days), and sort by date
-                var cutoffDate = DateTime.Now.AddDays(-30);
-                var uniqueNews = allNews
-                    .Where(n => n.PublishedDate >= cutoffDate) // Filter out old news
-                    .GroupBy(n => n.Title.ToLower().Trim())
-                    .Select(g => g.OrderByDescending(n => n.PublishedDate).First())
-                    .OrderByDescending(n => n.PublishedDate)
-                    .Take(newsLimit)
-                    .ToList();
-
-                _logger.LogInformation($"After filtering: {uniqueNews.Count} recent news items (within 30 days)");
-
-                // Step 2: Scrape full article content for each news item
-                _logger.LogInformation($"Scraping full content for {uniqueNews.Count} articles...");
-                var urlsToScrape = uniqueNews.Where(n => !string.IsNullOrEmpty(n.Link)).Select(n => n.Link).ToList();
-                var scrapedArticles = await ExecuteWithCircuitBreaker("ArticleScraper", 
-                    () => _articleScraperService.ScrapeArticlesAsync(urlsToScrape));
-
-                // Map scraped content back to news items
-                var articleContentMap = scrapedArticles.ToDictionary(a => a.Url, a => a);
-                foreach (var newsItem in uniqueNews)
-                {
-                    if (articleContentMap.TryGetValue(newsItem.Link, out var articleContent) && articleContent.Success)
-                    {
-                        newsItem.FullContent = articleContent.Content;
-                        newsItem.ContentLength = articleContent.ContentLength;
-                        newsItem.ContentScraped = true;
-                    }
-                    else
-                    {
-                        // Fallback to summary if scraping failed
-                        newsItem.FullContent = newsItem.Summary;
-                        newsItem.ContentLength = newsItem.Summary.Length;
-                        newsItem.ContentScraped = false;
-                    }
-                }
-
-                var successfulScrapes = uniqueNews.Count(n => n.ContentScraped);
-                _logger.LogInformation($"Successfully scraped {successfulScrapes}/{uniqueNews.Count} articles");
+                _logger.LogInformation($"Python pipeline returned {uniqueNews.Count} recent news items with full content");
 
                 // Step 3: Generate chunks for each article
                 _logger.LogInformation("Generating semantic chunks from articles...");
@@ -731,40 +712,17 @@ namespace QuantResearchAgent.Services
                 }
             });
 
-            // NewsAPI task (6th source)
-            var newsApiTask = Task.Run(async () =>
-            {
-                try
-                {
-                    if (_newsApiClient == null)
-                    {
-                        _logger.LogWarning("NewsApiClient not available");
-                        return new List<NewsItem>();
-                    }
+            // Wait for core sources to complete in parallel
+            await Task.WhenAll(googleTask, finvizTask, redditTask, yahooTask, marketWatchTask);
 
-                    var newsApiItems = await _newsApiClient.GetNewsAsync(symbol, perSourceLimit);
-                    _logger.LogInformation($"Retrieved {newsApiItems.Count} news items from NewsAPI");
-                    return newsApiItems;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, $"Failed to get NewsAPI results for {symbol}");
-                    return new List<NewsItem>();
-                }
-            });
-
-            // Wait for all sources to complete in parallel
-            await Task.WhenAll(googleTask, finvizTask, redditTask, yahooTask, marketWatchTask, newsApiTask);
-            
             // Log results from each source
-            _logger.LogInformation($"Source results - Google: {googleTask.Result.Count}, Finviz: {finvizTask.Result.Count}, Reddit: {redditTask.Result.Count}, Yahoo: {yahooTask.Result.Count}, MarketWatch: {marketWatchTask.Result.Count}, NewsAPI: {newsApiTask.Result.Count}");
-            
+            _logger.LogInformation($"Source results - Google: {googleTask.Result.Count}, Finviz: {finvizTask.Result.Count}, Reddit: {redditTask.Result.Count}, Yahoo: {yahooTask.Result.Count}, MarketWatch: {marketWatchTask.Result.Count}");
+
             allNews.AddRange(googleTask.Result);
             allNews.AddRange(finvizTask.Result);
             allNews.AddRange(redditTask.Result);
             allNews.AddRange(yahooTask.Result);
             allNews.AddRange(marketWatchTask.Result);
-            allNews.AddRange(newsApiTask.Result);
 
             return allNews;
         }
@@ -1140,11 +1098,17 @@ Provide nuanced scores reflecting the depth of content, not just headline sentim
                 {
                     foreach (var item in sentimentArray.EnumerateArray())
                     {
+                        double scoreValue = 0.0;
+                        if (item.TryGetProperty("score", out var score) && score.ValueKind == JsonValueKind.Number)
+                        {
+                            score.TryGetDouble(out scoreValue);
+                        }
+
                         results.Add(new NewsItemSentiment
                         {
-                            Score = item.TryGetProperty("score", out var score) ? score.GetDouble() : 0.0,
+                            Score = scoreValue,
                             Label = item.TryGetProperty("label", out var label) ? label.GetString() ?? "Neutral" : "Neutral",
-                            KeyTopics = item.TryGetProperty("keyTopics", out var topics) 
+                            KeyTopics = item.TryGetProperty("keyTopics", out var topics) && topics.ValueKind == JsonValueKind.Array
                                 ? topics.EnumerateArray().Select(t => t.GetString() ?? "").Where(t => !string.IsNullOrEmpty(t)).ToList()
                                 : new List<string>(),
                             Impact = item.TryGetProperty("impact", out var impact) ? impact.GetString() ?? "Medium" : "Medium"

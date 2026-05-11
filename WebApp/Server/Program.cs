@@ -201,9 +201,31 @@ builder.Services.AddHttpClient<ArticleScraperService>()
         MaxAutomaticRedirections = 5
     });
 builder.Services.AddSingleton<ChunkGeneratorService>();
+
+// Register NewsPipelineService (NewsAPI + yfinance + newspaper3k)
+builder.Services.Configure<QuantResearchAgent.Models.NewsPipelineConfig>(options =>
+{
+    options.NewsApiKey = builder.Configuration["NewsAPI:ApiKey"] ?? "";
+    options.NewsApiPageSize = builder.Configuration.GetValue<int>("NewsAPI:PageSize", 15);
+    options.YfinanceMaxResults = builder.Configuration.GetValue<int>("Yfinance:MaxResults", 10);
+    options.ScraperTimeoutSeconds = builder.Configuration.GetValue<int>("ArticleScraper:TimeoutSeconds", 10);
+    options.MaxConcurrentScrapes = builder.Configuration.GetValue<int>("ArticleScraper:MaxConcurrency", 5);
+    options.WordLimitPerArticle = builder.Configuration.GetValue<int>("ArticleScraper:WordLimitPerArticle", 3000);
+});
+builder.Services.AddHttpClient<QuantResearchAgent.Services.INewsPipelineService, QuantResearchAgent.Services.NewsPipelineService>()
+    .ConfigureHttpClient((sp, client) =>
+    {
+        var config = sp.GetRequiredService<IConfiguration>();
+        var timeoutSeconds = config.GetValue<int>("ArticleScraper:TimeoutSeconds", 10);
+        client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+    })
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        AllowAutoRedirect = true,
+        MaxAutomaticRedirections = 5
+    });
 builder.Services.AddSingleton<EmbeddingService>();
 builder.Services.AddSingleton<VectorStoreService>();
-builder.Services.AddSingleton<NewsApiClient>();
 
 builder.Services.AddSingleton<WebDataExtractionService>();
 builder.Services.AddSingleton<GoogleWebSearchPlugin>();
@@ -343,3 +365,6 @@ app.MapControllers();
 app.MapFallbackToFile("index.html");
 
 app.Run();
+
+// ============ NewsPipelineService Configuration ============
+// Note: This will be added to the DI section

@@ -1,0 +1,276 @@
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@page "/market-pulse"
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-newspaper"></i> Dual News Pipeline Reader
+        </h5>
+    </div>
+    <div class="card-body">
+        <!-- Input Section: Horizontal Layout -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Stock Symbol</label>
+                <div class="input-group">
+                    <input type="text" 
+                           class="form-control" 
+                           @bind="ticker" 
+                           @bind:event="oninput" 
+                           placeholder="e.g., AAPL, TSLA"
+                           @onkeypress="HandleKeyPress" />
+                    <button class="btn btn-primary" @onclick="SearchNews" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                            <span>Searching...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-search me-1"></i>
+                            <span>Search</span>
+                        }
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Source Filter</label>
+                <select class="form-select" @bind="sourceFilter">
+                    <option value="All">All Sources</option>
+                    <option value="Bloomberg">Bloomberg</option>
+                    <option value="Reuters">Reuters</option>
+                    <option value="CNBC">CNBC</option>
+                    <option value="Yahoo">Yahoo</option>
+                    <option value="MarketWatch">MarketWatch</option>
+                    <option value="WSJ">WSJ</option>
+                    <option value="Financial Times">Financial Times</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Actions</label>
+                <button class="btn btn-outline-secondary w-100" @onclick="ClearArticles" disabled="@(articles?.Count == 0)">
+                    <i class="bi bi-trash me-1"></i> Clear Cache
+                </button>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
+                <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+            </div>
+        }
+
+        <!-- Dual Panel Section: Articles List + Detail -->
+        @if (articles != null && articles.Count > 0)
+        {
+            <div class="row g-3">
+                <!-- Left Panel: Articles List -->
+                <div class="col-md-5">
+                    <div class="card border-primary">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="bi bi-list me-2"></i>
+                                Articles (@articles.Count)
+                            </h6>
+                        </div>
+                        <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                            <div class="list-group list-group-flush">
+                                @foreach (var article in articles)
+                                {
+                                    var isSelected = selectedArticle?.Id == article.Id;
+                                    <button class="list-group-item list-group-item-action @(isSelected ? "active" : "")" 
+                                            @onclick="() => SelectArticle(article)">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div style="flex: 1;">
+                                                <h6 class="mb-1 text-start" style="font-size: 0.9rem;">@article.Title</h6>
+                                                <small class="text-muted d-block">@article.Provider</small>
+                                                <small class="text-muted d-block">@article.PublishedDate.ToString("g")</small>
+                                            </div>
+                                        </div>
+                                        @if (article.IsScraped)
+                                        {
+                                            <span class="badge bg-success float-end">Scraped</span>
+                                        }
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Article Detail -->
+                <div class="col-md-7">
+                    @if (selectedArticle != null)
+                    {
+                        <div class="card border-success">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-file-text me-2"></i>
+                                    Article Detail
+                                </h6>
+                                <a href="@selectedArticle.Url" target="_blank" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-arrow-up-right me-1"></i>Open Original
+                                </a>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">@selectedArticle.Title</h5>
+                                
+                                <div class="mb-3">
+                                    <small class="text-muted">
+                                        <strong>Source:</strong> @selectedArticle.Source | 
+                                        <strong>Provider:</strong> @selectedArticle.Provider<br/>
+                                        <strong>Published:</strong> @selectedArticle.PublishedDate.ToString("g")<br/>
+                                        @if (!string.IsNullOrEmpty(selectedArticle.Author))
+                                        {
+                                            <span><strong>Author:</strong> @selectedArticle.Author<br/></span>
+                                        }
+                                    </small>
+                                </div>
+
+                                @if (selectedArticle.IsScraped && !string.IsNullOrEmpty(selectedArticle.FullContent))
+                                {
+                                    <div class="alert alert-info mb-3">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Full content retrieved (@selectedArticle.FullContent.Length chars)
+                                    </div>
+                                    <div style="max-height: 400px; overflow-y: auto; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                                        <p class="text-justify">@selectedArticle.FullContent</p>
+                                    </div>
+                                }
+                                else if (!string.IsNullOrEmpty(selectedArticle.Summary))
+                                {
+                                    <p class="card-text">@selectedArticle.Summary</p>
+                                }
+                                else
+                                {
+                                    <p class="text-muted"><em>No content available. Click "Open Original" to view the full article.</em></p>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="card border-secondary">
+                            <div class="card-body text-center text-muted py-5">
+                                <i class="bi bi-arrow-left" style="font-size: 2rem;"></i>
+                                <p class="mt-2">Select an article from the list to view details</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Loading indicator for scraping -->
+            @if (scrapingInProgress)
+            {
+                <div class="alert alert-info mt-3">
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                    <strong>Scraping articles in progress...</strong> (This may take a minute)
+                </div>
+            }
+        }
+        else if (!isLoading && string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                Enter a stock symbol and click "Search" to find news articles from NewsAPI and yfinance
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string ticker = "";
+    private string sourceFilter = "All";
+    private List<QuantResearchAgent.Models.PipelineArticle>? articles;
+    private QuantResearchAgent.Models.PipelineArticle? selectedArticle;
+    private bool isLoading = false;
+    private bool scrapingInProgress = false;
+    private string? errorMessage;
+
+    [Inject]
+    private HttpClient Http { get; set; } = default!;
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchNews();
+        }
+    }
+
+    private async Task SearchNews()
+    {
+        if (string.IsNullOrWhiteSpace(ticker))
+        {
+            errorMessage = "Please enter a stock symbol";
+            return;
+        }
+
+        isLoading = true;
+        scrapingInProgress = true;
+        errorMessage = null;
+        selectedArticle = null;
+
+        try
+        {
+            var url = $"api/news/search?ticker={Uri.EscapeDataString(ticker)}&sourceFilter={Uri.EscapeDataString(sourceFilter)}&limit=25";
+            var response = await Http.GetAsync(url);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var options = new JsonSerializerOptions 
+                { 
+                    PropertyNameCaseInsensitive = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+                var result = System.Text.Json.JsonSerializer.Deserialize<QuantResearchAgent.Models.PipelineSearchResult>(json, options);
+                articles = result?.Articles;
+            }
+            else
+            {
+                errorMessage = $"Failed to search news: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            scrapingInProgress = false;
+        }
+    }
+
+    private void SelectArticle(QuantResearchAgent.Models.PipelineArticle article)
+    {
+        selectedArticle = article;
+    }
+
+    private async Task ClearArticles()
+    {
+        if (string.IsNullOrWhiteSpace(ticker))
+            return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/news/cached/{Uri.EscapeDataString(ticker)}");
+            if (response.IsSuccessStatusCode)
+            {
+                articles = null;
+                selectedArticle = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error clearing cache: {ex.Message}";
+        }
+    }
+}
