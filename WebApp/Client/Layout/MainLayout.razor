@@ -12,7 +12,7 @@
                 <MudText Typo="Typo.h5" Style="@GetHeaderTextStyle()">FeenQR</MudText>
                 <div style="display:flex; gap:0.5rem; align-items:center;">
                     <MudIconButton Icon="@GetThemeIcon()" Color="Color.Inherit" OnClick="@ToggleTheme" Size="Size.Small" Style="@GetThemeIconStyle()" />
-                    <MudIconButton Icon="@(drawerOpen ? Icons.Material.Filled.ChevronLeft : Icons.Material.Filled.Menu)" Color="Color.Inherit" OnClick="@ToggleDrawer" Size="Size.Small" Style="@GetThemeIconStyle()" Title="Toggle sidebar" />
+                    <MudIconButton Icon="@(drawerOpen ? Icons.Material.Filled.ChevronLeft : Icons.Material.Filled.Menu)" Color="Color.Inherit" OnClick="@ToggleDrawer" Size="Size.Small" Style="@GetThemeIconStyle()" aria-label="Toggle sidebar" />
                 </div>
             </div>
         </MudDrawerHeader>
@@ -73,7 +73,7 @@
 
 @if (!drawerOpen)
 {
-    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Primary" OnClick="@ToggleDrawer" Style="position:fixed; left:12px; top:12px; z-index:2000;" Title="Open sidebar" />
+    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Primary" OnClick="@ToggleDrawer" Style="position:fixed; left:12px; top:12px; z-index:2000;" aria-label="Open sidebar" />
 }
 
 <AskFeen />

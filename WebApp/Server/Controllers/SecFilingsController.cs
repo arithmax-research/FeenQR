@@ -312,12 +312,12 @@ namespace Server.Controllers
 
     public class SecAnalysisRequest
     {
-        public string Symbol { get; set; }
+        public string Symbol { get; set; } = string.Empty;
         public string FilingType { get; set; } = "10-K"; // 10-K, 10-Q, 8-K
     }
 
     public class SymbolRequest
     {
-        public string Symbol { get; set; }
+        public string Symbol { get; set; } = string.Empty;
     }
 }

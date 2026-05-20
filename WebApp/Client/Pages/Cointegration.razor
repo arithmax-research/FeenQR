@@ -128,15 +128,15 @@
                             <div class="risk-grid">
                                 <div class="risk-item">
                                     <span>Max Drawdown</span>
-                                    <span class="risk-value">@comprehensive.RiskMetrics.MaxDrawdown.ToString("P1")</span>
+                                    <span class="risk-value">@((comprehensive.RiskMetrics?.MaxDrawdown ?? 0m).ToString("P1"))</span>
                                 </div>
                                 <div class="risk-item">
                                     <span>Volatility</span>
-                                    <span class="risk-value">@comprehensive.RiskMetrics.Volatility.ToString("P1")</span>
+                                    <span class="risk-value">@((comprehensive.RiskMetrics?.Volatility ?? 0m).ToString("P1"))</span>
                                 </div>
                                 <div class="risk-item">
                                     <span>Sharpe Ratio</span>
-                                    <span class="risk-value">@comprehensive.RiskMetrics.SharpeRatio.ToString("F2")</span>
+                                    <span class="risk-value">@((comprehensive.RiskMetrics?.SharpeRatio ?? 0m).ToString("F2"))</span>
                                 </div>
                             </div>
                         </div>
@@ -145,47 +145,51 @@
             }
 
             <!-- Engle-Granger Tab -->
-            @if (activeTab == "engle-granger" && comprehensive?.EngleGrangerResult != null)
+            @if (activeTab == "engle-granger")
             {
-                <div class="tab-content">
-                    <div class="agent-widget">
-                        <div class="widget-header">Engle-Granger Cointegration Test</div>
-                        
-                        <div class="test-result">
-                            <div class="result-status @(comprehensive.EngleGrangerResult.IsCointegrated ? "pass" : "fail")">
-                                @(comprehensive.EngleGrangerResult.IsCointegrated ? "✓ COINTEGRATED" : "✗ NOT COINTEGRATED")
+                var engleGrangerResult = comprehensive?.EngleGrangerResult;
+                if (engleGrangerResult != null)
+                {
+                    <div class="tab-content">
+                        <div class="agent-widget">
+                            <div class="widget-header">Engle-Granger Cointegration Test</div>
+                            
+                            <div class="test-result">
+                                <div class="result-status @(engleGrangerResult.IsCointegrated ? "pass" : "fail")">
+                                    @(engleGrangerResult.IsCointegrated ? "✓ COINTEGRATED" : "✗ NOT COINTEGRATED")
+                                </div>
+                                <p>@engleGrangerResult.Interpretation</p>
                             </div>
-                            <p>@comprehensive.EngleGrangerResult.Interpretation</p>
-                        </div>
 
-                        <div class="section">
-                            <h3>Test Statistics</h3>
-                            <div class="stats-table">
-                                <div class="stat-row">
-                                    <span>P-Value</span>
-                                    <span class="stat-value">@comprehensive.EngleGrangerResult.PValue.ToString("F6")</span>
-                                </div>
-                                <div class="stat-row">
-                                    <span>Critical Value (5%)</span>
-                                    <span class="stat-value">@comprehensive.EngleGrangerResult.CriticalValue5Pct.ToString("F4")</span>
-                                </div>
-                                <div class="stat-row">
-                                    <span>Critical Value (1%)</span>
-                                    <span class="stat-value">@comprehensive.EngleGrangerResult.CriticalValue1Pct.ToString("F4")</span>
-                                </div>
-                                <div class="stat-row">
-                                    <span>Beta Coefficient</span>
-                                    <span class="stat-value">@comprehensive.EngleGrangerResult.BetaCoefficient.ToString("F3")</span>
+                            <div class="section">
+                                <h3>Test Statistics</h3>
+                                <div class="stats-table">
+                                    <div class="stat-row">
+                                        <span>P-Value</span>
+                                        <span class="stat-value">@engleGrangerResult.PValue.ToString("F6")</span>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span>Critical Value (5%)</span>
+                                        <span class="stat-value">@engleGrangerResult.CriticalValue5Pct.ToString("F4")</span>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span>Critical Value (1%)</span>
+                                        <span class="stat-value">@engleGrangerResult.CriticalValue1Pct.ToString("F4")</span>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span>Beta Coefficient</span>
+                                        <span class="stat-value">@engleGrangerResult.BetaCoefficient.ToString("F3")</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="section">
-                            <h3>Trading Recommendation</h3>
-                            <p class="recommendation">@comprehensive.EngleGrangerResult.Recommendation</p>
+                            <div class="section">
+                                <h3>Trading Recommendation</h3>
+                                <p class="recommendation">@engleGrangerResult.Recommendation</p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                }
             }
 
             <!-- Granger Causality Tab -->
@@ -262,7 +266,7 @@
                         <div class="section">
                             <h3>Lagged Correlations</h3>
                             <div class="correlation-chart">
-                                @foreach (var lag in leadLagResult.LaggedCorrelations.OrderBy(x => x.Key))
+                                @foreach (var lag in leadLagResult.LaggedCorrelations?.OrderBy(x => x.Key) ?? Enumerable.Empty<KeyValuePair<int, decimal>>())
                                 {
                                     <div class="correlation-bar">
                                         <div class="lag-label">@(lag.Key > 0 ? "+" + lag.Key : lag.Key) days</div>

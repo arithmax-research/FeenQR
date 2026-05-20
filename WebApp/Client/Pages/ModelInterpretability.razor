@@ -400,12 +400,12 @@
     private string errorMessage = "";
     private bool isLoading = false;
 
-    private ShapAnalysisResult shapAnalysis;
-    private PartialDependenceResult partialDependence;
-    private FeatureInteractionResult interactionAnalysis;
-    private PermutationImportanceResult permutationAnalysis;
-    private ModelFairnessResult fairnessAnalysis;
-    private InterpretabilityReportResult comprehensiveReport;
+    private ShapAnalysisResult? shapAnalysis;
+    private PartialDependenceResult? partialDependence;
+    private FeatureInteractionResult? interactionAnalysis;
+    private PermutationImportanceResult? permutationAnalysis;
+    private ModelFairnessResult? fairnessAnalysis;
+    private InterpretabilityReportResult? comprehensiveReport;
 
     private async Task AnalyzeModel()
     {

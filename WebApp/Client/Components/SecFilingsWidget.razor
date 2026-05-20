@@ -66,7 +66,7 @@
                     <div class="risks-compact">
                         @foreach (var risk in riskSummary.IdentifiedRisks.Take(3))
                         {
-                            <div class="risk-badge @("risk-" + risk.Severity.ToLower())">
+                            <div class="risk-badge @("risk-" + (risk.Severity?.ToLowerInvariant() ?? "unknown"))">
                                 @risk.Category: @risk.Severity
                             </div>
                         }
@@ -429,7 +429,7 @@
     public class ApiResponse<T>
     {
         public bool Success { get; set; }
-        public T Data { get; set; }
+        public T? Data { get; set; }
     }
 
     public class EarningsAnalysis

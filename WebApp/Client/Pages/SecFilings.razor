@@ -97,7 +97,7 @@
                             <div class="section">
                                 <h3>Key Metrics</h3>
                                 <div class="metrics-highlights">
-                                    @foreach (var metric in secAnalysis.KeyMetrics)
+                                    @foreach (var metric in secAnalysis.KeyMetrics ?? new Dictionary<string, object>())
                                     {
                                         <div class="highlight-item">
                                             <span class="highlight-key">@metric.Key:</span>
@@ -110,7 +110,7 @@
                             <div class="section">
                                 <h3>Metrics Highlights</h3>
                                 <div class="highlights-list">
-                                    @foreach (var highlight in secAnalysis.MetricsHighlights)
+                                    @foreach (var highlight in secAnalysis.MetricsHighlights ?? Array.Empty<string>())
                                     {
                                         <div class="list-item">✓ @highlight</div>
                                     }
@@ -179,7 +179,7 @@
                             <div class="section">
                                 <h3>Key Takeaways</h3>
                                 <div class="takeaways-list">
-                                    @foreach (var takeaway in earningsAnalysis.KeyTakeaways)
+                                    @foreach (var takeaway in earningsAnalysis.KeyTakeaways ?? Array.Empty<string>())
                                     {
                                         <div class="takeaway-item">📌 @takeaway</div>
                                     }
@@ -228,9 +228,9 @@
                             <div class="section">
                                 <h3>Identified Risks</h3>
                                 <div class="risks-grid">
-                                    @foreach (var risk in riskFactors.IdentifiedRisks)
+                                    @foreach (var risk in riskFactors.IdentifiedRisks ?? Array.Empty<RiskFactor>())
                                     {
-                                        <div class="risk-card risk-@risk.Severity.ToLower()">
+                                        <div class="risk-card risk-@(risk.Severity?.ToLowerInvariant() ?? "unknown")">
                                             <div class="risk-category">@risk.Category</div>
                                             <div class="risk-description">@risk.Description</div>
                                             <div class="risk-severity">Severity: @risk.Severity</div>
@@ -242,7 +242,7 @@
                             <div class="section">
                                 <h3>Mitigation Strategies</h3>
                                 <div class="mitigation-list">
-                                    @foreach (var strategy in riskFactors.MitigationStrategies)
+                                    @foreach (var strategy in riskFactors.MitigationStrategies ?? Array.Empty<string>())
                                     {
                                         <div class="mitigation-item">→ @strategy</div>
                                     }
@@ -280,7 +280,7 @@
                             <div class="section">
                                 <h3>Key Metrics Change</h3>
                                 <div class="metrics-comparison">
-                                    @foreach (var metric in mdaAnalysis.KeyMetricsChange)
+                                    @foreach (var metric in mdaAnalysis.KeyMetricsChange ?? new Dictionary<string, string>())
                                     {
                                         <div class="comparison-item">
                                             <span class="comparison-key">@metric.Key</span>
