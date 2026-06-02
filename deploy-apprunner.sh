@@ -172,13 +172,57 @@ if [ -z "$SERVICE_ARN" ]; then
 else
     echo "Updating existing App Runner service..."
     
-    aws apprunner update-service \
-        --service-arn $SERVICE_ARN \
-        --source-configuration "ImageRepository={ImageIdentifier=$ECR_IMAGE_URI,ImageRepositoryType=ECR,ImageConfiguration={Port=8080}}" \
-        --region $AWS_REGION \
-        --output text > /dev/null
-    
-    echo -e "${GREEN}✓ App Runner service updated${NC}"
+    # Wait for any in-progress App Runner operations to finish before updating.
+    wait_for_no_in_progress() {
+        local arn="$1"
+        local timeout=${2:-300}
+        local interval=${3:-5}
+        local end=$((SECONDS+timeout))
+        while [ $SECONDS -lt $end ]; do
+            local inprog=$(aws apprunner list-operations --service-arn "$arn" --region $AWS_REGION --query "OperationSummaryList[?Status=='IN_PROGRESS'] | [0].Type" --output text 2>/dev/null || true)
+            if [ -z "$inprog" ] || [ "$inprog" = "None" ]; then
+                return 0
+            fi
+            echo "Waiting for existing App Runner operation to finish: $inprog"
+            sleep $interval
+        done
+        return 1
+    }
+
+    if ! wait_for_no_in_progress "$SERVICE_ARN" 300 5; then
+        echo -e "${YELLOW}Warning: existing App Runner operation did not finish after wait timeout.${NC}"
+        echo "You can retry later or increase the timeout. Aborting update to avoid InvalidStateException."
+        exit 1
+    fi
+
+    # Try update with simple retries in case of transient InvalidStateException.
+    ATTEMPT=0
+    MAX_ATTEMPTS=3
+    while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+        ATTEMPT=$((ATTEMPT+1))
+        set +e
+        aws apprunner update-service \
+            --service-arn $SERVICE_ARN \
+            --source-configuration "ImageRepository={ImageIdentifier=$ECR_IMAGE_URI,ImageRepositoryType=ECR,ImageConfiguration={Port=8080}}" \
+            --region $AWS_REGION \
+            --output text > /dev/null
+        RC=$?
+        set -e
+        if [ $RC -eq 0 ]; then
+            echo -e "${GREEN}✓ App Runner service updated${NC}"
+            break
+        fi
+        echo -e "${YELLOW}Update attempt $ATTEMPT failed (rc=$RC). Retrying after delay...${NC}"
+        sleep $((ATTEMPT * 5))
+        # Re-check in-progress operations before retrying
+        if ! wait_for_no_in_progress "$SERVICE_ARN" 120 5; then
+            echo -e "${YELLOW}Still in-progress operations; will retry the whole deploy later.${NC}"
+        fi
+    done
+    if [ $RC -ne 0 ]; then
+        echo -e "${RED}Failed to update App Runner service after $MAX_ATTEMPTS attempts. Aborting.${NC}"
+        exit $RC
+    fi
 fi
 
 echo ""
