@@ -1216,7 +1216,7 @@ Make the wording plain, specific, and easy to understand.
 
             var startInfo = new ProcessStartInfo
             {
-                FileName = "python3",
+                FileName = "python",
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,

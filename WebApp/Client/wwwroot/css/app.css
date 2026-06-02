@@ -1,21 +1,21 @@
 html, body {
-    font-family: 'Google Sans', Arial, sans-serif !important;
+    font-family: 'Google Sans Code', Arial, sans-serif !important;
     color: #e0e0e0;
-    --bs-body-font-family: 'Google Sans', Arial, sans-serif;
-    --bs-font-sans-serif: 'Google Sans', Arial, sans-serif;
-    --mud-default-font-family: 'Google Sans', Arial, sans-serif;
+    --bs-body-font-family: 'Google Sans Code', Arial, sans-serif;
+    --bs-font-sans-serif: 'Google Sans Code', Arial, sans-serif;
+    --mud-default-font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 body,
 body * {
-    font-family: 'Google Sans', Arial, sans-serif !important;
+    font-family: 'Google Sans Code', Arial, sans-serif !important;
 }
 
 code,
 pre,
 kbd,
 samp {
-    font-family: 'Google Sans', Arial, sans-serif !important;
+    font-family: 'Google Sans Code', Arial, sans-serif !important;
 }
 
 .glass-panel {
@@ -75,7 +75,7 @@ samp {
     font-weight: 700;
     margin: 0;
     color: #f0f0f0;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
     letter-spacing: 0.5px;
 }
 
@@ -83,7 +83,7 @@ samp {
     margin: 0.3rem 0 0;
     color: var(--text-secondary);
     font-size: 0.9rem;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .pitch-header-badge .badge-glow {
@@ -97,7 +97,7 @@ samp {
     background: linear-gradient(135deg, rgba(128,128,128,0.2), rgba(128,128,128,0.05));
     border: 1px solid rgba(128,128,128,0.3);
     color: #aaa;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 /* ── Layout Grid ── */
@@ -141,7 +141,7 @@ samp {
     color: #ccc;
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .sidebar-card-header svg {
@@ -168,7 +168,7 @@ samp {
     color: #999;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .input-wrapper {
@@ -184,7 +184,7 @@ samp {
     color: #f0f0f0;
     font-size: 1rem;
     font-weight: 600;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
     transition: all 0.3s ease;
     outline: none;
 }
@@ -229,7 +229,7 @@ samp {
     border-radius: 10px;
     color: #f0f0f0;
     font-size: 0.9rem;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
     cursor: pointer;
     transition: all 0.3s ease;
     outline: none;
@@ -274,7 +274,7 @@ samp {
     justify-content: center;
     gap: 0.6rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
     position: relative;
     overflow: hidden;
 }
@@ -346,7 +346,7 @@ samp {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .pitch-action-btn:hover:not(:disabled) {
@@ -411,7 +411,7 @@ samp {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 0.75rem;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .tips-list {
@@ -427,7 +427,7 @@ samp {
     font-size: 0.8rem;
     color: #888;
     line-height: 1.5;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .tips-list li::before {
@@ -440,7 +440,7 @@ samp {
 
 .tips-list li strong {
     color: #aaa;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 /* ── Main Content Area ── */
@@ -495,14 +495,14 @@ samp {
     font-weight: 600;
     color: #ddd;
     margin-bottom: 0.25rem;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .loading-symbol {
     font-size: 2.5rem;
     font-weight: 700;
     color: rgba(128,128,128,0.4);
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
     margin-bottom: 0.75rem;
     letter-spacing: 4px;
 }
@@ -514,7 +514,7 @@ samp {
     max-width: 400px;
     line-height: 1.6;
     margin-bottom: 1.5rem;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .loading-progress {
@@ -551,7 +551,7 @@ samp {
     color: #444;
     text-transform: uppercase;
     letter-spacing: 1px;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
     position: relative;
 }
 
@@ -594,7 +594,7 @@ samp {
     font-weight: 600;
     color: #ef4444;
     margin-bottom: 0.75rem;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .error-detail {
@@ -603,7 +603,7 @@ samp {
     max-width: 500px;
     line-height: 1.6;
     margin-bottom: 1.5rem;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
     word-break: break-word;
 }
 
@@ -630,7 +630,7 @@ samp {
     font-weight: 600;
     color: #ddd;
     margin: 0 0 0.5rem;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .pitch-empty p {
@@ -639,7 +639,7 @@ samp {
     max-width: 400px;
     line-height: 1.6;
     margin: 0 0 1.5rem;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .pitch-empty p strong {
@@ -658,7 +658,7 @@ samp {
     gap: 0.75rem;
     font-size: 0.85rem;
     color: #777;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .empty-feature svg {
@@ -691,7 +691,7 @@ samp {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
     position: relative;
 }
 
@@ -769,14 +769,14 @@ samp {
     text-transform: uppercase;
     letter-spacing: 0.8px;
     margin-bottom: 0.4rem;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .summary-value {
     font-size: 1rem;
     font-weight: 700;
     color: #ddd;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .summary-value.direction {
@@ -849,7 +849,7 @@ samp {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .pitch-section-header:hover {
@@ -901,7 +901,7 @@ samp {
     color: #bbb;
     font-size: 0.9rem;
     line-height: 1.8;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
     white-space: pre-wrap;
     word-wrap: break-word;
 }
@@ -928,7 +928,7 @@ samp {
     color: #666;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
     white-space: nowrap;
 }
 
@@ -945,7 +945,7 @@ samp {
     border-radius: 6px;
     font-size: 0.7rem;
     color: #888;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .data-source-chip.unavailable {
@@ -961,7 +961,7 @@ samp {
     padding: 0.75rem 1rem;
     font-size: 0.75rem;
     color: #555;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .footer-item {
@@ -993,7 +993,7 @@ samp {
     font-size: 0.8rem;
     font-weight: 600;
     color: #888;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .raw-json-header svg {
@@ -1013,7 +1013,7 @@ samp {
     font-size: 0.7rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .copy-json-btn:hover {
@@ -1062,7 +1062,7 @@ samp {
     font-size: 0.85rem;
     font-weight: 600;
     color: #bbb;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .chart-panel-header svg {
@@ -1088,7 +1088,7 @@ samp {
     padding: 3rem;
     color: #666;
     font-size: 0.9rem;
-    font-family: 'Google Sans', Arial, sans-serif;
+    font-family: 'Google Sans Code', Arial, sans-serif;
 }
 
 .chart-unavailable svg {
