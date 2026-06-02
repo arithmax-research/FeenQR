@@ -1,5 +1,11 @@
 @using MudBlazor
 
+<style>
+    body {
+        font-family: "Google Sans", Arial, sans-serif;
+    }
+</style>
+
 <MudThemeProvider Theme="@MyTheme" @bind-IsDarkMode="@_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
@@ -52,3 +58,5 @@
         }
     };
 }
+
+

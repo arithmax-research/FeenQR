@@ -26,10 +26,19 @@ from typing import Iterable, List, Optional
 from dotenv import load_dotenv
 
 import numpy as np
+import requests
 import yfinance as yf
-from newsapi import NewsApiClient
-from newspaper import Article as NewspaperArticle
-from newspaper import ArticleException
+from bs4 import BeautifulSoup
+
+try:
+    from newspaper import Article as NewspaperArticle
+    from newspaper import ArticleException
+    _NEWSPAPER_AVAILABLE = True
+except ImportError as exc:
+    NewspaperArticle = None
+    ArticleException = Exception
+    _NEWSPAPER_IMPORT_ERROR = exc
+    _NEWSPAPER_AVAILABLE = False
 
 
 
@@ -364,14 +373,24 @@ def _search_newsapi(ticker: str, source: str, page_size: int = 15) -> List[str]:
     if base != ticker:
         query = f'"{base}" OR "{ticker}"'
 
+    if not NEWSAPI_KEY:
+        print("[ERROR] NEWSAPI_KEY is not set", file=sys.stderr)
+        return []
+
     try:
-        newsapi = NewsApiClient(api_key=NEWSAPI_KEY)
-        results = newsapi.get_everything(
-            q=query,
-            language="en",
-            sort_by="relevancy",
-            page_size=page_size,
+        response = requests.get(
+            "https://newsapi.org/v2/everything",
+            params={
+                "q": query,
+                "language": "en",
+                "sortBy": "relevancy",
+                "pageSize": page_size,
+                "apiKey": NEWSAPI_KEY,
+            },
+            timeout=30,
         )
+        response.raise_for_status()
+        results = response.json()
     except Exception as exc:
         print(f"[ERROR] NewsAPI call failed: {exc}", file=sys.stderr)
         return []
@@ -482,11 +501,18 @@ def strip_unwanted_urls(urls: Iterable[str], excluded_list: Iterable[str]) -> Li
 
 def scrape_and_process(urls: Iterable[str], word_limit: Optional[int] = None) -> List[Optional[NewsArticle]]:
     """Scrape article text from URLs using newspaper3k."""
-    print("[DEBUG] Scraping articles with newspaper3k...", file=sys.stderr)
+    if _NEWSPAPER_AVAILABLE:
+        print("[DEBUG] Scraping articles with newspaper3k...", file=sys.stderr)
+    else:
+        print(f"[WARN] newspaper3k unavailable, using fallback scraper: {_NEWSPAPER_IMPORT_ERROR}", file=sys.stderr)
     articles: List[Optional[NewsArticle]] = []
 
     for url in urls:
         print(f"[SCRAPE] {url}", file=sys.stderr)
+        if not _NEWSPAPER_AVAILABLE:
+            articles.append(_scrape_article_with_requests(url, word_limit))
+            continue
+
         article = NewspaperArticle(url)
         try:
             article.download()
@@ -523,6 +549,48 @@ def scrape_and_process(urls: Iterable[str], word_limit: Optional[int] = None) ->
             articles.append(None)
 
     return articles
+
+
+def _scrape_article_with_requests(url: str, word_limit: Optional[int] = None) -> Optional[NewsArticle]:
+    try:
+        response = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        title = ""
+        if soup.title and soup.title.string:
+            title = soup.title.string.strip()
+
+        paragraphs = [p.get_text(" ", strip=True) for p in soup.find_all("p")]
+        text = "\n".join(paragraph for paragraph in paragraphs if paragraph)
+
+        if not text:
+            main = soup.find("article") or soup.find("main")
+            if main is not None:
+                text = main.get_text(" ", strip=True)
+
+        if not text:
+            print("   [WARNING] No text extracted with fallback scraper", file=sys.stderr)
+            return None
+
+        if word_limit is not None:
+            text = " ".join(text.split()[:word_limit])
+
+        print(f"   Title: {title[:100]}", file=sys.stderr)
+        print(f"   Extracted {len(text.split())} words", file=sys.stderr)
+
+        return NewsArticle(
+            title=title,
+            content=text,
+            url=url,
+            source="fallback-requests",
+            provider="fallback-requests",
+            scraped_at=datetime.utcnow().isoformat(),
+            is_scraped=True,
+        )
+    except Exception as exc:
+        print(f"   [ERROR] fallback scraper failed: {exc}", file=sys.stderr)
+        return None
 
 
 def collect_pipeline_articles(

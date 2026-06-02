@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 YouTube Transcript Fetcher using yt-dlp
-More reliable for bypassing YouTube restrictions
 """
 
 import sys
