@@ -1,24 +1,19 @@
-# FAST DEPLOYMENT: Use pre-built binaries (build locally, not in Docker)
-FROM mcr.microsoft.com/dotnet/aspnet:9.0
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+COPY . .
+RUN dotnet publish WebApp/Server/Server.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
 
-# Pre-download Python image layers (no network calls during build)
-# Python will be installed on first container start via entrypoint script
+COPY --from=build /app/publish .
+COPY appsettings.json ./appsettings.json
+COPY Scripts/ ./Scripts/
 
-# Copy pre-built application files
-COPY ["WebApp/Server/bin/Release/net9.0/publish/", "/app/"]
+RUN mkdir -p /app/uploads /app/logs
 
-# Copy Scripts directory for Python-based services
-COPY ["Scripts/", "/app/Scripts/"]
-
-# Copy appsettings.json to both locations
-COPY ["appsettings.json", "/app/appsettings.json"]
-COPY ["appsettings.json", "/appsettings.json"]
-
-# Copy entrypoint script for runtime Python installation
-COPY ["entrypoint.sh", "/app/entrypoint.sh"]
-RUN chmod +x /app/entrypoint.sh
-
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["dotnet", "Server.dll"]

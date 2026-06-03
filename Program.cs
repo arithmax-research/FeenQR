@@ -30,7 +30,7 @@ namespace QuantResearchAgent
             try
             {
                 // Build configuration
-                var configuration = new ConfigurationBuilder()
+                var appConfiguration = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
                     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                     .Build();
@@ -40,7 +40,7 @@ namespace QuantResearchAgent
 
             // Configure services (DeepSeekService is used for LLM completions)
             // Add configuration
-            services.AddSingleton<IConfiguration>(configuration);
+            services.AddSingleton<IConfiguration>(appConfiguration);
             // Register Kernel for DI with AI service configured
             services.AddSingleton<Kernel>(sp => 
             {
@@ -214,7 +214,15 @@ namespace QuantResearchAgent
             );
 
             // Add Semantic Kernel memory for RAG capabilities - Qdrant via custom implementation
-            services.AddSingleton<QdrantClient>(sp => new QdrantClient("localhost", port: 6334, https: false));
+                var qdrantHost = Environment.GetEnvironmentVariable("QDRANT_HOST")
+                    ?? appConfiguration["Qdrant:Host"]
+                    ?? "localhost";
+                var qdrantPortValue = Environment.GetEnvironmentVariable("QDRANT_PORT")
+                    ?? appConfiguration["Qdrant:Port"];
+                var qdrantPort = int.TryParse(qdrantPortValue, out var parsedQdrantPort)
+                ? parsedQdrantPort
+                : 6334;
+            services.AddSingleton<QdrantClient>(_ => new QdrantClient(qdrantHost, port: qdrantPort, https: false));
             
             services.AddSingleton<ISemanticTextMemory>(sp => 
             {
@@ -350,12 +358,12 @@ namespace QuantResearchAgent
 
             services.Configure<QuantResearchAgent.Models.NewsPipelineConfig>(options =>
             {
-                options.NewsApiKey = configuration["NewsAPI:ApiKey"] ?? "";
-                options.NewsApiPageSize = configuration.GetValue<int>("NewsAPI:PageSize", 15);
-                options.YfinanceMaxResults = configuration.GetValue<int>("Yfinance:MaxResults", 10);
-                options.ScraperTimeoutSeconds = configuration.GetValue<int>("ArticleScraper:TimeoutSeconds", 10);
-                options.MaxConcurrentScrapes = configuration.GetValue<int>("ArticleScraper:MaxConcurrency", 5);
-                options.WordLimitPerArticle = configuration.GetValue<int>("ArticleScraper:WordLimitPerArticle", 3000);
+                 options.NewsApiKey = appConfiguration["NewsAPI:ApiKey"] ?? "";
+                 options.NewsApiPageSize = appConfiguration.GetValue<int>("NewsAPI:PageSize", 15);
+                 options.YfinanceMaxResults = appConfiguration.GetValue<int>("Yfinance:MaxResults", 10);
+                 options.ScraperTimeoutSeconds = appConfiguration.GetValue<int>("ArticleScraper:TimeoutSeconds", 10);
+                 options.MaxConcurrentScrapes = appConfiguration.GetValue<int>("ArticleScraper:MaxConcurrency", 5);
+                 options.WordLimitPerArticle = appConfiguration.GetValue<int>("ArticleScraper:WordLimitPerArticle", 3000);
             });
             services.AddHttpClient<QuantResearchAgent.Services.INewsPipelineService, QuantResearchAgent.Services.NewsPipelineService>()
                 .ConfigureHttpClient((sp, client) =>

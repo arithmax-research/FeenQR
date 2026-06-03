@@ -1,34 +1,55 @@
-version: '3.8'
-
 services:
-  lean:
-    image: quantconnect/lean:latest
-    volumes:
-      - .:/LeanCLI
-      - ./data:/Data
-      - ./TestDiversifiedLeverage:/Algorithm
-    working_dir: /LeanCLI
-    command: >
-      --algorithm-location /Algorithm
-      --data-folder /Data
-      --config /LeanCLI/lean.json
-      --results-destination-folder /LeanCLI/TestDiversifiedLeverage/backtests
-    
-  lean-cli:
-    image: quantconnect/lean-cli
-    volumes:
-      - .:/LeanCLI
-    working_dir: /LeanCLI
-    stdin_open: true
-    tty: true
-    
-  research:
-    image: quantconnect/research
-    ports:
-      - "8888:8888"
-    volumes:
-      - .:/LeanCLI
-      - ./data:/Data
-    working_dir: /LeanCLI
+  feenqr-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.webapp
+    image: feenqr-web:local
+    container_name: feenqr-web
+    restart: unless-stopped
+    depends_on:
+      qdrant:
+        condition: service_started
+    expose:
+      - "8080"
     environment:
-      - JUPYTER_ENABLE_LAB=yes
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: "6334"
+      Qdrant__Endpoint: http://qdrant:6333
+    volumes:
+      - type: bind
+        source: ./logs
+        target: /app/logs
+      - type: bind
+        source: ./WebApp/Server/uploads
+        target: /app/uploads
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.5
+    container_name: qdrant
+    restart: unless-stopped
+    expose:
+      - "6333"
+      - "6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: caddy
+    restart: unless-stopped
+    depends_on:
+      - feenqr-web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  qdrant_storage:
+  caddy_data:
+  caddy_config:

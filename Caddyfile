@@ -1,0 +1,4 @@
+feenqr.misango.me {
+      encode gzip
+      reverse_proxy feenqr-web:8080
+}

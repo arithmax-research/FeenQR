@@ -98,7 +98,7 @@
               "target": "Package",
               "version": "[3.0.1, )"
             },
-            "Microsoft.ML.OnnxRuntime.Gpu": {
+            "Microsoft.ML.OnnxRuntime": {
               "target": "Package",
               "version": "[1.20.1, )"
             },

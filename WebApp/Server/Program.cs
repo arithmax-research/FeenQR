@@ -85,7 +85,11 @@ builder.Services.AddSingleton<Kernel>(sp =>
 });
 
 // Register Qdrant client for direct access (using gRPC port 6334)
-builder.Services.AddSingleton<QdrantClient>(sp => new QdrantClient("localhost", port: 6334, https: false));
+var qdrantHost = builder.Configuration["Qdrant:Host"] ?? "localhost";
+var qdrantPort = int.TryParse(builder.Configuration["Qdrant:Port"], out var parsedQdrantPort)
+    ? parsedQdrantPort
+    : 6334;
+builder.Services.AddSingleton<QdrantClient>(_ => new QdrantClient(qdrantHost, port: qdrantPort, https: false));
 
 // Register embedding service for RAG
 builder.Services.AddSingleton<ITextEmbeddingGenerationService>(sp =>
