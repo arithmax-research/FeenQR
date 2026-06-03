@@ -207,10 +207,9 @@ The web interface will be available at `http://localhost:5000` with:
 
 This repository now includes a Docker Compose stack for EC2 with Caddy as the only public entry point.
 
-1. Point your DNS A record for `feen-qr.misango.me` at the EC2 public IP.
+1. Point your DNS A record for `feenqr.misango.me` at the EC2 public IP.
 2. Keep only ports `22`, `80`, and `443` open in the EC2 security group.
 3. Run `./deploy.sh` from the repository root on the EC2 instance.
-
 4. Verify the app with `curl -I https://feenqr.misango.me/`.
 
 The compose stack starts three containers:
