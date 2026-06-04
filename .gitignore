@@ -31,3 +31,6 @@ bin/
 #Ignore papers_Backlog folder
 /papers_Backlog/
 .env
+
+# EC2 deploy script (contains server hostname)
+/deploy.sh
