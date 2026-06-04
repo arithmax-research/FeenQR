@@ -9,15 +9,36 @@ EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-# ---- INSTALL PYTHON & YT-DLP DEPENDENCIES ----
+# ---- INSTALL PYTHON & DEPENDENCIES ----
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip && \
-    pip3 install yt-dlp --break-system-packages && \
+    apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    ffmpeg \
+    nodejs \
+    npm \
+    ca-certificates && \
+    pip3 install --no-cache-dir --break-system-packages \
+    "yt-dlp[default]" \
+    yt-dlp-ejs \
+    python-dotenv \
+    fastembed \
+    numpy \
+    requests \
+    yfinance \
+    beautifulsoup4 \
+    newspaper3k \
+    lxml \
+    youtube-transcript-api && \
+    ln -sf /usr/bin/python3 /usr/bin/python && \
+    npm install -g deno && \
     rm -rf /var/lib/apt/lists/*
 # ----------------------------------------------
 
 COPY --from=build /app/publish .
 COPY appsettings.json ./appsettings.json
 COPY Scripts/ ./Scripts/
+
 RUN mkdir -p /app/uploads /app/logs
 ENTRYPOINT ["dotnet", "Server.dll"]
+

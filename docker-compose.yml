@@ -24,6 +24,9 @@ services:
       - type: bind
         source: ./WebApp/Server/uploads
         target: /app/uploads
+      - type: bind
+        source: ./Scripts/youtube_cookies.txt
+        target: /app/Scripts/youtube_cookies.txt
 
   qdrant:
     image: qdrant/qdrant:v1.12.5
