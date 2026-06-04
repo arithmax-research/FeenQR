@@ -27,7 +27,7 @@ if [ -f "$PROJECT_ROOT/Caddyfile" ]; then
   DOMAIN="${DOMAIN:-feenqr.misango.me}"
 fi
 
-EC2_HOST="${1:-}"
+EC2_HOST="ec2-3-83-252-217.compute-1.amazonaws.com"
 
 # If no host provided, prompt for it
 if [ -z "$EC2_HOST" ]; then
@@ -105,10 +105,27 @@ ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
 rm -f "$TAR_FILE"
 ok "Extracted and cleaned up (local + remote tarballs removed)"
 
-# Docker deploy
-header "Building and starting Docker stack"
+# Docker deploy — start Qdrant first, wait for readiness, then the rest
+header "Building and starting Qdrant (vector database)"
 ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
-  "cd '$REMOTE_DIR' && docker compose down --remove-orphans && docker compose up -d --build --force-recreate"
+  "cd '$REMOTE_DIR' && docker compose down --remove-orphans && \
+   docker compose up -d --build --force-recreate qdrant"
+
+info "Waiting for Qdrant to be ready..."
+ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
+  "cd '$REMOTE_DIR' && \
+   for i in \$(seq 1 30); do
+     if docker exec qdrant bash -c 'exec 3<>/dev/tcp/localhost/6333 && echo -e \"GET /healthz HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n\" >&3 && head -1 <&3' 2>/dev/null | grep -q 200; then
+       echo 'Qdrant is ready'
+       break
+     fi
+     echo \"Waiting for Qdrant... (\$i/30)\"
+     sleep 2
+   done"
+
+info "Starting FeenQR web app and Caddy..."
+ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
+  "cd '$REMOTE_DIR' && docker compose up -d --build --force-recreate feenqr-web caddy"
 ok "Docker stack deployed"
 
 # Verify

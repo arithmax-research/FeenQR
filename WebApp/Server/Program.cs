@@ -85,8 +85,12 @@ builder.Services.AddSingleton<Kernel>(sp =>
 });
 
 // Register Qdrant client for direct access (using gRPC port 6334)
-var qdrantHost = builder.Configuration["Qdrant:Host"] ?? "localhost";
-var qdrantPort = int.TryParse(builder.Configuration["Qdrant:Port"], out var parsedQdrantPort)
+var qdrantHost = Environment.GetEnvironmentVariable("QDRANT_HOST")
+    ?? builder.Configuration["Qdrant:Host"]
+    ?? "localhost";
+var qdrantPortValue = Environment.GetEnvironmentVariable("QDRANT_PORT")
+    ?? builder.Configuration["Qdrant:Port"];
+var qdrantPort = int.TryParse(qdrantPortValue, out var parsedQdrantPort)
     ? parsedQdrantPort
     : 6334;
 builder.Services.AddSingleton<QdrantClient>(_ => new QdrantClient(qdrantHost, port: qdrantPort, https: false));

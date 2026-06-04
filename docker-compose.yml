@@ -16,6 +16,8 @@ services:
       ASPNETCORE_URLS: http://+:8080
       QDRANT_HOST: qdrant
       QDRANT_PORT: "6334"
+      Qdrant__Host: qdrant
+      Qdrant__Port: "6334"
       Qdrant__Endpoint: http://qdrant:6333
     volumes:
       - type: bind
@@ -36,10 +38,10 @@ services:
       - "6333"
       - "6334"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/6333 && echo -e 'GET /healthz HTTP/1.1\r\nhost: localhost\r\nconnection: close\r\n\r\n' >&3 && head -1 <&3 | grep -q 200"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
       start_period: 5s
     volumes:
       - qdrant_storage:/qdrant/storage
