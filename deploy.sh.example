@@ -1,0 +1,137 @@
+#!/bin/bash
+set -euo pipefail
+
+# FeenQR EC2 Deploy Script (public example)
+# Usage: ./deploy.sh [EC2_HOST]
+#
+# Customize for your own server:
+#   1. Copy this file:  cp deploy.sh.example deploy.sh
+#   2. Edit the CONFIG section below with your server details
+#   3. Run:  ./deploy.sh
+
+# ════════════════════════════════════════════════════════════════
+#  CONFIG -- Edit these for your server
+# ════════════════════════════════════════════════════════════════
+
+SSH_USER="${SSH_USER:-ubuntu}"
+EC2_HOST="${1:-}"         # Pass as arg or set here:
+# EC2_HOST="ec2-xx-xx-xx-xx.compute-1.amazonaws.com"
+REMOTE_DIR="/home/$SSH_USER/codechest/FeenQR"
+DOMAIN="feenqr.example.com"    # Change to your domain
+
+# ════════════════════════════════════════════════════════════════
+
+SSH_OPTS="${SSH_OPTS:--o StrictHostKeyChecking=accept-new}"
+TAR_FILE="/tmp/feenqr-deploy.tar.gz"
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+info()  { echo -e "${CYAN}${BOLD}[INFO]${NC}  ${CYAN}$*${NC}"; }
+ok()    { echo -e "${CYAN}${BOLD}[ OK ]${NC} ${CYAN}$*${NC}"; }
+warn()  { echo -e "${CYAN}${BOLD}[WARN]${NC} ${CYAN}$*${NC}"; }
+err()   { echo -e "${CYAN}${BOLD}[FAIL]${NC} ${CYAN}$*${NC}" >&2; }
+header(){ echo ""; echo -e "${CYAN}════════════════════════════════════════${NC}"; echo -e "${CYAN}  $*${NC}"; echo -e "${CYAN}────────────────────────────────────${NC}"; }
+
+# Get domain from Caddyfile if available
+if [ -f "$PROJECT_ROOT/Caddyfile" ]; then
+  DOMAIN=$(grep -m1 '^[a-zA-Z0-9._-]* {' "$PROJECT_ROOT/Caddyfile" | awk '{print $1}')
+  DOMAIN="${DOMAIN:-$DOMAIN}"
+fi
+
+# Prompt for host if not provided
+if [ -z "$EC2_HOST" ]; then
+  echo ""
+  info "Enter the EC2 hostname or IP to deploy to:"
+  echo -n -e "${CYAN}  EC2 host > ${NC}"
+  read -r EC2_HOST
+  echo ""
+fi
+[ -z "$EC2_HOST" ] && { err "No EC2 host provided. Aborting."; exit 1; }
+
+# Auto-complete ec2-* short hostnames (AWS us-east-1 default)
+if echo "$EC2_HOST" | grep -qE '^ec2-[0-9]+-[0-9]+-[0-9]+-[0-9]+$'; then
+  EC2_HOST="$EC2_HOST.compute-1.amazonaws.com"
+  info "Auto-completed to: $EC2_HOST"
+fi
+
+header "Deploying FeenQR to $EC2_HOST"
+
+# SSH connectivity
+info "Testing SSH connection..."
+ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" "echo ok" 2>/dev/null | grep -q ok || {
+  err "Cannot SSH to $SSH_USER@$EC2_HOST"; exit 1; }
+ok "SSH connection successful"
+
+# DNS check
+header "DNS Check: $DOMAIN"
+DNS_IP="$(dig +short "$DOMAIN" 2>/dev/null || true)"
+EC2_IP=$(echo "$EC2_HOST" | sed -n 's/^ec2-\([0-9]*\)-\([0-9]*\)-\([0-9]*\)-\([0-9]*\)\..*/\1.\2.\3.\4/p')
+[ -z "$EC2_IP" ] && EC2_IP="$EC2_HOST"
+if [ -n "$DNS_IP" ]; then
+  [ "$DNS_IP" = "$EC2_IP" ] && ok "$DOMAIN resolves to $DNS_IP" || \
+    warn "$DOMAIN resolves to $DNS_IP but EC2 is $EC2_IP"
+else
+  warn "Could not resolve $DOMAIN"
+fi
+
+# Create tarball
+header "Creating deployment tarball"
+tar czf "$TAR_FILE" \
+  --exclude='.git' --exclude='obj' --exclude='bin' --exclude='publish' \
+  --exclude='logs' --exclude='node_modules' --exclude='__pycache__' \
+  --exclude='.DS_Store' --exclude='.qodo' --exclude='.vscode' \
+  --exclude='.github' --exclude='*.tar.gz' --exclude='deploy.sh' \
+  -C "$PROJECT_ROOT" .
+ok "Tarball created ($(du -h "$TAR_FILE" | cut -f1))"
+
+# Transfer to EC2
+header "Transferring to EC2"
+ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" "mkdir -p '$REMOTE_DIR'"
+scp $SSH_OPTS "$TAR_FILE" "$SSH_USER@$EC2_HOST:$REMOTE_DIR/"
+ok "Transfer complete"
+
+# Extract and cleanup
+header "Extracting on EC2"
+ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
+  "cd '$REMOTE_DIR' && tar xzf feenqr-deploy.tar.gz && \
+   find . -name '._*' -delete && rm -f feenqr-deploy.tar.gz && \
+   mkdir -p logs WebApp/Server/uploads"
+rm -f "$TAR_FILE"
+ok "Extracted and cleaned up (tarballs removed)"
+
+# Docker deploy
+header "Building and starting Docker stack"
+ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
+  "cd '$REMOTE_DIR' && docker compose down --remove-orphans && \
+   docker compose up -d --build --force-recreate"
+ok "Docker stack deployed"
+
+# Verify
+header "Verification"
+ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
+  "docker ps --format 'table {{.Names}}\t{{.Status}}'"
+HTTP_CODE=$(ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
+  "curl -s -o /dev/null -w '%{http_code}' http://localhost:80/" 2>/dev/null || echo "failed")
+case "$HTTP_CODE" in
+  308|200|302) ok "Caddy responding with HTTP $HTTP_CODE" ;;
+  failed) warn "Caddy not responding yet (may still be starting)" ;;
+  *) warn "Unexpected response: $HTTP_CODE" ;;
+esac
+
+# Summary
+header "Done"
+echo ""
+echo -e "  ${CYAN}Site:${NC}       https://$DOMAIN"
+echo -e "  ${CYAN}EC2:${NC}        ssh $SSH_USER@$EC2_HOST"
+echo -e "  ${CYAN}Remote dir:${NC} $REMOTE_DIR"
+echo ""
+echo -e "  ${CYAN}Logs:${NC}       ssh $SSH_USER@$EC2_HOST 'cd $REMOTE_DIR && docker compose logs -f'"
+echo -e "  ${CYAN}Redeploy:${NC}   ./deploy.sh $EC2_HOST"
+echo ""
+echo -e "${CYAN}────────────────────────────────────────────${NC}"
+echo -e "${CYAN}  https://$DOMAIN should be live soon!${NC}"
+echo -e "${CYAN}  (Caddy needs ~30s for TLS cert)${NC}"
+echo -e "${CYAN}────────────────────────────────────────────${NC}"
+echo ""
