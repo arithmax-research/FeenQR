@@ -7,7 +7,7 @@
 <style>
     .sentiment-container {
         position: fixed;
-        left: 280px;
+        left: var(--sidebar-offset, 280px);
         top: 0;
         right: 0;
         bottom: 0;
@@ -209,6 +209,14 @@
         cursor: not-allowed;
     }
 
+    .search-btn.danger {
+        background: #ef4444;
+    }
+
+    .search-btn.danger:hover {
+        background: #dc2626;
+    }
+
     .limit-input {
         width: 110px;
         flex: 0 0 110px;
@@ -220,6 +228,153 @@
         border-radius: 12px;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
+    }
+
+    .reddit-posts-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .reddit-posts-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .reddit-posts-list {
+        padding: 1rem;
+        display: grid;
+        gap: 0.85rem;
+    }
+
+    .reddit-post-card {
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+    }
+
+    .reddit-post-card.bullish {
+        border-left: 4px solid #10b981;
+    }
+
+    .reddit-post-card.bearish {
+        border-left: 4px solid #ef4444;
+    }
+
+    .reddit-post-card.neutral {
+        border-left: 4px solid #9ca3af;
+    }
+
+    .reddit-post-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .reddit-post-visual {
+        min-width: 170px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.35rem;
+    }
+
+    .reddit-score-track {
+        width: 100%;
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+    }
+
+    .reddit-score-fill {
+        height: 100%;
+        border-radius: 999px;
+    }
+
+    .reddit-score-fill.bullish {
+        background: linear-gradient(90deg, #10b981, #34d399);
+    }
+
+    .reddit-score-fill.bearish {
+        background: linear-gradient(90deg, #ef4444, #f87171);
+    }
+
+    .reddit-score-fill.neutral {
+        background: linear-gradient(90deg, #6b7280, #9ca3af);
+    }
+
+    .reddit-topic-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .reddit-topic-chip {
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #d1d5db;
+        font-size: 0.72rem;
+        line-height: 1.2;
+    }
+
+    .reddit-post-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        font-size: 0.8rem;
+        color: #9ca3af;
+    }
+
+    .reddit-post-title {
+        color: #ffffff;
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        line-height: 1.45;
+    }
+
+    .reddit-post-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 0.85rem;
+        color: #9ca3af;
+        font-size: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .reddit-post-content {
+        color: #d1d5db;
+        line-height: 1.6;
+        font-size: 0.9rem;
+        white-space: pre-wrap;
+        margin-bottom: 0.85rem;
+    }
+
+    .reddit-post-link {
+        color: #60a5fa;
+        font-size: 0.8rem;
+        text-decoration: none;
+    }
+
+    .reddit-post-link:hover {
+        text-decoration: underline;
     }
 
     .sentiment-score {
@@ -1029,11 +1184,14 @@
             <div class="analysis-panel">
                 <div class="analysis-header">
                     <h2 style="color: #ffffff; font-size: 1.25rem; margin: 0;">Reddit Sentiment Analysis</h2>
-                    <p style="color: #9ca3af; font-size: 0.875rem; margin: 0.5rem 0 0 0;">Analyze sentiment across financial subreddits</p>
+                    <p style="color: #9ca3af; font-size: 0.875rem; margin: 0.5rem 0 0 0;">Analyze sentiment across financial subreddits and archive the matching posts in Qdrant</p>
                     
                     <div class="search-bar" style="margin-top: 1rem;">
                         <input type="text" class="search-input" placeholder="Enter symbol (e.g., GME, AMC)" @bind="redditSymbol" @onkeypress="HandleKeyPress" />
                         <button class="search-btn" @onclick="AnalyzeRedditSentiment" disabled="@isLoading">Analyze</button>
+                        <button class="search-btn danger" @onclick="ClearStoredRedditPosts" disabled="@(isLoading || isClearingRedditArchive || string.IsNullOrWhiteSpace(redditSymbol))">
+                            @(isClearingRedditArchive ? "Clearing..." : "Clear Stored")
+                        </button>
                     </div>
                 </div>
                 <div class="analysis-content">
@@ -1061,11 +1219,97 @@
                             <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(16, 185, 129, 0.05); border-left: 3px solid #10b981; border-radius: 4px;">
                                 <h4 style="color: #10b981; margin-bottom: 0.5rem;">Community Sentiment</h4>
                                 <p style="color: #d1d5db; line-height: 1.6;">
-                                    The Reddit community shows @GetStringProperty(rs, "overallSentiment").ToLower() sentiment for @GetStringProperty(rs, "symbol") 
-                                    based on analysis of @GetIntProperty(rs, "totalPostsAnalyzed") posts across multiple financial subreddits.
+                                    The Reddit community shows @GetStringProperty(rs, "overallSentiment").ToLower() sentiment for @GetStringProperty(rs, "symbol")
+                                    based on FastEmbed scoring of @GetIntProperty(rs, "totalPostsAnalyzed") posts across multiple financial subreddits.
                                 </p>
                             </div>
+
+                            <div class="metric-grid">
+                                <div class="metric-card">
+                                    <div class="metric-label">Posts archived</div>
+                                    <div class="metric-value">@GetIntProperty(rs, "storedPostCount")</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-label">Bullish posts</div>
+                                    <div class="metric-value">@GetIntProperty(rs, "bullishPosts")</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-label">Bearish posts</div>
+                                    <div class="metric-value">@GetIntProperty(rs, "bearishPosts")</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-label">Neutral posts</div>
+                                    <div class="metric-value">@GetIntProperty(rs, "neutralPosts")</div>
+                                </div>
+                            </div>
                         </div>
+
+                        if (HasProperty(rs, "storedPosts") && GetArrayLength(rs, "storedPosts") > 0 && rs.TryGetProperty("storedPosts", out var storedPosts))
+                        {
+                            <div class="reddit-posts-card">
+                                <div class="reddit-posts-header">
+                                    <div>
+                                        <h3 style="color: #ffffff; margin: 0; font-size: 1rem;">Stored Reddit Posts</h3>
+                                        <p style="color: #9ca3af; margin: 0.35rem 0 0 0; font-size: 0.8rem;">Archived in Qdrant for later review or clearing</p>
+                                    </div>
+                                    <div style="color: #9ca3af; font-size: 0.8rem;">@GetArrayLength(rs, "storedPosts") posts</div>
+                                </div>
+                                <div class="reddit-posts-list">
+                                    @foreach (var post in storedPosts.EnumerateArray())
+                                    {
+                                        var sentimentLabel = GetStringProperty(post, "sentimentLabel");
+                                        var sentimentClass = GetSentimentClass(sentimentLabel);
+                                        var displaySentiment = sentimentClass == "bullish" ? "Bullish" : sentimentClass == "bearish" ? "Bearish" : "Neutral";
+                                        var sentimentScore = GetDoubleProperty(post, "sentimentScore");
+                                        var confidence = GetDoubleProperty(post, "sentimentConfidence");
+                                        var scoreWidth = Math.Max(6, Math.Min(100, Math.Abs(confidence) * 100));
+
+                                        <div class="reddit-post-card @sentimentClass">
+                                            <div class="reddit-post-card-header">
+                                                <div style="flex: 1; min-width: 0;">
+                                                    <div class="reddit-post-title">@GetStringProperty(post, "title")</div>
+                                                    <div class="reddit-post-meta">
+                                                        <span>r/@GetStringProperty(post, "subreddit")</span>
+                                                        <span>@GetStringProperty(post, "author")</span>
+                                                        <span>@GetIntProperty(post, "score") score</span>
+                                                        <span>@GetIntProperty(post, "comments") comments</span>
+                                                        <span>@GetStringProperty(post, "publishedDate")</span>
+                                                    </div>
+                                                </div>
+                                                <div class="reddit-post-visual">
+                                                    <span class="score-badge @sentimentClass">@displaySentiment</span>
+                                                    <span style="color: #9ca3af; font-size: 0.75rem;">Score @sentimentScore.ToString("F2")</span>
+                                                    <span style="color: #9ca3af; font-size: 0.75rem;">Confidence @confidence.ToString("P0")</span>
+                                                    <div class="reddit-score-track">
+                                                        <div class="reddit-score-fill @sentimentClass" style="width: @scoreWidth.ToString("F0")%;"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            @if (HasProperty(post, "keyTopics") && GetArrayLength(post, "keyTopics") > 0 && post.TryGetProperty("keyTopics", out var keyTopics))
+                                            {
+                                                <div class="reddit-topic-list">
+                                                    @foreach (var topic in keyTopics.EnumerateArray().Take(5))
+                                                    {
+                                                        <span class="reddit-topic-chip">@topic.GetString()</span>
+                                                    }
+                                                </div>
+                                            }
+
+                                            @if (!string.IsNullOrWhiteSpace(GetStringProperty(post, "content")))
+                                            {
+                                                <div class="reddit-post-content">@GetStringProperty(post, "content")</div>
+                                            }
+
+                                            <div class="reddit-post-footer">
+                                                <span>Impact: @GetStringProperty(post, "impact")</span>
+                                                <a class="reddit-post-link" href="@GetStringProperty(post, "url")" target="_blank" rel="noreferrer">Open post</a>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
                     }
                     else
                     {
@@ -1275,6 +1519,7 @@
     private List<dynamic>? trendingSymbols;
     private List<dynamic>? comparisonResults;
     private dynamic? marketPulse;
+    private bool isClearingRedditArchive;
 
     private void SwitchTab(string tab)
     {
@@ -1372,6 +1617,35 @@
         finally
         {
             isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ClearStoredRedditPosts()
+    {
+        if (string.IsNullOrWhiteSpace(redditSymbol) || isClearingRedditArchive)
+        {
+            return;
+        }
+
+        isClearingRedditArchive = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/sentiment/reddit/{Uri.EscapeDataString(redditSymbol.Trim())}/stored");
+            if (response.IsSuccessStatusCode)
+            {
+                redditSentiment = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isClearingRedditArchive = false;
             StateHasChanged();
         }
     }

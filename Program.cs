@@ -384,14 +384,19 @@ namespace QuantResearchAgent
             services.AddSingleton<NewsSentimentAnalysisService>(); // Uses DeepSeekService now
             services.AddSingleton<YahooFinanceService>();
                             
-            // Register RedditScrapingService with HttpClient
+            // Register RedditScrapingService with HttpClient (public HTTP mode, no OAuth)
             services.AddHttpClient<RedditScrapingService>()
                 .ConfigureHttpClient((sp, client) =>
                 {
-                    var config = sp.GetRequiredService<IConfiguration>();
-                    var userAgent = config["Reddit:UserAgent"] ?? "QuantResearchAgent/1.0 (Financial Research Application)";
-                    client.DefaultRequestHeaders.Add("User-Agent", userAgent);
-                    client.Timeout = TimeSpan.FromSeconds(120);
+                    client.Timeout = TimeSpan.FromSeconds(30);
+                    client.DefaultRequestHeaders.ConnectionClose = false;
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
+                    AllowAutoRedirect = true,
+                    MaxAutomaticRedirections = 5,
+                    UseCookies = true,
+                    AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
                 });
             services.AddSingleton<PortfolioOptimizationService>();
             services.AddSingleton<SocialMediaScrapingService>();

@@ -230,6 +230,19 @@ builder.Services.AddHttpClient<QuantResearchAgent.Services.INewsPipelineService,
     });
 builder.Services.AddSingleton<EmbeddingService>();
 builder.Services.AddSingleton<VectorStoreService>();
+builder.Services.AddHttpClient<RedditPostArchiveService>()
+    .ConfigureHttpClient((sp, client) =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(30);
+        client.DefaultRequestHeaders.ConnectionClose = false;
+    })
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        AllowAutoRedirect = true,
+        MaxAutomaticRedirections = 5,
+        UseCookies = true,
+        AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+    });
 
 builder.Services.AddSingleton<WebDataExtractionService>();
 builder.Services.AddSingleton<GoogleWebSearchPlugin>();
@@ -264,14 +277,19 @@ builder.Services.AddSingleton<LinkedInScrapingService>();
 builder.Services.AddSingleton<PaperRAGService>();
 builder.Services.AddSingleton<MarketSentimentAgentService>();
 
-// Register RedditScrapingService with HttpClient
+// Register RedditScrapingService with HttpClient (public HTTP mode, browser User-Agent)
 builder.Services.AddHttpClient<RedditScrapingService>()
     .ConfigureHttpClient((sp, client) =>
     {
-        var config = sp.GetRequiredService<IConfiguration>();
-        var userAgent = config["Reddit:UserAgent"] ?? "QuantResearchAgent/1.0 (Financial Research Application)";
-        client.DefaultRequestHeaders.Add("User-Agent", userAgent);
         client.Timeout = TimeSpan.FromSeconds(30);
+        client.DefaultRequestHeaders.ConnectionClose = false;
+    })
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        AllowAutoRedirect = true,
+        MaxAutomaticRedirections = 5,
+        UseCookies = true,
+        AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
     });
 
 builder.Services.AddSingleton<SatelliteImageryAnalysisService>();
@@ -319,6 +337,9 @@ using (var scope = app.Services.CreateScope())
 {
     var vectorStore = scope.ServiceProvider.GetRequiredService<VectorStoreService>();
     await vectorStore.InitializeAsync();
+
+    var redditArchive = scope.ServiceProvider.GetRequiredService<RedditPostArchiveService>();
+    await redditArchive.InitializeAsync();
 }
 
 // Configure the HTTP request pipeline

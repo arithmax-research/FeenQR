@@ -20,6 +20,7 @@ namespace QuantResearchAgent.Services
         Task<string> ScrapeArticleAsync(string url);
         Task<List<PipelineArticle>> GetStoredArticlesAsync(string ticker);
         Task ClearArticlesAsync(string ticker);
+        Task<BatchSentimentResult> AnalyzeSentimentAsync(string symbol, IEnumerable<ArticleForAnalysis> articles);
     }
 
     public class NewsPipelineService : INewsPipelineService
@@ -83,7 +84,40 @@ namespace QuantResearchAgent.Services
             return Task.CompletedTask;
         }
 
-        private async Task<string> RunPythonPipelineAsync(IEnumerable<string> arguments)
+        public async Task<BatchSentimentResult> AnalyzeSentimentAsync(string symbol, IEnumerable<ArticleForAnalysis> articles)
+        {
+            var articleList = articles?.Where(article => article != null).ToList() ?? new List<ArticleForAnalysis>();
+            if (articleList.Count == 0)
+            {
+                return new BatchSentimentResult
+                {
+                    Symbol = symbol,
+                    ArticleResults = new List<ArticleSentimentResult>(),
+                    OverallSentiment = "Neutral",
+                    OverallScore = 0.0,
+                    Confidence = 0.0,
+                    AnalyzedAt = DateTime.UtcNow
+                };
+            }
+
+            var payload = new
+            {
+                articles = articleList.Select(article => new
+                {
+                    id = article.Id,
+                    title = article.Title,
+                    content = article.Content,
+                    source = article.Source,
+                    published_at = article.PublishedDate,
+                    url = article.Url
+                }).ToList()
+            };
+
+            var json = await RunPythonPipelineAsync(new[] { "--sentiment", "--pretty" }, JsonSerializer.Serialize(payload));
+            return ParseSentimentResult(json, symbol, articleList.Count);
+        }
+
+        private async Task<string> RunPythonPipelineAsync(IEnumerable<string> arguments, string? stdinPayload = null)
         {
             var scriptPath = ResolveScriptPath();
             if (string.IsNullOrEmpty(scriptPath) || !File.Exists(scriptPath))
@@ -96,6 +130,7 @@ namespace QuantResearchAgent.Services
                 FileName = "python3",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
+                RedirectStandardInput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 WorkingDirectory = Directory.GetCurrentDirectory()
@@ -110,6 +145,14 @@ namespace QuantResearchAgent.Services
             using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start python3 process");
             var stdoutTask = process.StandardOutput.ReadToEndAsync();
             var stderrTask = process.StandardError.ReadToEndAsync();
+
+            if (!string.IsNullOrWhiteSpace(stdinPayload))
+            {
+                await process.StandardInput.WriteAsync(stdinPayload);
+                await process.StandardInput.FlushAsync();
+            }
+
+            process.StandardInput.Close();
             await process.WaitForExitAsync();
             var stdout = await stdoutTask;
             var stderr = await stderrTask;
@@ -120,6 +163,134 @@ namespace QuantResearchAgent.Services
             }
 
             return stdout;
+        }
+
+        private static BatchSentimentResult ParseSentimentResult(string json, string symbol, int expectedCount)
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            var result = new BatchSentimentResult
+            {
+                Symbol = symbol,
+                AnalyzedAt = DateTime.UtcNow
+            };
+
+            if (root.TryGetProperty("aggregate", out var aggregate))
+            {
+                if (aggregate.TryGetProperty("sentiment", out var sentimentProp))
+                {
+                    result.OverallSentiment = sentimentProp.GetString() ?? "Neutral";
+                }
+
+                if (aggregate.TryGetProperty("avg_polarity", out var polarityProp) && polarityProp.ValueKind == JsonValueKind.Number)
+                {
+                    polarityProp.TryGetDouble(out var overallScore);
+                    result.OverallScore = overallScore;
+                }
+
+                if (aggregate.TryGetProperty("bullish_pct", out var bullishProp) && bullishProp.ValueKind == JsonValueKind.Number)
+                {
+                    bullishProp.TryGetDouble(out var bullish);
+                    result.BullishPercentage = bullish / 100.0;
+                }
+
+                if (aggregate.TryGetProperty("bearish_pct", out var bearishProp) && bearishProp.ValueKind == JsonValueKind.Number)
+                {
+                    bearishProp.TryGetDouble(out var bearish);
+                    result.BearishPercentage = bearish / 100.0;
+                }
+
+                if (aggregate.TryGetProperty("neutral_pct", out var neutralProp) && neutralProp.ValueKind == JsonValueKind.Number)
+                {
+                    neutralProp.TryGetDouble(out var neutral);
+                    result.NeutralPercentage = neutral / 100.0;
+                }
+
+                if (aggregate.TryGetProperty("article_count", out var articleCountProp) && articleCountProp.ValueKind == JsonValueKind.Number)
+                {
+                    articleCountProp.TryGetInt32(out var articleCount);
+                    expectedCount = articleCount;
+                }
+            }
+
+            if (root.TryGetProperty("articles", out var articlesElement) && articlesElement.ValueKind == JsonValueKind.Array)
+            {
+                var articleResults = new List<ArticleSentimentResult>();
+
+                foreach (var item in articlesElement.EnumerateArray())
+                {
+                    var sentiment = item.TryGetProperty("sentiment", out var sentimentProp)
+                        ? sentimentProp.GetString() ?? "NEUTRAL"
+                        : "NEUTRAL";
+
+                    var score = 0.0;
+                    if (item.TryGetProperty("polarity", out var polarityProp) && polarityProp.ValueKind == JsonValueKind.Number)
+                    {
+                        polarityProp.TryGetDouble(out score);
+                    }
+
+                    var confidence = 0.0;
+                    if (item.TryGetProperty("confidence", out var confidenceProp) && confidenceProp.ValueKind == JsonValueKind.Number)
+                    {
+                        confidenceProp.TryGetDouble(out confidence);
+                    }
+
+                    var keyTopics = item.TryGetProperty("keyTopics", out var topicsProp) && topicsProp.ValueKind == JsonValueKind.Array
+                        ? topicsProp.EnumerateArray().Select(topic => topic.GetString() ?? string.Empty).Where(topic => !string.IsNullOrWhiteSpace(topic)).ToList()
+                        : new List<string>();
+
+                    articleResults.Add(new ArticleSentimentResult
+                    {
+                        Sentiment = NormalizeSentimentLabel(sentiment),
+                        Score = score,
+                        Confidence = confidence,
+                        KeyTopics = keyTopics,
+                        Impact = item.TryGetProperty("impact", out var impactProp)
+                            ? impactProp.GetString() ?? "Medium"
+                            : "Medium"
+                    });
+                }
+
+                result.ArticleResults = articleResults;
+            }
+
+            while (result.ArticleResults.Count < expectedCount)
+            {
+                result.ArticleResults.Add(new ArticleSentimentResult
+                {
+                    Sentiment = "Neutral",
+                    Score = 0.0,
+                    Confidence = 0.0,
+                    KeyTopics = new List<string>(),
+                    Impact = "Low"
+                });
+            }
+
+            if (result.ArticleResults.Any())
+            {
+                result.Confidence = result.ArticleResults.Average(item => item.Confidence > 0 ? item.Confidence : Math.Abs(item.Score));
+            }
+
+            return result;
+        }
+
+        private static string NormalizeSentimentLabel(string label)
+        {
+            if (string.IsNullOrWhiteSpace(label))
+            {
+                return "Neutral";
+            }
+
+            return label.ToUpperInvariant() switch
+            {
+                "POSITIVE" => "Positive",
+                "NEGATIVE" => "Negative",
+                "NEUTRAL" => "Neutral",
+                "BULLISH" => "Positive",
+                "BEARISH" => "Negative",
+                _ when label.Length == 1 => char.ToUpperInvariant(label[0]).ToString(),
+                _ => char.ToUpperInvariant(label[0]) + label[1..].ToLowerInvariant()
+            };
         }
 
         private PipelineSearchResult ParseSearchResult(string json, string ticker, string sourceFilter)

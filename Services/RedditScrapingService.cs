@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using HtmlAgilityPack;
-using Reddit;
-using Reddit.Controllers;
+using System.Text.RegularExpressions;
+using System.Web;
+using System.Xml;
 
 namespace QuantResearchAgent.Services;
 
@@ -11,33 +11,39 @@ public class RedditScrapingService
 {
     private readonly ILogger<RedditScrapingService> _logger;
     private readonly HttpClient _httpClient;
-    private readonly IConfiguration _configuration;
-    private readonly RedditClient? _redditClient;
+    private static readonly Random _rng = new();
+
+    private static readonly string[] UserAgents = {
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
+    };
 
     public RedditScrapingService(ILogger<RedditScrapingService> logger, HttpClient httpClient, IConfiguration configuration)
     {
         _logger = logger;
         _httpClient = httpClient;
-        _configuration = configuration;
-        
-        // Always use HTTP scraping - Reddit API OAuth is unreliable and requires complex setup
-        // The public JSON endpoints work well without authentication
-        _redditClient = null;
-        _logger.LogInformation("Reddit scraping service initialized with HTTP client (API disabled)");
+        _logger.LogInformation("Reddit scraping service initialized (public HTTP/JSON + RSS fallback)");
     }
 
     public async Task<List<RedditPost>> ScrapeSubredditAsync(string subreddit, int limit = 25)
     {
         try
         {
-            if (_redditClient != null)
-            {
-                return await ScrapeSubredditWithApiAsync(subreddit, limit);
-            }
-            else
-            {
-                return await ScrapeSubredditWithHttpAsync(subreddit, limit);
-            }
+            // Try JSON first (with browser UA)
+            await Task.Delay(_rng.Next(500, 1500));
+            var posts = await ScrapeViaJsonAsync(subreddit, limit);
+            if (posts.Count > 0) return posts;
+
+            // JSON failed (likely 403), try RSS instead
+            _logger.LogInformation("JSON failed for r/{Subreddit}, trying RSS fallback", subreddit);
+            await Task.Delay(_rng.Next(1000, 2500));
+            var rss = await ScrapeViaRssAsync(subreddit, limit);
+            if (rss.Count > 0) return rss;
+
+            _logger.LogWarning("All methods failed for r/{Subreddit}", subreddit);
+            return new List<RedditPost>();
         }
         catch (Exception ex)
         {
@@ -46,258 +52,200 @@ public class RedditScrapingService
         }
     }
 
-    private async Task<List<RedditPost>> ScrapeSubredditWithApiAsync(string subreddit, int limit)
+    private async Task<List<RedditPost>> ScrapeViaJsonAsync(string subreddit, int limit)
     {
+        var url = $"https://www.reddit.com/r/{subreddit}/hot.json?limit={limit}&raw_json=1";
+        _logger.LogInformation("Scraping r/{Subreddit} via JSON", subreddit);
+
         try
         {
-            var posts = new List<RedditPost>();
-            _logger.LogInformation("Scraping r/{Subreddit} using Reddit API for {Limit} posts", subreddit, limit);
+            using var req = new HttpRequestMessage(HttpMethod.Get, url);
+            req.Headers.TryAddWithoutValidation("User-Agent", GetUa());
+            req.Headers.TryAddWithoutValidation("Accept", "application/json");
 
-            var subredditController = _redditClient!.Subreddit(subreddit);
-            var hotPosts = subredditController.Posts.Hot.Take(limit);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            var resp = await _httpClient.SendAsync(req, cts.Token);
+            if (!resp.IsSuccessStatusCode) return new List<RedditPost>();
 
-            foreach (var post in hotPosts)
-            {
-                var redditPost = new RedditPost
-                {
-                    Title = post.Title ?? "",
-                    Author = post.Author ?? "",
-                    Score = post.Score,
-                    Upvotes = post.UpVotes,
-                    Downvotes = post.DownVotes,
-                    Comments = 0, // Will need to check correct property
-                    CreatedUtc = post.Created,
-                    Url = $"https://reddit.com{post.Permalink}",
-                    Subreddit = subreddit,
-                    Content = "", // Will need to check correct property
-                    Flair = "" // Will need to check correct property
-                };
-                
-                posts.Add(redditPost);
-            }
-
-            _logger.LogInformation("Successfully scraped {Count} posts from r/{Subreddit} using API", posts.Count, subreddit);
-            return posts;
+            var json = await resp.Content.ReadAsStringAsync();
+            return ParseJson(json, subreddit);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to scrape r/{Subreddit} using Reddit API", subreddit);
-            throw;
-        }
+        catch { return new List<RedditPost>(); }
     }
 
-    private async Task<List<RedditPost>> ScrapeSubredditWithHttpAsync(string subreddit, int limit)
+    private async Task<List<RedditPost>> ScrapeViaRssAsync(string subreddit, int limit)
     {
+        var url = $"https://www.reddit.com/r/{subreddit}/hot/.rss";
+        _logger.LogInformation("Scraping r/{Subreddit} via RSS", subreddit);
+
         try
         {
-            var posts = new List<RedditPost>();
-            var url = $"https://www.reddit.com/r/{subreddit}/hot.json?limit={limit}";
+            using var req = new HttpRequestMessage(HttpMethod.Get, url);
+            req.Headers.TryAddWithoutValidation("User-Agent", GetUa());
+            req.Headers.TryAddWithoutValidation("Accept", "application/rss+xml");
 
-            _logger.LogInformation("Scraping r/{Subreddit} using HTTP fallback for {Limit} posts", subreddit, limit);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            var resp = await _httpClient.SendAsync(req, cts.Token);
+            if (!resp.IsSuccessStatusCode) return new List<RedditPost>();
 
-            var request = new HttpRequestMessage(HttpMethod.Get, url);
-            var httpResponse = await _httpClient.SendAsync(request);
-            
-            if (!httpResponse.IsSuccessStatusCode)
-            {
-                var errorContent = await httpResponse.Content.ReadAsStringAsync();
-                _logger.LogError("Reddit API returned {StatusCode} for r/{Subreddit}. Response: {Response}", 
-                    httpResponse.StatusCode, subreddit, errorContent);
-                return posts;
-            }
-            
-            var response = await httpResponse.Content.ReadAsStringAsync();
-            _logger.LogDebug("Received response from Reddit API, length: {Length}", response.Length);
+            var xml = await resp.Content.ReadAsStringAsync();
+            return ParseRss(xml, subreddit, limit);
+        }
+        catch { return new List<RedditPost>(); }
+    }
 
-            var jsonDoc = JsonDocument.Parse(response);
+    private static List<RedditPost> ParseJson(string json, string subreddit)
+    {
+        var posts = new List<RedditPost>();
+        using var doc = JsonDocument.Parse(json);
 
-            if (!jsonDoc.RootElement.TryGetProperty("data", out var dataElement))
-            {
-                _logger.LogError("Reddit API response does not contain 'data' property");
-                return posts;
-            }
-
-            if (!dataElement.TryGetProperty("children", out var childrenElement))
-            {
-                _logger.LogError("Reddit API response does not contain 'children' property in data");
-                return posts;
-            }
-
-            foreach (var child in childrenElement.EnumerateArray())
-            {
-                if (!child.TryGetProperty("data", out var postData))
-                {
-                    _logger.LogWarning("Child element does not contain 'data' property, skipping");
-                    continue;
-                }
-
-                var post = new RedditPost
-                {
-                    Title = postData.TryGetProperty("title", out var title) ? title.GetString() ?? "" : "",
-                    Author = postData.TryGetProperty("author", out var author) ? author.GetString() ?? "" : "",
-                    Score = postData.TryGetProperty("score", out var score) ? score.GetInt32() : 0,
-                    Upvotes = postData.TryGetProperty("ups", out var ups) ? ups.GetInt32() : 0,
-                    Downvotes = postData.TryGetProperty("downs", out var downs) ? downs.GetInt32() : 0,
-                    Comments = postData.TryGetProperty("num_comments", out var comments) ? comments.GetInt32() : 0,
-                    CreatedUtc = postData.TryGetProperty("created_utc", out var created) ? 
-                        (created.ValueKind == JsonValueKind.Number ? 
-                            DateTimeOffset.FromUnixTimeSeconds((long)created.GetDouble()).DateTime : 
-                            DateTime.UtcNow) : 
-                        DateTime.UtcNow,
-                    Url = postData.TryGetProperty("permalink", out var permalink) ? $"https://reddit.com{permalink.GetString()}" : "",
-                    Subreddit = subreddit,
-                    Content = postData.TryGetProperty("selftext", out var selftext) ? selftext.GetString() ?? "" : "",
-                    Flair = postData.TryGetProperty("link_flair_text", out var flair) ? flair.GetString() ?? "" : ""
-                };
-
-                posts.Add(post);
-            }
-
-            _logger.LogInformation("Successfully scraped {Count} posts from r/{Subreddit} using HTTP", posts.Count, subreddit);
+        if (!doc.RootElement.TryGetProperty("data", out var data) ||
+            !data.TryGetProperty("children", out var children))
             return posts;
-        }
-        catch (Exception ex)
+
+        foreach (var child in children.EnumerateArray())
         {
-            _logger.LogError(ex, "Failed to scrape r/{Subreddit} using HTTP fallback", subreddit);
-            throw;
+            if (!child.TryGetProperty("data", out var p)) continue;
+            if (p.TryGetProperty("stickied", out var st) && st.GetBoolean()) continue;
+
+            posts.Add(new RedditPost
+            {
+                Id = p.TryGetProperty("id", out var id) ? id.GetString() ?? string.Empty : string.Empty,
+                Title = p.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "",
+                Author = p.TryGetProperty("author", out var a) ? a.GetString() ?? "[deleted]" : "[deleted]",
+                Score = p.TryGetProperty("score", out var s) ? s.GetInt32() : 0,
+                Upvotes = p.TryGetProperty("ups", out var u) ? u.GetInt32() : 0,
+                Downvotes = p.TryGetProperty("downs", out var d) ? d.GetInt32() : 0,
+                Comments = p.TryGetProperty("num_comments", out var nc) ? nc.GetInt32() : 0,
+                CreatedUtc = p.TryGetProperty("created_utc", out var cr) && cr.ValueKind == JsonValueKind.Number
+                    ? DateTimeOffset.FromUnixTimeSeconds((long)cr.GetDouble()).DateTime : DateTime.UtcNow,
+                Url = p.TryGetProperty("permalink", out var perm) ? $"https://reddit.com{perm.GetString()}" : "",
+                Subreddit = subreddit,
+                Content = p.TryGetProperty("selftext", out var stx) ? stx.GetString() ?? "" : "",
+                Flair = p.TryGetProperty("link_flair_text", out var fl) ? fl.GetString() ?? "" : ""
+            });
         }
+        return posts;
+    }
+
+    private static List<RedditPost> ParseRss(string xml, string subreddit, int limit)
+    {
+        var posts = new List<RedditPost>();
+        var doc = new XmlDocument();
+        doc.LoadXml(xml);
+
+        var entries = doc.GetElementsByTagName("entry");
+        foreach (XmlNode entry in entries)
+        {
+            if (posts.Count >= limit) break;
+
+            var title = entry.SelectSingleNode("*[local-name()='title']")?.InnerText ?? "";
+            var author = entry.SelectSingleNode("*[local-name()='author']/*[local-name()='name']")?.InnerText ?? "[deleted]";
+            var pub = entry.SelectSingleNode("*[local-name()='published']")?.InnerText ?? "";
+            var content = entry.SelectSingleNode("*[local-name()='content']")?.InnerText ?? "";
+            var linkNode = entry.SelectSingleNode("*[local-name()='link']") as XmlElement;
+            var link = linkNode?.GetAttribute("href") ?? linkNode?.Attributes?["href"]?.Value ?? string.Empty;
+            var guid = entry.SelectSingleNode("*[local-name()='id']")?.InnerText ?? entry.SelectSingleNode("*[local-name()='guid']")?.InnerText ?? string.Empty;
+
+            DateTime.TryParse(pub, out var created);
+
+            int score = 0, comments = 0;
+            var sc = Regex.Match(content, @"score[:\s]*(\d+)", RegexOptions.IgnoreCase);
+            if (sc.Success) int.TryParse(sc.Groups[1].Value, out score);
+            var cm = Regex.Match(content, @"comments[:\s]*(\d+)", RegexOptions.IgnoreCase);
+            if (cm.Success) int.TryParse(cm.Groups[1].Value, out comments);
+
+            var cleaned = Regex.Replace(content ?? "", @"<[^>]+>", " ").Trim();
+
+            posts.Add(new RedditPost
+            {
+                Id = guid,
+                Title = HttpUtility.HtmlDecode(title),
+                Author = author,
+                Score = score,
+                Upvotes = score,
+                Downvotes = 0,
+                Comments = comments,
+                CreatedUtc = created == default ? DateTime.UtcNow : created,
+                Url = string.IsNullOrWhiteSpace(link) ? $"https://www.reddit.com/r/{subreddit}/" : link,
+                Subreddit = subreddit,
+                Content = HttpUtility.HtmlDecode(cleaned),
+                Flair = ""
+            });
+        }
+        return posts;
     }
 
     public async Task<List<RedditPost>> SearchSubredditAsync(string subreddit, string query, int limit = 25)
     {
-        if (_redditClient != null)
-        {
-            try
-            {
-                return await SearchSubredditWithApiAsync(subreddit, query, limit);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Reddit API failed for r/{Subreddit}, falling back to HTTP", subreddit);
-                // Fall through to HTTP method
-            }
-        }
-        
-        // Use HTTP method (either as primary or as fallback)
-        return await SearchSubredditWithHttpAsync(subreddit, query, limit);
-    }
-
-    private async Task<List<RedditPost>> SearchSubredditWithApiAsync(string subreddit, string query, int limit)
-    {
         try
         {
-            var posts = new List<RedditPost>();
-            _logger.LogInformation("Searching r/{Subreddit} for '{Query}' using Reddit API with {Limit} results", subreddit, query, limit);
+            await Task.Delay(_rng.Next(1000, 2000));
 
-            var subredditController = _redditClient!.Subreddit(subreddit);
-            var searchResults = subredditController.Search(query, limit: limit);
+            // Try JSON search first
+            var url = $"https://www.reddit.com/r/{subreddit}/search.json?q={Uri.EscapeDataString(query)}&restrict_sr=1&limit={limit}&sort=relevance&raw_json=1";
 
-            foreach (var post in searchResults.Take(limit))
+            using var req = new HttpRequestMessage(HttpMethod.Get, url);
+            req.Headers.TryAddWithoutValidation("User-Agent", GetUa());
+            req.Headers.TryAddWithoutValidation("Accept", "application/json");
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            var resp = await _httpClient.SendAsync(req, cts.Token);
+
+            if (resp.IsSuccessStatusCode)
             {
-                var redditPost = new RedditPost
+                var json = await resp.Content.ReadAsStringAsync();
+                var posts = ParseJson(json, subreddit);
+                foreach (var p in posts) p.SearchQuery = query;
+                if (posts.Count > 0)
                 {
-                    Title = post.Title ?? "",
-                    Author = post.Author ?? "",
-                    Score = post.Score,
-                    Upvotes = post.UpVotes,
-                    Downvotes = post.DownVotes,
-                    Comments = 0, // Will need to check correct property
-                    CreatedUtc = post.Created,
-                    Url = $"https://reddit.com{post.Permalink}",
-                    Subreddit = subreddit,
-                    Content = "", // Will need to check correct property
-                    Flair = "", // Will need to check correct property
-                    SearchQuery = query
-                };
-                
-                posts.Add(redditPost);
-            }
-
-            _logger.LogInformation("Successfully found {Count} posts matching '{Query}' in r/{Subreddit} using API", posts.Count, query, subreddit);
-            return posts;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to search r/{Subreddit} for '{Query}' using Reddit API", subreddit, query);
-            throw;
-        }
-    }
-
-    private async Task<List<RedditPost>> SearchSubredditWithHttpAsync(string subreddit, string query, int limit)
-    {
-        try
-        {
-            var posts = new List<RedditPost>();
-            var url = $"https://www.reddit.com/r/{subreddit}/search.json?q={Uri.EscapeDataString(query)}&restrict_sr=1&limit={limit}&sort=relevance";
-            
-            _logger.LogInformation("Searching r/{Subreddit} for '{Query}' using HTTP fallback with {Limit} results", subreddit, query, limit);
-            
-            // Some subreddits (like wallstreetbets) are sensitive to rapid requests
-            // Add a small delay and retry logic for 403 errors
-            string response = null!;
-            int retries = 0;
-            const int maxRetries = 3;
-            
-            while (retries < maxRetries)
-            {
-                try
-                {
-                    if (retries > 0)
-                    {
-                        var delay = 1000 * retries; // 1s, 2s, 3s delays
-                        _logger.LogInformation("Retry {Retry}/{MaxRetries} for r/{Subreddit} after {Delay}ms delay", retries, maxRetries, subreddit, delay);
-                        await Task.Delay(delay);
-                    }
-                    
-                    response = await _httpClient.GetStringAsync(url);
-                    break; // Success, exit retry loop
+                    _logger.LogInformation("Found {Count} posts matching '{Query}' in r/{Subreddit} via JSON search", posts.Count, query, subreddit);
+                    return posts;
                 }
-                catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            }
+
+            // RSS search is publicly accessible and usually returns better term-specific results than hot-feed filtering.
+            var rssSearchUrl = $"https://www.reddit.com/r/{subreddit}/search.rss?q={Uri.EscapeDataString(query)}&restrict_sr=1&sort=relevance";
+            using (var rssReq = new HttpRequestMessage(HttpMethod.Get, rssSearchUrl))
+            {
+                rssReq.Headers.TryAddWithoutValidation("User-Agent", GetUa());
+                rssReq.Headers.TryAddWithoutValidation("Accept", "application/rss+xml");
+
+                using var rssCts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                var rssResp = await _httpClient.SendAsync(rssReq, rssCts.Token);
+                if (rssResp.IsSuccessStatusCode)
                 {
-                    retries++;
-                    if (retries >= maxRetries)
+                    var xml = await rssResp.Content.ReadAsStringAsync();
+                    var rssSearchPosts = ParseRss(xml, subreddit, limit)
+                        .Take(limit)
+                        .ToList();
+
+                    foreach (var p in rssSearchPosts) p.SearchQuery = query;
+                    if (rssSearchPosts.Count > 0)
                     {
-                        _logger.LogWarning("r/{Subreddit} returned 403 Forbidden after {MaxRetries} retries - skipping", subreddit, maxRetries);
-                        throw;
+                        _logger.LogInformation("Found {Count} posts matching '{Query}' in r/{Subreddit} via RSS search", rssSearchPosts.Count, query, subreddit);
+                        return rssSearchPosts;
                     }
                 }
             }
-            
-            var jsonDoc = JsonDocument.Parse(response);
-            
-            var data = jsonDoc.RootElement.GetProperty("data");
-            var children = data.GetProperty("children");
-            
-            foreach (var child in children.EnumerateArray())
-            {
-                var postData = child.GetProperty("data");
-                
-                var post = new RedditPost
-                {
-                    Title = postData.GetProperty("title").GetString() ?? "",
-                    Author = postData.GetProperty("author").GetString() ?? "",
-                    Score = postData.GetProperty("score").GetInt32(),
-                    Upvotes = postData.GetProperty("ups").GetInt32(),
-                    Downvotes = postData.GetProperty("downs").GetInt32(),
-                    Comments = postData.GetProperty("num_comments").GetInt32(),
-                    CreatedUtc = DateTimeOffset.FromUnixTimeSeconds((long)postData.GetProperty("created_utc").GetDouble()).DateTime,
-                    Url = $"https://reddit.com{postData.GetProperty("permalink").GetString()}",
-                    Subreddit = subreddit,
-                    Content = postData.TryGetProperty("selftext", out var selftext) ? selftext.GetString() ?? "" : "",
-                    Flair = postData.TryGetProperty("link_flair_text", out var flair) ? flair.GetString() ?? "" : "",
-                    SearchQuery = query
-                };
-                
-                posts.Add(post);
-            }
-            
-            _logger.LogInformation("Successfully found {Count} posts matching '{Query}' in r/{Subreddit} using HTTP", posts.Count, query, subreddit);
-            return posts;
+
+            // Fallback: scrape hot posts via RSS and filter by search term locally
+            _logger.LogInformation("JSON search failed for r/{Subreddit}, falling back to RSS + local filtering", subreddit);
+            var rssPosts = await ScrapeViaRssAsync(subreddit, Math.Max(limit * 2, 50));
+            var filtered = rssPosts
+                .Where(p => p.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                            p.Content.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .Take(limit)
+                .ToList();
+
+            foreach (var p in filtered) p.SearchQuery = query;
+            _logger.LogInformation("Found {Count} posts matching '{Query}' in r/{Subreddit} via RSS filter", filtered.Count, query, subreddit);
+            return filtered;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to search r/{Subreddit} for '{Query}' using HTTP fallback", subreddit, query);
-            throw;
+            _logger.LogError(ex, "Failed to search r/{Subreddit} for '{Query}'", subreddit, query);
+            return new List<RedditPost>();
         }
     }
 
@@ -504,10 +452,12 @@ public class RedditScrapingService
             };
         }
     }
+    private static string GetUa() => UserAgents[_rng.Next(UserAgents.Length)];
 }
 
 public class RedditPost
 {
+    public string Id { get; set; } = "";
     public string Title { get; set; } = "";
     public string Author { get; set; } = "";
     public int Score { get; set; }

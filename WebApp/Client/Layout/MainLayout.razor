@@ -5,7 +5,7 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
+<MudLayout Style="@GetLayoutStyle()">
     <MudDrawer @bind-Open="@drawerOpen" Elevation="2" Style="@GetDrawerStyle()">
         <MudDrawerHeader Style="@GetDrawerHeaderStyle()">
             <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
@@ -111,6 +111,8 @@
     private string GetHeaderTextStyle() => $"font-weight: 700; font-family: 'Google Sans', Arial, sans-serif; color: {(isDarkTheme ? "#ffffff" : "#000000")}";
 
     private string GetNavMenuStyle() => $"padding: 0.5rem; background: {(isDarkTheme ? "#000000" : "#ffffff")}; color: {(isDarkTheme ? "#ffffff" : "#000000")}";
+
+    private string GetLayoutStyle() => $"--sidebar-offset: {(drawerOpen ? "280px" : "0px")};";
 
     private string GetMainContentStyle() => $"padding: 0; background: {(isDarkTheme ? "#000000" : "#ffffff")}; min-height: 100vh;";
     

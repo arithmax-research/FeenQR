@@ -79,6 +79,8 @@ namespace QuantResearchAgent.Models
         public double Score { get; set; } = 0.0; // -1.0 to 1.0
         public double Confidence { get; set; } = 0.0;
         public string Summary { get; set; } = string.Empty;
+        public List<string> KeyTopics { get; set; } = new();
+        public string Impact { get; set; } = "Medium";
     }
 
     /// <summary>
@@ -91,6 +93,9 @@ namespace QuantResearchAgent.Models
         public string OverallSentiment { get; set; } = "Neutral";
         public double OverallScore { get; set; } = 0.0;
         public double Confidence { get; set; } = 0.0;
+        public double BullishPercentage { get; set; } = 0.0;
+        public double BearishPercentage { get; set; } = 0.0;
+        public double NeutralPercentage { get; set; } = 0.0;
         public DateTime AnalyzedAt { get; set; } = DateTime.UtcNow;
     }
 }

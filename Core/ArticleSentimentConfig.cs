@@ -29,6 +29,7 @@ public class QdrantConfig
 {
     public string Endpoint { get; set; } = "http://localhost:6333";
     public string CollectionName { get; set; } = "article_chunks";
+    public string RedditCollectionName { get; set; } = "reddit_posts";
     public int VectorSize { get; set; } = 1536;
     public int BatchSize { get; set; } = 100;
 }

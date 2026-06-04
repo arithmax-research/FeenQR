@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuantResearchAgent.Models;
 using QuantResearchAgent.Services;
 using QuantResearchAgent.Services.ResearchAgents;
 
@@ -10,18 +11,24 @@ public class SentimentController : ControllerBase
 {
     private readonly NewsSentimentAnalysisService _sentimentService;
     private readonly MarketSentimentAgentService _marketSentimentService;
+    private readonly INewsPipelineService _newsPipelineService;
     private readonly RedditScrapingService _redditService;
+    private readonly RedditPostArchiveService _redditArchiveService;
     private readonly ILogger<SentimentController> _logger;
 
     public SentimentController(
         NewsSentimentAnalysisService sentimentService,
         MarketSentimentAgentService marketSentimentService,
+        INewsPipelineService newsPipelineService,
         RedditScrapingService redditService,
+        RedditPostArchiveService redditArchiveService,
         ILogger<SentimentController> logger)
     {
         _sentimentService = sentimentService;
         _marketSentimentService = marketSentimentService;
+        _newsPipelineService = newsPipelineService;
         _redditService = redditService;
+        _redditArchiveService = redditArchiveService;
         _logger = logger;
     }
 
@@ -158,51 +165,82 @@ public class SentimentController : ControllerBase
 
     [HttpGet("reddit/{symbol}")]
     public async Task<IActionResult> GetRedditSentiment(
-        string symbol, 
+        string symbol,
         [FromQuery] int postsToAnalyze = 50)
     {
         try
         {
             _logger.LogInformation($"Getting Reddit sentiment for {symbol}");
-            
-            // Analyze across multiple financial subreddits
+
             var subreddits = new[] { "wallstreetbets", "stocks", "investing", "options" };
             var analyses = new List<object>();
+            var collectedPosts = new List<RedditPost>();
 
             foreach (var subreddit in subreddits)
             {
                 try
                 {
-                    var analysis = await _redditService.AnalyzeSubredditSentimentAsync(
-                        subreddit, symbol, postsToAnalyze);
-                    
-                    if (analysis != null)
+                    var analysis = await _redditService.AnalyzeSubredditSentimentAsync(subreddit, symbol, postsToAnalyze);
+                    var subredditPosts = analysis.Posts ?? new List<RedditPost>();
+
+                    if (subredditPosts.Any())
                     {
-                        analyses.Add(new
-                        {
-                            subreddit = subreddit,
-                            sentiment = analysis.OverallSentiment,
-                            sentimentScore = analysis.SentimentScore,
-                            postsAnalyzed = analysis.TotalPosts,
-                            bullishPercentage = analysis.PositiveKeywordCount > 0 
-                                ? (double)analysis.PositiveKeywordCount / (analysis.PositiveKeywordCount + analysis.NegativeKeywordCount) 
-                                : 0.5,
-                            bearishPercentage = analysis.NegativeKeywordCount > 0 
-                                ? (double)analysis.NegativeKeywordCount / (analysis.PositiveKeywordCount + analysis.NegativeKeywordCount) 
-                                : 0.5,
-                            neutralPercentage = 0.0,
-                            topPosts = analysis.Posts?.Take(3).Select(p => new
-                            {
-                                title = p.Title,
-                                score = p.Score,
-                                comments = p.Comments,
-                                sentiment = analysis.SentimentScore > 0 ? "Bullish" : analysis.SentimentScore < 0 ? "Bearish" : "Neutral",
-                                url = p.Url
-                            }),
-                            keyThemes = new List<string>(),
-                            insights = $"Analysis based on {analysis.TotalPosts} posts"
-                        });
+                        collectedPosts.AddRange(subredditPosts);
                     }
+
+                    var subredditSentiment = await _newsPipelineService.AnalyzeSentimentAsync(
+                        symbol,
+                        subredditPosts.Select(post => ToArticleForAnalysis(post, subreddit)).ToList());
+
+                    var scoredPosts = subredditPosts
+                        .Select((post, index) => new
+                        {
+                            Post = post,
+                            Sentiment = index < subredditSentiment.ArticleResults.Count
+                                ? subredditSentiment.ArticleResults[index]
+                                : new ArticleSentimentResult()
+                        })
+                        .ToList();
+
+                    analyses.Add(new
+                    {
+                        subreddit = subreddit,
+                        sentiment = MapFastEmbedSentiment(subredditSentiment.OverallSentiment),
+                        sentimentScore = subredditSentiment.OverallScore,
+                        postsAnalyzed = subredditSentiment.ArticleResults.Count,
+                        bullishPercentage = subredditSentiment.BullishPercentage,
+                        bearishPercentage = subredditSentiment.BearishPercentage,
+                        neutralPercentage = subredditSentiment.NeutralPercentage,
+                        bullishPosts = subredditSentiment.ArticleResults.Count(result => result.Sentiment == "Positive"),
+                        bearishPosts = subredditSentiment.ArticleResults.Count(result => result.Sentiment == "Negative"),
+                        neutralPosts = subredditSentiment.ArticleResults.Count(result => result.Sentiment == "Neutral"),
+                        sentimentMethod = "fastembed pipeline",
+                        topPosts = scoredPosts
+                            .OrderByDescending(item => Math.Abs(item.Sentiment.Score))
+                            .Take(3)
+                            .Select(item => new
+                            {
+                                title = item.Post.Title,
+                                content = item.Post.Content,
+                                score = item.Sentiment.Score,
+                                sentimentScore = item.Sentiment.Score,
+                                sentimentConfidence = item.Sentiment.Confidence,
+                                sentimentLabel = item.Sentiment.Sentiment,
+                                keyTopics = item.Sentiment.KeyTopics,
+                                impact = item.Sentiment.Impact,
+                                comments = item.Post.Comments,
+                                publishedDate = item.Post.CreatedUtc,
+                                sentiment = MapFastEmbedSentiment(item.Sentiment.Sentiment),
+                                url = item.Post.Url
+                            }),
+                        keyThemes = scoredPosts
+                            .SelectMany(item => item.Sentiment.KeyTopics)
+                            .Where(topic => !string.IsNullOrWhiteSpace(topic))
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .Take(6)
+                            .ToList(),
+                        insights = $"Analysis based on {subredditSentiment.ArticleResults.Count} FastEmbed-scored posts"
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -210,29 +248,147 @@ public class SentimentController : ControllerBase
                 }
             }
 
-            // Calculate aggregate sentiment
-            var avgScore = analyses.Any() 
-                ? analyses.Average(a => (double)((dynamic)a).sentimentScore) 
-                : 0.0;
-            
-            var overallSentiment = avgScore > 0.2 ? "Bullish" 
-                : avgScore < -0.2 ? "Bearish" 
-                : "Neutral";
+            var distinctPosts = collectedPosts
+                .GroupBy(post => string.Join("|", new[]
+                {
+                    post.Subreddit,
+                    post.Id,
+                    post.Url,
+                    post.Title,
+                    post.CreatedUtc.ToUniversalTime().Ticks.ToString()
+                }).ToLowerInvariant(), StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .ToList();
+
+            var storedCount = await _redditArchiveService.StorePostsAsync(symbol, distinctPosts);
+            var storedSentiment = await _newsPipelineService.AnalyzeSentimentAsync(
+                symbol,
+                distinctPosts.Select(post => ToArticleForAnalysis(post)).ToList());
+
+            var overallBullishPosts = storedSentiment.ArticleResults.Count(result => result.Sentiment == "Positive");
+            var overallBearishPosts = storedSentiment.ArticleResults.Count(result => result.Sentiment == "Negative");
+            var overallNeutralPosts = storedSentiment.ArticleResults.Count(result => result.Sentiment == "Neutral");
 
             return Ok(new
             {
                 symbol = symbol,
                 timestamp = DateTime.UtcNow,
-                overallSentiment = overallSentiment,
-                averageSentimentScore = avgScore,
+                overallSentiment = MapFastEmbedSentiment(storedSentiment.OverallSentiment),
+                averageSentimentScore = storedSentiment.OverallScore,
+                sentimentMethod = "fastembed pipeline",
+                bullishPosts = overallBullishPosts,
+                bearishPosts = overallBearishPosts,
+                neutralPosts = overallNeutralPosts,
                 subredditAnalyses = analyses,
-                totalPostsAnalyzed = analyses.Sum(a => ((dynamic)a).postsAnalyzed)
+                totalPostsAnalyzed = analyses.Sum(a => ((dynamic)a).postsAnalyzed),
+                storedPostCount = distinctPosts.Count,
+                storedPosts = distinctPosts.Select((post, index) => new
+                {
+                    title = post.Title,
+                    content = post.Content,
+                    subreddit = post.Subreddit,
+                    author = post.Author,
+                    score = post.Score,
+                    sentimentScore = index < storedSentiment.ArticleResults.Count ? storedSentiment.ArticleResults[index].Score : 0.0,
+                    sentimentConfidence = index < storedSentiment.ArticleResults.Count ? storedSentiment.ArticleResults[index].Confidence : 0.0,
+                    sentimentLabel = index < storedSentiment.ArticleResults.Count ? storedSentiment.ArticleResults[index].Sentiment : "Neutral",
+                    keyTopics = index < storedSentiment.ArticleResults.Count ? storedSentiment.ArticleResults[index].KeyTopics : new List<string>(),
+                    impact = index < storedSentiment.ArticleResults.Count ? storedSentiment.ArticleResults[index].Impact : "Medium",
+                    comments = post.Comments,
+                    publishedDate = post.CreatedUtc,
+                    url = post.Url,
+                    searchQuery = post.SearchQuery
+                }).ToArray(),
+                archiveStatus = new
+                {
+                    qdrantStored = storedCount,
+                    available = storedCount > 0 || distinctPosts.Count > 0
+                }
             });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error analyzing Reddit sentiment for {symbol}");
             return StatusCode(500, new { error = "Failed to analyze Reddit sentiment", details = ex.Message });
+        }
+    }
+
+    private static ArticleForAnalysis ToArticleForAnalysis(RedditPost post, string source = "Reddit")
+    {
+        var normalizedContent = string.Join("\n", new[]
+        {
+            post.Title,
+            post.Content,
+            $"Subreddit: {post.Subreddit}",
+            $"Author: {post.Author}",
+            $"Search query: {post.SearchQuery ?? string.Empty}",
+            $"Score: {post.Score}",
+            $"Comments: {post.Comments}",
+            $"Upvotes: {post.Upvotes}",
+            $"Downvotes: {post.Downvotes}"
+        }.Where(part => !string.IsNullOrWhiteSpace(part)));
+
+        return new ArticleForAnalysis
+        {
+            Id = post.Id,
+            Title = post.Title,
+            Content = normalizedContent,
+            Source = source,
+            PublishedDate = post.CreatedUtc,
+            Url = post.Url
+        };
+    }
+
+    private static RedditPost ToRedditPost(RedditStoredPost post)
+    {
+        return new RedditPost
+        {
+            Id = post.Id,
+            Title = post.Title,
+            Content = post.Content,
+            Url = post.Url,
+            Author = post.Author,
+            Score = post.Score,
+            Upvotes = post.Upvotes,
+            Downvotes = post.Downvotes,
+            Comments = post.Comments,
+            CreatedUtc = post.CreatedUtc,
+            Subreddit = post.Subreddit,
+            SearchQuery = post.SearchQuery
+        };
+    }
+
+    private static string MapFastEmbedSentiment(string sentiment)
+    {
+        return sentiment.ToUpperInvariant() switch
+        {
+            "POSITIVE" => "Bullish",
+            "NEGATIVE" => "Bearish",
+            "NEUTRAL" => "Neutral",
+            "BULLISH" => "Bullish",
+            "BEARISH" => "Bearish",
+            _ => "Neutral"
+        };
+    }
+
+    [HttpDelete("reddit/{symbol}/stored")]
+    public async Task<IActionResult> ClearStoredRedditPosts(string symbol)
+    {
+        try
+        {
+            var deleted = await _redditArchiveService.ClearPostsAsync(symbol);
+            return Ok(new
+            {
+                symbol,
+                deleted,
+                cleared = true,
+                timestamp = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error clearing Reddit archive for {symbol}");
+            return StatusCode(500, new { error = "Failed to clear Reddit archive", details = ex.Message });
         }
     }
 

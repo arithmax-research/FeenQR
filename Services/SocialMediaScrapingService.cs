@@ -21,8 +21,9 @@ public class SocialMediaScrapingService
         _httpClient = httpClient;
         _kernel = kernel;
         
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", 
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+        // Browser-like User-Agent to avoid Reddit blocks
+        _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", 
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
     }
 
     public async Task<SocialMediaAnalysisResult> AnalyzeSocialMediaSentimentAsync(string symbol, List<SocialMediaPlatform> platforms, int daysBack = 7)
@@ -249,7 +250,8 @@ public class SocialMediaScrapingService
             {
                 try
                 {
-                    var url = $"https://www.reddit.com/r/{subreddit}/search.json?q={symbol}&restrict_sr=1&sort=new&limit=50";
+                    // Use public Reddit JSON endpoint with browser User-Agent
+                    var url = $"https://www.reddit.com/r/{subreddit}/search.json?q={symbol}&restrict_sr=1&sort=new&limit=50&raw_json=1";
                     var response = await _httpClient.GetStringAsync(url);
                     var redditData = JsonSerializer.Deserialize<JsonElement>(response);
                     
@@ -318,7 +320,7 @@ public class SocialMediaScrapingService
             
             foreach (var subreddit in subreddits)
             {
-                var url = $"https://www.reddit.com/r/{subreddit}/search.json?q={symbol}&sort=new&t=week";
+                var url = $"https://www.reddit.com/r/{subreddit}/search.json?q={symbol}&sort=new&t=week&raw_json=1";
                 
                 try
                 {
