@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     depends_on:
       qdrant:
-        condition: service_started
+        condition: service_healthy
     expose:
       - "8080"
     environment:
@@ -35,6 +35,12 @@ services:
     expose:
       - "6333"
       - "6334"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     volumes:
       - qdrant_storage:/qdrant/storage
 
@@ -56,3 +62,4 @@ volumes:
   qdrant_storage:
   caddy_data:
   caddy_config:
+

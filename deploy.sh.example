@@ -101,11 +101,27 @@ ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
 rm -f "$TAR_FILE"
 ok "Extracted and cleaned up (tarballs removed)"
 
-# Docker deploy
-header "Building and starting Docker stack"
+# Docker deploy — start Qdrant first, wait for readiness, then the rest
+header "Building and starting Qdrant (vector database)"
 ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
   "cd '$REMOTE_DIR' && docker compose down --remove-orphans && \
-   docker compose up -d --build --force-recreate"
+   docker compose up -d --build --force-recreate qdrant"
+
+info "Waiting for Qdrant to be ready..."
+ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
+  "cd '$REMOTE_DIR' && \
+   for i in \$(seq 1 30); do
+     if curl -sf http://localhost:6333/health >/dev/null 2>&1; then
+       echo 'Qdrant is ready'
+       break
+     fi
+     echo \"Waiting for Qdrant... (\$i/30)\"
+     sleep 2
+   done"
+
+info "Starting FeenQR web app and Caddy..."
+ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
+  "cd '$REMOTE_DIR' && docker compose up -d --build --force-recreate feenqr-web caddy"
 ok "Docker stack deployed"
 
 # Verify
