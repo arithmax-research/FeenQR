@@ -33,4 +33,5 @@ bin/
 .env
 
 # EC2 deploy script (contains server hostname)
-/deploy.sh
+deploy.sh
+Caddyfile
