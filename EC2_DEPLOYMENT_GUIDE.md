@@ -237,121 +237,103 @@ ssh ... "docker compose down"
 
 ---
 
-## Appendix A: Single Caddy Reverse Proxy for All Apps
+## Appendix A: Single Shared Caddy — Permanent Setup
 
-If you're deploying multiple apps on the same EC2, **only one Caddy instance** should bind to ports 80/443 on the host. The simplest approach:
+On this EC2, all apps share a **single Caddy** (`holiday-effect-caddy`) that binds to ports 80/443 on the host. Each app's `docker-compose.yml` should **not** include a Caddy service binding to these ports (use `127.0.0.1:<alt_port>:443` if you want a local Caddy for testing).
 
-### Option 1: Each app has its own compose file (recommended for isolation)
+### How it works
 
-Each app's `docker-compose.yml` omits the Caddy service. Instead, run a **shared Caddy** that proxies to all your app containers.
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| Shared Caddy container | `holiday-effect-caddy` | Serves all domains, manages TLS certs |
+| Caddyfile | `/mnt/shared-gp3/app-deployment/Caddyfile` | Single source of truth for all routes |
+| Register script | `/home/ubuntu/shared/register-app.sh` | Registers a new app with the shared Caddy |
 
-1. Create a shared Caddy deployment:
+### Adding a new app to the shared Caddy
 
-```yaml
-# /home/ubuntu/shared-caddy/docker-compose.yml
-services:
-  caddy:
-    image: caddy:2.8-alpine
-    container_name: shared-caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+After deploying your app containers, run the registration script:
 
-volumes:
-  caddy_data:
-  caddy_config:
-```
-
-2. Create a shared Caddyfile:
-
-```Caddyfile
-app3.misango.me {
-    encode gzip
-    reverse_proxy app3-web:8080
-}
-
-app4.misango.me {
-    encode gzip
-    reverse_proxy app4-web:8080
-}
-```
-
-3. Each app's compose file deploys **only its web service** (no caddy, no ports on host):
-
-```yaml
-services:
-  app3-web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: app3-web:local
-    container_name: app3-web
-    restart: unless-stopped
-    expose:
-      - "8080"
-    networks:
-      - shared_network   # ← all apps on the same network
-
-networks:
-  shared_network:
-    external: true
-```
-
-4. Create the shared Docker network:
 ```bash
 ssh -i ~/.ssh/arithmax-base.pem ubuntu@<EC2_IP> \
-  "docker network create shared_network"
+  sudo /home/ubuntu/shared/register-app.sh <domain> <docker_network> '<caddyfile_block>'
 ```
 
-5. Deploy the shared Caddy first, then your apps.
+**Example — FeenQR:**
+```bash
+ssh -i ~/.ssh/arithmax-base.pem ubuntu@<EC2_IP> \
+  sudo /home/ubuntu/shared/register-app.sh feenqr.misango.me feenqr_default \
+  'feenqr.misango.me {
+    encode gzip
+    reverse_proxy feenqr-web:8080
+  }'
+```
 
-### Option 2: Single compose file with all apps
+**Example — Embeddify (multi-service):**
+```bash
+ssh -i ~/.ssh/arithmax-base.pem ubuntu@<EC2_IP> \
+  sudo /home/ubuntu/shared/register-app.sh embeddify.misango.me embeddify_default \
+  'embeddify.misango.me {
+    encode gzip
+    @api {
+      path /cv/* /jobs/* /job-search/* /graphql
+    }
+    reverse_proxy @api embeddify-backend:8000
+    reverse_proxy embeddify-frontend:3000
+  }'
+```
+
+The script will:
+1. Connect the shared Caddy to your app's Docker network
+2. Append your Caddyfile block to the shared Caddyfile
+3. Reload Caddy with zero downtime
+
+### App docker-compose.yml template (for shared Caddy setup)
 
 ```yaml
 services:
-  app3-web:
-    build:
-      context: ./app3
-      dockerfile: Dockerfile
-    image: app3-web:local
-    container_name: app3-web
+  myapp-web:
+    build: .
+    image: myapp-web:local
+    container_name: myapp-web
     restart: unless-stopped
     expose:
       - "8080"
+    # NO ports mapping to host — Caddy proxies internally
+    # NO Caddy service — use the shared one
 
-  app4-web:
-    build:
-      context: ./app4
-      dockerfile: Dockerfile
-    image: app4-web:local
-    container_name: app4-web
-    restart: unless-stopped
-    expose:
-      - "8080"
-
-  caddy:
+  # Optional: local Caddy for testing (binds to localhost only)
+  myapp-caddy:
     image: caddy:2.8-alpine
-    container_name: shared-caddy
+    container_name: myapp-caddy
     restart: unless-stopped
     depends_on:
-      - app3-web
-      - app4-web
+      - myapp-web
     ports:
-      - "80:80"
-      - "443:443"
+      - "127.0.0.1:<unique_port>:443"   # e.g., 1443, 2443, etc.
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - myapp_caddy_data:/data
+      - myapp_caddy_config:/config
 
 volumes:
-  caddy_data:
-  caddy_config:
+  myapp_caddy_data:
+  myapp_caddy_config:
+```
+
+### Quick reference
+
+```bash
+# View current shared Caddyfile
+ssh ... "cat /mnt/shared-gp3/app-deployment/Caddyfile"
+
+# Reload Caddy after manual edits
+ssh ... "docker exec holiday-effect-caddy caddy reload --config /etc/caddy/Caddyfile"
+
+# View Caddy logs
+ssh ... "docker logs holiday-effect-caddy --tail 50"
+
+# Check which networks the shared Caddy is connected to
+ssh ... 'docker inspect holiday-effect-caddy | python3 -c "import sys,json;nets=json.load(sys.stdin)[0][\"NetworkSettings\"][\"Networks\"];[print(k) for k in nets.keys()]"'
 ```
 
 ---
