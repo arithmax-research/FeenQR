@@ -113,14 +113,12 @@ jobs:
               SHARED_CADDYFILE="/mnt/shared-gp3/app-deployment/Caddyfile"
               if [ -f "$SHARED_CADDYFILE" ]; then
                 if ! grep -q "$DOMAIN" "$SHARED_CADDYFILE"; then
-                  tee -a "$SHARED_CADDYFILE" << CADDYEOF
-
-              # FeenQR (auto-registered $(date +%Y-%m-%d))
-              $DOMAIN {
-                  encode gzip
-                  reverse_proxy feenqr-web:8080
-              }
-              CADDYEOF
+                  echo "" >> "$SHARED_CADDYFILE"
+                  echo "# FeenQR (auto-registered $(date +%Y-%m-%d))" >> "$SHARED_CADDYFILE"
+                  echo "$DOMAIN {" >> "$SHARED_CADDYFILE"
+                  echo "    encode gzip" >> "$SHARED_CADDYFILE"
+                  echo "    reverse_proxy feenqr-web:8080" >> "$SHARED_CADDYFILE"
+                  echo "}" >> "$SHARED_CADDYFILE"
                 fi
                 docker exec "$SHARED_CADDY" caddy reload --config /etc/caddy/Caddyfile
                 echo "Caddy reloaded with FeenQR route"
