@@ -108,8 +108,7 @@ ok "Extracted and cleaned up (local + remote tarballs removed)"
 # Docker deploy — start Qdrant first, wait for readiness, then the rest
 header "Building and starting Qdrant (vector database)"
 ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
-  "cd '$REMOTE_DIR' && docker compose down --remove-orphans && \
-   docker compose up -d --build --force-recreate qdrant"
+  "cd '$REMOTE_DIR' && docker compose up -d --build --force-recreate qdrant"
 
 info "Waiting for Qdrant to be ready..."
 ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
@@ -123,11 +122,38 @@ ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
      sleep 2
    done"
 
-info "Starting FeenQR web app and Caddy..."
+header "Starting FeenQR web app (Caddy stays running — no SSL refresh)..."
+info "  Using shared Caddy 'holiday-effect-caddy' if available"
 ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
-  "cd '$REMOTE_DIR' && docker compose up -d --build --force-recreate feenqr-web caddy"
-ok "Docker stack deployed"
+  "cd '$REMOTE_DIR' && docker compose up -d --build --force-recreate feenqr-web"
+ok "feenqr-web deployed (Caddy not touched)"
 
+# Register with shared Caddy (if it exists)
+header "Registering with shared Caddy"
+SHARED_CADDY="holiday-effect-caddy"
+ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
+  "cd '$REMOTE_DIR' && \
+   if docker ps --format '{{.Names}}' | grep -q '^$SHARED_CADDY$'; then
+     NET=\$(docker compose ls -q 2>/dev/null || echo 'feenqr_default')
+     docker network connect \"\$NET\" \"$SHARED_CADDY\" 2>/dev/null || true
+     SHARED_CADDYFILE='/mnt/shared-gp3/app-deployment/Caddyfile'
+     if [ -f \"\$SHARED_CADDYFILE\" ]; then
+       grep -q '$DOMAIN' \"\$SHARED_CADDYFILE\" || {
+         echo '' >> \"\$SHARED_CADDYFILE\"
+         echo '# FeenQR (auto-registered)' >> \"\$SHARED_CADDYFILE\"
+         echo '$DOMAIN {' >> \"\$SHARED_CADDYFILE\"
+         echo '    encode gzip' >> \"\$SHARED_CADDYFILE\"
+         echo '    reverse_proxy feenqr-web:8080' >> \"\$SHARED_CADDYFILE\"
+         echo '}' >> \"\$SHARED_CADDYFILE\"
+       }
+       docker exec \"$SHARED_CADDY\" caddy reload --config /etc/caddy/Caddyfile
+       echo 'Caddy reloaded with FeenQR route'
+     else
+       echo 'Shared Caddyfile not found'
+     fi
+   else
+     echo 'Shared Caddy not running'
+   fi"
 # Verify
 header "Verification"
 ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \

@@ -46,9 +46,13 @@ services:
     volumes:
       - qdrant_storage:/qdrant/storage
 
+  # ── Local Caddy (for development / single-app EC2) ──────────────
+  # In production with a shared Caddy (see EC2_DEPLOYMENT_GUIDE.md),
+  # omit this service. The shared holiday-effect-caddy handles TLS
+  # across all apps and is never recreated on deploys.
   caddy:
     image: caddy:2.8-alpine
-    container_name: caddy
+    container_name: feenqr-caddy
     restart: unless-stopped
     depends_on:
       - feenqr-web
@@ -59,6 +63,9 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    profiles:
+      - local
+      - standalone
 
 volumes:
   qdrant_storage:
