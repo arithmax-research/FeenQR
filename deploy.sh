@@ -15,7 +15,7 @@ header(){ echo ""; echo -e "${CYAN}═══════════════
 
 # Config
 SSH_USER="${SSH_USER:-ubuntu}"
-SSH_OPTS="${SSH_OPTS:--o StrictHostKeyChecking=accept-new}"
+SSH_OPTS="${SSH_OPTS:--o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=20}"
 TAR_FILE="/tmp/feenqr-deploy.tar.gz"
 REMOTE_DIR="/home/$SSH_USER/codechest/FeenQR"
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -108,7 +108,7 @@ ok "Extracted and cleaned up (local + remote tarballs removed)"
 # Docker deploy — start Qdrant first, wait for readiness, then the rest
 header "Building and starting Qdrant (vector database)"
 ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
-  "cd '$REMOTE_DIR' && docker compose up -d --build --force-recreate qdrant"
+  "cd '$REMOTE_DIR' && docker compose up -d --force-recreate qdrant"
 
 info "Waiting for Qdrant to be ready..."
 ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
@@ -124,8 +124,11 @@ ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
 
 header "Starting FeenQR web app (Caddy stays running — no SSL refresh)..."
 info "  Using shared Caddy 'holiday-effect-caddy' if available"
+info "  Building feenqr-web image"
 ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
-  "cd '$REMOTE_DIR' && docker compose up -d --build --force-recreate feenqr-web"
+  "cd '$REMOTE_DIR' && docker compose build feenqr-web"
+ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
+  "cd '$REMOTE_DIR' && docker compose up -d --force-recreate feenqr-web"
 ok "feenqr-web deployed (Caddy not touched)"
 
 # Register with shared Caddy (if it exists)
