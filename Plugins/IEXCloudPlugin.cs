@@ -4,6 +4,12 @@ using System.ComponentModel;
 
 namespace QuantResearchAgent.Plugins;
 
+/// <summary>
+/// IEXCloudPlugin is DISABLED because IEX Cloud was acquired by DataBento.
+/// All methods return error messages. Use DatabentoPlugin or other alternatives.
+/// </summary>
+
+
 public class IEXCloudPlugin
 {
     private readonly IEXCloudService _service;

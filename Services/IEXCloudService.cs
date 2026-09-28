@@ -10,6 +10,13 @@ using QuantResearchAgent.Core;
 namespace QuantResearchAgent.Services;
 
 /// <summary>
+/// IEXCloudService is DISABLED because IEX Cloud was acquired by DataBento.
+/// All methods return null. See appsettings.json - IEXCloud section was removed.
+/// Use DataBentoService, PolygonService, or FinancialModelingPrepService instead.
+/// </summary>
+
+
+/// <summary>
 /// IEX Cloud API service for free financial data and market information
 /// Provides access to stock quotes, company info, dividends, earnings, and more
 /// </summary>

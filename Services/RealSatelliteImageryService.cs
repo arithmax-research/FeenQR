@@ -6,7 +6,7 @@ namespace QuantResearchAgent.Services;
 
 /// <summary>
 /// Real satellite imagery analysis service using Python computer vision libraries
-/// Integrates with Google Maps API, Planet Labs, and open-source CV libraries
+/// Integrates with Google Maps API and open-source CV libraries
 /// </summary>
 public class RealSatelliteImageryService
 {
@@ -250,24 +250,12 @@ public class RealSatelliteImageryService
         try
         {
             var googleApiKey = Environment.GetEnvironmentVariable("GOOGLE_MAPS_API_KEY");
-            var planetApiKey = Environment.GetEnvironmentVariable("PLANET_LABS_API_KEY");
-            var sentinelToken = Environment.GetEnvironmentVariable("SENTINEL_HUB_TOKEN");
 
             var validConfigs = new List<string>();
 
             if (!string.IsNullOrEmpty(googleApiKey))
             {
                 validConfigs.Add("Google Maps API");
-            }
-
-            if (!string.IsNullOrEmpty(planetApiKey))
-            {
-                validConfigs.Add("Planet Labs API");
-            }
-
-            if (!string.IsNullOrEmpty(sentinelToken))
-            {
-                validConfigs.Add("Sentinel Hub");
             }
 
             _logger.LogInformation("Available satellite APIs: {Apis}", 
@@ -301,15 +289,7 @@ public class RealSatelliteImageryService
                 sources.Add("Google Maps Satellite API");
             }
 
-            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("PLANET_LABS_API_KEY")))
-            {
-                sources.Add("Planet Labs High-Resolution Imagery");
-            }
-
-            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SENTINEL_HUB_TOKEN")))
-            {
-                sources.Add("ESA Copernicus Sentinel Data");
-            }
+            // Planet Labs and Sentinel Hub removed for now
 
             // Always available
             sources.Add("Enhanced Mock Data with Real Facility Locations");

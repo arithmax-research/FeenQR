@@ -182,7 +182,6 @@ public class SatelliteImageryAnalysisService
 
         // This would integrate with satellite imagery APIs like:
         // - Google Earth Engine API
-        // - Planet Labs API
         // - Maxar/DigitalGlobe API
         // - NASA Earth Data
         // - ESA Copernicus
