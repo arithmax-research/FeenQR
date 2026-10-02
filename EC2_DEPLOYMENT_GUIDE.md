@@ -1,6 +1,6 @@
-# EC2 Multi-App Deployment Guide
+# FeenQR EC2 Deployment Guide
 
-> Deploy multiple containerized apps on the same EC2 instance, each on its own subdomain.
+> Deploy FeenQR as an independent app behind the permanent Embeddify Caddy reverse proxy.
 
 ## Prerequisites
 
@@ -12,21 +12,25 @@
 ---
 
 ## Quick Reference
+## Shared reverse proxy
 
-| Step | Command |
-|------|---------|
-| EC2 IP | `aws ec2 describe-instances --query 'Reservations[].Instances[].[InstanceId,State.Name,PublicIpAddress,Tags[?Key==\`Name\`].Value\|[0]]' --output table` |
-| SSH in | `ssh -i ~/.ssh/arithmax-base.pem ubuntu@<EC2_IP>` |
-| Transfer app | `tar czf /tmp/app.tar.gz --exclude='.git' --exclude='obj' --exclude='bin' --exclude='logs' --exclude='node_modules' --exclude='__pycache__' --exclude='.DS_Store' -C /path/to/project .`<br>`scp -i ~/.ssh/arithmax-base.pem /tmp/app.tar.gz ubuntu@<EC2_IP>:/home/ubuntu/` |
-| Extract & clean | `ssh -i ~/.ssh/arithmax-base.pem ubuntu@<EC2_IP> "cd /home/ubuntu && tar xzf app.tar.gz && find . -name '._*' -delete"` |
-| Deploy | `ssh -i ~/.ssh/arithmax-base.pem ubuntu@<EC2_IP> "cd /home/ubuntu && docker compose up -d --build"` |
+Embeddify owns the single Caddy container and public ports 80 and 443. FeenQR only runs `feenqr-web` and `qdrant`, attached to the `embeddify_proxy` Docker network. The Embeddify Caddyfile contains the `feenqr.misango.me` route and manages TLS for both applications.
 
----
+Create the shared network once on EC2:
 
-## Step 1: Set up DNS
+```bash
+docker network create embeddify_proxy
+```
 
-Before deploying, create an **A record** for your app's subdomain pointing to your EC2 IP.
+After changing the central Caddyfile, rebuild and restart only Caddy. Its named data and config volumes must remain intact:
+The standalone `caddy-central` project owns the single Caddy container and public ports 80 and 443. FeenQR only runs `feenqr-web` and `qdrant`, attached to the `caddy-central_proxy` Docker network. The central Caddyfile contains the `feenqr.misango.me` route and manages TLS for all applications.
+```bash
+cd ~/codechest/Embeddify
+docker compose build caddy
+docker compose up -d caddy
+docker network create caddy-central_proxy
 
+Do not start a FeenQR Caddy container and do not run `docker compose down -v`.
 ```bash
 # Find your EC2 public IP
 aws ec2 describe-instances \
@@ -237,104 +241,21 @@ ssh ... "docker compose down"
 
 ---
 
-## Appendix A: Single Shared Caddy — Permanent Setup
+## Standalone operation
 
-On this EC2, all apps share a **single Caddy** (`holiday-effect-caddy`) that binds to ports 80/443 on the host. Each app's `docker-compose.yml` should **not** include a Caddy service binding to these ports (use `127.0.0.1:<alt_port>:443` if you want a local Caddy for testing).
+FeenQR owns its Caddy container, Caddyfile, and persistent certificate volumes. Run the normal deployment script on a dedicated EC2 host or on a host/public IP where ports 80 and 443 are available.
 
-### How it works
+## Running beside another standalone app
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| Shared Caddy container | `holiday-effect-caddy` | Serves all domains, manages TLS certs |
-| Caddyfile | `/mnt/shared-gp3/app-deployment/Caddyfile` | Single source of truth for all routes |
-| Register script | `/home/ubuntu/shared/register-app.sh` | Registers a new app with the shared Caddy |
+Two standalone Caddys can share one EC2 only when each is assigned a different private IP on the EC2 network interface, with a separate Elastic IP mapped to each private IP. Configure the private address in each project's `.env` file:
 
-### Adding a new app to the shared Caddy
-
-After deploying your app containers, run the registration script:
-
-```bash
-ssh -i ~/.ssh/arithmax-base.pem ubuntu@<EC2_IP> \
-  sudo /home/ubuntu/shared/register-app.sh <domain> <docker_network> '<caddyfile_block>'
+```dotenv
+HOST_BIND_IP=10.0.1.10
 ```
 
-**Example — FeenQR:**
-```bash
-ssh -i ~/.ssh/arithmax-base.pem ubuntu@<EC2_IP> \
-  sudo /home/ubuntu/shared/register-app.sh feenqr.misango.me feenqr_default \
-  'feenqr.misango.me {
-    encode gzip
-    reverse_proxy feenqr-web:8080
-  }'
-```
+For example, assign `10.0.1.10` to FeenQR and `10.0.1.11` to the other app. Point each domain's DNS `A` record to its corresponding Elastic IP. Both Caddy containers can then use ports 80 and 443 because they bind to different host IP addresses.
 
-**Example — Embeddify (multi-service):**
-```bash
-ssh -i ~/.ssh/arithmax-base.pem ubuntu@<EC2_IP> \
-  sudo /home/ubuntu/shared/register-app.sh embeddify.misango.me embeddify_default \
-  'embeddify.misango.me {
-    encode gzip
-    @api {
-      path /cv/* /jobs/* /job-search/* /graphql
-    }
-    reverse_proxy @api embeddify-backend:8000
-    reverse_proxy embeddify-frontend:3000
-  }'
-```
-
-The script will:
-1. Connect the shared Caddy to your app's Docker network
-2. Append your Caddyfile block to the shared Caddyfile
-3. Reload Caddy with zero downtime
-
-### App docker-compose.yml template (for shared Caddy setup)
-
-```yaml
-services:
-  myapp-web:
-    build: .
-    image: myapp-web:local
-    container_name: myapp-web
-    restart: unless-stopped
-    expose:
-      - "8080"
-    # NO ports mapping to host — Caddy proxies internally
-    # NO Caddy service — use the shared one
-
-  # Optional: local Caddy for testing (binds to localhost only)
-  myapp-caddy:
-    image: caddy:2.8-alpine
-    container_name: myapp-caddy
-    restart: unless-stopped
-    depends_on:
-      - myapp-web
-    ports:
-      - "127.0.0.1:<unique_port>:443"   # e.g., 1443, 2443, etc.
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - myapp_caddy_data:/data
-      - myapp_caddy_config:/config
-
-volumes:
-  myapp_caddy_data:
-  myapp_caddy_config:
-```
-
-### Quick reference
-
-```bash
-# View current shared Caddyfile
-ssh ... "cat /mnt/shared-gp3/app-deployment/Caddyfile"
-
-# Reload Caddy after manual edits
-ssh ... "docker exec holiday-effect-caddy caddy reload --config /etc/caddy/Caddyfile"
-
-# View Caddy logs
-ssh ... "docker logs holiday-effect-caddy --tail 50"
-
-# Check which networks the shared Caddy is connected to
-ssh ... 'docker inspect holiday-effect-caddy | python3 -c "import sys,json;nets=json.load(sys.stdin)[0][\"NetworkSettings\"][\"Networks\"];[print(k) for k in nets.keys()]"'
-```
+Without separate IPs, Docker cannot bind two containers to ports 80 and 443 simultaneously. In that case, use separate EC2 instances or one shared public reverse proxy.
 
 ---
 

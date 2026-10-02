@@ -85,7 +85,9 @@ jobs:
             set -euo pipefail
             REMOTE_DIR="/home/${{ secrets.SSH_USER || 'ubuntu' }}/codechest/FeenQR"
             DOMAIN="${{ secrets.DOMAIN || 'feenqr.misango.me' }}"
-            SHARED_CADDY="holiday-effect-caddy"
+            SHARED_CADDY="achest-caddy"
+            SHARED_CADDY_NETWORK="shared-trading-net"
+            SHARED_CADDYFILE="/home/${{ secrets.SSH_USER || 'ubuntu' }}/codechest/Arithmax_Chest/Caddyfile"
             cd "$REMOTE_DIR"
 
             echo "=== 1. Build feenqr-web image ==="
@@ -109,9 +111,7 @@ jobs:
 
             echo "=== 4. Register with shared Caddy ==="
             if docker ps --format '{{.Names}}' | grep -q "^$SHARED_CADDY$"; then
-              NET="$(docker compose ls -q 2>/dev/null || echo 'feenqr_default')"
-              docker network connect "$NET" "$SHARED_CADDY" 2>/dev/null || true
-              SHARED_CADDYFILE="/mnt/shared-gp3/app-deployment/Caddyfile"
+              docker network connect "$SHARED_CADDY_NETWORK" feenqr-web 2>/dev/null || true
               if [ -f "$SHARED_CADDYFILE" ]; then
                 if ! grep -q "$DOMAIN" "$SHARED_CADDYFILE"; then
                   echo "" >> "$SHARED_CADDYFILE"
@@ -121,6 +121,7 @@ jobs:
                   echo "    reverse_proxy feenqr-web:8080" >> "$SHARED_CADDYFILE"
                   echo "}" >> "$SHARED_CADDYFILE"
                 fi
+                docker exec "$SHARED_CADDY" caddy validate --config /etc/caddy/Caddyfile
                 docker exec "$SHARED_CADDY" caddy reload --config /etc/caddy/Caddyfile
                 echo "Caddy reloaded with FeenQR route"
               fi

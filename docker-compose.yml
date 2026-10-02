@@ -29,10 +29,13 @@ services:
       - type: bind
         source: ./Scripts/youtube_cookies.txt
         target: /app/Scripts/youtube_cookies.txt
+    networks:
+      - default
+      - proxy
 
   qdrant:
     image: qdrant/qdrant:v1.12.5
-    container_name: qdrant
+    container_name: feenqr-qdrant
     restart: unless-stopped
     expose:
       - "6333"
@@ -45,30 +48,16 @@ services:
       start_period: 5s
     volumes:
       - qdrant_storage:/qdrant/storage
-
-  # ── Local Caddy (for development / single-app EC2) ──────────────
-  # In production with a shared Caddy (see EC2_DEPLOYMENT_GUIDE.md),
-  # omit this service. The shared holiday-effect-caddy handles TLS
-  # across all apps and is never recreated on deploys.
-  caddy:
-    image: caddy:2.8-alpine
-    container_name: feenqr-caddy
-    restart: unless-stopped
-    depends_on:
-      - feenqr-web
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    profiles:
-      - local
-      - standalone
+    networks:
+      - default
 
 volumes:
   qdrant_storage:
-  caddy_data:
-  caddy_config:
+
+networks:
+  default:
+    name: feenqr_default
+  proxy:
+    name: caddy-central_proxy
+    external: true
 
