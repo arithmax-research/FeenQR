@@ -253,8 +253,14 @@ public class EnhancedFundamentalAnalysisService
             var fmpProfileTask = _fmpService.GetCompanyProfileAsync(symbol);
             var alphaVantageTask = _alphaVantageService.GetCompanyOverviewAsync(symbol);
             var yfinanceTask = _yfinanceService.GetFundamentalsAsync(symbol);
+            // Analyst-sourced valuation inputs from achest.
+            var fairValueTask = _achestService != null ? _achestService.GetFairValueAsync(symbol) : Task.FromResult<AchestFairValue?>(null);
+            var priceTargetTask = _achestService != null ? _achestService.GetPriceTargetAsync(symbol) : Task.FromResult<AchestPriceTarget?>(null);
 
-            await Task.WhenAll(fmpQuoteTask, fmpMetricsTask, fmpRatiosTask, fmpProfileTask, alphaVantageTask, yfinanceTask);
+            await Task.WhenAll(fmpQuoteTask, fmpMetricsTask, fmpRatiosTask, fmpProfileTask, alphaVantageTask, yfinanceTask, fairValueTask, priceTargetTask);
+
+            var analystFairValue = await fairValueTask;
+            var analystTarget = await priceTargetTask;
 
             var quote = await fmpQuoteTask;
             var metrics = (await fmpMetricsTask)?.FirstOrDefault();
@@ -300,10 +306,10 @@ public class EnhancedFundamentalAnalysisService
                 // Market data with fallbacks
                 FiftyTwoWeekHigh = quote?.YearHigh ?? (ParseDecimal(alphaVantageOverview?.FiftyTwoWeekHigh) > 0 ? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekHigh) : (yfinance?.FiftyTwoWeekHigh ?? 0m)),
                 FiftyTwoWeekLow = quote?.YearLow ?? (ParseDecimal(alphaVantageOverview?.FiftyTwoWeekLow) > 0 ? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekLow) : (yfinance?.FiftyTwoWeekLow ?? 0m)),
-                Beta = 0, // FMP doesn't provide beta data
+                Beta = (ParseDecimal(alphaVantageOverview?.Beta) > 0 ? ParseDecimal(alphaVantageOverview?.Beta) : (yfinance?.Beta ?? 0m)),
 
-                // Analyst estimates
-                AnalystTargetPrice = 0, // FMP doesn't provide analyst target price
+                // Analyst estimates (real consensus target from achest; synthetics removed)
+                AnalystTargetPrice = (decimal)(analystTarget?.TargetMean ?? analystTarget?.TargetMedian ?? 0),
                 DividendYield = metrics?.DividendYield ?? ratios?.DividendYield ?? 0m,
 
                 AnalysisDate = DateTime.UtcNow
@@ -323,8 +329,15 @@ public class EnhancedFundamentalAnalysisService
             decimal fairValue = 0.0m;
             var currentPrice = analysis.CurrentPrice;
 
+            // Method 0 (preferred): analyst-computed fair value from achest (Eulerpool model).
+            if (analystFairValue?.FairValue is double analystFv && analystFv > 0)
+            {
+                fairValue = (decimal)analystFv;
+                analysis.IntrinsicValue = fairValue;
+                _logger.LogInformation($"Using achest analyst fair value for {symbol}: ${fairValue:F2} (upside {analystFairValue.Upside}%)");
+            }
             // Method 1: Use Graham Number only if it's reasonable (within 3x of current price)
-            if (metrics?.GrahamNumber.HasValue == true && 
+            else if (metrics?.GrahamNumber.HasValue == true && 
                 metrics.GrahamNumber.Value > 0 &&
                 metrics.GrahamNumber.Value > currentPrice * 0.3m &&
                 metrics.GrahamNumber.Value < currentPrice * 3.0m)
@@ -541,13 +554,20 @@ public class EnhancedFundamentalAnalysisService
             var valuationTask = GetComprehensiveValuationAnalysisAsync(symbol);
             var financialsTask = GetComprehensiveFinancialStatementsAsync(symbol);
             var estimatesTask = _fmpService.GetAnalystEstimatesAsync(symbol, 4);
+            // Real analyst consensus / price targets / grades from achest.
+            var consensusTask = _achestService != null ? _achestService.GetAnalystConsensusAsync(symbol) : Task.FromResult<AchestAnalystConsensus?>(null);
+            var targetTask = _achestService != null ? _achestService.GetPriceTargetAsync(symbol) : Task.FromResult<AchestPriceTarget?>(null);
+            var gradesTask = _achestService != null ? _achestService.GetAnalystGradesAsync(symbol, 25) : Task.FromResult(new List<AchestAnalystGrade>());
 
-            await Task.WhenAll(overviewTask, valuationTask, financialsTask, estimatesTask);
+            await Task.WhenAll(overviewTask, valuationTask, financialsTask, estimatesTask, consensusTask, targetTask, gradesTask);
 
             var overview = await overviewTask;
             var valuation = await valuationTask;
             var financials = await financialsTask;
             var estimates = await estimatesTask;
+            var consensus = await consensusTask;
+            var priceTarget = await targetTask;
+            var grades = await gradesTask;
 
             if (overview == null || valuation == null)
             {
@@ -588,27 +608,72 @@ public class EnhancedFundamentalAnalysisService
 
             // Calculate quantitative score (0-100) based on multiple factors
             var scores = CalculateQuantitativeScores(overview, valuation, financials);
-            
-            // Calculate target price using multiple valuation methods
+
+            // Calculate target price using multiple valuation methods (fallback)
             var targetPrices = CalculateTargetPrices(overview, valuation, financials, estimates);
 
-            // Determine consensus rating based on quantitative score
-            string consensusRating;
             int totalScore = scores.TotalScore;
-            
-            if (totalScore >= 80)
-                consensusRating = "Strong Buy";
-            else if (totalScore >= 65)
-                consensusRating = "Buy";
-            else if (totalScore >= 45)
-                consensusRating = "Hold";
-            else if (totalScore >= 30)
-                consensusRating = "Sell";
-            else
-                consensusRating = "Strong Sell";
 
-            // Convert score to rating distribution (simulate analyst consensus)
-            var ratings = ConvertScoreToRatings(totalScore);
+            // ── Prefer REAL analyst data from achest when available ────────
+            bool hasRealAnalysts = consensus != null && consensus.TotalAnalysts > 0;
+            string consensusRating;
+            decimal averageTarget, highTarget, lowTarget;
+            int numberAnalysts;
+            int buyRatings, holdRatings, sellRatings;
+            int sb, b, h, s, ss;
+            int upgrades, downgrades;
+
+            if (hasRealAnalysts)
+            {
+                sb = consensus!.StrongBuy;
+                b = consensus.Buy;
+                h = consensus.Hold;
+                s = consensus.Sell;
+                ss = consensus.StrongSell;
+                numberAnalysts = consensus.TotalAnalysts;
+
+                // Weighted consensus score: strongBuy=5 … strongSell=1, normalised to 0-100.
+                var weighted = (sb * 5.0 + b * 4.0 + h * 3.0 + s * 2.0 + ss * 1.0) / numberAnalysts;
+                totalScore = (int)Math.Round((weighted - 1.0) / 4.0 * 100.0);
+
+                var mean = consensus.TargetMean ?? priceTarget?.TargetMean;
+                averageTarget = (decimal)(mean ?? 0);
+                highTarget = (decimal)(consensus.TargetHigh ?? priceTarget?.TargetHigh ?? 0);
+                lowTarget = (decimal)(consensus.TargetLow ?? priceTarget?.TargetLow ?? 0);
+                buyRatings = sb + b;
+                holdRatings = h;
+                sellRatings = s + ss;
+
+                consensusRating = weighted >= 4.5 ? "Strong Buy"
+                    : weighted >= 3.5 ? "Buy"
+                    : weighted >= 2.5 ? "Hold"
+                    : weighted >= 1.5 ? "Sell"
+                    : "Strong Sell";
+
+                upgrades = grades.Count(g => string.Equals(g.Action, "upgrade", StringComparison.OrdinalIgnoreCase) || string.Equals(g.Action, "up", StringComparison.OrdinalIgnoreCase));
+                downgrades = grades.Count(g => string.Equals(g.Action, "downgrade", StringComparison.OrdinalIgnoreCase) || string.Equals(g.Action, "down", StringComparison.OrdinalIgnoreCase));
+            }
+            else
+            {
+                // Fallback: derive from the quantitative model.
+                consensusRating = totalScore >= 80 ? "Strong Buy"
+                    : totalScore >= 65 ? "Buy"
+                    : totalScore >= 45 ? "Hold"
+                    : totalScore >= 30 ? "Sell"
+                    : "Strong Sell";
+
+                var ratings = ConvertScoreToRatings(totalScore);
+                sb = ratings.StrongBuy; b = ratings.Buy; h = ratings.Hold; s = ratings.Sell; ss = ratings.StrongSell;
+                averageTarget = targetPrices.Average;
+                highTarget = targetPrices.High;
+                lowTarget = targetPrices.Low;
+                numberAnalysts = 10;
+                buyRatings = ratings.Buy;
+                holdRatings = ratings.Hold;
+                sellRatings = ratings.Sell;
+                upgrades = totalScore > 60 ? 1 : 0;
+                downgrades = totalScore < 40 ? 1 : 0;
+            }
 
             // Generate AI-powered detailed analysis
             var aiAnalysis = await GenerateQuantitativeAnalystReportAsync(symbol, overview, valuation, financials, scores, targetPrices);
@@ -617,22 +682,25 @@ public class EnhancedFundamentalAnalysisService
             {
                 Symbol = symbol,
                 ConsensusRating = consensusRating,
-                AverageTargetPrice = targetPrices.Average,
-                HighTargetPrice = targetPrices.High,
-                LowTargetPrice = targetPrices.Low,
-                NumberOfAnalysts = 10, // Representing our 10 quantitative factors
-                BuyRatings = ratings.Buy,
-                HoldRatings = ratings.Hold,
-                SellRatings = ratings.Sell,
-                AnalystTargetPrice = targetPrices.Average,
-                AnalystRatingStrongBuy = ratings.StrongBuy,
-                AnalystRatingBuy = ratings.Buy,
-                AnalystRatingHold = ratings.Hold,
-                AnalystRatingSell = ratings.Sell,
-                AnalystRatingStrongSell = ratings.StrongSell,
-                NumberOfAnalystOpinions = 10,
+                AverageTargetPrice = averageTarget,
+                HighTargetPrice = highTarget,
+                LowTargetPrice = lowTarget,
+                NumberOfAnalysts = numberAnalysts,
+                BuyRatings = buyRatings,
+                HoldRatings = holdRatings,
+                SellRatings = sellRatings,
+                AnalystTargetPrice = averageTarget,
+                AnalystRatingStrongBuy = sb,
+                AnalystRatingBuy = b,
+                AnalystRatingHold = h,
+                AnalystRatingSell = s,
+                AnalystRatingStrongSell = ss,
+                NumberOfAnalystOpinions = numberAnalysts,
                 Estimates = new
                 {
+                    source = hasRealAnalysts ? "achest:eulerpool-analysts" : "quantitative-model",
+                    consensusPeriod = consensus?.Period,
+                    priceTarget = priceTarget,
                     quantitativeScore = totalScore,
                     valuationScore = scores.ValuationScore,
                     profitabilityScore = scores.ProfitabilityScore,
@@ -640,16 +708,18 @@ public class EnhancedFundamentalAnalysisService
                     financialHealthScore = scores.FinancialHealthScore,
                     momentumScore = scores.MomentumScore,
                     aiAnalysis = aiAnalysis,
-                    methodology = "Multi-factor quantitative model combining valuation, profitability, growth, financial health, and momentum indicators"
+                    methodology = hasRealAnalysts
+                        ? "Real analyst consensus (buy/hold/sell) + price targets from achest (Eulerpool)"
+                        : "Multi-factor quantitative model combining valuation, profitability, growth, financial health, and momentum indicators"
                 },
-                Upgrades = totalScore > 60 ? 1 : 0,
-                Downgrades = totalScore < 40 ? 1 : 0,
+                Upgrades = upgrades,
+                Downgrades = downgrades,
                 LatestEstimates = estimates?.FirstOrDefault(),
                 AllEstimates = estimates,
                 AnalysisDate = DateTime.UtcNow
             };
 
-            _logger.LogInformation($"Generated quantitative analyst analysis for {symbol}: {consensusRating} (Score: {totalScore}/100)");
+            _logger.LogInformation($"Generated analyst analysis for {symbol}: {consensusRating} (Score: {totalScore}/100, analysts: {numberAnalysts}, source: {(hasRealAnalysts ? "achest-real" : "quant-model")})");
             return analysis;
         }
         catch (Exception ex)

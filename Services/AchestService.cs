@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using QuantResearchAgent.Core;
+using System.Text.Json;
 
 namespace QuantResearchAgent.Services;
 
@@ -202,6 +203,121 @@ public class AchestService
     /// <summary>Access to the underlying low-level client for extended endpoints.</summary>
     public AchestClient Client => _client;
 
+    // ── Analyst recommendations & valuation (Eulerpool) ────────────────
+
+    /// <summary>
+    /// Analyst consensus recommendations for the most recent period, including the
+    /// buy/hold/sell tally and consensus price targets. Returns null when unavailable.
+    /// </summary>
+    public async Task<AchestAnalystConsensus?> GetAnalystConsensusAsync(string symbol, CancellationToken ct = default)
+    {
+        var data = await TryEulerpoolAsync($"analyst/recommendations/{Uri.EscapeDataString(symbol)}", ct);
+        if (!data.HasValue || data.Value.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        foreach (var row in data.Value.EnumerateArray())
+        {
+            // Rows are returned most-recent-first; take the first with a usable target.
+            return new AchestAnalystConsensus
+            {
+                Period = GetStr(row, "period"),
+                StrongBuy = (int)(GetDbl(row, "strongBuy") ?? 0),
+                Buy = (int)(GetDbl(row, "buy") ?? 0),
+                Hold = (int)(GetDbl(row, "hold") ?? 0),
+                Sell = (int)(GetDbl(row, "sell") ?? 0),
+                StrongSell = (int)(GetDbl(row, "strongSell") ?? 0),
+                TargetMean = GetDbl(row, "targetMean"),
+                TargetMedian = GetDbl(row, "targetMedian"),
+                TargetHigh = GetDbl(row, "targetHigh"),
+                TargetLow = GetDbl(row, "targetLow"),
+            };
+        }
+        return null;
+    }
+
+    /// <summary>Latest consensus price target (high/low/mean/median) for a symbol.</summary>
+    public async Task<AchestPriceTarget?> GetPriceTargetAsync(string symbol, CancellationToken ct = default)
+    {
+        var data = await TryEulerpoolAsync($"analyst/price-target/{Uri.EscapeDataString(symbol)}", ct);
+        if (!data.HasValue || data.Value.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+        var d = data.Value;
+        return new AchestPriceTarget
+        {
+            Ticker = GetStr(d, "ticker"),
+            TargetHigh = GetDbl(d, "target_high"),
+            TargetLow = GetDbl(d, "target_low"),
+            TargetMean = GetDbl(d, "target_mean"),
+            TargetMedian = GetDbl(d, "target_median"),
+            LastUpdated = GetStr(d, "last_updated"),
+        };
+    }
+
+    /// <summary>Analyst-computed fair value with upside/downside (Eulerpool model).</summary>
+    public async Task<AchestFairValue?> GetFairValueAsync(string symbol, CancellationToken ct = default)
+    {
+        var data = await TryEulerpoolAsync($"fundamentals/fair-value/{Uri.EscapeDataString(symbol)}", ct);
+        if (!data.HasValue || data.Value.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+        var d = data.Value;
+        return new AchestFairValue
+        {
+            FairValue = GetDbl(d, "fairValue"),
+            FairValueIncome = GetDbl(d, "fairValueIncome"),
+            FairValueRevenue = GetDbl(d, "fairValueRevenue"),
+            FairValueDividend = GetDbl(d, "fairValueDividend"),
+            LastPrice = GetDbl(d, "lastPrice"),
+            Upside = GetDbl(d, "upside"),
+        };
+    }
+
+    /// <summary>Recent individual analyst grades (upgrades/downgrades/maintains).</summary>
+    public async Task<List<AchestAnalystGrade>> GetAnalystGradesAsync(string symbol, int limit = 25, CancellationToken ct = default)
+    {
+        var result = new List<AchestAnalystGrade>();
+        var data = await TryEulerpoolAsync($"analyst/grades/{Uri.EscapeDataString(symbol)}", ct);
+        if (!data.HasValue || data.Value.ValueKind != JsonValueKind.Array)
+        {
+            return result;
+        }
+        foreach (var row in data.Value.EnumerateArray())
+        {
+            result.Add(new AchestAnalystGrade
+            {
+                Date = GetStr(row, "date"),
+                Company = GetStr(row, "grading_company") ?? GetStr(row, "company"),
+                PreviousGrade = GetStr(row, "previous_grade") ?? GetStr(row, "fromGrade"),
+                NewGrade = GetStr(row, "new_grade") ?? GetStr(row, "toGrade"),
+                Action = GetStr(row, "action"),
+            });
+            if (result.Count >= limit) break;
+        }
+        return result;
+    }
+
+    private static string? GetStr(JsonElement el, string name) =>
+        el.ValueKind == JsonValueKind.Object && el.TryGetProperty(name, out var v) && v.ValueKind != JsonValueKind.Null
+            ? (v.ValueKind == JsonValueKind.String ? v.GetString() : v.ToString())
+            : null;
+
+    private static double? GetDbl(JsonElement el, string name)
+    {
+        if (el.ValueKind != JsonValueKind.Object || !el.TryGetProperty(name, out var v)) return null;
+        return v.ValueKind switch
+        {
+            JsonValueKind.Number => v.GetDouble(),
+            JsonValueKind.String when double.TryParse(v.GetString(), out var d) => d,
+            _ => null
+        };
+    }
+
+
     // ── Generic Eulerpool passthrough with convenience accessors ───────
 
     /// <summary>
@@ -249,10 +365,6 @@ public class AchestService
     public Task<System.Text.Json.JsonElement?> GetAnalystEstimatesAsync(string symbol, CancellationToken ct = default)
         => TryEulerpoolAsync($"analyst/estimates/{Uri.EscapeDataString(symbol)}", ct);
 
-    /// <summary>Analyst price target consensus.</summary>
-    public Task<System.Text.Json.JsonElement?> GetPriceTargetAsync(string symbol, CancellationToken ct = default)
-        => TryEulerpoolAsync($"analyst/price-target/{Uri.EscapeDataString(symbol)}", ct);
-
     /// <summary>News and research for a ticker.</summary>
     public Task<System.Text.Json.JsonElement?> GetNewsAsync(string ticker, CancellationToken ct = default)
         => TryEulerpoolAsync($"news/{Uri.EscapeDataString(ticker)}", ct);
@@ -289,4 +401,53 @@ public class AchestService
     public Task<System.Text.Json.JsonElement?> GetEtfAsync(string identifier, string dataType = "profile", CancellationToken ct = default)
         => TryEulerpoolAsync($"etf/{dataType}/{Uri.EscapeDataString(identifier)}", ct);
 }
+
+/// <summary>Analyst consensus recommendation &amp; price targets from achest.</summary>
+public class AchestAnalystConsensus
+{
+    public string? Period { get; set; }
+    public int StrongBuy { get; set; }
+    public int Buy { get; set; }
+    public int Hold { get; set; }
+    public int Sell { get; set; }
+    public int StrongSell { get; set; }
+    public double? TargetMean { get; set; }
+    public double? TargetMedian { get; set; }
+    public double? TargetHigh { get; set; }
+    public double? TargetLow { get; set; }
+    public int TotalAnalysts => StrongBuy + Buy + Hold + Sell + StrongSell;
+}
+
+/// <summary>Consensus price target from achest.</summary>
+public class AchestPriceTarget
+{
+    public string? Ticker { get; set; }
+    public double? TargetHigh { get; set; }
+    public double? TargetLow { get; set; }
+    public double? TargetMean { get; set; }
+    public double? TargetMedian { get; set; }
+    public string? LastUpdated { get; set; }
+}
+
+/// <summary>Analyst-computed fair value (Eulerpool model) from achest.</summary>
+public class AchestFairValue
+{
+    public double? FairValue { get; set; }
+    public double? FairValueIncome { get; set; }
+    public double? FairValueRevenue { get; set; }
+    public double? FairValueDividend { get; set; }
+    public double? LastPrice { get; set; }
+    public double? Upside { get; set; }
+}
+
+/// <summary>A single analyst grade event from achest.</summary>
+public class AchestAnalystGrade
+{
+    public string? Date { get; set; }
+    public string? Company { get; set; }
+    public string? PreviousGrade { get; set; }
+    public string? NewGrade { get; set; }
+    public string? Action { get; set; }
+}
+
 
