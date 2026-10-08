@@ -34,8 +34,6 @@ YOUR_CREDENTIALS.json
 *.tar
 build/
 tmp/
-Dockerfile
-Dockerfile.*
 # Build artifacts (but allow Release/publish for fast deployments)
 **/bin/Debug/
 **/obj/
