@@ -800,10 +800,10 @@ public class FinancialModelingPrepService
             decimal? revenue = null, ebitda = null;
             if (income.HasValue && income.Value.ValueKind == JsonValueKind.Array)
             {
-                var rows = income.Value.EnumerateArray().ToList();
+                var rows = ActualRowsNewestFirst(income.Value);
                 if (rows.Count > 0)
                 {
-                    var r = rows[^1];
+                    var r = rows[0];
                     revenue = Lng(r, "revenue") * 1_000_000L;
                     var ebit = Lng(r, "ebit");
                     var dep = Lng(r, "depreciationAmortization");
@@ -816,10 +816,10 @@ public class FinancialModelingPrepService
             var balance = await _achest.TryEulerpoolAsync($"fundamentals/balance/{Uri.EscapeDataString(symbol)}");
             if (balance.HasValue && balance.Value.ValueKind == JsonValueKind.Array)
             {
-                var rows = balance.Value.EnumerateArray().ToList();
+                var rows = ActualRowsNewestFirst(balance.Value);
                 if (rows.Count > 0)
                 {
-                    var r = rows[^1];
+                    var r = rows[0];
                     var shortDebt = Lng(r, "shortTermDebt") ?? 0;
                     var longDebt = Lng(r, "longTermDebt") ?? 0;
                     var cash = Lng(r, "cashShortTermInvestments") ?? 0;
@@ -865,10 +865,10 @@ public class FinancialModelingPrepService
             decimal? revenue = null, ebitda = null;
             if (income.HasValue && income.Value.ValueKind == JsonValueKind.Array)
             {
-                var rows = income.Value.EnumerateArray().ToList();
+                var rows = ActualRowsNewestFirst(income.Value);
                 if (rows.Count > 0)
                 {
-                    var r = rows[^1]; // most recent (achest is oldest-first)
+                    var r = rows[0]; // most recent actual (achest is oldest-first)
                     revenue = Lng(r, "revenue") * 1_000_000L;
                     var ebit = Lng(r, "ebit");
                     var dep = Lng(r, "depreciationAmortization");
@@ -894,10 +894,10 @@ public class FinancialModelingPrepService
                 var balance = await _achest.TryEulerpoolAsync($"fundamentals/balance/{Uri.EscapeDataString(symbol)}");
                 if (balance.HasValue && balance.Value.ValueKind == JsonValueKind.Array)
                 {
-                    var rows = balance.Value.EnumerateArray().ToList();
+                    var rows = ActualRowsNewestFirst(balance.Value);
                     if (rows.Count > 0)
                     {
-                        var r = rows[^1];
+                        var r = rows[0];
                         netDebt = ((Lng(r, "shortTermDebt") ?? 0) + (Lng(r, "longTermDebt") ?? 0) - (Lng(r, "cashShortTermInvestments") ?? 0)) * 1_000_000m;
                     }
                 }
@@ -929,6 +929,21 @@ public class FinancialModelingPrepService
         return raw.HasValue ? raw.Value * 1_000_000L : (long?)null;
     }
 
+    /// <summary>True when an achest statement period is a forward estimate (e.g. "2031-06-30e").</summary>
+    private static bool IsEstimate(JsonElement row) =>
+        (Str(row, "period") ?? string.Empty).TrimEnd().EndsWith("e", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Returns achest statement rows ordered newest-first, excluding forward estimates.
+    /// achest lists rows oldest-first; the tail may contain `...e` estimate periods.
+    /// </summary>
+    private static List<JsonElement> ActualRowsNewestFirst(JsonElement array)
+    {
+        var rows = array.EnumerateArray().Where(r => !IsEstimate(r)).ToList();
+        rows.Reverse(); // oldest-first -> newest-first
+        return rows;
+    }
+
     private static decimal? DecVal(JsonElement el, string name)
     {
         if (el.ValueKind != JsonValueKind.Object || !el.TryGetProperty(name, out var v)) return null;
@@ -951,8 +966,8 @@ public class FinancialModelingPrepService
 
         // achest returns rows oldest-first and values in MILLIONS. Take the most
         // recent `limit` rows and present them newest-first, scaled to dollars.
-        var rows = data.Value.EnumerateArray().ToList();
-        for (var i = rows.Count - 1; i >= 0 && result.Count < limit; i--)
+        var rows = ActualRowsNewestFirst(data.Value);
+        for (var i = 0; i < rows.Count && result.Count < limit; i++)
         {
             var r = rows[i];
             var revenue = Millions(r, "revenue");
@@ -990,8 +1005,8 @@ public class FinancialModelingPrepService
         var data = await _achest!.TryEulerpoolAsync($"fundamentals/balance/{Uri.EscapeDataString(symbol)}");
         if (!data.HasValue || data.Value.ValueKind != JsonValueKind.Array) return result;
 
-        var rows = data.Value.EnumerateArray().ToList();
-        for (var i = rows.Count - 1; i >= 0 && result.Count < limit; i--)
+        var rows = ActualRowsNewestFirst(data.Value);
+        for (var i = 0; i < rows.Count && result.Count < limit; i++)
         {
             var r = rows[i];
             result.Add(new FMPBalanceSheet
@@ -1032,8 +1047,8 @@ public class FinancialModelingPrepService
         var data = await _achest!.TryEulerpoolAsync($"fundamentals/cashflow/{Uri.EscapeDataString(symbol)}");
         if (!data.HasValue || data.Value.ValueKind != JsonValueKind.Array) return result;
 
-        var rows = data.Value.EnumerateArray().ToList();
-        for (var i = rows.Count - 1; i >= 0 && result.Count < limit; i--)
+        var rows = ActualRowsNewestFirst(data.Value);
+        for (var i = 0; i < rows.Count && result.Count < limit; i++)
         {
             var r = rows[i];
             result.Add(new FMPCashFlow
