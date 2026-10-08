@@ -1212,6 +1212,13 @@
             return d.ToString("F2");
         if (value is decimal dec)
             return dec.ToString("F2");
+        if (value is System.Text.Json.JsonElement je)
+        {
+            if (je.ValueKind == System.Text.Json.JsonValueKind.Number)
+                return je.GetDouble().ToString("F2");
+            if (je.ValueKind == System.Text.Json.JsonValueKind.String)
+                return je.GetString() ?? "N/A";
+        }
         return value?.ToString() ?? "N/A";
     }
 

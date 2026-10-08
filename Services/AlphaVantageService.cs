@@ -19,16 +19,19 @@ public class AlphaVantageService
     private readonly HttpClient _httpClient;
     private readonly ILogger<AlphaVantageService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly AchestService? _achest;
     private readonly string _apiKey;
 
     public AlphaVantageService(
         HttpClient httpClient,
         ILogger<AlphaVantageService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        AchestService? achest = null)
     {
         _httpClient = httpClient;
         _logger = logger;
         _configuration = configuration;
+        _achest = achest;
         _apiKey = _configuration["AlphaVantage:ApiKey"] ?? "demo";
 
         // Set user agent for API requests
@@ -40,6 +43,36 @@ public class AlphaVantageService
     /// </summary>
     public async Task<AlphaVantageQuote> GetQuoteAsync(string symbol)
     {
+        // Preferred source: Arithmax Chest unified OHLCV API.
+        if (_achest != null)
+        {
+            try
+            {
+                var bars = await _achest.GetBarsAsync(symbol, DateTime.UtcNow.Date.AddDays(-14), DateTime.UtcNow.Date.AddDays(1));
+                if (bars.Count > 0)
+                {
+                    var last = bars[^1];
+                    var prev = bars.Count > 1 ? bars[^2].Close : last.Open;
+                    var change = last.Close - prev;
+                    var changePct = prev != 0 ? (change / prev) * 100 : 0;
+                    return new AlphaVantageQuote
+                    {
+                        Symbol = symbol,
+                        Price = (decimal)last.Close,
+                        Change = (decimal)change,
+                        ChangePercent = $"{changePct:F4}%",
+                        Volume = (long)last.Volume,
+                        High = (decimal)last.High,
+                        Low = (decimal)last.Low
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "achest quote fallback for {Symbol}", symbol);
+            }
+        }
+
         try
         {
             var url = $"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={_apiKey}";
@@ -68,6 +101,24 @@ public class AlphaVantageService
     /// </summary>
     public async Task<AlphaVantageCompanyOverview> GetCompanyOverviewAsync(string symbol)
     {
+        // Preferred source: Arithmax Chest (Eulerpool overview + metrics).
+        if (_achest != null)
+        {
+            try
+            {
+                var profile = await _achest.GetCompanyProfileAsync(symbol);
+                var overview = await _achest.GetFinancialMetricsAsync(symbol);
+                if (overview.HasValue && overview.Value.ValueKind == JsonValueKind.Object)
+                {
+                    return MapOverviewToAlphaVantage(symbol, profile, overview.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "achest overview fallback for {Symbol}", symbol);
+            }
+        }
+
         try
         {
             var url = $"https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={_apiKey}";
@@ -396,6 +447,110 @@ public class AlphaVantageService
             _logger.LogError(ex, $"Error getting Stochastic for {symbol}");
             return new List<AlphaVantageTechnicalData>();
         }
+    }
+
+    /// <summary>Maps achest Eulerpool profile + metrics onto Alpha Vantage's overview DTO.</summary>
+    private static AlphaVantageCompanyOverview MapOverviewToAlphaVantage(string symbol, JsonElement? profile, JsonElement m)
+    {
+        static string S(JsonElement? el, string name)
+        {
+            if (!el.HasValue || el.Value.ValueKind != JsonValueKind.Object) return null;
+            if (!el.Value.TryGetProperty(name, out var v)) return null;
+            return v.ValueKind switch
+            {
+                JsonValueKind.String => v.GetString(),
+                JsonValueKind.Number => v.GetDouble().ToString(System.Globalization.CultureInfo.InvariantCulture),
+                _ => null
+            };
+        }
+
+        static JsonElement? Sub(JsonElement el, string name) =>
+            el.ValueKind == JsonValueKind.Object && el.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Object
+                ? v : (JsonElement?)null;
+
+        // FeenQR's UI multiplies these fields by 100 for display, so emit FRACTIONS.
+        // achest: margins & dividendYield are percentages (÷100); ROE/ROA/growth are fractions.
+
+        var valuation = Sub(m, "valuation");
+        var profitability = Sub(m, "profitability");
+        var perShare = Sub(m, "perShare");
+        var growth = Sub(m, "growth");
+
+        // Prefer true year-over-year growth computed from the most recent two fiscal
+        // years (achest `historical` is newest-first). Fall back to the 3-year CAGR-ish
+        // field only if history is unavailable. Values are fractions.
+        var (revYoy, earnYoy) = ComputeYoY(m);
+
+        return new AlphaVantageCompanyOverview
+        {
+            Symbol = symbol,
+            Name = S(profile, "name"),
+            Description = S(profile, "description"),
+            Sector = S(profile, "sector"),
+            Industry = S(profile, "branch") ?? S(profile, "industry"),
+            Exchange = S(profile, "exchangeName"),
+            Country = S(profile, "country"),
+            Website = S(profile, "website"),
+            MarketCapitalization = ScaleMillions(S(valuation, "marketCap")),
+            PERatio = S(valuation, "pe"),
+            PriceToBookRatio = S(valuation, "pb"),
+            PriceToSalesRatioTTM = S(valuation, "ps"),
+            EVToEBITDA = S(valuation, "evEbitda"),
+            EPS = S(perShare, "eps"),
+            DividendPerShare = S(perShare, "dps"),
+            DividendYield = PercentToFraction(S(perShare, "dividendYield")),
+            RevenuePerShareTTM = S(perShare, "sps"),
+            BookValue = S(perShare, "bps"),
+            ProfitMargin = PercentToFraction(S(profitability, "netMargin")),
+            OperatingMarginTTM = PercentToFraction(S(profitability, "operatingMargin")),
+            ReturnOnAssetsTTM = S(profitability, "roa"),
+            ReturnOnEquityTTM = S(profitability, "roe"),
+            QuarterlyEarningsGrowthYOY = earnYoy?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? S(growth, "earningsGrowth3Y"),
+            QuarterlyRevenueGrowthYOY = revYoy?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? S(growth, "revenueGrowth3Y")
+        };
+    }
+
+    /// <summary>
+    /// Computes year-over-year revenue & earnings growth from achest's `historical`
+    /// array (newest-first). Returns fractions (0.18 == 18%).
+    /// </summary>
+    private static (decimal? revenue, decimal? earnings) ComputeYoY(JsonElement m)
+    {
+        if (m.ValueKind != JsonValueKind.Object || !m.TryGetProperty("historical", out var hist) || hist.ValueKind != JsonValueKind.Array)
+        {
+            return (null, null);
+        }
+
+        var rows = hist.EnumerateArray().ToList();
+        if (rows.Count < 2) return (null, null);
+
+        decimal? Growth(string field)
+        {
+            var curr = rows[0].TryGetProperty(field, out var c) && c.ValueKind == JsonValueKind.Number ? (decimal?)c.GetDouble() : null;
+            var prev = rows[1].TryGetProperty(field, out var p) && p.ValueKind == JsonValueKind.Number ? (decimal?)p.GetDouble() : null;
+            if (curr is null || prev is null || prev.Value == 0m) return null;
+            return (curr.Value - prev.Value) / Math.Abs(prev.Value);
+        }
+
+        return (Growth("revenue"), Growth("netIncome"));
+    }
+
+    /// <summary>achest market caps are in millions; Alpha Vantage expects full dollars.</summary>
+    private static string ScaleMillions(string millions)
+    {
+        if (string.IsNullOrWhiteSpace(millions)) return null;
+        return decimal.TryParse(millions, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var m)
+            ? ((long)(m * 1_000_000m)).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : millions;
+    }
+
+    /// <summary>achest returns margins/dividend yield as percentages; FeenQR stores fractions.</summary>
+    private static string PercentToFraction(string percent)
+    {
+        if (string.IsNullOrWhiteSpace(percent)) return null;
+        return decimal.TryParse(percent, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var p)
+            ? (p / 100m).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : percent;
     }
 }
 

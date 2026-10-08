@@ -14,13 +14,15 @@ namespace QuantResearchAgent.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<FREDService> _logger;
+        private readonly AchestService? _achest;
         private readonly string _apiKey;
         private const string BaseUrl = "https://api.stlouisfed.org/fred";
 
-        public FREDService(HttpClient httpClient, ILogger<FREDService> logger, IConfiguration configuration)
+        public FREDService(HttpClient httpClient, ILogger<FREDService> logger, IConfiguration configuration, AchestService? achest = null)
         {
             _httpClient = httpClient;
             _logger = logger;
+            _achest = achest;
             _apiKey = configuration["FRED:ApiKey"] ?? "";
         }
 
@@ -29,6 +31,51 @@ namespace QuantResearchAgent.Services
         /// </summary>
         public async Task<FREDDataSeries?> GetSeriesAsync(string seriesId, DateTime? startDate = null, DateTime? endDate = null)
         {
+            // Preferred source: Arithmax Chest (Eulerpool FRED proxy).
+            if (_achest != null)
+            {
+                try
+                {
+                    var data = await _achest.GetFredSeriesAsync(seriesId);
+                    if (data.HasValue && data.Value.ValueKind == JsonValueKind.Object &&
+                        data.Value.TryGetProperty("observations", out var obs) && obs.ValueKind == JsonValueKind.Array)
+                    {
+                        var points = new List<FREDDataPoint>();
+                        foreach (var o in obs.EnumerateArray())
+                        {
+                            var dateStr = o.TryGetProperty("date", out var d) ? d.GetString() : null;
+                            if (dateStr == null || !DateTime.TryParse(dateStr, out var dt)) continue;
+                            if (startDate.HasValue && dt < startDate.Value.Date) continue;
+                            if (endDate.HasValue && dt > endDate.Value.Date) continue;
+                            var val = 0m;
+                            if (o.TryGetProperty("value", out var v))
+                            {
+                                val = v.ValueKind == JsonValueKind.Number ? (decimal)v.GetDouble()
+                                    : v.ValueKind == JsonValueKind.String && decimal.TryParse(v.GetString(), out var dv) ? dv : 0m;
+                            }
+                            points.Add(new FREDDataPoint { Date = dt, Value = val });
+                        }
+                        if (points.Count > 0)
+                        {
+                            static string S(JsonElement el, string name) =>
+                                el.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+                            return new FREDDataSeries
+                            {
+                                SeriesId = S(data.Value, "series_id") ?? seriesId,
+                                Title = S(data.Value, "name") ?? seriesId,
+                                Units = S(data.Value, "units") ?? "Unknown",
+                                Frequency = S(data.Value, "frequency") ?? "Unknown",
+                                DataPoints = points.OrderBy(p => p.Date).ToList()
+                            };
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "achest FRED fallback for {SeriesId}", seriesId);
+                }
+            }
+
             if (string.IsNullOrEmpty(_apiKey))
             {
                 _logger.LogError("FRED API key is not configured. Please add your free FRED API key to appsettings.json under 'FRED:ApiKey'. Get a free key at https://fred.stlouisfed.org/docs/api/api_key.html");

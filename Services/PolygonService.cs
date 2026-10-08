@@ -13,13 +13,15 @@ namespace QuantResearchAgent.Services
         private readonly HttpClient _httpClient;
         private readonly ILogger<PolygonService> _logger;
         private readonly string _apiKey;
+        private readonly AchestService? _achest;
         private const string BaseUrl = "https://api.polygon.io";
 
-        public PolygonService(HttpClient httpClient, ILogger<PolygonService> logger, IConfiguration configuration)
+        public PolygonService(HttpClient httpClient, ILogger<PolygonService> logger, IConfiguration configuration, AchestService? achest = null)
         {
             _httpClient = httpClient;
             _logger = logger;
-            _apiKey = configuration["Polygon:ApiKey"] ?? throw new ArgumentException("Polygon API key not configured");
+            _apiKey = configuration["Polygon:ApiKey"] ?? string.Empty;
+            _achest = achest;
         }
 
         /// <summary>
@@ -27,6 +29,30 @@ namespace QuantResearchAgent.Services
         /// </summary>
         public async Task<PolygonQuote?> GetQuoteAsync(string symbol)
         {
+            // Preferred source: Arithmax Chest unified API.
+            if (_achest != null)
+            {
+                try
+                {
+                    var bars = await _achest.GetBarsAsync(symbol, DateTime.UtcNow.Date.AddDays(-14), DateTime.UtcNow.Date.AddDays(1));
+                    var last = bars.LastOrDefault();
+                    if (last != null)
+                    {
+                        return new PolygonQuote
+                        {
+                            Symbol = symbol,
+                            Price = (decimal)last.Close,
+                            Size = last.Volume,
+                            Timestamp = last.Timestamp
+                        };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "achest quote fallback for {Symbol}", symbol);
+                }
+            }
+
             try
             {
                 // Use previous close endpoint which is available on free tier
@@ -69,6 +95,33 @@ namespace QuantResearchAgent.Services
         /// </summary>
         public async Task<PolygonDailyBar?> GetDailyBarAsync(string symbol, DateTime date)
         {
+            // Preferred source: Arithmax Chest unified API.
+            if (_achest != null)
+            {
+                try
+                {
+                    var bars = await _achest.GetBarsAsync(symbol, date.Date, date.Date.AddDays(1));
+                    var bar = bars.FirstOrDefault();
+                    if (bar != null)
+                    {
+                        return new PolygonDailyBar
+                        {
+                            Symbol = symbol,
+                            Open = (decimal)bar.Open,
+                            High = (decimal)bar.High,
+                            Low = (decimal)bar.Low,
+                            Close = (decimal)bar.Close,
+                            Volume = bar.Volume,
+                            Date = bar.Timestamp.ToString("yyyy-MM-dd")
+                        };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "achest daily bar fallback for {Symbol}", symbol);
+                }
+            }
+
             try
             {
                 var dateStr = date.ToString("yyyy-MM-dd");
@@ -105,6 +158,33 @@ namespace QuantResearchAgent.Services
             DateTime? to = null,
             int limit = 120)
         {
+            // Preferred source: Arithmax Chest unified API.
+            if (_achest != null)
+            {
+                try
+                {
+                    var fromDate = (from ?? DateTime.Now.AddDays(-365)).Date;
+                    var toDate = (to ?? DateTime.Now).Date.AddDays(1);
+                    var bars = await _achest.GetBarsAsync(symbol, fromDate, toDate);
+                    if (bars.Count > 0)
+                    {
+                        return bars.Select(b => new PolygonAggregateBar
+                        {
+                            Open = (decimal)b.Open,
+                            High = (decimal)b.High,
+                            Low = (decimal)b.Low,
+                            Close = (decimal)b.Close,
+                            Volume = b.Volume,
+                            Timestamp = new DateTimeOffset(b.Timestamp).ToUnixTimeMilliseconds()
+                        }).ToList();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "achest aggregates fallback for {Symbol}", symbol);
+                }
+            }
+
             try
             {
                 from ??= DateTime.Now.AddDays(-365);

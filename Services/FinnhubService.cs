@@ -19,6 +19,7 @@ public class FinnhubService
     private readonly HttpClient _httpClient;
     private readonly ILogger<FinnhubService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly AchestService? _achest;
     private readonly string _apiKey;
     private readonly JsonSerializerOptions _jsonOptions;
     private const string BaseUrl = "https://finnhub.io/api/v1";
@@ -26,11 +27,13 @@ public class FinnhubService
     public FinnhubService(
         HttpClient httpClient,
         ILogger<FinnhubService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        AchestService? achest = null)
     {
         _httpClient = httpClient;
         _logger = logger;
         _configuration = configuration;
+        _achest = achest;
         _apiKey = _configuration["Finnhub:ApiKey"] ?? "";
 
         // Configure JSON deserializer
@@ -52,6 +55,23 @@ public class FinnhubService
     /// </summary>
     public async Task<FinnhubMetrics> GetCompanyMetricsAsync(string symbol)
     {
+        // Preferred source: Arithmax Chest (Eulerpool financial metrics).
+        if (_achest != null)
+        {
+            try
+            {
+                var metrics = await _achest.GetFinancialMetricsAsync(symbol);
+                if (metrics.HasValue && metrics.Value.ValueKind == JsonValueKind.Object)
+                {
+                    return MapMetricsToFinnhub(metrics.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "achest metrics fallback for {Symbol}", symbol);
+            }
+        }
+
         if (string.IsNullOrEmpty(_apiKey))
         {
             _logger.LogWarning("Finnhub API key not configured");
@@ -95,6 +115,33 @@ public class FinnhubService
     /// </summary>
     public async Task<FinnhubQuote> GetQuoteAsync(string symbol)
     {
+        // Preferred source: Arithmax Chest unified OHLCV API.
+        if (_achest != null)
+        {
+            try
+            {
+                var bars = await _achest.GetBarsAsync(symbol, DateTime.UtcNow.Date.AddDays(-14), DateTime.UtcNow.Date.AddDays(1));
+                if (bars.Count > 0)
+                {
+                    var last = bars[^1];
+                    var prev = bars.Count > 1 ? bars[^2].Close : last.Open;
+                    return new FinnhubQuote
+                    {
+                        CurrentPrice = (decimal)last.Close,
+                        High = (decimal)last.High,
+                        Low = (decimal)last.Low,
+                        Open = (decimal)last.Open,
+                        PreviousClose = (decimal)prev,
+                        Timestamp = new DateTimeOffset(last.Timestamp).ToUnixTimeSeconds()
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "achest quote fallback for {Symbol}", symbol);
+            }
+        }
+
         if (string.IsNullOrEmpty(_apiKey))
         {
             _logger.LogWarning("Finnhub API key not configured");
@@ -130,6 +177,58 @@ public class FinnhubService
             _logger.LogError(ex, $"Error getting quote for {symbol} from Finnhub");
             return null;
         }
+    }
+
+    /// <summary>Maps an achest Eulerpool financial-metrics JSON object onto Finnhub metrics.</summary>
+    private static FinnhubMetrics MapMetricsToFinnhub(JsonElement m)
+    {
+        static JsonElement? Sub(JsonElement el, string name) =>
+            el.ValueKind == JsonValueKind.Object && el.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Object
+                ? v : (JsonElement?)null;
+
+        static decimal? Dec(JsonElement? el, string name, decimal scale = 1m)
+        {
+            if (!el.HasValue || !el.Value.TryGetProperty(name, out var v)) return null;
+            return v.ValueKind switch
+            {
+                JsonValueKind.Number => (decimal)v.GetDouble() * scale,
+                JsonValueKind.String when decimal.TryParse(v.GetString(), out var d) => d * scale,
+                _ => null
+            };
+        }
+
+        var valuation = Sub(m, "valuation");
+        var profitability = Sub(m, "profitability");
+        var perShare = Sub(m, "perShare");
+        var leverage = Sub(m, "leverage");
+
+        // FeenQR stores these ratio fields as FRACTIONS (UI multiplies by 100).
+        // achest: margins & dividendYield are percentages (÷100); ROE/ROA/ROIC are fractions.
+        const decimal PctToFraction = 0.01m;
+
+        return new FinnhubMetrics
+        {
+            PERatio = Dec(valuation, "pe"),
+            PriceToSales = Dec(valuation, "ps"),
+            PriceToBook = Dec(valuation, "pb"),
+            EVToEBITDA = Dec(valuation, "evEbitda"),
+            MarketCap = Dec(valuation, "marketCap"),
+            EnterpriseValue = Dec(valuation, "enterpriseValue"),
+            ROE = Dec(profitability, "roe"),
+            ROA = Dec(profitability, "roa"),
+            ROIC = Dec(profitability, "roic"),
+            GrossMargin = Dec(profitability, "grossMargin") * PctToFraction,
+            OperatingMargin = Dec(profitability, "operatingMargin") * PctToFraction,
+            NetMargin = Dec(profitability, "netMargin") * PctToFraction,
+            EPS = Dec(perShare, "eps"),
+            DividendPerShare = Dec(perShare, "dps"),
+            DividendYield = Dec(perShare, "dividendYield") * PctToFraction,
+            RevenuePerShare = Dec(perShare, "sps"),
+            BookValuePerShare = Dec(perShare, "bps"),
+            DebtToEquity = Dec(leverage, "debtToEquity"),
+            NetDebt = Dec(leverage, "netDebt"),
+            CurrentRatio = Dec(leverage, "currentRatio")
+        };
     }
 }
 

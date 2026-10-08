@@ -12,12 +12,14 @@ namespace QuantResearchAgent.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<YFinanceNewsService> _logger;
+        private readonly AchestService? _achest;
         private const string BaseUrl = "https://query1.finance.yahoo.com/v1/finance/search";
 
-        public YFinanceNewsService(HttpClient httpClient, ILogger<YFinanceNewsService> logger)
+        public YFinanceNewsService(HttpClient httpClient, ILogger<YFinanceNewsService> logger, AchestService? achest = null)
         {
             _httpClient = httpClient;
             _logger = logger;
+            _achest = achest;
             
             // Set user agent to avoid blocking
             _httpClient.DefaultRequestHeaders.Add("User-Agent", 
@@ -29,6 +31,24 @@ namespace QuantResearchAgent.Services
         /// </summary>
         public async Task<List<YFinanceNewsItem>> GetNewsAsync(string symbol, int limit = 10)
         {
+            // Preferred source: Arithmax Chest (unified news aggregation).
+            if (_achest != null)
+            {
+                try
+                {
+                    var news = await _achest.GetNewsAsync(symbol);
+                    var mapped = MapAchestNews(news, limit);
+                    if (mapped.Count > 0)
+                    {
+                        return mapped;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "achest news fallback for {Symbol}", symbol);
+                }
+            }
+
             try
             {
                 var encodedSymbol = HttpUtility.UrlEncode(symbol);
@@ -53,6 +73,24 @@ namespace QuantResearchAgent.Services
         /// </summary>
         public async Task<List<YFinanceNewsItem>> GetMarketNewsAsync(int limit = 10)
         {
+            // Preferred source: Arithmax Chest market-wide news.
+            if (_achest != null)
+            {
+                try
+                {
+                    var news = await _achest.GetMarketNewsAsync();
+                    var mapped = MapAchestNews(news, limit);
+                    if (mapped.Count > 0)
+                    {
+                        return mapped;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "achest market news fallback");
+                }
+            }
+
             try
             {
                 // Get news for major market indices
@@ -83,6 +121,44 @@ namespace QuantResearchAgent.Services
                 _logger.LogError(ex, "Error getting market news");
                 return new List<YFinanceNewsItem>();
             }
+        }
+
+        /// <summary>Maps achest Eulerpool news records onto YFinance news items.</summary>
+        private List<YFinanceNewsItem> MapAchestNews(JsonElement? data, int limit)
+        {
+            var items = new List<YFinanceNewsItem>();
+            if (!data.HasValue || data.Value.ValueKind != JsonValueKind.Array)
+            {
+                return items;
+            }
+
+            foreach (var n in data.Value.EnumerateArray())
+            {
+                items.Add(new YFinanceNewsItem
+                {
+                    Id = n.TryGetProperty("id", out var id) ? id.ToString() : Guid.NewGuid().ToString(),
+                    Title = n.TryGetProperty("headline", out var h) ? h.GetString() ?? string.Empty : string.Empty,
+                    Summary = n.TryGetProperty("summary", out var s) ? s.GetString() ?? string.Empty : string.Empty,
+                    Publisher = n.TryGetProperty("source", out var src) ? src.GetString() ?? string.Empty : string.Empty,
+                    Link = n.TryGetProperty("url", out var u) ? u.GetString() ?? string.Empty : string.Empty,
+                    ProviderPublishTime = ParseUnix(n)
+                });
+
+                if (items.Count >= limit) break;
+            }
+
+            return items;
+        }
+
+        private static long ParseUnix(JsonElement n)
+        {
+            if (!n.TryGetProperty("datetime", out var d)) return 0;
+            return d.ValueKind switch
+            {
+                JsonValueKind.Number => (long)d.GetDouble(),
+                JsonValueKind.String when long.TryParse(d.GetString(), out var v) => v,
+                _ => 0
+            };
         }
 
         /// <summary>

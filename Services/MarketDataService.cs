@@ -16,11 +16,12 @@ public class MarketDataService
     private readonly RestClient _alphaVantageClient;
     private readonly AlpacaService _alpacaService;
     private readonly LeanDataService _leanDataService;
+    private readonly AchestService? _achestService;
     // ...existing code...
     private readonly ConcurrentDictionary<string, MarketData> _marketDataCache = new();
     private readonly ConcurrentDictionary<string, List<MarketData>> _historicalDataCache = new();
 
-    public MarketDataService(ILogger<MarketDataService> logger, IConfiguration configuration, AlpacaService alpacaService, LeanDataService leanDataService)
+    public MarketDataService(ILogger<MarketDataService> logger, IConfiguration configuration, AlpacaService alpacaService, LeanDataService leanDataService, AchestService? achestService = null)
     {
         _logger = logger;
         _configuration = configuration;
@@ -28,6 +29,7 @@ public class MarketDataService
         _alphaVantageClient = new RestClient("https://www.alphavantage.co");
         _alpacaService = alpacaService;
         _leanDataService = leanDataService;
+        _achestService = achestService;
     // ...existing code...
     }
 
@@ -158,6 +160,18 @@ public class MarketDataService
     {
         try
         {
+            // Preferred source: Arithmax Chest unified API (routes to the correct
+            // provider internally — Yahoo for equities, Binance for crypto, ...).
+            if (_achestService != null)
+            {
+                var achestQuote = await _achestService.GetQuoteAsync(symbol, frequency);
+                if (achestQuote != null)
+                {
+                    _logger.LogInformation($"Fetched market data for {symbol} from achest ({frequency})");
+                    return achestQuote;
+                }
+            }
+
             // Try Binance first for crypto symbols
             if (symbol.Contains("USDT") || symbol.Contains("BTC") || symbol.Contains("ETH"))
             {
@@ -490,6 +504,17 @@ public class MarketDataService
     {
         try
         {
+            // Preferred source: Arithmax Chest unified API.
+            if (_achestService != null)
+            {
+                var achestData = await _achestService.GetHistoricalDataAsync(symbol, limit, "daily");
+                if (achestData != null && achestData.Any())
+                {
+                    _logger.LogInformation($"Fetched historical data for {symbol} from achest ({achestData.Count} bars)");
+                    return achestData;
+                }
+            }
+
             if (symbol.Contains("USDT") || symbol.Contains("BTC") || symbol.Contains("ETH"))
             {
                 return await FetchBinanceHistoricalDataAsync(symbol, limit);

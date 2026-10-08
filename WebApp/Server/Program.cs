@@ -170,6 +170,16 @@ builder.Services.AddSingleton<LeanDataService>();
 builder.Services.AddSingleton<LeanStrategyPipelineService>();
 builder.Services.AddSingleton<StrategyTextParser>();
 builder.Services.AddSingleton<DataRequirementAdvisor>();
+// Arithmax Chest (achest) — unified data API for all providers.
+// Must be registered before the data services below so they receive it via DI.
+builder.Services.AddSingleton<HttpClient>();
+builder.Services.AddSingleton<AchestClient>(sp =>
+    new AchestClient(
+        sp.GetRequiredService<IConfiguration>(),
+        sp.GetRequiredService<ILogger<AchestClient>>()
+    )
+);
+builder.Services.AddSingleton<AchestService>();
 builder.Services.AddSingleton<AlpacaService>();
 builder.Services.AddSingleton<AlphaVantageService>();
 builder.Services.AddSingleton<FinancialModelingPrepService>();
@@ -267,7 +277,8 @@ builder.Services.AddSingleton<EnhancedFundamentalAnalysisService>(sp =>
         sp.GetRequiredService<AlpacaService>(),
         sp.GetRequiredService<DataBentoService>(),
         sp.GetRequiredService<ILogger<EnhancedFundamentalAnalysisService>>(),
-        sp.GetRequiredService<LLMRouterService>()
+        sp.GetRequiredService<LLMRouterService>(),
+        sp.GetService<AchestService>()
     )
 );
 

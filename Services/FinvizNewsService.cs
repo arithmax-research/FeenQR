@@ -11,12 +11,14 @@ namespace QuantResearchAgent.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<FinvizNewsService> _logger;
+        private readonly AchestService? _achest;
         private const string BaseUrl = "https://finviz.com";
 
-        public FinvizNewsService(HttpClient httpClient, ILogger<FinvizNewsService> logger)
+        public FinvizNewsService(HttpClient httpClient, ILogger<FinvizNewsService> logger, AchestService? achest = null)
         {
             _httpClient = httpClient;
             _logger = logger;
+            _achest = achest;
             
             // Set user agent to avoid blocking
             _httpClient.DefaultRequestHeaders.Add("User-Agent", 
@@ -28,6 +30,24 @@ namespace QuantResearchAgent.Services
         /// </summary>
         public async Task<List<FinvizNewsItem>> GetNewsAsync(string symbol, int limit = 10)
         {
+            // Preferred source: Arithmax Chest (unified news aggregation).
+            if (_achest != null)
+            {
+                try
+                {
+                    var data = await _achest.GetNewsAsync(symbol);
+                    var mapped = MapAchestNews(data, limit);
+                    if (mapped.Count > 0)
+                    {
+                        return mapped;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "achest news fallback for {Symbol}", symbol);
+                }
+            }
+
             try
             {
                 var url = $"https://finviz.com/quote.ashx?t={symbol.ToUpper()}";
@@ -51,6 +71,24 @@ namespace QuantResearchAgent.Services
         /// </summary>
         public async Task<List<FinvizNewsItem>> GetMarketNewsAsync(int limit = 15)
         {
+            // Preferred source: Arithmax Chest market-wide news.
+            if (_achest != null)
+            {
+                try
+                {
+                    var data = await _achest.GetMarketNewsAsync();
+                    var mapped = MapAchestNews(data, limit);
+                    if (mapped.Count > 0)
+                    {
+                        return mapped;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "achest market news fallback");
+                }
+            }
+
             try
             {
                 var url = "https://finviz.com/news.ashx";
@@ -295,6 +333,45 @@ namespace QuantResearchAgent.Services
             }
             
             return DateTime.Now;
+        }
+
+        /// <summary>Maps achest Eulerpool news records onto Finviz news items.</summary>
+        private List<FinvizNewsItem> MapAchestNews(System.Text.Json.JsonElement? data, int limit)
+        {
+            var items = new List<FinvizNewsItem>();
+            if (!data.HasValue || data.Value.ValueKind != System.Text.Json.JsonValueKind.Array)
+            {
+                return items;
+            }
+
+            foreach (var n in data.Value.EnumerateArray())
+            {
+                static string S(System.Text.Json.JsonElement el, string name) =>
+                    el.TryGetProperty(name, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() : string.Empty;
+
+                var published = DateTime.Now;
+                if (n.TryGetProperty("datetime", out var d))
+                {
+                    var raw = d.ValueKind == System.Text.Json.JsonValueKind.Number ? d.GetInt64().ToString() : d.GetString();
+                    if (long.TryParse(raw, out var unix))
+                    {
+                        published = DateTimeOffset.FromUnixTimeSeconds(unix).UtcDateTime;
+                    }
+                }
+
+                items.Add(new FinvizNewsItem
+                {
+                    Title = S(n, "headline"),
+                    Summary = S(n, "summary"),
+                    Publisher = S(n, "source"),
+                    Link = S(n, "url"),
+                    PublishedDate = published
+                });
+
+                if (items.Count >= limit) break;
+            }
+
+            return items;
         }
     }
 

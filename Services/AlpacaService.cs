@@ -14,13 +14,15 @@ public class AlpacaService
     private readonly IAlpacaTradingClient? _tradingClient;
     private readonly IAlpacaDataClient? _dataClient;
     private readonly LeanDataService _leanDataService;
+    private readonly AchestService? _achestService;
     private readonly ConcurrentDictionary<string, List<IBar>> _historicalDataCache = new();
 
-    public AlpacaService(ILogger<AlpacaService> logger, IConfiguration configuration, LeanDataService leanDataService)
+    public AlpacaService(ILogger<AlpacaService> logger, IConfiguration configuration, LeanDataService leanDataService, AchestService? achestService = null)
     {
         _logger = logger;
         _configuration = configuration;
         _leanDataService = leanDataService;
+        _achestService = achestService;
         _alpacaApiEnabled = configuration.GetValue<bool>("Alpaca:Enabled", false);
 
         if (!_alpacaApiEnabled)
@@ -88,6 +90,18 @@ public class AlpacaService
         try
         {
             var cleanSymbol = symbol.Trim().ToUpper();
+
+            // Preferred source: Arithmax Chest unified API.
+            if (_achestService != null)
+            {
+                var achestData = await _achestService.GetQuoteAsync(cleanSymbol);
+                if (achestData != null && achestData.Price > 0)
+                {
+                    _logger.LogInformation("Fetched market data for {Symbol} from achest", cleanSymbol);
+                    return achestData;
+                }
+            }
+
             if (!_alpacaApiEnabled)
             {
                 return await GetLeanMarketDataFallback(cleanSymbol);

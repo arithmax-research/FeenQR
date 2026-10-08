@@ -91,6 +91,8 @@ Dockerfile
 Dockerfile.*
 !Dockerfile.webapp
 .DS_Store
+._*
+**/._*
 Thumbs.db
 *.bak
 *.tmp

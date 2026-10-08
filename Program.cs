@@ -303,12 +303,21 @@ namespace QuantResearchAgent
                 )
             );
             services.AddSingleton<YouTubeAnalysisService>();
+            // Arithmax Chest (achest) — unified data API for all providers
+            services.AddSingleton<AchestClient>(sp =>
+                new AchestClient(
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetRequiredService<ILogger<AchestClient>>()
+                )
+            );
+            services.AddSingleton<AchestService>();
             services.AddSingleton<MarketDataService>(sp =>
                 new MarketDataService(
                     sp.GetRequiredService<ILogger<MarketDataService>>(),
                     sp.GetRequiredService<IConfiguration>(),
                     sp.GetRequiredService<AlpacaService>(),
-                    sp.GetRequiredService<LeanDataService>()
+                    sp.GetRequiredService<LeanDataService>(),
+                    sp.GetService<AchestService>()
                 )
             );
             services.AddSingleton<TradingSignalService>();
@@ -333,7 +342,14 @@ namespace QuantResearchAgent
             {
                 return new SimpleHttpClientFactory(sp.GetRequiredService<HttpClient>());
             });
-            services.AddSingleton<PolygonService>();
+            services.AddSingleton<PolygonService>(sp =>
+                new PolygonService(
+                    sp.GetRequiredService<HttpClient>(),
+                    sp.GetRequiredService<ILogger<PolygonService>>(),
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetService<AchestService>()
+                )
+            );
             services.AddSingleton<DataBentoService>();
             services.AddSingleton<YFinanceApiService>();
             services.AddSingleton<YFinanceNewsService>();
@@ -455,7 +471,8 @@ namespace QuantResearchAgent
                 new FREDService(
                     sp.GetRequiredService<HttpClient>(),
                     sp.GetRequiredService<ILogger<FREDService>>(),
-                    sp.GetRequiredService<IConfiguration>()
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetService<AchestService>()
                 )
             );
             services.AddSingleton<IMFService>(sp =>
@@ -561,28 +578,32 @@ namespace QuantResearchAgent
                 new AlphaVantageService(
                     sp.GetRequiredService<HttpClient>(),
                     sp.GetRequiredService<ILogger<AlphaVantageService>>(),
-                    sp.GetRequiredService<IConfiguration>()
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetService<AchestService>()
                 )
             );
             services.AddSingleton<FinancialModelingPrepService>(sp =>
                 new FinancialModelingPrepService(
                     sp.GetRequiredService<HttpClient>(),
                     sp.GetRequiredService<ILogger<FinancialModelingPrepService>>(),
-                    sp.GetRequiredService<IConfiguration>()
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetService<AchestService>()
                 )
             );
             services.AddSingleton<FinnhubService>(sp =>
                 new FinnhubService(
                     sp.GetRequiredService<HttpClient>(),
                     sp.GetRequiredService<ILogger<FinnhubService>>(),
-                    sp.GetRequiredService<IConfiguration>()
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetService<AchestService>()
                 )
             );
             services.AddSingleton<TiingoService>(sp =>
                 new TiingoService(
                     sp.GetRequiredService<HttpClient>(),
                     sp.GetRequiredService<ILogger<TiingoService>>(),
-                    sp.GetRequiredService<IConfiguration>()
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetService<AchestService>()
                 )
             );
             services.AddSingleton<EnhancedFundamentalAnalysisService>(sp =>
@@ -595,7 +616,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<AlpacaService>(),
                     sp.GetRequiredService<DataBentoService>(),
                     sp.GetRequiredService<ILogger<EnhancedFundamentalAnalysisService>>(),
-                    sp.GetRequiredService<LLMRouterService>()
+                    sp.GetRequiredService<LLMRouterService>(),
+                    sp.GetService<AchestService>()
                 )
             );
 

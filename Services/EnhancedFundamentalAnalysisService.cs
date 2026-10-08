@@ -22,6 +22,7 @@ public class EnhancedFundamentalAnalysisService
     private readonly YFinanceApiService _yfinanceService;
     private readonly AlpacaService _alpacaService;
     private readonly DataBentoService _databentoService;
+    private readonly AchestService? _achestService;
     private readonly ILogger<EnhancedFundamentalAnalysisService> _logger;
     private readonly LLMRouterService _llmService;
 
@@ -34,7 +35,8 @@ public class EnhancedFundamentalAnalysisService
         AlpacaService alpacaService,
         DataBentoService databentoService,
         ILogger<EnhancedFundamentalAnalysisService> logger,
-        LLMRouterService llmService)
+        LLMRouterService llmService,
+        AchestService? achestService = null)
     {
         _alphaVantageService = alphaVantageService;
         _fmpService = fmpService;
@@ -45,6 +47,7 @@ public class EnhancedFundamentalAnalysisService
         _databentoService = databentoService;
         _logger = logger;
         _llmService = llmService;
+        _achestService = achestService;
     }
 
     private decimal ParseDecimal(object value)
@@ -74,8 +77,9 @@ public class EnhancedFundamentalAnalysisService
             var alphaVantageOverviewTask = _alphaVantageService.GetCompanyOverviewAsync(symbol);
             var yfinanceTask = _yfinanceService.GetFundamentalsAsync(symbol);
             var alpacaMarketDataTask = _alpacaService.GetMarketDataAsync(symbol);
+            var betaTask = _achestService != null ? _achestService.GetBetaAsync(symbol) : Task.FromResult<double?>(null);
 
-            await Task.WhenAll(fmpProfileTask, fmpKeyMetricsTask, fmpRatiosTask, fmpQuoteTask, finnhubMetricsTask, tiingoMetadataTask, alphaVantageOverviewTask, yfinanceTask, alpacaMarketDataTask);
+            await Task.WhenAll(fmpProfileTask, fmpKeyMetricsTask, fmpRatiosTask, fmpQuoteTask, finnhubMetricsTask, tiingoMetadataTask, alphaVantageOverviewTask, yfinanceTask, alpacaMarketDataTask, betaTask);
 
             var fmpProfile = await fmpProfileTask;
             var fmpKeyMetrics = await fmpKeyMetricsTask;
@@ -86,6 +90,7 @@ public class EnhancedFundamentalAnalysisService
             var alphaVantageOverview = await alphaVantageOverviewTask;
             var yfinance = await yfinanceTask;
             var alpacaData = await alpacaMarketDataTask;
+            var achestBeta = await betaTask;
 
             // Get the first key metrics result
             var keyMetrics = fmpKeyMetrics?.FirstOrDefault();
@@ -106,7 +111,7 @@ public class EnhancedFundamentalAnalysisService
                 Website = fmpProfile?.Website ?? tiingoMetadata?.Website ?? alphaVantageOverview?.Website,
                 CEO = fmpProfile?.CEO,
                 Employees = int.TryParse(fmpProfile?.FullTimeEmployees, out var emp) ? emp : 0,
-                MarketCap = fmpQuote?.MarketCap > 0.0m ? (long)fmpQuote.MarketCap : ((tiingoMetadata?.MarketCap ?? 0m) > 0 ? (long)tiingoMetadata.MarketCap.Value : (long.TryParse(alphaVantageOverview?.MarketCapitalization, out var mc) ? mc : (yfinance?.MarketCap ?? 0L))),
+                MarketCap = (keyMetrics?.MarketCap ?? 0L) > 0 ? keyMetrics.MarketCap.Value : (fmpQuote?.MarketCap > 0.0m ? (long)fmpQuote.MarketCap : ((tiingoMetadata?.MarketCap ?? 0m) > 0 ? (long)tiingoMetadata.MarketCap.Value : (long.TryParse(alphaVantageOverview?.MarketCapitalization, out var mc) ? mc : (yfinance?.MarketCap ?? 0L)))),
                 
                 // P/E Ratio - quad fallback: FMP -> Alpha Vantage -> YFinance -> Tiingo
                 PERatio = (keyMetrics?.PeRatio ?? 0m) > 0 ? keyMetrics.PeRatio.Value : (ParseDecimal(alphaVantageOverview?.PERatio) > 0 ? ParseDecimal(alphaVantageOverview?.PERatio) : ((tiingoMetadata?.PERatio ?? 0m) > 0 ? tiingoMetadata.PERatio.Value : (yfinance?.TrailingPE ?? 0m))),
@@ -140,7 +145,7 @@ public class EnhancedFundamentalAnalysisService
                 EVToRevenue = (keyMetrics?.EvToSales ?? 0m) > 0 ? keyMetrics.EvToSales.Value : ((finnhubMetrics?.EVToRevenue ?? 0m) > 0 ? finnhubMetrics.EVToRevenue.Value : ((tiingoMetadata?.EVToRevenue ?? 0m) > 0 ? tiingoMetadata.EVToRevenue.Value : (ParseDecimal(alphaVantageOverview?.EVToRevenue) > 0 ? ParseDecimal(alphaVantageOverview?.EVToRevenue) : 0m))),
                 // EV/EBITDA - penta fallback: FMP -> Finnhub -> Tiingo -> Alpha Vantage -> 0 (if all fail)
                 EVToEBITDA = (keyMetrics?.EnterpriseValueOverEBITDA ?? 0m) > 0 ? keyMetrics.EnterpriseValueOverEBITDA.Value : ((finnhubMetrics?.EVToEBITDA ?? 0m) > 0 ? finnhubMetrics.EVToEBITDA.Value : ((tiingoMetadata?.EVToEBITDA ?? 0m) > 0 ? tiingoMetadata.EVToEBITDA.Value : (ParseDecimal(alphaVantageOverview?.EVToEBITDA) > 0 ? ParseDecimal(alphaVantageOverview?.EVToEBITDA) : 0m))),
-                Beta = ((finnhubMetrics?.Beta ?? 0m) > 0 ? finnhubMetrics.Beta.Value : ((tiingoMetadata?.Beta ?? 0m) > 0 ? tiingoMetadata.Beta.Value : (ParseDecimal(alphaVantageOverview?.Beta) > 0 ? ParseDecimal(alphaVantageOverview?.Beta) : (yfinance?.Beta ?? 0m)))),
+                Beta = (decimal?)achestBeta ?? ((finnhubMetrics?.Beta ?? 0m) > 0 ? finnhubMetrics.Beta.Value : ((tiingoMetadata?.Beta ?? 0m) > 0 ? tiingoMetadata.Beta.Value : (ParseDecimal(alphaVantageOverview?.Beta) > 0 ? ParseDecimal(alphaVantageOverview?.Beta) : (yfinance?.Beta ?? 0m)))),
                 FiftyTwoWeekHigh = fmpQuote?.YearHigh ?? ((tiingoMetadata?.FiftyTwoWeekHigh ?? 0m) > 0 ? tiingoMetadata.FiftyTwoWeekHigh.Value : (ParseDecimal(alphaVantageOverview?.FiftyTwoWeekHigh) > 0 ? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekHigh) : (yfinance?.FiftyTwoWeekHigh ?? 0m))),
                 FiftyTwoWeekLow = fmpQuote?.YearLow ?? ((tiingoMetadata?.FiftyTwoWeekLow ?? 0m) > 0 ? tiingoMetadata.FiftyTwoWeekLow.Value : (ParseDecimal(alphaVantageOverview?.FiftyTwoWeekLow) > 0 ? ParseDecimal(alphaVantageOverview?.FiftyTwoWeekLow) : (yfinance?.FiftyTwoWeekLow ?? 0m))),
                 FiftyDayMovingAverage = fmpQuote?.PriceAvg50 ?? (ParseDecimal(alphaVantageOverview?.FiftyDayMovingAverage) > 0 ? ParseDecimal(alphaVantageOverview?.FiftyDayMovingAverage) : 0m),
@@ -395,32 +400,32 @@ public class EnhancedFundamentalAnalysisService
             // Set metric objects for API response
             analysis.ValuationMetrics = new
             {
-                peRatio = analysis.PERatio,
-                priceToBook = analysis.PriceToBook,
-                priceToSales = analysis.PriceToSales,
-                evToEbitda = analysis.EVToEBITDA,
-                evToRevenue = analysis.EVToRevenue
+                peRatio = Math.Round(analysis.PERatio, 2),
+                priceToBook = Math.Round(analysis.PriceToBook, 2),
+                priceToSales = Math.Round(analysis.PriceToSales, 2),
+                evToEbitda = Math.Round(analysis.EVToEBITDA, 2),
+                evToRevenue = Math.Round(analysis.EVToRevenue, 2)
             };
 
             analysis.GrowthMetrics = new
             {
-                epsGrowth = analysis.EPSGrowth,
-                revenueGrowth = analysis.RevenueGrowth
+                epsGrowth = Math.Round(analysis.EPSGrowth, 2),
+                revenueGrowth = Math.Round(analysis.RevenueGrowth, 2)
             };
 
             analysis.ProfitabilityMetrics = new
             {
-                roe = analysis.ROE,
-                roa = analysis.ROA,
-                profitMargin = analysis.ProfitMargin,
-                operatingMargin = analysis.OperatingMargin
+                roe = Math.Round(analysis.ROE, 2),
+                roa = Math.Round(analysis.ROA, 2),
+                profitMargin = Math.Round(analysis.ProfitMargin, 2),
+                operatingMargin = Math.Round(analysis.OperatingMargin, 2)
             };
 
             analysis.FinancialHealthMetrics = new
             {
-                debtToEquity = analysis.DebtToEquity,
-                currentRatio = analysis.CurrentRatio,
-                interestCoverage = analysis.InterestCoverage
+                debtToEquity = Math.Round(analysis.DebtToEquity, 2),
+                currentRatio = Math.Round(analysis.CurrentRatio, 2),
+                interestCoverage = Math.Round(analysis.InterestCoverage, 2)
             };
 
             return analysis;

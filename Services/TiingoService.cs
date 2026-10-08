@@ -19,6 +19,7 @@ public class TiingoService
     private readonly HttpClient _httpClient;
     private readonly ILogger<TiingoService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly AchestService? _achest;
     private readonly string _apiKey;
     private readonly JsonSerializerOptions _jsonOptions;
     private const string BaseUrl = "https://api.tiingo.com";
@@ -26,11 +27,13 @@ public class TiingoService
     public TiingoService(
         HttpClient httpClient,
         ILogger<TiingoService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        AchestService? achest = null)
     {
         _httpClient = httpClient;
         _logger = logger;
         _configuration = configuration;
+        _achest = achest;
         _apiKey = _configuration["Tiingo:ApiKey"] ?? "";
 
         // Configure JSON deserializer
@@ -52,6 +55,23 @@ public class TiingoService
     /// </summary>
     public async Task<TiingoDailyData> GetDailyMetadataAsync(string symbol)
     {
+        // Preferred source: Arithmax Chest (Eulerpool overview).
+        if (_achest != null)
+        {
+            try
+            {
+                var overview = await _achest.GetCompanyOverviewAsync(symbol);
+                if (overview.HasValue && overview.Value.ValueKind == JsonValueKind.Object)
+                {
+                    return MapOverviewToTiingo(symbol, overview.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "achest metadata fallback for {Symbol}", symbol);
+            }
+        }
+
         if (string.IsNullOrEmpty(_apiKey))
         {
             _logger.LogWarning("Tiingo API key not configured");
@@ -95,6 +115,38 @@ public class TiingoService
     /// </summary>
     public async Task<List<TiingoDailyPrice>> GetHistoricalDataAsync(string symbol, int days = 60)
     {
+        // Preferred source: Arithmax Chest unified OHLCV API.
+        if (_achest != null)
+        {
+            try
+            {
+                var end = DateTime.UtcNow.Date.AddDays(1);
+                var start = end.AddDays(-Math.Max(days, 1) * 2);
+                var bars = await _achest.GetBarsAsync(symbol, start, end, "daily");
+                if (bars != null && bars.Any())
+                {
+                    return bars.TakeLast(Math.Max(days, 1)).Select(b => new TiingoDailyPrice
+                    {
+                        Date = b.Timestamp.ToString("yyyy-MM-dd"),
+                        Open = (decimal)b.Open,
+                        High = (decimal)b.High,
+                        Low = (decimal)b.Low,
+                        Close = (decimal)b.Close,
+                        Volume = (long)b.Volume,
+                        AdjClose = (decimal)b.Close,
+                        AdjOpen = (decimal)b.Open,
+                        AdjHigh = (decimal)b.High,
+                        AdjLow = (decimal)b.Low,
+                        AdjVolume = (long)b.Volume
+                    }).ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "achest historical fallback for {Symbol}", symbol);
+            }
+        }
+
         if (string.IsNullOrEmpty(_apiKey))
         {
             _logger.LogWarning("Tiingo API key not configured");
@@ -133,6 +185,27 @@ public class TiingoService
             _logger.LogError(ex, $"Error getting historical data for {symbol} from Tiingo");
             return null;
         }
+    }
+
+    /// <summary>Maps an achest Eulerpool company-overview JSON object onto Tiingo metadata.</summary>
+    private static TiingoDailyData MapOverviewToTiingo(string symbol, JsonElement o)
+    {
+        static JsonElement? Prop(JsonElement el, string name) =>
+            el.ValueKind == JsonValueKind.Object && el.TryGetProperty(name, out var v) ? v : (JsonElement?)null;
+
+        static string Str(JsonElement? el) =>
+            el.HasValue && el.Value.ValueKind == JsonValueKind.String ? el.Value.GetString() : null;
+
+        return new TiingoDailyData
+        {
+            Ticker = Str(Prop(o, "ticker")) ?? symbol,
+            Name = Str(Prop(o, "name")),
+            Description = Str(Prop(o, "description")),
+            Sector = Str(Prop(o, "sector")),
+            Industry = Str(Prop(o, "branch")) ?? Str(Prop(o, "industry")),
+            ExchangeName = Str(Prop(o, "exchangeName")),
+            ExchangeCode = Str(Prop(o, "exchangeCode"))
+        };
     }
 }
 

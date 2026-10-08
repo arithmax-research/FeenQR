@@ -13,11 +13,13 @@ namespace QuantResearchAgent.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<YFinanceApiService> _logger;
+        private readonly AchestService? _achest;
 
-        public YFinanceApiService(IHttpClientFactory httpClientFactory, ILogger<YFinanceApiService> logger)
+        public YFinanceApiService(IHttpClientFactory httpClientFactory, ILogger<YFinanceApiService> logger, AchestService? achest = null)
         {
             _httpClient = httpClientFactory.CreateClient();
             _logger = logger;
+            _achest = achest;
             
             // Set headers to mimic a browser
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
@@ -28,6 +30,23 @@ namespace QuantResearchAgent.Services
         /// </summary>
         public async Task<YFinanceFundamentals?> GetFundamentalsAsync(string symbol)
         {
+            // Preferred source: Arithmax Chest (Eulerpool metrics).
+            if (_achest != null)
+            {
+                try
+                {
+                    var metrics = await _achest.GetFinancialMetricsAsync(symbol);
+                    if (metrics.HasValue && metrics.Value.ValueKind == JsonValueKind.Object)
+                    {
+                        return MapMetricsToYFinance(symbol, metrics.Value);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "achest fundamentals fallback for {Symbol}", symbol);
+                }
+            }
+
             try
             {
                 // Yahoo Finance API endpoint
@@ -132,6 +151,11 @@ namespace QuantResearchAgent.Services
         {
             try
             {
+                // Prefer achest health when available.
+                if (_achest != null)
+                {
+                    return await _achest.IsHealthyAsync();
+                }
                 var response = await _httpClient.GetAsync("https://finance.yahoo.com");
                 return response.IsSuccessStatusCode;
             }
@@ -139,6 +163,56 @@ namespace QuantResearchAgent.Services
             {
                 return false;
             }
+        }
+
+        /// <summary>Maps an achest Eulerpool financial-metrics JSON object onto YFinance fundamentals.</summary>
+        private static YFinanceFundamentals MapMetricsToYFinance(string symbol, JsonElement m)
+        {
+            static JsonElement? Sub(JsonElement el, string name) =>
+                el.ValueKind == JsonValueKind.Object && el.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Object
+                    ? v : (JsonElement?)null;
+
+            static decimal? Dec(JsonElement? el, string name)
+            {
+                if (!el.HasValue || !el.Value.TryGetProperty(name, out var v)) return null;
+                return v.ValueKind switch
+                {
+                    JsonValueKind.Number => (decimal)v.GetDouble(),
+                    JsonValueKind.String when decimal.TryParse(v.GetString(), out var d) => d,
+                    _ => null
+                };
+            }
+
+            static long? Lng(JsonElement? el, string name)
+            {
+                if (!el.HasValue || !el.Value.TryGetProperty(name, out var v)) return null;
+                return v.ValueKind switch
+                {
+                    JsonValueKind.Number => (long)v.GetDouble(),
+                    JsonValueKind.String when long.TryParse(v.GetString(), out var l) => l,
+                    _ => null
+                };
+            }
+
+            var valuation = Sub(m, "valuation");
+            var profitability = Sub(m, "profitability");
+            var perShare = Sub(m, "perShare");
+            var growth = Sub(m, "growth");
+            var other = Sub(m, "other");
+
+            return new YFinanceFundamentals
+            {
+                Symbol = symbol,
+                TrailingPE = Dec(valuation, "pe"),
+                PriceToBook = Dec(valuation, "pb"),
+                MarketCap = Lng(valuation, "marketCap"),
+                EnterpriseValue = Lng(valuation, "enterpriseValue"),
+                ReturnOnEquity = Dec(profitability, "roe"),
+                DividendYield = Dec(perShare, "dividendYield"),
+                EarningsGrowth = Dec(growth, "earningsGrowth3Y"),
+                RevenueGrowth = Dec(growth, "revenueGrowth3Y"),
+                SharesOutstanding = Lng(other, "shares")
+            };
         }
     }
 

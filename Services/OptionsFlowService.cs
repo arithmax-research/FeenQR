@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using QuantResearchAgent.Services;
 
 namespace Feen.Services
 {
@@ -17,13 +18,15 @@ namespace Feen.Services
         private readonly ILogger<OptionsFlowService> _logger;
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
+        private readonly AchestService? _achest;
         private readonly string? _apiKey;
 
-        public OptionsFlowService(ILogger<OptionsFlowService> logger, HttpClient httpClient, IConfiguration configuration)
+        public OptionsFlowService(ILogger<OptionsFlowService> logger, HttpClient httpClient, IConfiguration configuration, AchestService? achest = null)
         {
             _logger = logger;
             _httpClient = httpClient;
             _configuration = configuration;
+            _achest = achest;
             // Use Polygon API key from appsettings.json
             _apiKey = _configuration["Polygon:ApiKey"];
             
@@ -86,7 +89,52 @@ namespace Feen.Services
         public async Task<List<UnusualOptionsActivity>> DetectUnusualActivityAsync(string symbol, decimal threshold = 7.0m)
         {
             _logger.LogInformation($"Detecting unusual options activity for {symbol} with threshold {threshold}");
-            
+
+            // Preferred source: Arithmax Chest (Eulerpool options unusual-activity).
+            if (_achest != null)
+            {
+                try
+                {
+                    var data = await _achest.GetOptionsAsync("unusual-activity");
+                    if (data.HasValue && data.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        var list = new List<UnusualOptionsActivity>();
+                        foreach (var c in data.Value.EnumerateArray())
+                        {
+                            var ticker = c.TryGetProperty("ticker", out var tk) ? tk.GetString() : null;
+                            if (!string.IsNullOrEmpty(ticker) && !ticker.Equals(symbol, StringComparison.OrdinalIgnoreCase)) continue;
+
+                            var volume = GetLong(c, "volume");
+                            var oi = GetLong(c, "open_interest");
+                            var ratio = GetDecimal(c, "volOiRatio");
+                            var score = ratio != 0 ? ratio : (oi > 0 ? (decimal)volume / oi : 0);
+                            if (score < threshold) continue;
+
+                            list.Add(new UnusualOptionsActivity
+                            {
+                                Strike = GetDecimal(c, "strike"),
+                                Expiration = DateTime.TryParse(GetString(c, "expiration_date"), out var exp) ? exp : DateTime.Now,
+                                OptionType = GetString(c, "option_type"),
+                                Volume = volume,
+                                OpenInterest = oi,
+                                ImpliedVolatility = GetDecimal(c, "implied_vol"),
+                                Delta = GetDecimal(c, "delta"),
+                                UnusualScore = score,
+                                ActivityType = score > 10 ? "Extremely Unusual" : "Unusual"
+                            });
+                        }
+                        if (list.Count > 0)
+                        {
+                            return list.OrderByDescending(a => a.UnusualScore).ToList();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "achest unusual-activity fallback for {Symbol}", symbol);
+                }
+            }
+
             try
             {
                 // Get options chain from real API
@@ -260,6 +308,34 @@ namespace Feen.Services
                 _logger.LogError(ex, $"Error getting options order book for {symbol}");
                 throw new InvalidOperationException($"Failed to get options order book: {ex.Message}. Ensure OPTIONS API key is configured.", ex);
             }
+        }
+
+        // ── achest JSON helpers ────────────────────────────────────────
+        private static string GetString(JsonElement el, string name) =>
+            el.TryGetProperty(name, out var v)
+                ? (v.ValueKind == JsonValueKind.String ? v.GetString() : v.ToString())
+                : null;
+
+        private static decimal GetDecimal(JsonElement el, string name)
+        {
+            if (!el.TryGetProperty(name, out var v)) return 0m;
+            return v.ValueKind switch
+            {
+                JsonValueKind.Number => (decimal)v.GetDouble(),
+                JsonValueKind.String when decimal.TryParse(v.GetString(), out var d) => d,
+                _ => 0m
+            };
+        }
+
+        private static long GetLong(JsonElement el, string name)
+        {
+            if (!el.TryGetProperty(name, out var v)) return 0L;
+            return v.ValueKind switch
+            {
+                JsonValueKind.Number => (long)v.GetDouble(),
+                JsonValueKind.String when long.TryParse(v.GetString(), out var l) => l,
+                _ => 0L
+            };
         }
     }
 

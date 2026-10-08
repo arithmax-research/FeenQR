@@ -14,15 +14,17 @@ namespace QuantResearchAgent.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<DataBentoService> _logger;
+        private readonly AchestService? _achest;
         private readonly string _apiKey;
         private readonly string _userId;
         private readonly string _prodName;
         private const string BaseUrl = "https://hist.databento.com";
 
-        public DataBentoService(HttpClient httpClient, ILogger<DataBentoService> logger, IConfiguration configuration)
+        public DataBentoService(HttpClient httpClient, ILogger<DataBentoService> logger, IConfiguration configuration, AchestService? achest = null)
         {
             _httpClient = httpClient;
             _logger = logger;
+            _achest = achest;
             _apiKey = configuration["DataBento:ApiKey"] ?? string.Empty;
             _userId = configuration["DataBento:UserId"] ?? string.Empty;
             _prodName = configuration["DataBento:ProdName"] ?? string.Empty;
@@ -95,6 +97,34 @@ namespace QuantResearchAgent.Services
             string dataset = "XNAS.ITCH", // US Equities NASDAQ
             string schema = "ohlcv-1d")
         {
+            // Preferred source: Arithmax Chest unified OHLCV API.
+            if (_achest != null)
+            {
+                try
+                {
+                    var bars = await _achest.GetBarsAsync(symbol, start.Date, end.Date.AddDays(1));
+                    if (bars.Count > 0)
+                    {
+                        return bars.Select(b => new DataBentoOHLCV
+                        {
+                            Hd = new DataBentoHeader
+                            {
+                                TsEvent = (new DateTimeOffset(b.Timestamp).ToUnixTimeMilliseconds() * 1_000_000L).ToString()
+                            },
+                            OpenStr = ((long)(b.Open * 1_000_000_000d)).ToString(),
+                            HighStr = ((long)(b.High * 1_000_000_000d)).ToString(),
+                            LowStr = ((long)(b.Low * 1_000_000_000d)).ToString(),
+                            CloseStr = ((long)(b.Close * 1_000_000_000d)).ToString(),
+                            VolumeStr = ((long)b.Volume).ToString()
+                        }).ToList();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "achest OHLCV fallback for {Symbol}", symbol);
+                }
+            }
+
             try
             {
                 var startStr = start.ToString("yyyy-MM-dd");
