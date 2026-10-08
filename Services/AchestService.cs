@@ -360,7 +360,9 @@ public class AchestService
         // 1. Short-term cache hit (successful response fetched < TTL ago).
         lock (_eulerpoolCache)
         {
-            var cached = _eulerpoolCache.Get(path);
+            var cached = _eulerpoolCache.ContainsKey(path)
+                ? _eulerpoolCache[path]
+                : null;
             if (cached != null && !cached.IsExpired)
             {
                 _logger.LogDebug("Returning cached Eulerpool result for {Path} (age={Age:F0}s)",
@@ -370,20 +372,25 @@ public class AchestService
         }
 
         // 2. Deduplicate in-flight requests for the same path.
+        Task<System.Text.Json.JsonElement?> pendingTask = default;
         lock (_inflightEulerpool)
         {
-            var existing = _inflightEulerpool.Get(path);
-            if (existing != null)
+            pendingTask = _inflightEulerpool.ContainsKey(path)
+                ? _inflightEulerpool[path]
+                : null;
+            if (pendingTask == null)
+            {
+                // Register this call as the shared task for this path.
+                pendingTask = DedupEulerpoolFetchAsync(path, ct);
+                _inflightEulerpool[path] = pendingTask;
+            }
+            else
             {
                 _logger.LogDebug("Deduplicating concurrent Eulerpool request for {Path}", path);
-                return await existing.ConfigureAwait(false);
             }
-
-            // Register this call as the shared task for this path.
-            var task = DedupEulerpoolFetchAsync(path, ct);
-            _inflightEulerpool[path] = task;
-            return await task.ConfigureAwait(false);
         }
+
+        return await pendingTask.ConfigureAwait(false);
     }
 
     /// <summary>Performs the actual fetch and always cleans up the dedup map.</summary>
