@@ -15,6 +15,26 @@ public class AchestService
     private readonly AchestClient _client;
     private readonly ILogger<AchestService> _logger;
 
+    /// <summary>
+    /// Deduplicates concurrent Eulerpool requests for the same path.
+    /// When N callers ask for the same endpoint simultaneously, only one
+    /// HTTP request is dispatched; the others share its result (or failure).
+    /// Entries are removed on completion so subsequent calls re-fetch.
+    /// </summary>
+    private readonly Dictionary<string, Task<System.Text.Json.JsonElement?>> _inflightEulerpool
+        = new();
+
+    /// <summary>
+    /// Short-lived cache that keeps successful Eulerpool responses in memory
+    /// for a few seconds so that back-to-back requests (e.g. from different
+    /// fallback chains that fire sequentially rather than in parallel) avoid
+    /// redundant network calls.
+    /// </summary>
+    private readonly Dictionary<string, CachedEulerpoolResult> _eulerpoolCache = new();
+
+    /// <summary>Duration to keep a successful Eulerpool result in cache (5 seconds).</summary>
+    internal static readonly TimeSpan EulerpoolCacheTtl = TimeSpan.FromSeconds(5);
+
     public AchestService(AchestClient client, ILogger<AchestService> logger)
     {
         _client = client;
@@ -323,17 +343,83 @@ public class AchestService
     /// <summary>
     /// Fetch any achest Eulerpool endpoint as a raw <see cref="JsonElement"/>.
     /// Returns <c>null</c> on failure (never throws), so callers can fall back.
+    ///
+    /// <b>Deduplication:</b> concurrent calls for the same <paramref name="path"/>
+    /// share a single HTTP request — see the in-flight and short-term caches.
+    /// Once the shared task completes (success or failure) the in-flight entry
+    /// is evicted; successful results stay in a short-lived cache for a few
+    /// seconds to cover back-to-back sequential calls from different services.
     /// </summary>
     public async Task<System.Text.Json.JsonElement?> TryEulerpoolAsync(string path, CancellationToken ct = default)
     {
+        if (ct.IsCancellationRequested)
+        {
+            return null;
+        }
+
+        // 1. Short-term cache hit (successful response fetched < TTL ago).
+        lock (_eulerpoolCache)
+        {
+            var cached = _eulerpoolCache.Get(path);
+            if (cached != null && !cached.IsExpired)
+            {
+                _logger.LogDebug("Returning cached Eulerpool result for {Path} (age={Age:F0}s)",
+                    path, (DateTime.UtcNow - cached.FetchedAt).TotalSeconds);
+                return cached.Result;
+            }
+        }
+
+        // 2. Deduplicate in-flight requests for the same path.
+        lock (_inflightEulerpool)
+        {
+            var existing = _inflightEulerpool.Get(path);
+            if (existing != null)
+            {
+                _logger.LogDebug("Deduplicating concurrent Eulerpool request for {Path}", path);
+                return await existing.ConfigureAwait(false);
+            }
+
+            // Register this call as the shared task for this path.
+            var task = DedupEulerpoolFetchAsync(path, ct);
+            _inflightEulerpool[path] = task;
+            return await task.ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Performs the actual fetch and always cleans up the dedup map.</summary>
+    private async Task<System.Text.Json.JsonElement?> DedupEulerpoolFetchAsync(string path, CancellationToken ct)
+    {
+        System.Text.Json.JsonElement? result = null;
         try
         {
-            return await _client.GetEulerpoolAsync(path, ct).ConfigureAwait(false);
+            result = await _client.GetEulerpoolAsync(path, ct).ConfigureAwait(false);
+            return result;
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "achest eulerpool fetch failed for {Path}", path);
             return null;
+        }
+        finally
+        {
+            // Evict from the dedup map so future calls re-fetch.
+            lock (_inflightEulerpool)
+            {
+                _inflightEulerpool.Remove(path);
+            }
+
+            // Populate the short-term cache on success.
+            if (result != null)
+            {
+                lock (_eulerpoolCache)
+                {
+                    _eulerpoolCache[path] = new CachedEulerpoolResult
+                    {
+                        Result = result,
+                        FetchedAt = DateTime.UtcNow,
+                    };
+                }
+            }
         }
     }
 
@@ -400,6 +486,14 @@ public class AchestService
     /// <summary>ETF data (profile, holdings, flows).</summary>
     public Task<System.Text.Json.JsonElement?> GetEtfAsync(string identifier, string dataType = "profile", CancellationToken ct = default)
         => TryEulerpoolAsync($"etf/{dataType}/{Uri.EscapeDataString(identifier)}", ct);
+}
+
+/// <summary>Holds a cached Eulerpool response and its fetch timestamp for TTL checks.</summary>
+internal class CachedEulerpoolResult
+{
+    public System.Text.Json.JsonElement? Result { get; set; }
+    public DateTime FetchedAt { get; set; }
+    public bool IsExpired => DateTime.UtcNow - FetchedAt >= AchestService.EulerpoolCacheTtl;
 }
 
 /// <summary>Analyst consensus recommendation &amp; price targets from achest.</summary>
