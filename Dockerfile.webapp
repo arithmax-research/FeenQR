@@ -1,16 +1,39 @@
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /src
-COPY . .
-RUN dotnet publish WebApp/Server/Server.csproj -c Release -o /app/publish /p:UseAppHost=false
+# syntax=docker/dockerfile:1.7
 
+# ── Stage 1: restore (cached unless .csproj / NuGet.config change) ──────────
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS restore
+WORKDIR /src
+# Copy ONLY the project files + NuGet config so this layer caches across
+# source-only edits. Any change to package references correctly busts it.
+COPY NuGet.config ./
+COPY QuantResearchAgent.csproj ./
+COPY WebApp/Core/Core.csproj WebApp/Core/
+COPY WebApp/Client/Client.csproj WebApp/Client/
+COPY WebApp/Server/Server.csproj WebApp/Server/
+# Persistent NuGet package cache across builds.
+RUN --mount=type=cache,target=/root/.nuget/packages,sharing=locked \
+    dotnet restore WebApp/Server/Server.csproj
+
+# ── Stage 2: publish (reuses the restore output) ────────────────────────────
+FROM restore AS build
+COPY . .
+RUN --mount=type=cache,target=/root/.nuget/packages,sharing=locked \
+    dotnet publish WebApp/Server/Server.csproj -c Release -o /app/publish \
+        --no-restore /p:UseAppHost=false
+
+# ── Stage 3: runtime ────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-# ---- INSTALL PYTHON & DEPENDENCIES ----
-RUN apt-get update && \
+# ---- INSTALL PYTHON & DEPENDENCIES (cached; only rebuilds if this line changes) ----
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    --mount=type=cache,target=/root/.cache/pip,sharing=locked \
+    --mount=type=cache,target=/root/.npm,sharing=locked \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
@@ -33,7 +56,7 @@ RUN apt-get update && \
     ln -sf /usr/bin/python3 /usr/bin/python && \
     npm install -g deno && \
     rm -rf /var/lib/apt/lists/*
-# ----------------------------------------------
+# --------------------------------------------------------------
 
 COPY --from=build /app/publish .
 COPY appsettings.json ./appsettings.json
@@ -41,4 +64,5 @@ COPY Scripts/ ./Scripts/
 
 RUN mkdir -p /app/uploads /app/logs
 ENTRYPOINT ["dotnet", "Server.dll"]
+
 

@@ -27,7 +27,7 @@ if [ -f "$PROJECT_ROOT/Caddyfile" ]; then
   DOMAIN="${DOMAIN:-feenqr.misango.me}"
 fi
 
-EC2_HOST="ec2-18-142-144-144.ap-southeast-1.compute.amazonaws.com"
+EC2_HOST="ec2-13-212-15-78.ap-southeast-1.compute.amazonaws.com"
 
 # If no host provided, prompt for it
 if [ -z "$EC2_HOST" ]; then
