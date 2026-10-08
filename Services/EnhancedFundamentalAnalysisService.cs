@@ -983,8 +983,10 @@ Provide a 3-paragraph analysis:
 
 Be concise, data-driven, and actionable.";
 
-            var response = await _llmService.GetChatCompletionAsync(prompt);
-            return response ?? "Quantitative analysis complete. Refer to scores above.";
+            var response = await GetLlmWithTimeoutAsync(prompt, provider: null, TimeSpan.FromSeconds(30));
+            return string.IsNullOrWhiteSpace(response)
+                ? "Quantitative analysis complete. Refer to scores above."
+                : response;
         }
         catch (Exception ex)
         {
@@ -1274,20 +1276,48 @@ Use **bold** for headers, bullet points for lists, justify the {analysis.Recomme
         try
         {
             _logger.LogInformation("Generating valuation AI analysis for {Symbol}", analysis.Symbol);
-            var aiAnalysis = await _llmService.GetChatCompletionAsync(prompt, "openai");
-            
+            var aiAnalysis = await GetLlmWithTimeoutAsync(prompt, "openai", TimeSpan.FromSeconds(30));
+
             if (string.IsNullOrWhiteSpace(aiAnalysis))
             {
-                _logger.LogWarning("LLM returned empty valuation analysis for {Symbol}, retrying...", analysis.Symbol);
-                aiAnalysis = await _llmService.GetChatCompletionAsync(prompt, "openai");
+                _logger.LogWarning("LLM returned empty valuation analysis for {Symbol}", analysis.Symbol);
             }
-            
+
             return aiAnalysis?.Trim() ?? $"Unable to generate detailed valuation analysis for {analysis.Symbol}. {analysis.Reasoning}";
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating valuation AI analysis for {Symbol}", analysis.Symbol);
             return $"Valuation analysis temporarily unavailable. {analysis.Reasoning}";
+        }
+    }
+
+    /// <summary>
+    /// Runs an LLM completion with a hard timeout so a slow/unreachable model
+    /// (e.g. OpenAI blocked by region → hanging request) never blocks the whole
+    /// request. Returns an empty string on timeout/failure.
+    /// </summary>
+    private async Task<string> GetLlmWithTimeoutAsync(string prompt, string provider, TimeSpan timeout)
+    {
+        try
+        {
+            var llmTask = provider == null
+                ? _llmService.GetChatCompletionAsync(prompt)
+                : _llmService.GetChatCompletionAsync(prompt, provider);
+
+            var completed = await Task.WhenAny(llmTask, Task.Delay(timeout));
+            if (completed != llmTask)
+            {
+                _logger.LogWarning("LLM ({Provider}) call timed out after {Seconds}s; skipping AI enrichment", provider ?? "default", timeout.TotalSeconds);
+                return string.Empty;
+            }
+
+            return await llmTask;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "LLM ({Provider}) call failed; skipping AI enrichment", provider ?? "default");
+            return string.Empty;
         }
     }
 

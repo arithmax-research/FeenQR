@@ -42,15 +42,17 @@ public class AchestClient : IDisposable
             configuration?["Achest:BaseUrl"],
             configuration?["Achest:Token"],
             logger,
-            httpClient: null)
+            httpClient: null,
+            requestTimeoutSeconds: int.TryParse(configuration?["Achest:RequestTimeoutSeconds"], out var t) ? t : 20)
     {
     }
 
     /// <summary>Creates a client with an injected <see cref="HttpClient"/> (DI friendly).</summary>
-    public AchestClient(string baseUrl, string token, ILogger<AchestClient> logger, HttpClient? httpClient)
+    public AchestClient(string baseUrl, string token, ILogger<AchestClient> logger, HttpClient? httpClient, int requestTimeoutSeconds = 20)
     {
         _logger = logger;
         BaseUrl = string.IsNullOrWhiteSpace(baseUrl) ? DefaultBaseUrl : baseUrl.TrimEnd('/');
+        _requestTimeout = TimeSpan.FromSeconds(requestTimeoutSeconds > 0 ? requestTimeoutSeconds : 20);
 
         if (httpClient != null)
         {
@@ -198,22 +200,44 @@ public class AchestClient : IDisposable
 
     // ── Internals ──────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Per-request timeout for eulerpool/passthrough GETs. Prevents a single slow
+    /// upstream endpoint (e.g. a hanging Eulerpool call) from blocking the whole
+    /// request. Configurable via <c>Achest:RequestTimeoutSeconds</c> (default 20s).
+    /// </summary>
+    private readonly TimeSpan _requestTimeout;
+
     private async Task<JsonElement> GetJsonAsync(string path, CancellationToken ct)
     {
-        using var resp = await _http.GetAsync(path, ct).ConfigureAwait(false);
-        var json = await SafeReadAsync(resp, ct).ConfigureAwait(false);
-        if (!resp.IsSuccessStatusCode)
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(_requestTimeout);
+
+        HttpResponseMessage resp;
+        try
         {
-            throw new AchestException(
-                $"achest GET {path} failed ({(int)resp.StatusCode} {resp.StatusCode}): {json}",
-                resp.StatusCode);
+            resp = await _http.GetAsync(path, timeoutCts.Token).ConfigureAwait(false);
         }
-        if (string.IsNullOrWhiteSpace(json))
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            return default;
+            throw new AchestException($"achest GET {path} timed out after {_requestTimeout.TotalSeconds:F0}s", HttpStatusCode.RequestTimeout);
         }
-        using var doc = JsonDocument.Parse(SanitizeJson(json), JsonDocOpts);
-        return doc.RootElement.Clone();
+
+        using (resp)
+        {
+            var json = await SafeReadAsync(resp, timeoutCts.Token).ConfigureAwait(false);
+            if (!resp.IsSuccessStatusCode)
+            {
+                throw new AchestException(
+                    $"achest GET {path} failed ({(int)resp.StatusCode} {resp.StatusCode}): {json}",
+                    resp.StatusCode);
+            }
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return default;
+            }
+            using var doc = JsonDocument.Parse(SanitizeJson(json), JsonDocOpts);
+            return doc.RootElement.Clone();
+        }
     }
 
     private static readonly JsonDocumentOptions JsonDocOpts = new()
