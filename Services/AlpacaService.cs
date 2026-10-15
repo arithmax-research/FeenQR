@@ -27,7 +27,6 @@ public class AlpacaService
 
         if (!_alpacaApiEnabled)
         {
-            _logger.LogInformation("Alpaca API integration is disabled by configuration (Alpaca:Enabled=false)");
             return;
         }
 

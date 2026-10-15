@@ -206,11 +206,6 @@ public class StrategyTextParser
             result.PreferredDataSource = "polygon";
             result.DataSourceConfidence = 0.95m;
         }
-        else if (Regex.IsMatch(text, "databento", RegexOptions.IgnoreCase))
-        {
-            result.PreferredDataSource = "databento";
-            result.DataSourceConfidence = 0.95m;
-        }
         else
         {
             result.PreferredDataSource = "auto";

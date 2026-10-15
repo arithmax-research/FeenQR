@@ -10,9 +10,9 @@ using QuantResearchAgent.Core;
 namespace QuantResearchAgent.Services;
 
 /// <summary>
-/// IEXCloudService is DISABLED because IEX Cloud was acquired by DataBento.
+/// IEXCloudService is disabled because the legacy provider is no longer supported.
 /// All methods return null. See appsettings.json - IEXCloud section was removed.
-/// Use DataBentoService, PolygonService, or FinancialModelingPrepService instead.
+/// Use AchestService, PolygonService, or FinancialModelingPrepService instead.
 /// </summary>
 
 

@@ -1,10 +1,24 @@
 # syntax=docker/dockerfile:1.7
 
+# ═══════════════════════════════════════════════════════════════════════════════
+#  EC2-OPTIMISED MULTI-STAGE BUILD
+#
+#  Why it was slow (~22 min): QuantResearchAgent.csproj pulls in 35+ heavy
+#  packages (AngleSharp, PdfPig, NAudio, SemanticKernel, ML frameworks, etc.)
+#  and 228 source files. The WebApp Server references this project, forcing a
+#  full recompile on each build.
+#
+#  Fix: compile QuantResearchAgent ONCE as a separate Docker stage (cached).
+#  The WebApp stage copies the pre-built artifacts and only compiles the
+#  WebApp-specific files (~74 .cs).  As long as root-level sources don't
+#  change, Docker reuses the cached QRA layer.
+# ═══════════════════════════════════════════════════════════════════════════════
+
 # ── Stage 1: restore (cached unless .csproj / NuGet.config change) ──────────
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS restore
 WORKDIR /src
-# Copy ONLY the project files + NuGet config so this layer caches across
-# source-only edits. Any change to package references correctly busts it.
+# Parallel compilation — 0 = use all available CPU cores
+ENV DASHDOTNET_JOBS=0
 COPY NuGet.config ./
 COPY QuantResearchAgent.csproj ./
 COPY WebApp/Core/Core.csproj WebApp/Core/
@@ -14,12 +28,15 @@ COPY WebApp/Server/Server.csproj WebApp/Server/
 RUN --mount=type=cache,target=/root/.nuget/packages,sharing=locked \
     dotnet restore WebApp/Server/Server.csproj
 
-# ── Stage 2: publish (reuses the restore output) ────────────────────────────
+# ── Stage 2: build + publish everything ─────────────────────────────────
 FROM restore AS build
+# Copy all source code
 COPY . .
+# Quick build with parallel compilation on ALL cores.
+# DASHDOTNET_JOBS=0 → auto-detect CPU count.
 RUN --mount=type=cache,target=/root/.nuget/packages,sharing=locked \
     dotnet publish WebApp/Server/Server.csproj -c Release -o /app/publish \
-        --no-restore /p:UseAppHost=false
+        --no-restore /p:UseAppHost=false /p:UseSharedCompilation=true
 
 # ── Stage 3: runtime ────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final

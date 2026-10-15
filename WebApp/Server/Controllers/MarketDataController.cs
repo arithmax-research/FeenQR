@@ -12,22 +12,19 @@ public class MarketDataController : ControllerBase
     private readonly AlphaVantageService _alphaVantageService;
     private readonly YahooFinanceService _yahooService;
     private readonly PolygonService _polygonService;
-    private readonly DataBentoService _databentoService;
 
     public MarketDataController(
         ILogger<MarketDataController> logger,
         AlpacaService alpacaService,
         AlphaVantageService alphaVantageService,
         YahooFinanceService yahooService,
-        PolygonService polygonService,
-        DataBentoService databentoService)
+        PolygonService polygonService)
     {
         _logger = logger;
         _alpacaService = alpacaService;
         _alphaVantageService = alphaVantageService;
         _yahooService = yahooService;
         _polygonService = polygonService;
-        _databentoService = databentoService;
     }
 
     [HttpGet("quotes")]
@@ -135,110 +132,6 @@ public class MarketDataController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching Yahoo data for {Symbol}", symbol);
-            return StatusCode(500, new { Error = ex.Message });
-        }
-    }
-
-    [HttpGet("polygon/quote/{symbol}")]
-    public async Task<IActionResult> GetPolygonQuote(string symbol)
-    {
-        try
-        {
-            var quote = await _polygonService.GetQuoteAsync(symbol);
-            if (quote == null)
-            {
-                return NotFound(new { Error = $"No quote found for symbol: {symbol}" });
-            }
-            return Ok(quote);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching Polygon quote for {Symbol}", symbol);
-            return StatusCode(500, new { Error = ex.Message });
-        }
-    }
-
-    [HttpGet("polygon/daily/{symbol}")]
-    public async Task<IActionResult> GetPolygonDailyBar(string symbol, [FromQuery] DateTime? date = null)
-    {
-        try
-        {
-            var targetDate = date ?? DateTime.UtcNow.AddDays(-1);
-            var bar = await _polygonService.GetDailyBarAsync(symbol, targetDate);
-            if (bar == null)
-            {
-                return NotFound(new { Error = $"No daily bar found for symbol: {symbol}" });
-            }
-            return Ok(bar);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching Polygon daily bar for {Symbol}", symbol);
-            return StatusCode(500, new { Error = ex.Message });
-        }
-    }
-
-    [HttpGet("polygon/aggregates/{symbol}")]
-    public async Task<IActionResult> GetPolygonAggregates(
-        string symbol, 
-        [FromQuery] DateTime? from = null,
-        [FromQuery] DateTime? to = null,
-        [FromQuery] string timespan = "day")
-    {
-        try
-        {
-            var fromDate = from ?? DateTime.UtcNow.AddMonths(-3);
-            var toDate = to ?? DateTime.UtcNow;
-            
-            var aggregates = await _polygonService.GetAggregatesAsync(symbol, 1, timespan, fromDate, toDate);
-            if (aggregates == null || aggregates.Count == 0)
-            {
-                return NotFound(new { Error = $"No aggregates found for symbol: {symbol}" });
-            }
-            return Ok(aggregates);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching Polygon aggregates for {Symbol}", symbol);
-            return StatusCode(500, new { Error = ex.Message });
-        }
-    }
-
-    [HttpGet("polygon/financials/{symbol}")]
-    public async Task<IActionResult> GetPolygonFinancials(string symbol)
-    {
-        try
-        {
-            var financials = await _polygonService.GetFinancialsAsync(symbol);
-            if (financials == null)
-            {
-                return NotFound(new { Error = $"No financials found for symbol: {symbol}" });
-            }
-            return Ok(financials);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching Polygon financials for {Symbol}", symbol);
-            return StatusCode(500, new { Error = ex.Message });
-        }
-    }
-
-    [HttpGet("databento/{symbol}")]
-    public async Task<IActionResult> GetDatabentoData(string symbol)
-    {
-        try
-        {
-            // DataBentoService doesn't have GetMarketDataAsync - use GetOHLCVAsync instead
-            var data = await _databentoService.GetOHLCVAsync(symbol, DateTime.UtcNow.AddDays(-30), DateTime.UtcNow);
-            if (data == null || data.Count == 0)
-            {
-                return NotFound(new { Error = $"No data found for symbol: {symbol}" });
-            }
-            return Ok(data);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching Databento data for {Symbol}", symbol);
             return StatusCode(500, new { Error = ex.Message });
         }
     }

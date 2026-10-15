@@ -19,16 +19,6 @@ public class LeanDataService
         var repoRoot = ResolveRepoRoot();
         _dataPath = Path.Combine(repoRoot, "data");
         _pipelinePath = ResolvePipelinePath(repoRoot);
-        
-        if (!Directory.Exists(_dataPath))
-        {
-            _logger.LogWarning("Data directory not found at {DataPath}. Consider running the Python data pipeline first.", _dataPath);
-        }
-
-        if (!Directory.Exists(_pipelinePath))
-        {
-            _logger.LogWarning("Data pipeline directory not found at {PipelinePath}.", _pipelinePath);
-        }
     }
 
     public async Task<List<LeanBar>> GetEquityBarsAsync(string symbol, string resolution = "daily", int limit = 10000)
@@ -448,7 +438,7 @@ public class LeanDataService
             }
 
             var normalizedSource = source.ToLowerInvariant();
-            if (normalizedSource is not ("alpaca" or "binance" or "futures" or "databento"))
+            if (normalizedSource is not ("alpaca" or "binance" or "futures"))
             {
                 _logger.LogWarning("Unknown source {Source}; defaulting to alpaca", source);
                 normalizedSource = "alpaca";
@@ -470,9 +460,6 @@ public class LeanDataService
                     break;
                 case "futures":
                     args.AddRange(new[] { "--futures-symbols", symbol.ToUpperInvariant() });
-                    break;
-                case "databento":
-                    args.AddRange(new[] { "--databento-symbols", symbol.ToUpperInvariant() });
                     break;
                 default:
                     args.AddRange(new[] { "--equity-symbols", symbol.ToUpperInvariant() });

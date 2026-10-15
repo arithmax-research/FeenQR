@@ -20,7 +20,6 @@ namespace QuantResearchAgent.Services
         private readonly YahooFinanceService _yahooFinanceService;
         private readonly AlpacaService _alpacaService;
         private readonly PolygonService _polygonService;
-        private readonly DataBentoService _dataBentoService;
         private readonly MarketDataService _marketDataService;
         
         // Analysis Services
@@ -93,7 +92,6 @@ namespace QuantResearchAgent.Services
             YahooFinanceService yahooFinanceService,
             AlpacaService alpacaService,
             PolygonService polygonService,
-            DataBentoService dataBentoService,
             MarketDataService marketDataService,
             TechnicalAnalysisService technicalAnalysisService,
             ComprehensiveStockAnalysisAgent comprehensiveAnalysisAgent,
@@ -154,7 +152,6 @@ namespace QuantResearchAgent.Services
             _yahooFinanceService = yahooFinanceService;
             _alpacaService = alpacaService;
             _polygonService = polygonService;
-            _dataBentoService = dataBentoService;
             _marketDataService = marketDataService;
             _technicalAnalysisService = technicalAnalysisService;
             _comprehensiveAnalysisAgent = comprehensiveAnalysisAgent;
@@ -322,8 +319,6 @@ Available tools (can be used individually or in combination):
 - polygon-data: Get Polygon.io market data
 - polygon-news: Get Polygon.io news for symbol
 - polygon-financials: Get Polygon.io financial data
-- databento-ohlcv: Get DataBento OHLCV data
-- databento-futures: Get DataBento futures contracts
 - live-news: Get live financial news
 - sentiment-analysis: AI-powered sentiment analysis for specific stock
 - market-sentiment: AI-powered overall market sentiment analysis
@@ -574,10 +569,6 @@ Return your analysis in this JSON format:
                     case "alpaca_quotes":
                     case "alpaca_historical":
                         return await ExecuteAlpacaDataAsync(symbols);
-                    
-                    case "databento_ohlcv":
-                    case "databento_futures":
-                        return await ExecuteDataBentoAsync(symbols, parameters);
                     
                     case "test_apis":
                         return await ExecuteAPITestAsync(symbols);
@@ -1258,49 +1249,6 @@ Return your analysis in this JSON format:
             }
         }
 
-        private async Task<ToolResult> ExecuteDataBentoAsync(string[] symbols, Dictionary<string, object> parameters)
-        {
-            try
-            {
-                var days = GetIntParameter(parameters, "days", 30);
-                var results = new List<object>();
-                
-                foreach (var symbol in symbols.Take(3))
-                {
-                    try
-                    {
-                        // Use DataBento service if available
-                        results.Add(new { 
-                            Symbol = symbol, 
-                            Days = days,
-                            Message = "DataBento integration available via dedicated commands",
-                            Suggestion = $"Use 'databento-ohlcv {symbol} {days}' for detailed data"
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        results.Add(new { Symbol = symbol, Error = ex.Message });
-                    }
-                }
-                
-                return new ToolResult 
-                { 
-                    ToolName = "databento", 
-                    Success = true, 
-                    Data = results 
-                };
-            }
-            catch (Exception ex)
-            {
-                return new ToolResult 
-                { 
-                    ToolName = "databento", 
-                    Success = false, 
-                    ErrorMessage = ex.Message 
-                };
-            }
-        }
-
         private async Task<ToolResult> ExecuteAPITestAsync(string[] symbols)
         {
             try
@@ -1361,17 +1309,6 @@ Return your analysis in this JSON format:
                 catch (Exception ex)
                 {
                     tests.Add(new { Service = "Polygon", Status = $"Error: {ex.Message}", Symbol = symbol });
-                }
-
-                // Test DataBento
-                try
-                {
-                    // Just test if the service is initialized properly
-                    tests.Add(new { Service = "DataBento", Status = "Configured", Symbol = symbol });
-                }
-                catch (Exception ex)
-                {
-                    tests.Add(new { Service = "DataBento", Status = $"Error: {ex.Message}", Symbol = symbol });
                 }
 
                 // Test News APIs

@@ -15,14 +15,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import (
     DEFAULT_EQUITY_SYMBOLS, DEFAULT_CRYPTO_SYMBOLS, DEFAULT_OPTION_SYMBOLS, DEFAULT_FUTURES_SYMBOLS,
-    DEFAULT_DATABENTO_FUTURES_SYMBOLS, DEFAULT_START_DATE, DEFAULT_END_DATE,
+    DEFAULT_START_DATE, DEFAULT_END_DATE,
     SUPPORTED_RESOLUTIONS
 )
 from alpaca_downloader import AlpacaDataDownloader
 from binance_downloader import BinanceDataDownloader
 # from yfinance_options_downloader import YFinanceOptionsDownloader
 from polygon_futures_downloader import PolygonFuturesDownloader
-from databento_downloader import DatabentoFuturesDownloader
 from utils import setup_logging
 
 logger = setup_logging()
@@ -38,7 +37,7 @@ def main():
     parser = argparse.ArgumentParser(description='Download financial data and convert to Lean format')
     
     # Data source arguments
-    parser.add_argument('--source', choices=['alpaca', 'binance', 'options', 'futures', 'databento', 'all'], default='all',
+    parser.add_argument('--source', choices=['alpaca', 'binance', 'options', 'futures', 'all'], default='all',
                        help='Data source to download from')
     
     # Symbol arguments
@@ -50,9 +49,6 @@ def main():
                        help='Option symbols to download (for yfinance)')
     parser.add_argument('--futures-symbols', nargs='+', default=DEFAULT_FUTURES_SYMBOLS,
                        help='Futures symbols to download (for Polygon.io)')
-    parser.add_argument('--databento-symbols', nargs='+', default=DEFAULT_DATABENTO_FUTURES_SYMBOLS,
-                       help='Futures symbols to download (for Databento)')
-    
     # Date range arguments
     parser.add_argument('--start-date', type=parse_date, default=DEFAULT_START_DATE,
                        help='Start date (YYYY-MM-DD)')
@@ -75,7 +71,6 @@ def main():
         args.crypto_symbols = ['BTCUSDT', 'ETHUSDT'][:2]
         args.option_symbols = ['SPY', 'AAPL'][:2]
         args.futures_symbols = ['ES', 'NQ'][:2]
-        args.databento_symbols = ['ES.FUT', 'NQ.FUT'][:2]
         args.start_date = datetime.now() - timedelta(days=7)
         args.end_date = datetime.now()
         logger.info("Running in test mode with limited symbols and date range")
@@ -149,23 +144,6 @@ def main():
         except Exception as e:
             logger.error(f"Error with Futures download: {str(e)}")
             if args.source == 'futures':
-                sys.exit(1)
-    
-    # Download futures data from Databento
-    if args.source in ['databento', 'all']:
-        try:
-            logger.info("Starting Databento futures data download...")
-            databento_downloader = DatabentoFuturesDownloader()
-            databento_downloader.download_symbols(
-                args.databento_symbols,
-                args.start_date,
-                args.end_date,
-                args.resolution
-            )
-            logger.info("Databento download completed")
-        except Exception as e:
-            logger.error(f"Error with Databento download: {str(e)}")
-            if args.source == 'databento':
                 sys.exit(1)
     
     logger.info("Data pipeline completed successfully!")

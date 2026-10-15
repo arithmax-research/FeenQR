@@ -118,7 +118,6 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<AlpacaService>(),
                     sp.GetRequiredService<PolygonService>(),
                     sp.GetRequiredService<MarketDataService>(),
-                    sp.GetRequiredService<DataBentoService>(),
                     sp.GetRequiredService<YFinanceNewsService>(),
                     sp.GetRequiredService<FinvizNewsService>(),
                     sp.GetRequiredService<NewsSentimentAnalysisService>(),
@@ -350,7 +349,6 @@ namespace QuantResearchAgent
                     sp.GetService<AchestService>()
                 )
             );
-            services.AddSingleton<DataBentoService>();
             services.AddSingleton<YFinanceApiService>();
             services.AddSingleton<YFinanceNewsService>();
             services.AddSingleton<FinvizNewsService>();
@@ -614,7 +612,6 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<TiingoService>(),
                     sp.GetRequiredService<YFinanceApiService>(),
                     sp.GetRequiredService<AlpacaService>(),
-                    sp.GetRequiredService<DataBentoService>(),
                     sp.GetRequiredService<ILogger<EnhancedFundamentalAnalysisService>>(),
                     sp.GetRequiredService<LLMRouterService>(),
                     sp.GetService<AchestService>()

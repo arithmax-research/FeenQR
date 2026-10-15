@@ -30,7 +30,6 @@ public class InteractiveCLI
     private readonly AlpacaService _alpacaService;
     private readonly PolygonService _polygonService;
     private readonly MarketDataService _marketDataService;
-    private readonly DataBentoService _dataBentoService;
     private readonly YFinanceNewsService _yfinanceNewsService;
     private readonly FinvizNewsService _finvizNewsService;
     private readonly NewsSentimentAnalysisService _newsSentimentService;
@@ -133,7 +132,6 @@ public class InteractiveCLI
         AlpacaService alpacaService,
         PolygonService polygonService,
         MarketDataService marketDataService,
-        DataBentoService dataBentoService,
         YFinanceNewsService yfinanceNewsService,
         FinvizNewsService finvizNewsService,
         NewsSentimentAnalysisService newsSentimentService,
@@ -235,7 +233,6 @@ public class InteractiveCLI
         _alpacaService = alpacaService;
         _polygonService = polygonService;
         _marketDataService = marketDataService;
-        _dataBentoService = dataBentoService;
         _yfinanceNewsService = yfinanceNewsService;
         _finvizNewsService = finvizNewsService;
         _newsSentimentService = newsSentimentService;
@@ -856,8 +853,6 @@ public class InteractiveCLI
             ("polygon <SYM>", "Polygon.io premium data"),
             ("polygon-news <SYM>", "Polygon.io news"),
             ("polygon-financials <SYM>", "Polygon.io financials"),
-            ("databento <SYM>", "DataBento institutional data"),
-            ("databento-futures <SYM>", "DataBento futures contracts"),
             ("iex <SYM>", "IEX Cloud exchange data"),
             ("alpha-vantage <SYM>", "Alpha Vantage global data"),
             ("fmp <SYM>", "Financial Modeling Prep data"),
@@ -1280,8 +1275,6 @@ public class InteractiveCLI
                 ("polygon <SYM>", "Polygon.io premium data"),
                 ("polygon-news <SYM>", "Polygon.io news"),
                 ("polygon-financials <SYM>", "Polygon financials"),
-                ("databento <SYM>", "DataBento institutional data"),
-                ("databento-futures <SYM>", "DataBento futures"),
                 ("alpha-vantage <SYM>", "Alpha Vantage global data"),
                 ("fmp <SYM>", "Financial Modeling Prep data"),
                 ("historical <SYM> <DAYS>", "Historical price data"),
@@ -1770,13 +1763,6 @@ public class InteractiveCLI
                     break;
                 case "polygon-financials":
                     await PolygonFinancialsCommand(parts);
-                    break;
-                case "databento":
-                case "databento-ohlcv":
-                    await DataBentoOhlcvCommand(parts);
-                    break;
-                case "databento-futures":
-                    await DataBentoFuturesCommand(parts);
                     break;
                 case "fred-series":
                     await FredSeriesCommand(parts);
@@ -3296,7 +3282,6 @@ public class InteractiveCLI
         var alpacaService = serviceProvider.GetRequiredService<AlpacaService>();
         var polygonService = serviceProvider.GetRequiredService<PolygonService>();
         var marketDataService = serviceProvider.GetRequiredService<MarketDataService>();
-        var dataBentoService = serviceProvider.GetRequiredService<DataBentoService>();
         var yfinanceNewsService = serviceProvider.GetRequiredService<YFinanceNewsService>();
         var finvizNewsService = serviceProvider.GetRequiredService<FinvizNewsService>();
         var newsSentimentService = serviceProvider.GetRequiredService<NewsSentimentAnalysisService>();
@@ -3396,7 +3381,7 @@ public class InteractiveCLI
         var paperRAGService = serviceProvider.GetRequiredService<PaperRAGService>();
         var machineLearningService = serviceProvider.GetRequiredService<MachineLearningService>();
         
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, dataBentoService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, optionsFlowService, volatilityTradingService, advancedMicrostructureService, latencyArbitrageService, optionsFlowPlugin, volatilityTradingPlugin, advancedMicrostructurePlugin, latencyArbitragePlugin, conversationalResearchPlugin, automatedReportingPlugin, marketRegimePlugin, anomalyDetectionPlugin, dynamicFactorPlugin, tradingTemplateGeneratorPlugin, alphaVantageService, financialModelingPrepService, enhancedFundamentalAnalysisService, alphaVantagePlugin, financialModelingPrepPlugin, enhancedFundamentalAnalysisPlugin, advancedRiskAnalyticsService, counterpartyRiskService, performanceAttributionService, benchmarkingService, advancedRiskAnalyticsPlugin, counterpartyRiskPlugin, performanceAttributionPlugin, benchmarkingPlugin, liveStrategyService, eventDrivenTradingService, realTimeAlertingService, complianceMonitoringService, liveStrategyPlugin, eventDrivenTradingPlugin, realTimeAlertingPlugin, complianceMonitoringPlugin, paperRAGService, machineLearningService));
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, optionsFlowService, volatilityTradingService, advancedMicrostructureService, latencyArbitrageService, optionsFlowPlugin, volatilityTradingPlugin, advancedMicrostructurePlugin, latencyArbitragePlugin, conversationalResearchPlugin, automatedReportingPlugin, marketRegimePlugin, anomalyDetectionPlugin, dynamicFactorPlugin, tradingTemplateGeneratorPlugin, alphaVantageService, financialModelingPrepService, enhancedFundamentalAnalysisService, alphaVantagePlugin, financialModelingPrepPlugin, enhancedFundamentalAnalysisPlugin, advancedRiskAnalyticsService, counterpartyRiskService, performanceAttributionService, benchmarkingService, advancedRiskAnalyticsPlugin, counterpartyRiskPlugin, performanceAttributionPlugin, benchmarkingPlugin, liveStrategyService, eventDrivenTradingService, realTimeAlertingService, complianceMonitoringService, liveStrategyPlugin, eventDrivenTradingPlugin, realTimeAlertingPlugin, complianceMonitoringPlugin, paperRAGService, machineLearningService));
     }
 
     // Alpaca Commands
@@ -4443,36 +4428,6 @@ public class InteractiveCLI
             Console.WriteLine($"  Error: {ex.Message}");
         }
         
-        // Test DataBento
-        Console.WriteLine("\nTesting DataBento API...");
-        try
-        {
-            // DataBento has delayed data - use yesterday as end date to avoid "data not available" errors
-            // Use shorter date range (3 days) to avoid timeouts
-            var start = DateTime.Now.AddDays(-3);
-            var end = DateTime.Now.AddDays(-1); // Use yesterday instead of today
-            var dataBentoData = await _dataBentoService.GetOHLCVAsync(symbol, start, end);
-            if (dataBentoData != null && dataBentoData.Any())
-            {
-                Console.WriteLine("SUCCESS: DataBento: Connected");
-                Console.WriteLine($"  Retrieved {dataBentoData.Count} data points");
-                foreach (var dataPoint in dataBentoData.Take(3)) // Show up to 3 data points
-                {
-                    Console.WriteLine($"    {dataPoint.EventTime:yyyy-MM-dd}: O=${dataPoint.Open:F2}, H=${dataPoint.High:F2}, L=${dataPoint.Low:F2}, C=${dataPoint.Close:F2}, Vol={dataPoint.Volume:N0}");
-                }
-            }
-            else
-            {
-                Console.WriteLine("FAILED: DataBento: Failed");
-                Console.WriteLine("  Possible issues: Invalid credentials, subscription limits, or data availability");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("FAILED: DataBento: Failed");
-            Console.WriteLine($"  Error: {ex.Message}");
-        }
-        
         Console.WriteLine("\nTroubleshooting Tips:");
         Console.WriteLine("1. Check API keys in appsettings.json");
         Console.WriteLine("2. Verify your internet connection");
@@ -4659,96 +4614,6 @@ public class InteractiveCLI
         catch (Exception ex)
         {
             Console.WriteLine($"Error retrieving Polygon financials: {ex.Message}");
-        }
-        
-        PrintSectionFooter();
-    }
-
-    private async Task DataBentoOhlcvCommand(string[] parts)
-    {
-        var symbol = parts.Length > 1 ? parts[1] : "AAPL";
-        var days = parts.Length > 2 && int.TryParse(parts[2], out var d) ? d : 5;
-        
-        PrintSectionHeader($"DataBento OHLCV Data - {symbol} ({days} days)");
-        
-        try
-        {
-            var start = DateTime.Now.AddDays(-days);
-            var end = DateTime.Now;
-            var ohlcvData = await _dataBentoService.GetOHLCVAsync(symbol, start, end);
-            
-            if (ohlcvData.Any())
-            {
-                Console.WriteLine($"{"Date",-12} {"Open",-10} {"High",-10} {"Low",-10} {"Close",-10} {"Volume",-12}");
-                Console.WriteLine(new string('-', 70));
-                
-                foreach (var bar in ohlcvData.Take(10))
-                {
-                    Console.WriteLine($"{bar.EventTime:yyyy-MM-dd} ${bar.Open,-9:F2} ${bar.High,-9:F2} ${bar.Low,-9:F2} ${bar.Close,-9:F2} {bar.Volume,-12:N0}");
-                }
-            }
-            else
-            {
-                Console.WriteLine("No OHLCV data available from DataBento");
-                Console.WriteLine();
-                Console.WriteLine("This might be due to:");
-                Console.WriteLine("- DataBento API authentication issues");
-                Console.WriteLine("- Invalid API key or insufficient subscription");
-                Console.WriteLine("- Symbol not available in the dataset");
-                Console.WriteLine();
-                Console.WriteLine("DataBento requires a paid subscription for most endpoints.");
-                Console.WriteLine("Visit https://databento.com for more information.");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error retrieving DataBento OHLCV: {ex.Message}");
-            Console.WriteLine("DataBento requires valid API credentials and subscription.");
-        }
-        
-        PrintSectionFooter();
-    }
-
-    private async Task DataBentoFuturesCommand(string[] parts)
-    {
-        var symbol = parts.Length > 1 ? parts[1] : "ES";
-        
-        PrintSectionHeader($"DataBento Futures Contracts - {symbol}");
-        
-        try
-        {
-            var futures = await _dataBentoService.GetFuturesContractsAsync(symbol);
-            if (futures.Any())
-            {
-                Console.WriteLine($"{"Symbol",-15} {"Description",-30} {"Start Date",-12} {"End Date",-12} {"Days to Expiry",-15}");
-                Console.WriteLine(new string('-', 85));
-                
-                foreach (var contract in futures.Take(10))
-                {
-                    Console.WriteLine($"{contract.Symbol,-15} {contract.Description,-30} {contract.StartDate:yyyy-MM-dd} {contract.EndDate:yyyy-MM-dd} {contract.DaysToExpiry,-15}");
-                }
-            }
-            else
-            {
-                // Check if it's a known invalid symbol (like individual stocks)
-                var commonInvalidSymbols = new[] { "AAPL", "GOOGL", "MSFT", "TSLA", "AMZN", "NVDA", "META" };
-                if (commonInvalidSymbols.Contains(symbol.ToUpper()))
-                {
-                    Console.WriteLine($"Symbol '{symbol}' is an individual stock, not a futures contract.");
-                    Console.WriteLine("Futures contracts are available for commodities, indices, currencies, etc.");
-                    Console.WriteLine("Try futures symbols like: ES (S&P 500), CL (Crude Oil), GC (Gold), EUR (Euro), BTC (Bitcoin), etc.");
-                }
-                else
-                {
-                    Console.WriteLine($"No futures contracts found for '{symbol}'.");
-                    Console.WriteLine("This may be due to API access limitations or the symbol not being available.");
-                    Console.WriteLine("Try common futures symbols: ES, NQ, CL, NG, GC, SI, ZB, ZN, ZS, ZC, EUR, GBP, BTC, ETH");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error retrieving DataBento futures: {ex.Message}");
         }
         
         PrintSectionFooter();

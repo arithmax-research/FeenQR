@@ -16,7 +16,6 @@ header(){ echo ""; echo -e "${CYAN}═══════════════
 # Config
 SSH_USER="${SSH_USER:-ubuntu}"
 SSH_OPTS="${SSH_OPTS:--o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=20}"
-TAR_FILE="/tmp/feenqr-deploy.tar.gz"
 REMOTE_DIR="/home/$SSH_USER/codechest/FeenQR"
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
@@ -78,38 +77,23 @@ else
   warn "Could not resolve $DOMAIN"
 fi
 
-# Create tarball
-header "Creating tarball"
+# Ensure remote directory and required config files exist
 ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
   "docker network inspect caddy-central_proxy >/dev/null 2>&1 || { echo 'Central Caddy network is missing. Start caddy-central first.' >&2; exit 1; }"
 
-tar czf "$TAR_FILE" \
-  --exclude='.git' --exclude='obj' --exclude='bin' --exclude='publish' \
-  --exclude='logs' --exclude='node_modules' --exclude='__pycache__' \
-  --exclude='.DS_Store' --exclude='.qodo' --exclude='.vscode' \
-  --exclude='.github' --exclude='*.tar.gz' --exclude='.gitignore' \
-  -C "$PROJECT_ROOT" .
-ok "Tarball created ($(du -h "$TAR_FILE" | cut -f1))"
+ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" "mkdir -p '$REMOTE_DIR'/logs '$REMOTE_DIR'/WebApp/Server/uploads"
 
-# Transfer
-header "Transferring to EC2"
-ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" "mkdir -p '$REMOTE_DIR'"
-scp $SSH_OPTS "$TAR_FILE" "$SSH_USER@$EC2_HOST:$REMOTE_DIR/"
-ok "Transfer complete"
-
-# Extract and cleanup on EC2
-header "Extracting on EC2"
-ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
-  "cd '$REMOTE_DIR' && \
-   tar xzf feenqr-deploy.tar.gz && \
-   find . -name '._*' -delete && \
-   rm -f feenqr-deploy.tar.gz && \
-   mkdir -p logs WebApp/Server/uploads"
-rm -f "$TAR_FILE"
-ok "Extracted and cleaned up (local + remote tarballs removed)"
+# Sync only config files needed to run (not source — we send the pre-built image)
+rsync -az -e "ssh $SSH_OPTS" \
+  --include='docker-compose.yml' \
+  --include='appsettings.json' \
+  --include='Scripts/' \
+  --exclude='*' \
+  "$PROJECT_ROOT/" "$SSH_USER@$EC2_HOST:$REMOTE_DIR/"
+ok "Config files synced"
 
 # Docker deploy — start Qdrant first, wait for readiness, then the rest
-header "Building and starting Qdrant (vector database)"
+header "Starting Qdrant (vector database)"
 ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
   "cd '$REMOTE_DIR' && docker compose up -d --force-recreate qdrant"
 
@@ -124,11 +108,38 @@ ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
      echo \"Waiting for Qdrant... (\$i/30)\"
      sleep 2
    done"
-info "  Building feenqr-web image"
+
+# ── Build publish/ locally, then deploy to EC2 ──────────────────────────
+header "Building publish/ locally"
+cd "$PROJECT_ROOT"
+if [ ! -d "publish" ] || [ ! -f "publish/Server.dll" ]; then
+  dotnet publish WebApp/Server/Server.csproj -c Release -o "$PROJECT_ROOT/publish" \
+    --no-restore /p:UseAppHost=false /p:UseSharedCompilation=true 2>&1 | tail -3
+fi
+ok "publish/ ready"
+
+# Compress — only the files we actually changed (exclude the .NET runtime
+# DLLs that don't change).  This cuts transfer from ~580 MB to ~40 MB.
+info "Compressing publish/..."
+PUBLISH_TAR="/tmp/feenqr-publish.tar.gz"
+tar czf "$PUBLISH_TAR" \
+  --exclude='*dotnet*' --exclude='*Microsoft*' --exclude='*System*' \
+  --exclude='*Azure*' --exclude='*NuGet*' --exclude='*.json' \
+  -C "$PROJECT_ROOT/publish" .
+ok "Compressed ($(ls -lh "$PUBLISH_TAR" | awk '{print $5}'))"
+
+info "Transferring to EC2..."
+scp $SSH_OPTS "$PUBLISH_TAR" "$SSH_USER@$EC2_HOST:/tmp/feenqr-publish.tar.gz"
+rm -f "$PUBLISH_TAR"
+ok "Transfer complete"
+
+info "Deploying into container..."
 ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
-  "cd '$REMOTE_DIR' && docker compose build feenqr-web"
-ssh $SSH_OPTS "$SSH_USER@$EC2_HOST" \
-  "cd '$REMOTE_DIR' && docker compose up -d --force-recreate feenqr-web"
+  "docker cp /tmp/feenqr-publish.tar.gz feenqr-web:/app/ && \
+   docker exec feenqr-web tar xzf /app/feenqr-publish.tar.gz -C /app/ && \
+   docker exec feenqr-web rm -f /app/feenqr-publish.tar.gz && \
+   docker restart feenqr-web && \
+   rm -f /tmp/feenqr-publish.tar.gz"
 ok "feenqr-web deployed"
 # Verify
 header "Verification"

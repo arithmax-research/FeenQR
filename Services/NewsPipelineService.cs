@@ -28,33 +28,215 @@ namespace QuantResearchAgent.Services
         private readonly HttpClient _httpClient;
         private readonly ILogger<NewsPipelineService> _logger;
         private readonly NewsPipelineConfig _config;
+        private readonly AchestService _achest;
         private readonly Dictionary<string, PipelineSearchResult> _cache = new();
 
         public NewsPipelineService(
             HttpClient httpClient,
             ILogger<NewsPipelineService> logger,
-            IOptions<NewsPipelineConfig> options)
+            IOptions<NewsPipelineConfig> options,
+            AchestService achest)
         {
             _httpClient = httpClient;
             _logger = logger;
             _config = options.Value;
+            _achest = achest;
         }
 
         public async Task<PipelineSearchResult> SearchNewsAsync(string ticker, string sourceFilter = "All", int limit = 25)
         {
-            var json = await RunPythonPipelineAsync(new[]
-            {
-                ticker,
-                "--source", sourceFilter,
-                "--max-articles", limit.ToString(),
-                "--word-limit", _config.WordLimitPerArticle.ToString(),
-                "--pretty"
-            });
+            var requestedLimit = Math.Clamp(limit, 1, 100);
+            var providerTasks = new List<Task<List<PipelineArticle>>>();
 
-            var result = ParseSearchResult(json, ticker, sourceFilter);
+            if (ShouldQueryNewsApi(sourceFilter))
+            {
+                providerTasks.Add(GetNewsApiArticlesAsync(ticker, sourceFilter, requestedLimit));
+            }
+
+            if (ShouldQueryAchest(sourceFilter))
+            {
+                providerTasks.Add(GetAchestArticlesAsync(ticker, sourceFilter, requestedLimit));
+            }
+
+            var providerResults = await Task.WhenAll(providerTasks);
+            var articles = providerResults
+                .SelectMany(items => items)
+                .GroupBy(article => string.IsNullOrWhiteSpace(article.Url) ? article.Title : article.Url, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .OrderByDescending(article => article.PublishedDate)
+                .Take(requestedLimit)
+                .ToList();
+
+            var result = new PipelineSearchResult
+            {
+                Ticker = ticker,
+                SourceFilter = sourceFilter,
+                Articles = articles,
+                TotalFound = articles.Count,
+                SearchedAt = DateTime.UtcNow
+            };
             _cache[ticker] = result;
             return result;
         }
+
+        private async Task<List<PipelineArticle>> GetNewsApiArticlesAsync(string ticker, string sourceFilter, int limit)
+        {
+            var articles = new List<PipelineArticle>();
+            if (string.IsNullOrWhiteSpace(_config.NewsApiKey))
+            {
+                _logger.LogDebug("NewsAPI search skipped because NewsApi:ApiKey is not configured");
+                return articles;
+            }
+
+            var query = $"\"{ticker}\" stock";
+            var url = $"https://newsapi.org/v2/everything?q={Uri.EscapeDataString(query)}&language=en&sortBy=publishedAt&pageSize={limit}&apiKey={Uri.EscapeDataString(_config.NewsApiKey)}";
+
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.UserAgent.ParseAdd("FeenQR/1.0 (+https://feen-qr.misango.me)");
+                using var response = await _httpClient.SendAsync(request);
+                var body = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("NewsAPI search failed with status {StatusCode}: {ResponseBody}", response.StatusCode, body);
+                    return articles;
+                }
+
+                using var document = JsonDocument.Parse(body);
+                if (!document.RootElement.TryGetProperty("articles", out var items) || items.ValueKind != JsonValueKind.Array)
+                {
+                    return articles;
+                }
+
+                foreach (var item in items.EnumerateArray())
+                {
+                    var provider = GetString(item, "source", "name");
+                    if (!IsNewsApiFilter(sourceFilter) && !MatchesSourceFilter(provider, sourceFilter))
+                    {
+                        continue;
+                    }
+
+                    var articleUrl = GetString(item, "url");
+                    var title = GetString(item, "title");
+                    if (string.IsNullOrWhiteSpace(articleUrl) || string.IsNullOrWhiteSpace(title))
+                    {
+                        continue;
+                    }
+
+                    articles.Add(new PipelineArticle
+                    {
+                        Title = title,
+                        Summary = GetString(item, "description"),
+                        Url = articleUrl,
+                        Source = "NewsAPI",
+                        Provider = provider,
+                        Author = GetString(item, "author"),
+                        ImageUrl = GetString(item, "urlToImage"),
+                        PublishedDate = ParseDateTime(GetString(item, "publishedAt"))
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Direct NewsAPI search failed for {Ticker}", ticker);
+            }
+
+            return articles;
+        }
+
+        private async Task<List<PipelineArticle>> GetAchestArticlesAsync(string ticker, string sourceFilter, int limit)
+        {
+            var articles = new List<PipelineArticle>();
+            var payload = await _achest.GetNewsAsync(ticker);
+            if (payload == null || payload.Value.ValueKind != JsonValueKind.Array)
+            {
+                return articles;
+            }
+
+            foreach (var item in payload.Value.EnumerateArray().Take(limit))
+            {
+                var provider = GetString(item, "source");
+                if (!IsAchestFilter(sourceFilter) && !MatchesSourceFilter(provider, sourceFilter))
+                {
+                    continue;
+                }
+
+                var articleUrl = GetString(item, "realUrl");
+                if (string.IsNullOrWhiteSpace(articleUrl))
+                {
+                    articleUrl = GetString(item, "url");
+                }
+
+                var title = GetString(item, "headline");
+                if (string.IsNullOrWhiteSpace(articleUrl) || string.IsNullOrWhiteSpace(title))
+                {
+                    continue;
+                }
+
+                articles.Add(new PipelineArticle
+                {
+                    Id = GetString(item, "id"),
+                    Title = title,
+                    Summary = GetString(item, "summary"),
+                    Url = articleUrl,
+                    Source = "Achest/EulerPool",
+                    Provider = provider,
+                    ImageUrl = GetString(item, "image"),
+                    PublishedDate = ParseUnixDateTime(GetString(item, "datetime"))
+                });
+            }
+
+            return articles;
+        }
+
+        private static bool ShouldQueryNewsApi(string sourceFilter)
+                => IsNewsApiFilter(sourceFilter)
+                    || string.IsNullOrWhiteSpace(sourceFilter)
+                    || sourceFilter.Equals("All", StringComparison.OrdinalIgnoreCase);
+
+        private static bool ShouldQueryAchest(string sourceFilter)
+                => IsAchestFilter(sourceFilter)
+                    || string.IsNullOrWhiteSpace(sourceFilter)
+                    || sourceFilter.Equals("All", StringComparison.OrdinalIgnoreCase)
+                    || sourceFilter.Equals("Yahoo", StringComparison.OrdinalIgnoreCase);
+
+          private static bool IsNewsApiFilter(string sourceFilter)
+                => sourceFilter.Equals("NewsAPI", StringComparison.OrdinalIgnoreCase)
+                    || sourceFilter.Equals("News API", StringComparison.OrdinalIgnoreCase);
+
+          private static bool IsAchestFilter(string sourceFilter)
+                => sourceFilter.Equals("Achest", StringComparison.OrdinalIgnoreCase)
+                    || sourceFilter.Equals("EulerPool", StringComparison.OrdinalIgnoreCase)
+                    || sourceFilter.Equals("Achest/EulerPool", StringComparison.OrdinalIgnoreCase);
+
+        private static bool MatchesSourceFilter(string provider, string sourceFilter)
+            => string.IsNullOrWhiteSpace(sourceFilter)
+               || sourceFilter.Equals("All", StringComparison.OrdinalIgnoreCase)
+               || provider.Contains(sourceFilter, StringComparison.OrdinalIgnoreCase);
+
+        private static string GetString(JsonElement item, string property, string? nestedProperty = null)
+        {
+            if (!item.TryGetProperty(property, out var value))
+            {
+                return string.Empty;
+            }
+
+            if (nestedProperty != null && value.ValueKind == JsonValueKind.Object)
+            {
+                return value.TryGetProperty(nestedProperty, out var nested) ? nested.GetString() ?? string.Empty : string.Empty;
+            }
+
+            return value.ValueKind == JsonValueKind.String ? value.GetString() ?? string.Empty : value.ToString();
+        }
+
+        private static DateTime ParseDateTime(string value)
+            => DateTime.TryParse(value, out var parsed) ? parsed.ToUniversalTime() : DateTime.UtcNow;
+
+        private static DateTime ParseUnixDateTime(string value)
+            => long.TryParse(value, out var seconds)
+                ? DateTimeOffset.FromUnixTimeSeconds(seconds).UtcDateTime
+                : DateTime.UtcNow;
 
         public async Task<string> ScrapeArticleAsync(string url)
         {

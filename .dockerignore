@@ -34,10 +34,16 @@ YOUR_CREDENTIALS.json
 *.tar
 build/
 tmp/
-# Build artifacts (but allow Release/publish for fast deployments)
+# Build artifacts
 **/bin/Debug/
 **/obj/
 **/out/
+
+# Huge root-level dirs that slow context loading + build
+publish/
+General_Transitions/
+FeenQR.Web/
+home/
 
 # Python
 **/__pycache__/

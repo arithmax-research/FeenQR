@@ -1,6 +1,3 @@
-@using System.Net.Http.Json
-@inject HttpClient Http
-
 <div class="technical-widget">
     <h3 class="widget-title">Technical Indicators</h3>
     
@@ -65,51 +62,9 @@
     [Parameter]
     public string Symbol { get; set; } = "AAPL";
 
-    private TechnicalData? technicalData;
-    private bool isLoading = true;
-    private string? error;
-
-    protected override async Task OnParametersSetAsync()
-    {
-        await LoadTechnicalData();
-    }
-
-    private async Task LoadTechnicalData()
-    {
-        isLoading = true;
-        error = null;
-        
-        try
-        {
-            // For now, use market data to build technical indicators
-            // In production, you'd have a dedicated technical analysis endpoint
-            var response = await Http.GetAsync($"/api/MarketData/polygon/aggregates/{Symbol}?timespan=day");
-            if (response.IsSuccessStatusCode)
-            {
-                var bars = await response.Content.ReadFromJsonAsync<List<PolygonBar>>();
-                if (bars != null && bars.Count > 0)
-                {
-                    technicalData = CalculateTechnicalIndicators(bars);
-                }
-                else
-                {
-                    error = "No historical data available";
-                }
-            }
-            else
-            {
-                error = $"Failed to load technical data for {Symbol}";
-            }
-        }
-        catch (Exception ex)
-        {
-            error = $"Error: {ex.Message}";
-        }
-        finally
-        {
-            isLoading = false;
-        }
-    }
+    private TechnicalData? technicalData = null;
+    private bool isLoading = false;
+    private string? error = "Technical data is disabled";
 
     private TechnicalData CalculateTechnicalIndicators(List<PolygonBar> bars)
     {

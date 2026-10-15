@@ -12,7 +12,7 @@ namespace QuantResearchAgent.Services;
 /// <summary>
 /// Low-level C# client for the Arithmax Chest (achest) API.
 /// Mirrors the Python <c>achest.MarketDataClient</c>: one HTTP API that fronts
-/// every data provider (Yahoo, Binance, Polygon, DataBento, Eulerpool, FRED,
+/// every data provider (Yahoo, Binance, Polygon, Eulerpool, FRED,
 /// Alpha Vantage, Tiingo, ...).
 ///
 /// Endpoints used:
@@ -71,8 +71,6 @@ public class AchestClient : IDisposable
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
         }
 
-        _logger.LogInformation("AchestClient initialized (baseUrl={BaseUrl}, authenticated={Authenticated})",
-            BaseUrl, HasToken);
     }
 
     // ── Health / discovery ─────────────────────────────────────────────

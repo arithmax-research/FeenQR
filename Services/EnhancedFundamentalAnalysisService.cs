@@ -11,7 +11,7 @@ namespace QuantResearchAgent.Services;
 /// <summary>
 /// Enhanced Fundamental Analysis service that combines data from multiple free sources
 /// Provides comprehensive fundamental analysis with integrated data sources
-/// Fallback order: FMP -> Alpha Vantage -> Yahoo Finance -> Alpaca -> DataBento
+/// Fallback order: FMP -> Alpha Vantage -> Yahoo Finance -> Alpaca
 /// </summary>
 public class EnhancedFundamentalAnalysisService
 {
@@ -21,7 +21,6 @@ public class EnhancedFundamentalAnalysisService
     private readonly TiingoService _tiingoService;
     private readonly YFinanceApiService _yfinanceService;
     private readonly AlpacaService _alpacaService;
-    private readonly DataBentoService _databentoService;
     private readonly AchestService? _achestService;
     private readonly ILogger<EnhancedFundamentalAnalysisService> _logger;
     private readonly LLMRouterService _llmService;
@@ -33,7 +32,6 @@ public class EnhancedFundamentalAnalysisService
         TiingoService tiingoService,
         YFinanceApiService yfinanceService,
         AlpacaService alpacaService,
-        DataBentoService databentoService,
         ILogger<EnhancedFundamentalAnalysisService> logger,
         LLMRouterService llmService,
         AchestService? achestService = null)
@@ -44,7 +42,6 @@ public class EnhancedFundamentalAnalysisService
         _tiingoService = tiingoService;
         _yfinanceService = yfinanceService;
         _alpacaService = alpacaService;
-        _databentoService = databentoService;
         _logger = logger;
         _llmService = llmService;
         _achestService = achestService;
@@ -61,7 +58,7 @@ public class EnhancedFundamentalAnalysisService
 
     /// <summary>
     /// Get comprehensive company overview combining multiple data sources
-    /// Fallback order: FMP -> Finnhub -> Tiingo -> Alpha Vantage -> Yahoo Finance -> Alpaca -> DataBento
+    /// Fallback order: FMP -> Finnhub -> Tiingo -> Alpha Vantage -> Yahoo Finance -> Alpaca
     /// </summary>
     public async Task<EnhancedCompanyOverview> GetComprehensiveCompanyOverviewAsync(string symbol)
     {

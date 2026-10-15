@@ -188,7 +188,6 @@ builder.Services.AddSingleton<TiingoService>();
 builder.Services.AddSingleton<YahooFinanceService>();
 builder.Services.AddSingleton<YFinanceApiService>();
 builder.Services.AddSingleton<PolygonService>();
-builder.Services.AddSingleton<DataBentoService>();
 builder.Services.AddSingleton<DeepSeekService>();
 builder.Services.AddSingleton<OpenAIService>();
 
@@ -275,7 +274,6 @@ builder.Services.AddSingleton<EnhancedFundamentalAnalysisService>(sp =>
         sp.GetRequiredService<TiingoService>(),
         sp.GetRequiredService<YFinanceApiService>(),
         sp.GetRequiredService<AlpacaService>(),
-        sp.GetRequiredService<DataBentoService>(),
         sp.GetRequiredService<ILogger<EnhancedFundamentalAnalysisService>>(),
         sp.GetRequiredService<LLMRouterService>(),
         sp.GetService<AchestService>()
@@ -367,8 +365,6 @@ else
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
-
-app.UseHttpsRedirection();
 
 // Configure static files with custom MIME types for Blazor WASM
 var provider = new FileExtensionContentTypeProvider();

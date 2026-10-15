@@ -18,11 +18,6 @@ BINANCE_SECRET_KEY = os.getenv('BINANCE_SECRET_KEY', '')
 # Polygon.io Configuration
 POLYGON_API_KEY = os.getenv('POLYGON_API_KEY', '')
 
-# Databento Configuration
-DATA_BENTO_API_KEY = os.getenv('DATA_BENTO_API_KEY', '')
-DATA_BENTO_USER_ID = os.getenv('DATA_BENTO_USER_ID', '')
-DATA_BENTO_PROD_NAME = os.getenv('DATA_BENTO_PROD_NAME', 'prod-001')
-
 # Data Configuration
 # Write into repo-root data so LEAN docker mount (/Data) and downloader output stay aligned.
 DATA_ROOT = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data')
@@ -42,8 +37,6 @@ DEFAULT_EQUITY_SYMBOLS = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN', 'META
 DEFAULT_CRYPTO_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'BNBUSDT', 'SOLUSDT', 'AVAXUSDT']
 DEFAULT_OPTION_SYMBOLS = ['SPY', 'QQQ', 'AAPL', 'TSLA', 'MSFT']  # Popular options symbols
 DEFAULT_FUTURES_SYMBOLS = ['ES', 'CL', 'ZS']  # Working futures symbols (Polygon.io free tier)
-DEFAULT_DATABENTO_FUTURES_SYMBOLS = ['ES.FUT', 'NQ.FUT', 'YM.FUT', 'RTY.FUT', 'CL.FUT', 'GC.FUT', 'SI.FUT', 'ZB.FUT', 'ZN.FUT', 'NG.FUT']  # Databento futures symbols
-
 # Lean format configuration
 LEAN_TIME_FORMAT = "%Y%m%d"
 LEAN_PRICE_MULTIPLIER = 10000  # Lean uses deci-cents for equity prices

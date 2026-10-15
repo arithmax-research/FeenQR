@@ -490,16 +490,10 @@
     private string chatInput = "";
     private string customSymbolInput = "";
     
-    // API Data Models
-    private PolygonQuoteData? polygonQuote;
-    private AlpacaMarketData? alpacaData;
-    private DatabentoData? databentoData;
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await LoadAllData();
             await InitializeGridStack();
             await InitializeCharts();
             await SetupSymbolSync();
@@ -595,7 +589,6 @@
 
     private async Task UpdateAllWidgets()
     {
-        await LoadAllData();
         await InitializeCharts();
         StateHasChanged();
     }
@@ -636,60 +629,6 @@
         if (e.Key == "Enter")
         {
             await UpdateFinancialsSymbol();
-        }
-    }
-
-    private async Task LoadAllData()
-    {
-        try
-        {
-            // Load data from all APIs in parallel
-            var polygonTask = LoadPolygonQuote();
-            var alpacaTask = LoadAlpacaData();
-            var databentoTask = LoadDatabentoData();
-
-            await Task.WhenAll(polygonTask, alpacaTask, databentoTask);
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading data: {ex.Message}");
-        }
-    }
-
-    private async Task LoadPolygonQuote()
-    {
-        try
-        {
-            polygonQuote = await Http.GetFromJsonAsync<PolygonQuoteData>($"/api/MarketData/polygon/quote/{currentSymbol}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading Polygon quote: {ex.Message}");
-        }
-    }
-
-    private async Task LoadAlpacaData()
-    {
-        try
-        {
-            alpacaData = await Http.GetFromJsonAsync<AlpacaMarketData>($"/api/MarketData/alpaca/quote/{currentSymbol}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading Alpaca data: {ex.Message}");
-        }
-    }
-
-    private async Task LoadDatabentoData()
-    {
-        try
-        {
-            databentoData = await Http.GetFromJsonAsync<DatabentoData>($"/api/MarketData/databento/{currentSymbol}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading Databento data: {ex.Message}");
         }
     }
 
@@ -751,12 +690,6 @@
         public decimal? Close { get; set; }
     }
 
-    public class DatabentoData
-    {
-        public decimal? Price { get; set; }
-        public long? Volume { get; set; }
-        public string Timestamp { get; set; } = "";
-    }
 
     private async void SwitchTab(string tab)
     {
