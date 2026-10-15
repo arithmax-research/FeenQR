@@ -19,6 +19,7 @@ bin/
 **/strategies/generated/
 **/data/
 **/logs/
+**/obj/**
 
 /General_Transitions/
 /Pitchdeck/

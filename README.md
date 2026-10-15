@@ -179,10 +179,11 @@ The system is built around Microsoft Semantic Kernel, providing:
    dotnet build
    ```
 
-5. **Run the Agent**
+5. **Run the Server (web app)**
    ```bash
-   dotnet run
+   dotnet run --project WebApp/Server/Server.csproj
    ```
+   > The console agent (CLI) is archived and no longer built — see `Archive/Cli/README.md`.
 
 ### Web Frontend
 
@@ -190,11 +191,11 @@ The application now includes a web-based frontend built with Blazor Server, prov
 
 **To run with the web frontend:**
 ```bash
-# Using the launcher script
-./launch.sh web
+# Using the launcher script (web is the default mode)
+./launch.sh
 
 # Or directly with dotnet
-dotnet run -- --web
+dotnet run --project WebApp/Server/Server.csproj
 ```
 
 The web interface will be available at `http://localhost:5000` with:

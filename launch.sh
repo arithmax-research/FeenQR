@@ -64,10 +64,10 @@ start_qdrant() {
 # Start Qdrant for both modes
 start_qdrant
 
-# Check for mode argument
-MODE="cli"
-if [ "$1" = "web" ]; then
-    MODE="web"
+# Check for mode argument (web is the default; the CLI is archived - see Archive/Cli/README.md)
+MODE="web"
+if [ "$1" = "cli" ]; then
+    MODE="cli"
 fi
 
 if [ "$MODE" = "web" ]; then
@@ -83,17 +83,9 @@ if [ "$MODE" = "web" ]; then
     cd WebApp/Server
     dotnet run
 else
-    echo " Building backend..."
-    dotnet build QuantResearchAgent.csproj
-
-    if [ $? -ne 0 ]; then
-        echo " Backend build failed. Please check for errors."
-        exit 1
-    fi
-
-    echo " Backend built successfully"
+    echo " The CLI has been archived and is no longer built (see Archive/Cli/README.md)."
+    echo " Use the web interface instead:  ./launch.sh web"
     echo ""
-    echo " Starting CLI interface..."
-    echo ""
-    dotnet run --project QuantResearchAgent.csproj
+    echo " To restore the CLI, follow the 'How to restore it' steps in Archive/Cli/README.md."
+    exit 1
 fi

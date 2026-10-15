@@ -3,10 +3,16 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 #  EC2-OPTIMISED MULTI-STAGE BUILD
 #
-#  Why it was slow (~22 min): QuantResearchAgent.csproj pulls in 35+ heavy
+#  Why it was slow (~22 min): QuantResearchAgent.csproj pulled in 35+ heavy
 #  packages (AngleSharp, PdfPig, NAudio, SemanticKernel, ML frameworks, etc.)
 #  and 228 source files. The WebApp Server references this project, forcing a
 #  full recompile on each build.
+#
+#  Update (2026-10-15): the console CLI (Program.cs, InteractiveCLI.cs,
+#  ApiTester.cs, Core/UIHelper.cs) is archived under Archive/Cli/ and excluded
+#  from compilation, and its CLI-only / unused packages (Terminal.Gui,
+#  Spectre.Console, NAudio, Microsoft.ML.OnnxRuntime) were dropped.
+#  ~14,100 lines and ~200 MB less per publish; see Archive/Cli/README.md.
 #
 #  Fix: compile QuantResearchAgent ONCE as a separate Docker stage (cached).
 #  The WebApp stage copies the pre-built artifacts and only compiles the
