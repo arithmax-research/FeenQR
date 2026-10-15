@@ -1195,6 +1195,94 @@
                     </div>
                 </div>
                 <div class="analysis-content">
+                    @if (isLoadingRedditSocial)
+                    {
+                        <div style="text-align: center; padding: 1rem; color: #9ca3af; font-size: 0.8rem;">
+                            <p style="margin: 0;">Loading Eulerpool social sentiment via achest...</p>
+                        </div>
+                    }
+                    else if (redditSocialSentiment is not null && ((System.Text.Json.JsonElement)redditSocialSentiment).ValueKind == System.Text.Json.JsonValueKind.Object)
+                    {
+                        var social = (System.Text.Json.JsonElement)redditSocialSentiment;
+                        <div class="sentiment-card" style="margin-bottom: 1.5rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap;">
+                                <h3 style="color: #ffffff; margin: 0; font-size: 1rem;">Eulerpool Reddit Social Sentiment</h3>
+                                <span style="color: #9ca3af; font-size: 0.7rem;">achest &rarr; markets.social_sentiment</span>
+                            </div>
+
+                            @if (!GetBoolProperty(social, "available"))
+                            {
+                                <p style="color: #f59e0b; margin: 0.75rem 0 0 0; font-size: 0.85rem;">
+                                    @(string.IsNullOrWhiteSpace(GetStringProperty(social, "message")) ? "No aggregated social sentiment returned for this ticker." : GetStringProperty(social, "message"))
+                                </p>
+                            }
+                            else
+                            {
+                                <div class="sentiment-score" style="margin-top: 0.75rem;">
+                                    <span class="score-badge @GetSentimentClass(GetStringProperty(social, "sentiment"))">
+                                        @GetStringProperty(social, "sentiment")
+                                    </span>
+                                    <span style="color: #9ca3af; font-size: 0.8rem;">
+                                        @GetStringProperty(social, "fromDate") &rarr; @GetStringProperty(social, "toDate") (@GetIntProperty(social, "days") days)
+                                    </span>
+                                </div>
+
+                                <div class="metric-grid" style="margin-top: 1rem;">
+                                    <div class="metric-card">
+                                        <div class="metric-label">Avg score</div>
+                                        <div class="metric-value">@GetDoubleProperty(social, "averageSentimentScore").ToString("F3")</div>
+                                    </div>
+                                    <div class="metric-card">
+                                        <div class="metric-label">Mentions</div>
+                                        <div class="metric-value">@GetIntProperty(social, "totalMentions")</div>
+                                    </div>
+                                    <div class="metric-card">
+                                        <div class="metric-label">Bullish mentions</div>
+                                        <div class="metric-value" style="color: #10b981;">@GetIntProperty(social, "totalBullish")</div>
+                                    </div>
+                                    <div class="metric-card">
+                                        <div class="metric-label">Bearish mentions</div>
+                                        <div class="metric-value" style="color: #ef4444;">@GetIntProperty(social, "totalBearish")</div>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; font-size: 0.8rem; color: #9ca3af;">
+                                    <span>Trend: <strong style="color: #e5e7eb;">@GetStringProperty(social, "sentimentTrend")</strong></span>
+                                    <span>Mentions: <strong style="color: #e5e7eb;">@GetStringProperty(social, "mentionTrend")</strong> (@GetDoubleProperty(social, "mentionChangePercent").ToString("F1")%)</span>
+                                    <span>Rank: <strong style="color: #e5e7eb;">@GetIntProperty(social, "latestRank")</strong>@(GetBoolProperty(social, "trending") ? " - trending" : "")</span>
+                                    <span>Bullish / bearish signals: <strong style="color: #e5e7eb;">@GetIntProperty(social, "totalBullish") / @GetIntProperty(social, "totalBearish")</strong></span>
+                                    <span>Bullish share of signals: <strong style="color: #e5e7eb;">@((GetDoubleProperty(social, "bullishShare") * 100).ToString("F1"))%</strong></span>
+                                </div>
+
+                                @if (HasProperty(social, "series") && GetArrayLength(social, "series") > 0 && social.TryGetProperty("series", out var socialSeries))
+                                {
+                                    <div style="margin-top: 1rem;">
+                                        <div style="color: #9ca3af; font-size: 0.7rem; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em;">Daily mentions &amp; sentiment (newest first)</div>
+                                        <div style="color: #6b7280; font-size: 0.68rem; margin-bottom: 0.5rem;">Eulerpool counts bullish/bearish mentions independently of the post count, so they are not a subset of it.</div>
+                                        <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                                            @foreach (var socialRow in socialSeries.EnumerateArray().Take(10))
+                                            {
+                                                var socialScore = GetDoubleProperty(socialRow, "sentimentScore");
+                                                var socialLabel = socialScore >= 0.15 ? "Bullish" : socialScore <= -0.15 ? "Bearish" : "Neutral";
+                                                <div style="display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; padding: 0.35rem 0.5rem; border-radius: 4px; background: rgba(255, 255, 255, 0.03);">
+                                                    <span style="color: #e5e7eb; min-width: 5.5rem;">@GetStringProperty(socialRow, "date")</span>
+                                                    <span style="color: #9ca3af; min-width: 6rem;">@GetIntProperty(socialRow, "mentions") mentions</span>
+                                                    <span style="color: #10b981; min-width: 2.5rem;">+@GetIntProperty(socialRow, "bullish")</span>
+                                                    <span style="color: #ef4444; min-width: 2.5rem;">-@GetIntProperty(socialRow, "bearish")</span>
+                                                    <span class="score-badge @GetSentimentClass(socialLabel)" style="padding: 0.1rem 0.45rem;">@socialScore.ToString("F2")</span>
+                                                    @if (GetIntProperty(socialRow, "rank") > 0)
+                                                    {
+                                                        <span style="color: #9ca3af;">rank @GetIntProperty(socialRow, "rank")</span>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    }
+
                     @if (isLoading)
                     {
                         <div style="text-align: center; padding: 3rem; color: #9ca3af;">
@@ -1516,10 +1604,12 @@
     private dynamic? symbolSentiment;
     private dynamic? marketSentiment;
     private dynamic? redditSentiment;
+    private dynamic? redditSocialSentiment;
     private List<dynamic>? trendingSymbols;
     private List<dynamic>? comparisonResults;
     private dynamic? marketPulse;
     private bool isClearingRedditArchive;
+    private bool isLoadingRedditSocial;
 
     private void SwitchTab(string tab)
     {
@@ -1602,6 +1692,10 @@
         redditSentiment = null;
         StateHasChanged();
 
+        // achest/Eulerpool social sentiment (markets.social_sentiment) is fetched in parallel with
+        // the Reddit scrape so both sources can be shown side by side.
+        var socialTask = LoadRedditSocialSentimentAsync();
+
         try
         {
             var response = await Http.GetAsync($"api/sentiment/reddit/{redditSymbol}?postsToAnalyze=50");
@@ -1617,6 +1711,42 @@
         finally
         {
             isLoading = false;
+            StateHasChanged();
+        }
+
+        await socialTask;
+    }
+
+    /// <summary>
+    /// Loads Reddit/social sentiment aggregated by Eulerpool (markets.social_sentiment) through
+    /// achest: mention volume, bullish/bearish split, sentiment score and trending rank.
+    /// </summary>
+    private async Task LoadRedditSocialSentimentAsync()
+    {
+        if (string.IsNullOrWhiteSpace(redditSymbol))
+        {
+            return;
+        }
+
+        isLoadingRedditSocial = true;
+        redditSocialSentiment = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.GetAsync($"api/sentiment/reddit-social/{Uri.EscapeDataString(redditSymbol.Trim())}?days=30");
+            if (response.IsSuccessStatusCode)
+            {
+                redditSocialSentiment = await response.Content.ReadFromJsonAsync<dynamic>();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingRedditSocial = false;
             StateHasChanged();
         }
     }
@@ -1831,6 +1961,28 @@
         catch
         {
             return 0;
+        }
+    }
+    
+    private bool GetBoolProperty(System.Text.Json.JsonElement element, string propertyName)
+    {
+        try
+        {
+            if (element.TryGetProperty(propertyName, out var prop))
+            {
+                return prop.ValueKind switch
+                {
+                    System.Text.Json.JsonValueKind.True => true,
+                    System.Text.Json.JsonValueKind.False => false,
+                    System.Text.Json.JsonValueKind.String => bool.TryParse(prop.GetString(), out var parsed) && parsed,
+                    _ => false
+                };
+            }
+            return false;
+        }
+        catch
+        {
+            return false;
         }
     }
     

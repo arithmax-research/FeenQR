@@ -121,6 +121,7 @@ public class InteractiveCLI
     private readonly ComplianceMonitoringPlugin _complianceMonitoringPlugin;
     private readonly PaperRAGService _paperRAGService;
     private readonly MachineLearningService _machineLearningService;
+    private readonly AchestService _achestService;
     
     public InteractiveCLI(
         Kernel kernel, 
@@ -222,7 +223,8 @@ public class InteractiveCLI
         RealTimeAlertingPlugin realTimeAlertingPlugin,
         ComplianceMonitoringPlugin complianceMonitoringPlugin,
         PaperRAGService paperRAGService,
-        MachineLearningService machineLearningService)
+        MachineLearningService machineLearningService,
+        AchestService achestService)
     {
         _kernel = kernel;
         _orchestrator = orchestrator;
@@ -324,6 +326,7 @@ public class InteractiveCLI
         _complianceMonitoringPlugin = complianceMonitoringPlugin;
         _paperRAGService = paperRAGService;
         _machineLearningService = machineLearningService;
+        _achestService = achestService;
     }
 
     public async Task RunAsync(string[]? args = null)
@@ -658,6 +661,7 @@ public class InteractiveCLI
         var commands = new List<(string command, string description)>
         {
             ("reddit-sentiment <SYM>", "Reddit sentiment analysis"),
+            ("social-sentiment <SYM>", "Reddit social sentiment via achest"),
             ("reddit-scrape <SYM>", "Scrape Reddit discussions"),
             ("reddit-finance-trending", "Trending on finance subreddits"),
             ("reddit-finance-search <QUERY>", "Search finance subreddits"),
@@ -1459,6 +1463,7 @@ public class InteractiveCLI
             ("Social Media & Sentiment", "magenta1", new List<(string, string)>
             {
                 ("reddit-sentiment <SYM>", "Reddit sentiment"),
+                ("social-sentiment <SYM>", "Social sentiment via achest"),
                 ("reddit-scrape <SYM>", "Reddit scraping"),
                 ("reddit-finance-trending", "Trending on finance subs"),
                 ("reddit-finance-search <QUERY>", "Search finance subs"),
@@ -1846,6 +1851,10 @@ public class InteractiveCLI
                     break;
                 case "reddit-sentiment":
                     await RedditSentimentCommand(parts);
+                    break;
+                case "social-sentiment":
+                case "reddit-social":
+                    await SocialSentimentCommand(parts);
                     break;
                 case "reddit-scrape":
                     await RedditScrapeCommand(parts);
@@ -3380,8 +3389,9 @@ public class InteractiveCLI
         var complianceMonitoringPlugin = serviceProvider.GetRequiredService<ComplianceMonitoringPlugin>();
         var paperRAGService = serviceProvider.GetRequiredService<PaperRAGService>();
         var machineLearningService = serviceProvider.GetRequiredService<MachineLearningService>();
+        var achestService = serviceProvider.GetRequiredService<AchestService>();
         
-        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, optionsFlowService, volatilityTradingService, advancedMicrostructureService, latencyArbitrageService, optionsFlowPlugin, volatilityTradingPlugin, advancedMicrostructurePlugin, latencyArbitragePlugin, conversationalResearchPlugin, automatedReportingPlugin, marketRegimePlugin, anomalyDetectionPlugin, dynamicFactorPlugin, tradingTemplateGeneratorPlugin, alphaVantageService, financialModelingPrepService, enhancedFundamentalAnalysisService, alphaVantagePlugin, financialModelingPrepPlugin, enhancedFundamentalAnalysisPlugin, advancedRiskAnalyticsService, counterpartyRiskService, performanceAttributionService, benchmarkingService, advancedRiskAnalyticsPlugin, counterpartyRiskPlugin, performanceAttributionPlugin, benchmarkingPlugin, liveStrategyService, eventDrivenTradingService, realTimeAlertingService, complianceMonitoringService, liveStrategyPlugin, eventDrivenTradingPlugin, realTimeAlertingPlugin, complianceMonitoringPlugin, paperRAGService, machineLearningService));
+        return Task.FromResult(new InteractiveCLI(kernel, orchestrator, logger, comprehensiveAgent, researchAgent, yahooFinanceService, alpacaService, polygonService, marketDataService, yfinanceNewsService, finvizNewsService, newsSentimentService, redditScrapingService, portfolioOptimizationService, socialMediaScrapingService, webDataExtractionService, reportGenerationService, satelliteImageryAnalysisService, llmService, technicalAnalysisService, aiAssistantService, tradingTemplateGeneratorAgent, statisticalTestingService, timeSeriesAnalysisService, cointegrationAnalysisService, forecastingService, featureEngineeringService, modelValidationService, factorModelService, advancedOptimizationService, advancedRiskService, secFilingsService, earningsCallService, supplyChainService, orderBookAnalysisService, marketImpactService, executionService, monteCarloService, strategyBuilderService, notebookService, dataValidationService, corporateActionService, timezoneService, fredService, worldBankService, advancedAlpacaService, factorResearchService, academicResearchService, autoMLService, modelInterpretabilityService, reinforcementLearningService, fixService, webIntelligenceService, patentAnalysisService, federalReserveService, globalEconomicService, geopoliticalRiskService, webIntelligencePlugin, patentAnalysisPlugin, federalReservePlugin, globalEconomicPlugin, optionsFlowService, volatilityTradingService, advancedMicrostructureService, latencyArbitrageService, optionsFlowPlugin, volatilityTradingPlugin, advancedMicrostructurePlugin, latencyArbitragePlugin, conversationalResearchPlugin, automatedReportingPlugin, marketRegimePlugin, anomalyDetectionPlugin, dynamicFactorPlugin, tradingTemplateGeneratorPlugin, alphaVantageService, financialModelingPrepService, enhancedFundamentalAnalysisService, alphaVantagePlugin, financialModelingPrepPlugin, enhancedFundamentalAnalysisPlugin, advancedRiskAnalyticsService, counterpartyRiskService, performanceAttributionService, benchmarkingService, advancedRiskAnalyticsPlugin, counterpartyRiskPlugin, performanceAttributionPlugin, benchmarkingPlugin, liveStrategyService, eventDrivenTradingService, realTimeAlertingService, complianceMonitoringService, liveStrategyPlugin, eventDrivenTradingPlugin, realTimeAlertingPlugin, complianceMonitoringPlugin, paperRAGService, machineLearningService, achestService));
     }
 
     // Alpaca Commands
@@ -4976,6 +4986,73 @@ public class InteractiveCLI
             }
         }
         
+        PrintSectionFooter();
+    }
+
+    /// <summary>
+    /// Aggregated Reddit/social sentiment for a ticker from Eulerpool's
+    /// <c>markets.social_sentiment</c> table, served through achest. Unlike
+    /// <see cref="RedditSentimentCommand"/> this does not scrape Reddit — it reads the
+    /// pre-aggregated mention volume, bullish/bearish split, sentiment score and trending rank.
+    /// </summary>
+    private async Task SocialSentimentCommand(string[] parts)
+    {
+        var symbol = parts.Length > 1 ? parts[1].ToUpperInvariant() : "AAPL";
+        var days = parts.Length > 2 && int.TryParse(parts[2], out var parsedDays) ? Math.Clamp(parsedDays, 1, 365) : 30;
+
+        PrintSectionHeader($"Reddit Social Sentiment - {symbol} (Last {days} Days, via achest)");
+
+        try
+        {
+            var summary = await _achestService.GetSocialSentimentSummaryAsync(symbol, days);
+
+            if (summary is null)
+            {
+                Console.WriteLine($"No social sentiment available for {symbol}.");
+                Console.WriteLine("   Source: achest -> Eulerpool /api/1/sentiment/social/{ticker} (markets.social_sentiment)");
+                Console.WriteLine("   The ticker may not be covered by Eulerpool's social feed.");
+                PrintSectionFooter();
+                return;
+            }
+
+            Console.WriteLine($"Ticker:            {summary.Ticker}");
+            Console.WriteLine($"Source:            {summary.Source} (achest -> Eulerpool markets.social_sentiment)");
+            Console.WriteLine($"Window:            {summary.FromDate} .. {summary.ToDate} ({summary.DaysCovered} days)");
+            Console.WriteLine($"Sentiment:         {summary.SentimentLabel} (avg score {summary.AverageSentimentScore:F4}, {summary.SentimentTrend})");
+            Console.WriteLine($"Mentions:          {summary.TotalMentions:N0} ({summary.MentionTrend}, {summary.MentionChangePercent:+0.0;-0.0;0.0}% vs prior half)");
+            Console.WriteLine($"Bullish / Bearish: {summary.TotalBullish:N0} / {summary.TotalBearish:N0} ({summary.BullishShare * 100:F1}% bullish share)");
+            Console.WriteLine($"Latest Rank:       {summary.LatestRank}{(summary.Trending ? " (trending)" : string.Empty)}");
+
+            if (summary.Latest is not null)
+            {
+                Console.WriteLine($"Latest Reading:    {summary.Latest.Date} - {summary.Latest.MentionCount:N0} mentions, score {summary.Latest.SentimentScore:F4}");
+                if (!string.IsNullOrWhiteSpace(summary.Latest.UpdatedAt))
+                {
+                    Console.WriteLine($"Last Updated:      {summary.Latest.UpdatedAt}");
+                }
+            }
+
+            var recent = summary.Points.Take(10).ToList();
+            if (recent.Count > 0)
+            {
+                Console.WriteLine();
+                Console.WriteLine($"Daily Series (newest {recent.Count} of {summary.DaysCovered}):");
+                Console.WriteLine("   Date         Mentions   Bullish   Bearish     Score   Rank");
+                foreach (var point in recent)
+                {
+                    Console.WriteLine($"   {point.Date,-12} {point.MentionCount,8:N0} {point.BullishCount,9:N0} {point.BearishCount,9:N0} {point.SentimentScore,9:F4} {point.Rank,6}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching social sentiment: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"   Inner Exception: {ex.InnerException.Message}");
+            }
+        }
+
         PrintSectionFooter();
     }
 

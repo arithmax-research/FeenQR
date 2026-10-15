@@ -5982,6 +5982,10 @@
             "version": "[9.0.11, 9.0.11]"
           },
           {
+            "name": "Microsoft.NETCore.App.Host.osx-x64",
+            "version": "[9.0.11, 9.0.11]"
+          },
+          {
             "name": "Microsoft.NETCore.App.Ref",
             "version": "[9.0.11, 9.0.11]"
           }

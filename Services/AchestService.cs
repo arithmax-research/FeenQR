@@ -493,6 +493,177 @@ public class AchestService
     /// <summary>ETF data (profile, holdings, flows).</summary>
     public Task<System.Text.Json.JsonElement?> GetEtfAsync(string identifier, string dataType = "profile", CancellationToken ct = default)
         => TryEulerpoolAsync($"etf/{dataType}/{Uri.EscapeDataString(identifier)}", ct);
+
+    // ── Reddit / social sentiment (Eulerpool `markets.social_sentiment`) ──
+
+    /// <summary>
+    /// Raw daily Reddit/social sentiment rows for <paramref name="ticker"/> exactly as achest
+    /// returns them. <c>GET /v1/eulerpool/sentiment/social-feed/{ticker}</c> proxies Eulerpool's
+    /// <c>GET /api/1/sentiment/social/{ticker}</c> (the <c>markets.social_sentiment</c> table:
+    /// mentions, bullish/bearish mention counts, sentiment score and trending rank) and falls back
+    /// to achest's pandas-normalised <c>GET /v1/eulerpool/sentiment/social/{ticker}</c> route when
+    /// the primary route has no rows. Returns <c>null</c> when achest is unreachable.
+    /// </summary>
+    public async Task<System.Text.Json.JsonElement?> GetSocialSentimentRawAsync(string ticker, CancellationToken ct = default)
+    {
+        // NOTE: achest's route names are inverted relative to Eulerpool's own paths —
+        // achest `sentiment/social-feed/{t}` -> Eulerpool `/sentiment/social/{t}`            (canonical rows)
+        // achest `sentiment/social/{t}`      -> Eulerpool `/sentiment/social-sentiment/{t}`  (pandas view)
+        var primary = await TryEulerpoolAsync($"sentiment/social-feed/{Uri.EscapeDataString(ticker)}", ct).ConfigureAwait(false);
+        if (HasRows(primary))
+        {
+            return primary;
+        }
+
+        return await TryEulerpoolAsync($"sentiment/social/{Uri.EscapeDataString(ticker)}", ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Daily social (Reddit) sentiment for <paramref name="ticker"/>, newest first and capped at
+    /// <paramref name="days"/> rows. Each point carries mention volume, bullish/bearish mention
+    /// counts, a sentiment score in [-1, 1] and Eulerpool's discussion rank (1 = most discussed).
+    /// Returns an empty list when achest has no social sentiment for the ticker.
+    /// </summary>
+    public async Task<List<AchestSocialSentimentPoint>> GetSocialSentimentAsync(string ticker, int days = 30, CancellationToken ct = default)
+    {
+        var raw = await GetSocialSentimentRawAsync(ticker, ct).ConfigureAwait(false);
+        var points = MapSocialSentiment(raw, ticker);
+        return days > 0 && points.Count > days ? points.Take(days).ToList() : points;
+    }
+
+    /// <summary>
+    /// Aggregated view of <see cref="GetSocialSentimentAsync"/> used by the CLI and the web UI:
+    /// totals, latest reading, trending rank, momentum against the previous window and a
+    /// Bullish/Bearish/Neutral label. The label mirrors <c>Scripts/news_pipeline.py</c>
+    /// (|average score| below <see cref="SocialSentimentNeutralBand"/> counts as neutral).
+    /// Returns <c>null</c> when achest has no social sentiment for the ticker.
+    /// </summary>
+    public async Task<AchestSocialSentimentSummary?> GetSocialSentimentSummaryAsync(string ticker, int days = 30, CancellationToken ct = default)
+    {
+        var points = await GetSocialSentimentAsync(ticker, days, ct).ConfigureAwait(false);
+        if (points.Count == 0)
+        {
+            return null;
+        }
+
+        var latest = points[0];
+        var averageScore = points.Average(p => p.SentimentScore);
+        var totalBullish = points.Sum(p => p.BullishCount);
+        var totalBearish = points.Sum(p => p.BearishCount);
+        var scoredMentions = totalBullish + totalBearish;
+
+        // Momentum: newest half of the window versus the older half.
+        var recentCount = Math.Max(1, points.Count / 2);
+        var recent = points.Take(recentCount).ToList();
+        var previous = points.Skip(recentCount).ToList();
+
+        var recentScore = recent.Average(p => p.SentimentScore);
+        var previousScore = previous.Count > 0 ? previous.Average(p => p.SentimentScore) : recentScore;
+        var scoreMomentum = recentScore - previousScore;
+
+        var recentMentions = recent.Average(p => (double)p.MentionCount);
+        var previousMentions = previous.Count > 0 ? previous.Average(p => (double)p.MentionCount) : recentMentions;
+        var mentionChangePercent = previousMentions > 0
+            ? ((recentMentions - previousMentions) / previousMentions) * 100
+            : 0;
+
+        return new AchestSocialSentimentSummary
+        {
+            Ticker = string.IsNullOrWhiteSpace(latest.Ticker) ? ticker : latest.Ticker,
+            Source = latest.Source,
+            DaysCovered = points.Count,
+            FromDate = points[^1].Date,
+            ToDate = latest.Date,
+            TotalMentions = points.Sum(p => p.MentionCount),
+            TotalBullish = totalBullish,
+            TotalBearish = totalBearish,
+            AverageSentimentScore = averageScore,
+            BullishShare = scoredMentions > 0 ? (double)totalBullish / scoredMentions : 0,
+            Latest = latest,
+            LatestRank = latest.Rank,
+            Trending = latest.Rank > 0 && latest.Rank <= SocialSentimentTrendingRankThreshold,
+            SentimentLabel = LabelForSocialScore(averageScore),
+            SentimentTrend = scoreMomentum > SocialSentimentMomentumBand ? "Rising"
+                : scoreMomentum < -SocialSentimentMomentumBand ? "Falling"
+                : "Stable",
+            MentionTrend = mentionChangePercent > SocialSentimentMentionChangePercent ? "Surging"
+                : mentionChangePercent < -SocialSentimentMentionChangePercent ? "Cooling"
+                : "Steady",
+            ScoreMomentum = scoreMomentum,
+            MentionChangePercent = mentionChangePercent,
+            Points = points,
+        };
+    }
+
+    /// <summary>Average sentiment score inside this band is reported as neutral (±0.15).</summary>
+    public const double SocialSentimentNeutralBand = 0.15;
+
+    /// <summary>Change in average score between the two halves of a window needed to call a trend.</summary>
+    public const double SocialSentimentMomentumBand = 0.05;
+
+    /// <summary>Percentage change in average mentions between window halves needed to call it.</summary>
+    public const double SocialSentimentMentionChangePercent = 25;
+
+    /// <summary>Eulerpool ranks tickers by discussion volume; top-100 counts as trending.</summary>
+    public const int SocialSentimentTrendingRankThreshold = 100;
+
+    private static string LabelForSocialScore(double score) =>
+        score > SocialSentimentNeutralBand ? "Bullish"
+        : score < -SocialSentimentNeutralBand ? "Bearish"
+        : "Neutral";
+
+    private static bool HasRows(System.Text.Json.JsonElement? element) =>
+        element.HasValue &&
+        element.Value.ValueKind == JsonValueKind.Array &&
+        element.Value.GetArrayLength() > 0;
+
+    /// <summary>
+    /// Maps achest social-sentiment rows onto typed points, newest first. Both key spellings
+    /// achest exposes are accepted: the Eulerpool passthrough rows
+    /// (<c>mention_count</c>/<c>bullish_count</c>/<c>bearish_count</c>/<c>sentiment_score</c>)
+    /// and the pandas-normalised variant (<c>mention</c>/<c>positive_mention</c>/<c>score</c>).
+    /// </summary>
+    private static List<AchestSocialSentimentPoint> MapSocialSentiment(System.Text.Json.JsonElement? raw, string requestedTicker)
+    {
+        var points = new List<AchestSocialSentimentPoint>();
+        if (!raw.HasValue || raw.Value.ValueKind != JsonValueKind.Array)
+        {
+            return points;
+        }
+
+        foreach (var row in raw.Value.EnumerateArray())
+        {
+            if (row.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            points.Add(new AchestSocialSentimentPoint
+            {
+                Id = GetStr(row, "id"),
+                Ticker = GetStr(row, "ticker") ?? requestedTicker,
+                Source = GetStr(row, "source") ?? "reddit",
+                Date = GetStr(row, "date") ?? GetStr(row, "at_time") ?? string.Empty,
+                MentionCount = (int)(GetDbl(row, "mention_count") ?? GetDbl(row, "mention") ?? 0),
+                BullishCount = (int)(GetDbl(row, "bullish_count") ?? GetDbl(row, "positive_mention") ?? 0),
+                BearishCount = (int)(GetDbl(row, "bearish_count") ?? GetDbl(row, "negative_mention") ?? 0),
+                SentimentScore = GetDbl(row, "sentiment_score") ?? GetDbl(row, "score") ?? 0,
+                Rank = (int)(GetDbl(row, "rank") ?? 0),
+                UpdatedAt = GetStr(row, "updated_at"),
+            });
+        }
+
+        return points
+            .OrderByDescending(p => ParseSocialSentimentDate(p.Date))
+            .ToList();
+    }
+
+    private static DateTime ParseSocialSentimentDate(string? value) =>
+        DateTime.TryParse(value, null,
+            System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal,
+            out var parsed)
+            ? parsed
+            : DateTime.MinValue;
 }
 
 /// <summary>Holds a cached Eulerpool response and its fetch timestamp for TTL checks.</summary>
@@ -549,6 +720,88 @@ public class AchestAnalystGrade
     public string? PreviousGrade { get; set; }
     public string? NewGrade { get; set; }
     public string? Action { get; set; }
+}
+
+/// <summary>
+/// One day of Reddit/social sentiment for a ticker, from achest (Eulerpool
+/// <c>markets.social_sentiment</c>: <c>GET /api/1/sentiment/social/{ticker}</c>).
+/// </summary>
+public class AchestSocialSentimentPoint
+{
+    public string? Id { get; set; }
+    public string Ticker { get; set; } = string.Empty;
+    public string Source { get; set; } = "reddit";
+
+    /// <summary>Observation date (yyyy-MM-dd).</summary>
+    public string Date { get; set; } = string.Empty;
+
+    /// <summary>Number of Reddit/social mentions on <see cref="Date"/>.</summary>
+    public int MentionCount { get; set; }
+
+    /// <summary>Bullish (positive) mentions on <see cref="Date"/>.</summary>
+    public int BullishCount { get; set; }
+
+    /// <summary>Bearish (negative) mentions on <see cref="Date"/>.</summary>
+    public int BearishCount { get; set; }
+
+    /// <summary>Aggregated sentiment score for the day, roughly [-1, 1].</summary>
+    public double SentimentScore { get; set; }
+
+    /// <summary>Eulerpool discussion rank for the day (1 = most discussed).</summary>
+    public int Rank { get; set; }
+
+    /// <summary>Timestamp Eulerpool last refreshed the row.</summary>
+    public string? UpdatedAt { get; set; }
+}
+
+/// <summary>
+/// Aggregated Reddit/social sentiment for a ticker over a window of days, built from
+/// <see cref="AchestSocialSentimentPoint"/> rows returned by achest.
+/// </summary>
+public class AchestSocialSentimentSummary
+{
+    public string Ticker { get; set; } = string.Empty;
+    public string Source { get; set; } = "reddit";
+    public int DaysCovered { get; set; }
+    public string? FromDate { get; set; }
+    public string? ToDate { get; set; }
+
+    public int TotalMentions { get; set; }
+    public int TotalBullish { get; set; }
+    public int TotalBearish { get; set; }
+
+    /// <summary>Mean daily sentiment score across the window.</summary>
+    public double AverageSentimentScore { get; set; }
+
+    /// <summary>Share of scored mentions that were bullish (0-1).</summary>
+    public double BullishShare { get; set; }
+
+    /// <summary>Newest day in the window.</summary>
+    public AchestSocialSentimentPoint? Latest { get; set; }
+
+    /// <summary>Eulerpool discussion rank on the newest day (1 = most discussed).</summary>
+    public int LatestRank { get; set; }
+
+    /// <summary>True when the newest rank is inside <see cref="AchestService.SocialSentimentTrendingRankThreshold"/>.</summary>
+    public bool Trending { get; set; }
+
+    /// <summary>Bullish / Bearish / Neutral, derived from <see cref="AverageSentimentScore"/>.</summary>
+    public string SentimentLabel { get; set; } = "Neutral";
+
+    /// <summary>Rising / Falling / Stable — change in score over the window.</summary>
+    public string SentimentTrend { get; set; } = "Stable";
+
+    /// <summary>Surging / Cooling / Steady — change in mention volume over the window.</summary>
+    public string MentionTrend { get; set; } = "Steady";
+
+    /// <summary>Difference in average score between the newest and oldest half of the window.</summary>
+    public double ScoreMomentum { get; set; }
+
+    /// <summary>Percentage change in average mentions between the newest and oldest half of the window.</summary>
+    public double MentionChangePercent { get; set; }
+
+    /// <summary>Daily points, newest first.</summary>
+    public List<AchestSocialSentimentPoint> Points { get; set; } = new();
 }
 
 

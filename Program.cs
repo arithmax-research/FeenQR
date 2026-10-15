@@ -208,7 +208,8 @@ namespace QuantResearchAgent
                     sp.GetRequiredService<RealTimeAlertingPlugin>(),
                     sp.GetRequiredService<ComplianceMonitoringPlugin>(),
                     sp.GetRequiredService<PaperRAGService>(),
-                    sp.GetRequiredService<MachineLearningService>()
+                    sp.GetRequiredService<MachineLearningService>(),
+                    sp.GetRequiredService<AchestService>()
                 )
             );
 

@@ -14,6 +14,7 @@ public class SentimentController : ControllerBase
     private readonly INewsPipelineService _newsPipelineService;
     private readonly RedditScrapingService _redditService;
     private readonly RedditPostArchiveService _redditArchiveService;
+    private readonly AchestService _achestService;
     private readonly ILogger<SentimentController> _logger;
 
     public SentimentController(
@@ -22,6 +23,7 @@ public class SentimentController : ControllerBase
         INewsPipelineService newsPipelineService,
         RedditScrapingService redditService,
         RedditPostArchiveService redditArchiveService,
+        AchestService achestService,
         ILogger<SentimentController> logger)
     {
         _sentimentService = sentimentService;
@@ -29,6 +31,7 @@ public class SentimentController : ControllerBase
         _newsPipelineService = newsPipelineService;
         _redditService = redditService;
         _redditArchiveService = redditArchiveService;
+        _achestService = achestService;
         _logger = logger;
     }
 
@@ -369,6 +372,128 @@ public class SentimentController : ControllerBase
             "BEARISH" => "Bearish",
             _ => "Neutral"
         };
+    }
+
+    /// <summary>
+    /// Reddit/social sentiment for a ticker sourced from Eulerpool through achest
+    /// (achest <c>GET /v1/eulerpool/sentiment/social-feed/{ticker}</c> → Eulerpool
+    /// <c>GET /api/1/sentiment/social/{ticker}</c>, the <c>markets.social_sentiment</c> table).
+    /// Returns aggregated totals plus the daily series; <c>available=false</c> when achest has no
+    /// rows for the ticker (so the UI can fall back to scraped Reddit analysis).
+    /// </summary>
+    [HttpGet("reddit-social/{symbol}")]
+    public async Task<IActionResult> GetRedditSocialSentiment(string symbol, [FromQuery] int days = 30)
+    {
+        try
+        {
+            var window = Math.Clamp(days, 1, 365);
+            _logger.LogInformation($"Getting achest Reddit social sentiment for {symbol} ({window}d)");
+
+            var summary = await _achestService.GetSocialSentimentSummaryAsync(symbol, window);
+            if (summary is null)
+            {
+                return Ok(new
+                {
+                    symbol,
+                    source = "achest",
+                    available = false,
+                    days = window,
+                    message = "No social sentiment returned by achest (Eulerpool markets.social_sentiment) for this ticker.",
+                    timestamp = DateTime.UtcNow
+                });
+            }
+
+            object? latest = null;
+            if (summary.Latest is not null)
+            {
+                latest = new
+                {
+                    date = summary.Latest.Date,
+                    mentions = summary.Latest.MentionCount,
+                    bullish = summary.Latest.BullishCount,
+                    bearish = summary.Latest.BearishCount,
+                    sentimentScore = summary.Latest.SentimentScore,
+                    rank = summary.Latest.Rank,
+                    updatedAt = summary.Latest.UpdatedAt
+                };
+            }
+
+            return Ok(new
+            {
+                symbol = summary.Ticker,
+                source = "achest",
+                available = true,
+                dataSource = "eulerpool /api/1/sentiment/social/{ticker} via achest /v1/eulerpool/sentiment/social-feed/{ticker}",
+                days = summary.DaysCovered,
+                fromDate = summary.FromDate,
+                toDate = summary.ToDate,
+                sentiment = summary.SentimentLabel,
+                averageSentimentScore = summary.AverageSentimentScore,
+                sentimentTrend = summary.SentimentTrend,
+                scoreMomentum = summary.ScoreMomentum,
+                totalMentions = summary.TotalMentions,
+                totalBullish = summary.TotalBullish,
+                totalBearish = summary.TotalBearish,
+                bullishShare = summary.BullishShare,
+                mentionTrend = summary.MentionTrend,
+                mentionChangePercent = summary.MentionChangePercent,
+                latestRank = summary.LatestRank,
+                trending = summary.Trending,
+                latest,
+                series = summary.Points.Select(point => new
+                {
+                    date = point.Date,
+                    mentions = point.MentionCount,
+                    bullish = point.BullishCount,
+                    bearish = point.BearishCount,
+                    sentimentScore = point.SentimentScore,
+                    rank = point.Rank,
+                    updatedAt = point.UpdatedAt
+                }).ToArray(),
+                timestamp = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting achest Reddit social sentiment for {symbol}");
+            return StatusCode(500, new { error = "Failed to get Reddit social sentiment", details = ex.Message });
+        }
+    }
+
+    /// <summary>Raw achest rows for Reddit/social sentiment (Eulerpool <c>markets.social_sentiment</c>).</summary>
+    [HttpGet("reddit-social/{symbol}/raw")]
+    public async Task<IActionResult> GetRedditSocialSentimentRaw(string symbol)
+    {
+        try
+        {
+            var rows = await _achestService.GetSocialSentimentRawAsync(symbol);
+            if (rows is null || rows.Value.ValueKind != System.Text.Json.JsonValueKind.Array || rows.Value.GetArrayLength() == 0)
+            {
+                return Ok(new
+                {
+                    symbol,
+                    source = "achest",
+                    available = false,
+                    message = "No raw social sentiment rows returned by achest for this ticker.",
+                    timestamp = DateTime.UtcNow
+                });
+            }
+
+            return Ok(new
+            {
+                symbol,
+                source = "achest",
+                available = true,
+                rowCount = rows.Value.GetArrayLength(),
+                rows = rows.Value,
+                timestamp = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting raw achest social sentiment for {symbol}");
+            return StatusCode(500, new { error = "Failed to get raw Reddit social sentiment", details = ex.Message });
+        }
     }
 
     [HttpDelete("reddit/{symbol}/stored")]
