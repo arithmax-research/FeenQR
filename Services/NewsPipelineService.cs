@@ -12,7 +12,7 @@ using QuantResearchAgent.Models;
 namespace QuantResearchAgent.Services
 {
     /// <summary>
-    /// Thin bridge that invokes the Python dual-news pipeline.
+    /// News pipeline combining NewsAPI and Achest/EulerPool news.
     /// </summary>
     public interface INewsPipelineService
     {
@@ -179,6 +179,7 @@ namespace QuantResearchAgent.Services
                     Id = GetString(item, "id"),
                     Title = title,
                     Summary = GetString(item, "summary"),
+                    FullContent = GetString(item, "content"),
                     Url = articleUrl,
                     Source = "Achest/EulerPool",
                     Provider = provider,

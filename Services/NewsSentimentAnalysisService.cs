@@ -308,8 +308,7 @@ namespace QuantResearchAgent.Services
 
         /// <summary>
         /// Analyze sentiment for a symbol using full article content with vector storage
-        /// Fetches news from all 6 sources, scrapes full content, generates chunks, embeddings, and stores in vector DB
-            /// Fetches news from all 7 sources, scrapes full content, generates chunks, embeddings, and stores in vector DB
+        /// Fetches news from Achest/EulerPool, generates chunks, embeddings, and stores them in the vector DB.
         /// </summary>
         public async Task<SymbolSentimentAnalysis> AnalyzeSymbolSentimentWithFullContentAsync(string symbol, int newsLimit = 10)
         {
@@ -326,7 +325,7 @@ namespace QuantResearchAgent.Services
                 }
 
                 // Step 1: Fetch news and full article content from the Python pipeline
-                var pipelineResult = await _newsPipelineService.SearchNewsAsync(symbol, "All", newsLimit);
+                var pipelineResult = await _newsPipelineService.SearchNewsAsync(symbol, "Achest/EulerPool", newsLimit);
                 var uniqueNews = pipelineResult.Articles
                     .Where(n => !string.IsNullOrWhiteSpace(n.Title))
                     .GroupBy(n => n.Title.ToLower().Trim())
@@ -339,7 +338,7 @@ namespace QuantResearchAgent.Services
                         Summary = n.Summary,
                         FullContent = string.IsNullOrWhiteSpace(n.FullContent) ? n.Summary : n.FullContent,
                         ContentLength = (string.IsNullOrWhiteSpace(n.FullContent) ? n.Summary : n.FullContent).Length,
-                        ContentScraped = n.IsScraped || !string.IsNullOrWhiteSpace(n.FullContent),
+                        ContentScraped = n.IsScraped || !string.IsNullOrWhiteSpace(n.FullContent) || !string.IsNullOrWhiteSpace(n.Summary),
                         Publisher = string.IsNullOrWhiteSpace(n.Provider) ? n.Source : n.Provider,
                         PublishedDate = n.PublishedDate,
                         Link = n.Url,
