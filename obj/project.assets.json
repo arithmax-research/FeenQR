@@ -5982,10 +5982,6 @@
             "version": "[9.0.11, 9.0.11]"
           },
           {
-            "name": "Microsoft.NETCore.App.Host.osx-x64",
-            "version": "[9.0.11, 9.0.11]"
-          },
-          {
             "name": "Microsoft.NETCore.App.Ref",
             "version": "[9.0.11, 9.0.11]"
           }
@@ -5998,5 +5994,17 @@
         "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.101/PortableRuntimeIdentifierGraph.json"
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'AngleSharp' 1.4.0 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-pgww-w46g-26qg",
+      "libraryId": "AngleSharp",
+      "targetGraphs": [
+        "net9.0"
+      ]
+    }
+  ]
 }

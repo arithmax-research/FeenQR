@@ -2,6 +2,7 @@
 /obj/
 /logs/
 /aws-deploy/
+/.deploy/
 /qdrant_storage/collections/
 /webapp/server/uploads/
 /data_pipeline/__pycache__/
