@@ -27,7 +27,14 @@
                             <div class="message-avatar"></div>
                         }
                         <div class="message-content">
-                            <div class="message-text">@message.Text</div>
+                            @if (message.IsUser)
+                            {
+                                <div class="message-text">@message.Text</div>
+                            }
+                            else
+                            {
+                                <AIOutputRenderer Content="@message.Text" />
+                            }
                             <div class="message-time">@message.Timestamp.ToString("HH:mm")</div>
                         </div>
                     </div>
@@ -41,6 +48,7 @@
                             <div class="message-text typing-indicator">
                                 <span></span><span></span><span></span>
                             </div>
+                            <div class="typing-status">@statusText</div>
                         </div>
                     </div>
                 }
@@ -94,6 +102,7 @@
     private string userInput = "";
     private string statusText = "Online";
     private int unreadCount = 0;
+    private CancellationTokenSource? loadingStagesCts;
     
     private List<ChatMessage> messages = new List<ChatMessage>();
     private List<string> currentSuggestions = new List<string>();
@@ -112,6 +121,15 @@
         "View charts",
         "Check alerts",
         "Open optimizer"
+    };
+
+    private readonly List<string> loadingStages = new List<string>
+    {
+        "Understanding your request...",
+        "Checking available FeenQR services...",
+        "Fetching market data...",
+        "Checking sentiment and recent context...",
+        "Finishing analysis..."
     };
 
     protected override void OnInitialized()
@@ -144,6 +162,54 @@
         }
     }
 
+    private async Task<string?> TryGetQuickQuote(string message, string lowerMessage)
+    {
+        if (!lowerMessage.Contains("today") && !lowerMessage.Contains("price") && !lowerMessage.Contains("doing"))
+        {
+            return null;
+        }
+
+        var symbol = lowerMessage.Contains("apple") ? "AAPL" : null;
+        if (symbol == null)
+        {
+            var tickerMatch = System.Text.RegularExpressions.Regex.Match(message, @"\b[A-Z]{1,5}\b");
+            symbol = tickerMatch.Success ? tickerMatch.Value : null;
+        }
+
+        if (string.IsNullOrWhiteSpace(symbol))
+        {
+            return null;
+        }
+
+        try
+        {
+            var response = await Http.GetAsync($"api/marketdata/quote/{symbol}");
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var quote = await response.Content.ReadFromJsonAsync<MarketQuoteResponse>();
+            if (quote == null)
+            {
+                return null;
+            }
+
+            var direction = quote.Change >= 0 ? "up" : "down";
+            return $"**{quote.Symbol} latest quote**\n\n" +
+                   $"Price: **${quote.Price:F2}**\n" +
+                     $"Latest session: **{direction} {Math.Abs(quote.Change):F2}%**\n" +
+                   $"Range: ${quote.Low:F2} - ${quote.High:F2}\n" +
+                   $"Volume: {quote.Volume:N0}\n\n" +
+                   $"Data timestamp: {quote.Timestamp:yyyy-MM-dd HH:mm} UTC. " +
+                   "For news, sentiment, or technical analysis, ask me to analyze this symbol.";
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"AskFeen quick quote failed: {ex}");
+            return null;
+        }
+    }
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(userInput) && !isLoading)
@@ -178,7 +244,8 @@
         await ScrollToBottom();
         
         isLoading = true;
-        statusText = "Thinking...";
+        statusText = loadingStages[0];
+        StartLoadingStages();
         StateHasChanged();
 
         try
@@ -207,6 +274,7 @@
         }
         finally
         {
+            loadingStagesCts?.Cancel();
             isLoading = false;
             statusText = "Online";
             StateHasChanged();
@@ -214,9 +282,41 @@
         }
     }
 
+    private void StartLoadingStages()
+    {
+        loadingStagesCts?.Cancel();
+        loadingStagesCts = new CancellationTokenSource();
+        _ = CycleLoadingStagesAsync(loadingStagesCts.Token);
+    }
+
+    private async Task CycleLoadingStagesAsync(CancellationToken cancellationToken)
+    {
+        var stageIndex = 0;
+
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                statusText = loadingStages[stageIndex % loadingStages.Count];
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(1200, cancellationToken);
+                stageIndex++;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
     private async Task<string> ProcessUserMessage(string message)
     {
         var lowerMessage = message.ToLower();
+
+        var quickQuote = await TryGetQuickQuote(message, lowerMessage);
+        if (quickQuote != null)
+        {
+            return quickQuote;
+        }
 
         // Navigation commands
         if (lowerMessage.Contains("dashboard") || lowerMessage.Contains("go to dashboard"))
@@ -280,21 +380,38 @@
         // Call the API for AI-powered responses
         try
         {
-            var request = new { Message = message };
-            var response = await Http.PostAsJsonAsync("api/chat/deepseek", request);
-            
+            var request = new
+            {
+                Message = message,
+                ModelProvider = "deepseek",
+                ConversationHistory = messages
+                    .Select(chatMessage => new
+                    {
+                        Role = chatMessage.IsUser ? "user" : "assistant",
+                        Content = chatMessage.Text,
+                        Timestamp = chatMessage.Timestamp
+                    })
+                    .ToList()
+            };
+            var response = await Http.PostAsJsonAsync("api/research/feen-chat", request);
+
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<ChatResponse>();
-                return result?.Message ?? "I'm not sure how to respond to that. Can you rephrase?";
+                return !string.IsNullOrWhiteSpace(result?.Message)
+                    ? result.Message
+                    : "The AI service returned an empty response. Please try again.";
             }
-        }
-        catch
-        {
-            // Fallback response
-        }
 
-        return "I'm here to help! You can ask me about navigating FeenQR, analyzing markets, or understanding your portfolio. What would you like to know?";
+            var errorBody = await response.Content.ReadAsStringAsync();
+            await JS.InvokeVoidAsync("console.error", $"AskFeen API returned {(int)response.StatusCode}: {errorBody}");
+            return $"I couldn't reach the AI service ({(int)response.StatusCode}). Please try again in a moment.";
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"AskFeen request failed: {ex}");
+            return "I couldn't reach the AI service. Please check that the server is running and try again.";
+        }
     }
 
     private void UpdateSuggestions(string lastMessage)
@@ -357,6 +474,17 @@
     private class ChatResponse
     {
         public string Message { get; set; } = "";
+        public DateTime Timestamp { get; set; }
+    }
+
+    private class MarketQuoteResponse
+    {
+        public string Symbol { get; set; } = "";
+        public double Price { get; set; }
+        public double Change { get; set; }
+        public long Volume { get; set; }
+        public double High { get; set; }
+        public double Low { get; set; }
         public DateTime Timestamp { get; set; }
     }
 }
@@ -621,6 +749,12 @@
 
     .typing-indicator span:nth-child(2) {
         animation-delay: -0.16s;
+    }
+
+    .typing-status {
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 12px;
+        line-height: 1.4;
     }
 
     @@keyframes bounce {

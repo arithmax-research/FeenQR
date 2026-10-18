@@ -164,7 +164,14 @@
         {
             <div class="message @msg.Role">
                 <div class="message-bubble">
-                    @msg.Content
+                    @if (msg.Role == "user")
+                    {
+                        @msg.Content
+                    }
+                    else
+                    {
+                        <AIOutputRenderer Content="@msg.Content" />
+                    }
                 </div>
             </div>
         }

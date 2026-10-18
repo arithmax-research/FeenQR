@@ -43,7 +43,14 @@
                         }
                     </div>
                     <div class="message-content">
-                        @message.Content
+                        @if (message.IsUser)
+                        {
+                            @message.Content
+                        }
+                        else
+                        {
+                            <AIOutputRenderer Content="@message.Content" />
+                        }
                     </div>
                 </div>
             }

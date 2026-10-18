@@ -394,6 +394,12 @@ If no specific tools are needed (e.g., general question), return an empty tools 
         {
             var query = parameters.GetValueOrDefault("query", "");
             var symbol = parameters.GetValueOrDefault("symbol", "");
+
+            if (string.IsNullOrWhiteSpace(symbol))
+            {
+                var symbolMatch = System.Text.RegularExpressions.Regex.Match(query, @"\b([A-Z]{1,5})\b");
+                symbol = symbolMatch.Success ? symbolMatch.Groups[1].Value : "";
+            }
             
             try
             {

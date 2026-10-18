@@ -1,4 +1,5 @@
 @using System.Text.RegularExpressions
+@using System.Net
 @inject IJSRuntime JS
 
 <div class="ai-output-container">
@@ -308,7 +309,7 @@
         if (string.IsNullOrWhiteSpace(markdown))
             return "";
 
-        string html = markdown;
+        string html = WebUtility.HtmlEncode(markdown);
 
         // LaTeX equations - Convert to KaTeX-friendly format
         // Block equations: \[ ... \] or $$ ... $$
