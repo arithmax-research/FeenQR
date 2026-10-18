@@ -109,6 +109,7 @@ public class AchestService
             {
                 Symbol = string.IsNullOrWhiteSpace(b.Symbol) ? symbol : b.Symbol,
                 Price = b.Close,
+                Open = b.Open,
                 Close = b.Close,
                 Volume = b.Volume,
                 High24h = b.High,

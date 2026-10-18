@@ -204,7 +204,89 @@ The web interface will be available at `http://localhost:5000` with:
 - **Portfolio**: Portfolio management and Alpaca integration
 - **Research**: Academic paper search functionality
 
-### EC2 Deployment
+#### VPN (OpenVPN)
+
+FeenQR can route outbound API traffic through an OpenVPN profile. This is
+useful when a provider (for example OpenAI) rejects the current country or
+region with `unsupported_country_region_territory`.
+
+1. Put your provider's profile in `vpn/`:
+
+   ```text
+   vpn/
+   ├── feenqr.ovpn   # preferred name, or any single *.ovpn
+   └── auth.txt      # only if the profile uses auth-user-pass
+   ```
+
+   `auth.txt` contains the username on line 1 and the password on line 2.
+   These are usually the provider's **OpenVPN credentials**, not your normal
+   account password. Both files are gitignored and excluded from the Docker
+   build context.
+
+2. **Local app without VPN**
+
+   ```bash
+   ./launch.sh web
+   ```
+
+   This runs the app locally with normal host networking. OpenVPN is **not**
+   started on the host. To use the VPN, use the container-scoped mode below.
+   The host does not need Homebrew OpenVPN or Tunnelblick installed; OpenVPN
+   runs inside the `feenqr-web` image.
+
+3. **Docker: VPN only inside the container**
+
+   ```bash
+   # Convenience wrapper (builds and runs the compose override)
+   ./launch.sh web --vpn
+   ```
+
+   Open **http://localhost:8080** once the container reports `OpenVPN
+   connected` and starts the application. The VPN override publishes `8080`
+   directly for local use and keeps `feenqr-web` on the compose default network
+   only, so it does not depend on the shared Caddy network.
+
+   ```bash
+   # Equivalent direct command
+   docker compose -f docker-compose.yml -f docker-compose.vpn.yml up --build
+   ```
+
+   This starts OpenVPN inside the `feenqr-web` container only. The override
+   grants `NET_ADMIN` and `MKNOD`, plus access to the TUN character device, so
+   the entrypoint can create a private `/dev/net/tun` even when the host does
+   not expose one (Docker Desktop on macOS works this way; Linux hosts do not
+   need to provide `/dev/net/tun`).
+
+   The host network, `caddy`, and `qdrant` are **not** routed through the VPN.
+   Only outbound traffic from `feenqr-web` uses the tunnel. Internal traffic to
+   the `qdrant` compose service stays on the compose network.
+
+   `./launch.sh web --vpn` does not accept a custom profile or auth path; put
+   them in `vpn/` as shown above. It also changes DNS only inside the
+   container, preserving Docker's resolver first so `qdrant` still resolves.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `VPN_ENABLED` | `false` | Set to `true` in the container to start OpenVPN. |
+| `VPN_DIR` | `/app/vpn` | Directory searched for the first `*.ovpn`. |
+| `VPN_CONFIG` | auto-detect | Explicit profile path inside the container. |
+| `VPN_AUTH_FILE` | `vpn/auth.txt` | Credentials file for `auth-user-pass`. |
+| `VPN_USERNAME` / `VPN_PASSWORD` | unset | Alternative to an auth file. |
+| `VPN_SET_DNS` | `false` | Use DNS pushed by the VPN (Docker DNS stays first). The compose override sets `true`. |
+
+> A VPN changes the source IP, so it helps with IP geolocation checks. It does
+> not bypass account-level restrictions or provider terms of service.
+>
+> If OpenVPN reports `AUTH_FAILED`, the provider rejected the credentials:
+> use the provider's **OpenVPN** username/password (not the normal account
+> login), disconnect other devices if your plan has a one-session limit, or
+> regenerate the credentials and download a fresh `.ovpn` profile.
+>
+> If the launcher or Docker is stopped, stop the container stack with
+> `docker compose -f docker-compose.yml -f docker-compose.vpn.yml down`.
+> OpenVPN runs inside `feenqr-web`; there is no host OpenVPN process to kill.
+
+## EC2 Deployment
 
 This repository now includes a Docker Compose stack for EC2 with Caddy as the only public entry point.
 

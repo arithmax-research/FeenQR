@@ -82,6 +82,10 @@ yarn-error.log*
 # AWS
 aws-deploy/
 
+# VPN profiles/credentials are mounted at runtime, never baked into images
+vpn/
+*.ovpn
+
 # Git
 .git/
 .gitignore

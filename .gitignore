@@ -37,3 +37,9 @@ bin/
 # EC2 deploy script (contains server hostname)
 deploy.sh
 Caddyfile
+
+# VPN profiles and credentials (never commit)
+/vpn/*
+!/vpn/README.md
+/vpn/.gitkeep
+*.ovpn

@@ -239,6 +239,28 @@ public class AlpacaService
                     symbols.Count, string.Join(", ", symbols), symbols[0]);
                 symbol = symbols[0];
             }
+
+            // Use achest as the default historical market-data provider.
+            if (_achestService != null)
+            {
+                var achestBars = await _achestService.GetHistoricalDataAsync(symbol, days, "daily");
+                if (achestBars != null && achestBars.Any())
+                {
+                    _logger.LogInformation("Successfully fetched {Count} bars from achest for {Symbol}", achestBars.Count, symbol);
+                    return achestBars.Select(bar => new AlpacaBar
+                    {
+                        Symbol = string.IsNullOrWhiteSpace(bar.Symbol) ? symbol : bar.Symbol,
+                        TimeUtc = bar.Timestamp,
+                        Open = (decimal)bar.Open,
+                        High = (decimal)bar.High24h,
+                        Low = (decimal)bar.Low24h,
+                        Close = (decimal)bar.Close,
+                        Volume = (decimal)bar.Volume
+                    }).Cast<IBar>().ToList();
+                }
+
+                _logger.LogWarning("No data returned from achest for {Symbol}, trying configured fallbacks", symbol);
+            }
             
             // First try to get data from Alpaca API if enabled and client is initialized
             if (_alpacaApiEnabled && _dataClient != null)

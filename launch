@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Convenience wrapper so `./launch web --vpn` behaves like `./launch.sh`.
+exec "$(cd "$(dirname "$0")" && pwd)/launch.sh" "$@"

@@ -1,0 +1,57 @@
+# Optional override: run OpenVPN inside the feenqr-web container only.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.vpn.yml up -d --build
+#
+# Put the profile at vpn/feenqr.ovpn and, if the profile uses auth-user-pass,
+# credentials at vpn/auth.txt (username on line 1, password on line 2).
+#
+# The TUN device is created inside the container (MKNOD + the device cgroup
+# rule below), so the host does not need /dev/net/tun. The host network and
+# other containers (qdrant, caddy) are not routed through the VPN.
+#
+# Requires Docker Compose v2.24+ for the !reset / !override merge tags.
+services:
+  feenqr-web:
+    # Local VPN mode does not use the shared Caddy network. Staying on the
+    # compose default network avoids asymmetric routing between two container
+    # interfaces after OpenVPN installs its default routes.
+    networks: !reset
+      default: {}
+    # Publish the web UI directly for local use. The base compose file only
+    # exposes 8080 for the shared Caddy container, which is not present on a
+    # local machine.
+    ports:
+      - "8080:8080"
+    # Replace the base single-file cookie mount: Docker would create a
+    # directory when Scripts/youtube_cookies.txt does not exist locally. Mount
+    # the whole scripts directory instead; the app skips cookies when absent.
+    volumes: !override
+      - type: bind
+        source: ./logs
+        target: /app/logs
+      - type: bind
+        source: ./WebApp/Server/uploads
+        target: /app/uploads
+      - type: bind
+        source: ./Scripts
+        target: /app/Scripts
+      - type: bind
+        source: ./vpn
+        target: /app/vpn
+        read_only: true
+    environment:
+      VPN_ENABLED: "true"
+      VPN_DIR: /app/vpn
+      # Use DNS pushed by the VPN, while preserving Docker's resolver first
+      # so compose service names such as "qdrant" still resolve.
+      VPN_SET_DNS: "true"
+    # The TUN node is created by entrypoint.sh. Keep these capabilities scoped
+    # to feenqr-web only; do not use network_mode: host and do not start
+    # OpenVPN on the Docker host. If an older engine rejects
+    # device_cgroup_rules, `privileged: true` on this service is the fallback.
+    cap_add:
+      - NET_ADMIN
+      - MKNOD
+    device_cgroup_rules:
+      - 'c 10:200 rwm'

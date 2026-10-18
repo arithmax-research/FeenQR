@@ -9,6 +9,12 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 COPY publish/ .
 COPY Scripts/ ./Scripts/
 
-RUN mkdir -p /app/uploads /app/logs
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends openvpn iproute2 curl && \
+    rm -rf /var/lib/apt/lists/*
 
-ENTRYPOINT ["dotnet", "Server.dll"]
+RUN mkdir -p /app/uploads /app/logs
+COPY entrypoint.sh /usr/local/bin/feenqr-entrypoint.sh
+RUN chmod +x /usr/local/bin/feenqr-entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/feenqr-entrypoint.sh"]

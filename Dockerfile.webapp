@@ -63,6 +63,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     ffmpeg \
     nodejs \
     npm \
+    openvpn \
+    iproute2 \
+    curl \
     ca-certificates && \
     pip3 install --no-cache-dir --break-system-packages \
     "yt-dlp[default]" \
@@ -86,6 +89,8 @@ COPY appsettings.json ./appsettings.json
 COPY Scripts/ ./Scripts/
 
 RUN mkdir -p /app/uploads /app/logs
-ENTRYPOINT ["dotnet", "Server.dll"]
+COPY entrypoint.sh /usr/local/bin/feenqr-entrypoint.sh
+RUN chmod +x /usr/local/bin/feenqr-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/feenqr-entrypoint.sh"]
 
 
