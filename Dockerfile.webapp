@@ -21,7 +21,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # ── Stage 1: restore (cached unless .csproj / NuGet.config change) ──────────
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS restore
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS restore
 WORKDIR /src
 # Parallel compilation — 0 = use all available CPU cores
 ENV DASHDOTNET_JOBS=0
@@ -45,7 +45,7 @@ RUN --mount=type=cache,target=/root/.nuget/packages,sharing=locked \
         /p:UseAppHost=false /p:UseSharedCompilation=true
 
 # ── Stage 3: runtime ────────────────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
@@ -92,5 +92,4 @@ RUN mkdir -p /app/uploads /app/logs
 COPY entrypoint.sh /usr/local/bin/feenqr-entrypoint.sh
 RUN chmod +x /usr/local/bin/feenqr-entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/feenqr-entrypoint.sh"]
-
 

@@ -1652,7 +1652,6 @@
     private TechnicalChartDto? stockPitchChartData;
     private string? stockPitchError;
     private int stockPitchActiveView;
-    private bool stockPitchCopyFeedback;
     private string videoQuery = "";
     private string paperQuery = "";
     private string synthesisQuery = "";
@@ -1660,7 +1659,6 @@
     private string activeScraperType = "";
     private string scraperUrl = "";
     private string scraperQuery = "";
-    private string batchNewsUrls = "";
     private bool isLoading = false;
     private string? lastResult = null;
     private IBrowserFile? selectedPdf;
@@ -1670,7 +1668,6 @@
     private List<NewsScraperResult> newsArticles = new();
     private string newsSymbol = "";
     private int newsLimit = 10;
-    private bool isLoadingNews = false;
     private string? newsError = null;
     private List<PipelineArticleDto> pipelineArticles = new();
 
@@ -1810,7 +1807,6 @@
         newsArticles.Clear();
         activeScraperType = "";
         scraperUrl = "";
-        batchNewsUrls = "";
         StateHasChanged();
     }
 
@@ -1935,7 +1931,6 @@
         stockPitchChartData = null;
         stockPitchError = null;
         stockPitchActiveView = 0;
-        stockPitchCopyFeedback = false;
     }
 
     private async Task CopyStockPitch()
@@ -1943,10 +1938,8 @@
         if (stockPitch != null && !string.IsNullOrEmpty(stockPitch.RawPitchText))
         {
             await JS.InvokeVoidAsync("navigator.clipboard.writeText", stockPitch.RawPitchText);
-            stockPitchCopyFeedback = true;
             StateHasChanged();
             await Task.Delay(2000);
-            stockPitchCopyFeedback = false;
             StateHasChanged();
         }
     }
@@ -1975,7 +1968,6 @@
         activeScraperType = scraperType;
         scraperUrl = GetDefaultUrl(scraperType);
         scraperQuery = "";
-        batchNewsUrls = "";
         scrapedPosts.Clear();
         newsArticles.Clear();
         lastResult = null;
@@ -3405,7 +3397,6 @@
 
         try
         {
-            isLoadingNews = true;
             newsError = null;
             pipelineArticles.Clear();
             StateHasChanged();
@@ -3435,7 +3426,6 @@
         }
         finally
         {
-            isLoadingNews = false;
             StateHasChanged();
         }
     }

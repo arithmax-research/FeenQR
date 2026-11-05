@@ -6,7 +6,7 @@
          moved to Archive/Cli/ and no longer ships in the build. See Archive/Cli/README.md
          for the restore procedure. -->
     <OutputType>Library</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>CS1998,CS8625,CS8603,CS8604,CS8629,CS8601,CS8600,CS8602,CS8632,SKEXP0001,SKEXP0010,SKEXP0050,SKEXP0110</NoWarn>
@@ -61,11 +61,11 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0" />
     <PackageReference Include="PdfPig" Version="0.1.11" />
     <PackageReference Include="Qdrant.Client" Version="1.16.1" />
     <PackageReference Include="Skender.Stock.Indicators" Version="3.0.0-preview.1" />
-    <PackageReference Include="System.Text.Json" Version="10.0.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.71.0" />
     <PackageReference Include="Google.Apis.YouTube.v3" Version="1.68.0.3617" />
     <PackageReference Include="OpenAI-DotNet" Version="8.6.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />

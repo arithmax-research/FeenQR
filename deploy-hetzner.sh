@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  FeenQR → Hetzner incremental deploy (46.225.46.174 / arithmaxbase)
+#  FeenQR → Hetzner incremental deploy (46.225.46.174 / root)
 #
 #  Two modes:
 #
@@ -28,7 +28,7 @@ set -euo pipefail
 #      ./deploy-hetzner.sh --rebuild            # full docker image rebuild on server
 #      ./deploy-hetzner.sh --with-appsettings   # also push publish/appsettings.json
 #
-#  Env overrides: SSH_HOST, SSH_USER, REMOTE_DIR, CONTAINER, DOMAIN, SKIP_PUBLISH=1
+#  Env overrides: SSH_HOST, SSH_USER, SSH_KEY, REMOTE_DIR, CONTAINER, DOMAIN, SKIP_PUBLISH=1
 # ═══════════════════════════════════════════════════════════════════════════════
 
 CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
@@ -40,8 +40,9 @@ header(){ printf "\n${CYAN}═════════════════�
 
 # ── Config ────────────────────────────────────────────────────────────────────
 SSH_HOST="${SSH_HOST:-46.225.46.174}"
-SSH_USER="${SSH_USER:-misango}"
-REMOTE_DIR="${REMOTE_DIR:-/home/$SSH_USER/codechest/FeenQR}"
+SSH_USER="${SSH_USER:-root}"
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/hetzner_ed25519}"
+REMOTE_DIR="${REMOTE_DIR:-/root/codechest/FeenQR}"
 CONTAINER="${CONTAINER:-feenqr-web}"
 DOMAIN="${DOMAIN:-feenqr.misango.me}"
 PROXY_NETWORK="${PROXY_NETWORK:-caddy-central_proxy}"
@@ -66,7 +67,7 @@ for arg in "$@"; do
   esac
 done
 
-ssh_run() { ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" "$@"; }
+ssh_run() { ssh $SSH_OPTS -i "$SSH_KEY" "$SSH_USER@$SSH_HOST" "$@"; }
 
 # md5 helper: macOS `md5 -r`, Linux `md5sum`
 if command -v md5sum >/dev/null 2>&1; then MD5="md5sum"; else MD5="md5 -r"; fi
@@ -81,7 +82,7 @@ mkdir -p "$WORK_DIR"
 header "Preflight → $SSH_USER@$SSH_HOST"
 
 if ! ssh_run 'echo ok' 2>/dev/null | grep -q ok; then
-  err "Cannot SSH to $SSH_USER@$SSH_HOST (check ~/.ssh/config / key)."
+  err "Cannot SSH to $SSH_USER@$SSH_HOST (check ~/.ssh/hetzner_ed25519)."
   exit 1
 fi
 ok "SSH reachable"
@@ -200,7 +201,7 @@ fi
 header "Uploading into $CONTAINER"
 UPLOAD_START="$(date +%s)"
 ( cd "$PUBLISH_DIR" && tar czf - $TAR_OPTS -T "$WORK_DIR/delta.txt" ) \
-  | ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" "docker exec -i $CONTAINER tar xzf - -C /app"
+  | ssh $SSH_OPTS -i "$SSH_KEY" "$SSH_USER@$SSH_HOST" "docker exec -i $CONTAINER tar xzf - -C /app"
 ok "Uploaded in $(( $(date +%s) - UPLOAD_START ))s"
 
 header "Restarting $CONTAINER"
