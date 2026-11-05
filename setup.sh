@@ -4,10 +4,10 @@ echo "Quant Research Agent Setup"
 echo "============================="
 echo ""
 
-# Check if .NET 8 is installed
+# Check if .NET 10 is installed
 if ! command -v dotnet &> /dev/null; then
-    echo "   .NET 8 SDK is not installed. Please install it first:"
-    echo "   https://dotnet.microsoft.com/download/dotnet/8.0"
+    echo "   .NET 10 SDK is not installed. Please install it first:"
+    echo "   https://dotnet.microsoft.com/download/dotnet/10.0"
     exit 1
 fi
 

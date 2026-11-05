@@ -137,7 +137,7 @@ The system is built around Microsoft Semantic Kernel, providing:
 ## Setup and Configuration
 
 ### Prerequisites
-- .NET 8.0 SDK
+- .NET 10.0 SDK
 - OpenAI API Key
 - YouTube Data API Key (v3)
 - Binance API Keys (optional, for live trading)
