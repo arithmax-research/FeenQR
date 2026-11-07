@@ -39,9 +39,9 @@ err()   { printf "${CYAN}${BOLD}[FAIL]${NC} ${CYAN}%s${NC}\n" "$*" >&2; }
 header(){ printf "\n${CYAN}════════════════════════════════════════${NC}\n${CYAN}  %s${NC}\n${CYAN}────────────────────────────────────────${NC}\n" "$*"; }
 
 # ── Config ────────────────────────────────────────────────────────────────────
-SSH_HOST="${SSH_HOST:-46.225.46.174}"
+SSH_HOST="${SSH_HOST:-46.225.55.214}"
 SSH_USER="${SSH_USER:-root}"
-SSH_KEY="${SSH_KEY:-$HOME/.ssh/hetzner_ed25519}"
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/}"
 REMOTE_DIR="${REMOTE_DIR:-/root/codechest/FeenQR}"
 CONTAINER="${CONTAINER:-feenqr-web}"
 DOMAIN="${DOMAIN:-feenqr.misango.me}"
