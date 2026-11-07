@@ -69,6 +69,29 @@ done
 
 ssh_run() { ssh $SSH_OPTS -i "$SSH_KEY" "$SSH_USER@$SSH_HOST" "$@"; }
 
+wait_for_container_running() {
+  local attempts="${1:-15}"
+  local state=""
+  local i
+
+  for ((i = 1; i <= attempts; i++)); do
+    state="$(ssh_run "docker inspect -f '{{.State.Status}}' '$CONTAINER'" 2>/dev/null || true)"
+    if [ "$state" = "running" ]; then
+      return 0
+    fi
+    sleep 2
+  done
+
+  err "Container '$CONTAINER' is not stable after $((attempts * 2))s (state: ${state:-missing})."
+  err "If the logs show a startup/configuration error, repair the config and run: $(basename "$0") --rebuild"
+  err "Recent container logs:"
+  ssh_run "docker logs --tail 30 '$CONTAINER' 2>&1" | sed 's/^/        /' || true
+  err "Container state:"
+  ssh_run "docker inspect -f 'status={{.State.Status}} restarting={{.State.Restarting}} exit={{.State.ExitCode}} error={{.State.Error}}' '$CONTAINER'" 2>&1 \
+    | sed 's/^/        /' || true
+  return 1
+}
+
 # md5 helper: macOS `md5 -r`, Linux `md5sum`
 if command -v md5sum >/dev/null 2>&1; then MD5="md5sum"; else MD5="md5 -r"; fi
 if stat -f '%z' "$0" >/dev/null 2>&1; then STAT_SIZE="stat -f %z"; else STAT_SIZE="stat -c %s"; fi
@@ -96,9 +119,8 @@ if [ "$MODE" = "rebuild" ]; then
     || { err "Remote dir / docker-compose.yml / appsettings.json missing in $REMOTE_DIR"; exit 1; }
   ok "Remote project layout OK"
 else
-  STATE="$(ssh_run "docker inspect -f '{{.State.Running}}' $CONTAINER" 2>/dev/null || echo missing)"
-  if [ "$STATE" != "true" ]; then
-    err "Container '$CONTAINER' is not running on $SSH_HOST (state: $STATE)."
+  if ! wait_for_container_running; then
+    err "Container '$CONTAINER' is not running reliably on $SSH_HOST."
     err "Start it first:  ssh $SSH_USER@$SSH_HOST 'cd $REMOTE_DIR && docker compose up -d feenqr-web'"
     exit 1
   fi
@@ -153,6 +175,7 @@ info "Local  : $PUBLISH_DIR"
 ok "Local manifest    : $(wc -l < "$WORK_DIR/local.sums" | tr -d ' ') files"
 
 info "Remote : /app inside $CONTAINER (ignores logs/, uploads/, Scripts/)"
+wait_for_container_running
 ssh_run "CONTAINER='$CONTAINER' bash -s" <<'REMOTE' > "$WORK_DIR/container.raw"
 docker exec "$CONTAINER" sh -c 'find /app -type f -not -path "/app/logs/*" -not -path "/app/uploads/*" -not -path "/app/Scripts/*" -print0 | xargs -0 md5sum'
 REMOTE
@@ -199,13 +222,16 @@ if [ "$DRY_RUN" = "1" ]; then
 fi
 
 header "Uploading into $CONTAINER"
+wait_for_container_running
 UPLOAD_START="$(date +%s)"
 ( cd "$PUBLISH_DIR" && tar czf - $TAR_OPTS -T "$WORK_DIR/delta.txt" ) \
   | ssh $SSH_OPTS -i "$SSH_KEY" "$SSH_USER@$SSH_HOST" "docker exec -i $CONTAINER tar xzf - -C /app"
 ok "Uploaded in $(( $(date +%s) - UPLOAD_START ))s"
 
 header "Restarting $CONTAINER"
-ssh_run "docker restart $CONTAINER >/dev/null && sleep 4 && docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'NAMES|$CONTAINER'"
+ssh_run "docker restart '$CONTAINER' >/dev/null"
+wait_for_container_running 20
+ssh_run "docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'NAMES|$CONTAINER'"
 ok "Container restarted"
 
 header "Verification"
